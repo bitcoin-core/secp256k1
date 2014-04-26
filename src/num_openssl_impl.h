@@ -133,6 +133,7 @@ void static secp256k1_num_set_hex(secp256k1_num_t *r, const char *a, int alen) {
 
 void static secp256k1_num_get_hex(char *r, int rlen, const secp256k1_num_t *a) {
     char *str = BN_bn2hex(&a->bn);
+    // warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data (x64)
     int len = strlen(str);
     VERIFY_CHECK(rlen >= len);
     for (int i=0; i<rlen-len; i++)
