@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup Label="Globals">
+    <_PropertySheetDisplayName>SECP256k1 Common Settings</_PropertySheetDisplayName>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+  </PropertyGroup>
+
+  <!-- User Interface -->
+
+  <ItemGroup Label="BuildOptionsExtension">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)$(ProjectName).xml" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <Option-bignum>gmp</Option-bignum>
+    <Option-field>gmp</Option-field>
+    <Option-fieldimp></Option-fieldimp>
+    <Option-fieldinv>builtin</Option-fieldinv>
+    <Option-endomorph>true</Option-endomorph>
+    <Option-config></Option-config>
+  </PropertyGroup>
+
+  <!-- Configuration -->
+  
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\src\;$(ProjectDir)..\..\..\..\include\%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <EnablePREfast>false</EnablePREfast>
+      <PreprocessorDefinitions>inline=__inline;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(ConfigurationType)' == 'StaticLibrary'">EC_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(ConfigurationType)' == 'DynamicLibrary'">EC_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-bignum)' == 'gmp'">USE_NUM_GMP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-bignum)' == 'openssl'">USE_NUM_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-field)' == 'gmp'">USE_FIELD_GMP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-field)' == '10x26'">USE_FIELD_10X26;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-field)' == '5x52'">USE_FIELD_5X52;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-fieldimp)' == 'asm'">USE_FIELD_5X52_ASM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-fieldimp)' == 'int128'">USE_FIELD_5X52_INT128;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-fieldinv)' == 'builtin'">USE_FIELD_INV_BUILTIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-fieldinv)' == 'num'">USE_FIELD_INV_NUM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-endomorph)' == 'true'">USE_ENDOMORPHISM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-config)' == 'true'">HAVE_CONFIG_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <!-- Dependencies -->
+
+  <PropertyGroup Condition="$(Configuration.IndexOf('DLL')) != -1">
+    <Linkage-secp256k1>dynamic</Linkage-secp256k1>
+    <Linkage-mpir>dynamic</Linkage-mpir>
+    <Linkage-openssl>dynamic</Linkage-openssl>
+    <Linkage-zlib>dynamic</Linkage-zlib>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(Configuration.IndexOf('LTCG')) != -1">
+    <Linkage-secp256k1>ltcg</Linkage-secp256k1>
+    <Linkage-mpir>ltcg</Linkage-mpir>
+    <Linkage-openssl>ltcg</Linkage-openssl>
+    <Linkage-zlib>ltcg</Linkage-zlib>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(Configuration.IndexOf('LIB')) != -1">
+    <Linkage-secp256k1>static</Linkage-secp256k1>
+    <Linkage-mpir>static</Linkage-mpir>
+    <Linkage-openssl>static</Linkage-openssl>
+    <Linkage-zlib>static</Linkage-zlib>
+  </PropertyGroup>
+
+  <!-- Messages -->
+
+  <Target Name="OptionInfo" BeforeTargets="PrepareForBuild">
+    <Message Text="Option-bignum     : $(Option-bignum)" Importance="high"/>
+    <Message Text="Option-field      : $(Option-field)" Importance="high"/>
+    <Message Text="Option-fieldimp   : $(Option-fieldimp)" Importance="high"/>
+    <Message Text="Option-fieldinv   : $(Option-fieldinv)" Importance="high"/>
+    <Message Text="Option-endomorph  : $(Option-endomorph)" Importance="high"/>
+    <Message Text="Option-config     : $(Option-config)" Importance="high"/>
+  </Target>
+
+  <Target Name="LinkageInfo" BeforeTargets="PrepareForBuild">
+    <Message Text="Linkage-mpir      : $(Linkage-mpir)" Importance="high"/>
+    <Message Text="Linkage-openssl   : $(Linkage-openssl)" Importance="high"/>
+    <Message Text="Linkage-zlib      : $(Linkage-zlib)" Importance="high"/>
+  </Target>
+
+</Project>
