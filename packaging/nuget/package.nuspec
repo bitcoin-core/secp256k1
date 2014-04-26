@@ -48,7 +48,7 @@
 
         <!-- x86 Debugging symbols (.pdb) -->
         <!--<file src="..\..\bin\Win32\Release\secp256k112\secp256k1.pdb" target="build\native\bin\secp256k1-x86-v120-mt-0_1_0_1.pdb" />-->
-        <file src="..\..\bin\Win32\Debug\secp256k112\secp256k1.pdb" target="build\native\bin\secp256k1-x86-v120-mt-gd-0_1_0_1.pdb" />
+        <!--<file src="..\..\bin\Win32\Debug\secp256k112\secp256k1.pdb" target="build\native\bin\secp256k1-x86-v120-mt-gd-0_1_0_1.pdb" />-->
 
         <!-- x86 Static libraries (.lib) -->
         <file src="..\..\bin\Win32\Release\secp256k112\secp256k1.lib" target="build\native\bin\secp256k1-x86-v120-mt-s-0_1_0_1.lib" />
@@ -72,7 +72,7 @@
 
         <!-- x64 Debugging symbols (.pdb) -->
         <!--<file src="..\..\bin\x64\Release\secp256k112\secp256k1.pdb" target="build\native\bin\secp256k1-x64-v120-mt-0_1_0_1.pdb" />-->
-        <file src="..\..\bin\x64\Debug\secp256k112\secp256k1.pdb" target="build\native\bin\secp256k1-x64-v120-mt-gd-0_1_0_1.pdb" />
+        <!--<file src="..\..\bin\x64\Debug\secp256k112\secp256k1.pdb" target="build\native\bin\secp256k1-x64-v120-mt-gd-0_1_0_1.pdb" />-->
 
         <!-- x64 Static libraries (.lib) -->
         <file src="..\..\bin\x64\Release\secp256k112\secp256k1.lib" target="build\native\bin\secp256k1-x64-v120-mt-s-0_1_0_1.lib" />

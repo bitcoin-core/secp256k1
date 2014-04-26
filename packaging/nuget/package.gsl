@@ -58,7 +58,7 @@
 
         <!-- x86 Debugging symbols (.pdb) -->
         <!--<file src="..\\..\\bin\\Win32\\Release\\$(package.namespace)\\$(package.target).pdb" target="build\\native\\bin\\$(package.target)-x86-$(package.platformtoolset)-mt-$(package.pathversion).pdb" />-->
-        <file src="..\\..\\bin\\Win32\\Debug\\$(package.namespace)\\$(package.target).pdb" target="build\\native\\bin\\$(package.target)-x86-$(package.platformtoolset)-mt-gd-$(package.pathversion).pdb" />
+        <!--<file src="..\\..\\bin\\Win32\\Debug\\$(package.namespace)\\$(package.target).pdb" target="build\\native\\bin\\$(package.target)-x86-$(package.platformtoolset)-mt-gd-$(package.pathversion).pdb" />-->
 
         <!-- x86 Static libraries (.lib) -->
         <file src="..\\..\\bin\\Win32\\Release\\$(package.namespace)\\$(package.target).lib" target="build\\native\\bin\\$(package.target)-x86-$(package.platformtoolset)-mt-s-$(package.pathversion).lib" />
@@ -82,7 +82,7 @@
 
         <!-- x64 Debugging symbols (.pdb) -->
         <!--<file src="..\\..\\bin\\x64\\Release\\$(package.namespace)\\$(package.target).pdb" target="build\\native\\bin\\$(package.target)-x64-$(package.platformtoolset)-mt-$(package.pathversion).pdb" />-->
-        <file src="..\\..\\bin\\x64\\Debug\\$(package.namespace)\\$(package.target).pdb" target="build\\native\\bin\\$(package.target)-x64-$(package.platformtoolset)-mt-gd-$(package.pathversion).pdb" />
+        <!--<file src="..\\..\\bin\\x64\\Debug\\$(package.namespace)\\$(package.target).pdb" target="build\\native\\bin\\$(package.target)-x64-$(package.platformtoolset)-mt-gd-$(package.pathversion).pdb" />-->
 
         <!-- x64 Static libraries (.lib) -->
         <file src="..\\..\\bin\\x64\\Release\\$(package.namespace)\\$(package.target).lib" target="build\\native\\bin\\$(package.target)-x64-$(package.platformtoolset)-mt-s-$(package.pathversion).lib" />
