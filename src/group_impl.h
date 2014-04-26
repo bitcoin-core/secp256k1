@@ -38,7 +38,9 @@ void static secp256k1_ge_get_hex(char *r, int *rlen, const secp256k1_ge_t *a) {
     char cy[65]; int ly=65;
     secp256k1_fe_get_hex(cx, &lx, &a->x);
     secp256k1_fe_get_hex(cy, &ly, &a->y);
+    // warning C4267 : '=' : conversion from 'size_t' to 'int', possible loss of data (x64)
     lx = strlen(cx);
+    // warning C4267: '=' : conversion from 'size_t' to 'int', possible loss of data (x64)
     ly = strlen(cy);
     int len = lx + ly + 3 + 1;
     if (*rlen < len) {

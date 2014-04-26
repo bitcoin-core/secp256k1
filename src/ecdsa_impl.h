@@ -277,6 +277,7 @@ int static secp256k1_ecdsa_privkey_serialize(unsigned char *privkey, int *privke
         memcpy(ptr, middle, sizeof(middle)); ptr += sizeof(middle);
         int pubkeylen = 0;
         secp256k1_ecdsa_pubkey_serialize(&r, ptr, &pubkeylen, 1); ptr += pubkeylen;
+        // warning C4244: '=' : conversion from '__int64' to 'int', possible loss of data (x64)
         *privkeylen = ptr - privkey;
     } else {
         static const unsigned char begin[] = {
@@ -301,6 +302,7 @@ int static secp256k1_ecdsa_privkey_serialize(unsigned char *privkey, int *privke
         memcpy(ptr, middle, sizeof(middle)); ptr += sizeof(middle);
         int pubkeylen = 0;
         secp256k1_ecdsa_pubkey_serialize(&r, ptr, &pubkeylen, 0); ptr += pubkeylen;
+        // warning C4244: '=' : conversion from '__int64' to 'int', possible loss of data (x64)
         *privkeylen = ptr - privkey;
     }
     return 1;
