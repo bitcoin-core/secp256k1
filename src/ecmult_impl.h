@@ -91,8 +91,9 @@ static const secp256k1_ecmult_consts_t *secp256k1_ecmult_consts = NULL;
 static const secp256k1_ecmult_gen_consts_t *secp256k1_ecmult_gen_consts = NULL;
 
 static void secp256k1_ecmult_start(void) {
-    if (secp256k1_ecmult_consts != NULL)
+    if (secp256k1_ecmult_consts != NULL) {
         return;
+    }
 
     // Allocate the precomputation table.
     secp256k1_ecmult_consts_t *ret = (secp256k1_ecmult_consts_t*)malloc(sizeof(secp256k1_ecmult_consts_t));
@@ -178,8 +179,9 @@ static void secp256k1_ecmult_gen_start(void) {
 }
 
 static void secp256k1_ecmult_stop(void) {
-    if (secp256k1_ecmult_consts == NULL)
+    if (secp256k1_ecmult_consts == NULL) {
         return;
+    }
 
     secp256k1_ecmult_consts_t *c = (secp256k1_ecmult_consts_t*)secp256k1_ecmult_consts;
     secp256k1_ecmult_consts = NULL;

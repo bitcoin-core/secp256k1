@@ -159,8 +159,9 @@ int static secp256k1_gej_is_infinity(const secp256k1_gej_t *a) {
 }
 
 int static secp256k1_gej_is_valid(const secp256k1_gej_t *a) {
-    if (a->infinity)
+    if (a->infinity) {
         return 0;
+    }
     // y^2 = x^3 + 7
     // (Y/Z^3)^2 = (X/Z^2)^3 + 7
     // Y^2 / Z^6 = X^3 / Z^6 + 7
@@ -177,8 +178,9 @@ int static secp256k1_gej_is_valid(const secp256k1_gej_t *a) {
 }
 
 int static secp256k1_ge_is_valid(const secp256k1_ge_t *a) {
-    if (a->infinity)
+    if (a->infinity) {
         return 0;
+    }
     // y^2 = x^3 + 7
     secp256k1_fe_t y2; secp256k1_fe_sqr(&y2, &a->y);
     secp256k1_fe_t x3; secp256k1_fe_sqr(&x3, &a->x); secp256k1_fe_mul(&x3, &x3, &a->x);
