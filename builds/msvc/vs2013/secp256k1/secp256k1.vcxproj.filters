@@ -135,6 +135,12 @@
     <ClInclude Include="..\..\resource.h">
       <Filter>resource</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\src\util_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\util.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Xml Include="..\..\..\..\packaging\nuget\package.xml">

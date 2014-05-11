@@ -210,6 +210,8 @@
     <ClInclude Include="..\..\..\..\src\num_impl.h" />
     <ClInclude Include="..\..\..\..\src\num_openssl.h" />
     <ClInclude Include="..\..\..\..\src\num_openssl_impl.h" />
+    <ClInclude Include="..\..\..\..\src\util.h" />
+    <ClInclude Include="..\..\..\..\src\util_impl.h" />
     <ClInclude Include="..\..\resource.h" />
   </ItemGroup>
   <ItemGroup>
