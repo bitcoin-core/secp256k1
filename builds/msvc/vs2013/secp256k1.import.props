@@ -12,39 +12,17 @@
   </ItemGroup>
 
   <!-- Linkage -->
-
+  
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\..\secp256k1\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>inline=__inline;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Linkage-secp256k1)' == 'static' Or '$(Linkage-secp256k1)' == 'ltcg'">EC_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-  </ItemDefinitionGroup>
-
-  <ItemDefinitionGroup Condition="'$(Linkage-secp256k1)' == 'dynamic'">
-    <Link Condition="$(Configuration.IndexOf('Debug')) != -1">
-      <AdditionalDependencies>$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\secp256k112\secp256k1.imp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <Link Condition="$(Configuration.IndexOf('Release')) != -1">
-      <AdditionalDependencies>$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Release\secp256k112\secp256k1.imp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
-
-  <ItemDefinitionGroup Condition="'$(Linkage-secp256k1)' == 'static'">
-    <Link Condition="$(Configuration.IndexOf('Debug')) != -1">
-      <AdditionalDependencies>$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\secp256k112\secp256k1.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <Link Condition="$(Configuration.IndexOf('Release')) != -1">
-      <AdditionalDependencies>$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Release\secp256k112\secp256k1.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
-
-  <ItemDefinitionGroup Condition="'$(Linkage-secp256k1)' == 'ltcg'">
-    <Link Condition="$(Configuration.IndexOf('Debug')) != -1">
-      <AdditionalDependencies>$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\secp256k112\secp256k1.ltcg.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <Link Condition="$(Configuration.IndexOf('Release')) != -1">
-      <AdditionalDependencies>$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Release\secp256k112\secp256k1.ltcg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    <Link>
+      <AdditionalDependencies>secp256k1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories Condition="$(Configuration.IndexOf('Debug')) != -1">$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\$(PlatformToolset)\$(Linkage-secp256k1)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="$(Configuration.IndexOf('Release')) != -1">$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Release\$(PlatformToolset)\$(Linkage-secp256k1)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
 
@@ -52,15 +30,15 @@
 
   <Target Name="Linkage-secp256k1-dynamic" AfterTargets="AfterBuild" Condition="'$(Linkage-secp256k1)' == 'dynamic'">
     <Copy Condition="$(Configuration.IndexOf('Debug')) != -1"
-          SourceFiles="$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\secp256k112\secp256k1.dll"
+          SourceFiles="$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\$(PlatformToolset)\dynamic\secp256k1.dll"
           DestinationFiles="$(TargetDir)secp256k1.dll"
           SkipUnchangedFiles="true" />
     <Copy Condition="$(Configuration.IndexOf('Debug')) != -1"
-          SourceFiles="$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\secp256k112\secp256k1.pdb"
+          SourceFiles="$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\$(PlatformToolset)\dynamic\secp256k1.pdb"
           DestinationFiles="$(TargetDir)secp256k1.pdb"
           SkipUnchangedFiles="true" />
     <Copy Condition="$(Configuration.IndexOf('Release')) != -1"
-          SourceFiles="$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Release\secp256k112\secp256k1.dll"
+          SourceFiles="$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Release\$(PlatformToolset)\dynamic\secp256k1.dll"
           DestinationFiles="$(TargetDir)secp256k1.dll"
           SkipUnchangedFiles="true" />
   </Target>
