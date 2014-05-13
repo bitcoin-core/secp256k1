@@ -1,0 +1,6 @@
+libsecp256k10 (1.0.0+nmu1) unstable; urgency=low
+
+  * Initial release.
+  Closes: bug#670701
+
+ -- Amir Taaki (Debian packages) <genjix@riseup.net>  Sun, 13 May 2014 01:44:00 +0100

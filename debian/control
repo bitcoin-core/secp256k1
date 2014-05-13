@@ -1,0 +1,23 @@
+Source: libsecp256k10
+Section: libs
+Priority: optional
+Maintainer: Amir Taaki <genjix@riseup.net>
+Build-Depends: debhelper (>= 8.1.3~), pkg-config, autoconf, automake, autotools-dev, libtool, libgmp-dev
+Standards-Version: 3.9.4
+Vcs-Git: https://github.com/bitcoin/secp256k1.git
+Vcs-Browser: https://github.com/bitcoin/secp256k1/
+Homepage: https://github.com/bitcoin/secp256k1/
+
+Package: libsecp256k1-dev
+Section: libdevel
+Architecture: any
+Depends: libsecp256k10 (= ${binary:Version}), ${misc:Depends}
+Description: Optimized C library for EC operations on curve secp256k1
+
+Package: libsecp256k10
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Multi-Arch: same
+Description: Optimized C library for EC operations on curve secp256k1
+
