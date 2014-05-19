@@ -2,11 +2,11 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "impl/num.h"
-#include "impl/field.h"
-#include "impl/group.h"
-#include "impl/ecmult.h"
-#include "impl/ecdsa.h"
+#include "num_impl.h"
+#include "field_impl.h"
+#include "group_impl.h"
+#include "ecmult_impl.h"
+#include "ecdsa_impl.h"
 
 void secp256k1_start(void) {
     secp256k1_fe_start();
@@ -56,9 +56,13 @@ int secp256k1_ecdsa_sign(const unsigned char *message, int messagelen, unsigned 
     secp256k1_num_set_bin(&sec, seckey, 32);
     secp256k1_num_set_bin(&non, nonce, 32);
     secp256k1_num_set_bin(&msg, message, messagelen);
+    int ret = !secp256k1_num_is_zero(&non) &&
+              (secp256k1_num_cmp(&non, &secp256k1_ge_consts->order) < 0);
     secp256k1_ecdsa_sig_t sig;
     secp256k1_ecdsa_sig_init(&sig);
-    int ret = secp256k1_ecdsa_sig_sign(&sig, &sec, &msg, &non, NULL);
+    if (ret) {
+        ret = secp256k1_ecdsa_sig_sign(&sig, &sec, &msg, &non, NULL);
+    }
     if (ret) {
         secp256k1_ecdsa_sig_serialize(signature, signaturelen, &sig);
     }
@@ -77,9 +81,13 @@ int secp256k1_ecdsa_sign_compact(const unsigned char *message, int messagelen, u
     secp256k1_num_set_bin(&sec, seckey, 32);
     secp256k1_num_set_bin(&non, nonce, 32);
     secp256k1_num_set_bin(&msg, message, messagelen);
+    int ret = !secp256k1_num_is_zero(&non) &&
+              (secp256k1_num_cmp(&non, &secp256k1_ge_consts->order) < 0);
     secp256k1_ecdsa_sig_t sig;
     secp256k1_ecdsa_sig_init(&sig);
-    int ret = secp256k1_ecdsa_sig_sign(&sig, &sec, &msg, &non, recid);
+    if (ret) {
+        ret = secp256k1_ecdsa_sig_sign(&sig, &sec, &msg, &non, recid);
+    }
     if (ret) {
         secp256k1_num_get_bin(sig64, 32, &sig.r);
         secp256k1_num_get_bin(sig64 + 32, 32, &sig.s);

@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include "../num.h"
-#include "../field.h"
+#include "num.h"
+#include "field.h"
 
 static mp_limb_t secp256k1_field_p[FIELD_LIMBS];
 static mp_limb_t secp256k1_field_pc[(33+GMP_NUMB_BITS-1)/GMP_NUMB_BITS];
@@ -18,7 +18,7 @@ void static secp256k1_fe_inner_start(void) {
     for (int i=0; i<(33+GMP_NUMB_BITS-1)/GMP_NUMB_BITS; i++)
         secp256k1_field_pc[i] = 0;
     secp256k1_field_pc[0] += 0x3D1UL;
-    secp256k1_field_pc[32/GMP_NUMB_BITS] += (1UL << (32 % GMP_NUMB_BITS));
+    secp256k1_field_pc[32/GMP_NUMB_BITS] += (((mp_limb_t)1) << (32 % GMP_NUMB_BITS));
     for (int i=0; i<FIELD_LIMBS; i++) {
         secp256k1_field_p[i] = 0;
     }
