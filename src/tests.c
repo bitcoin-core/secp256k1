@@ -293,16 +293,17 @@ void random_non_square_fe(secp256k1_fe_t *ns) {
 }
 
 void test_sqrt(const secp256k1_fe_t *a, const secp256k1_fe_t *k) {
-    secp256k1_fe_t r, s;
-    int v = secp256k1_fe_sqrt(&r, a);
+    secp256k1_fe_t r1, r2;
+    int v = secp256k1_fe_sqrt(&r1, a);
     assert((v == 0) == (k == NULL));
 
-    secp256k1_fe_sqr(&s, &r);
-    secp256k1_fe_normalize(&s);
-    secp256k1_fe_t n = *a;
-    secp256k1_fe_normalize(&n);
-    int e1 = secp256k1_fe_equal(&s, &n);
-    assert((v == 0) == (e1 == 0));
+    if (k != NULL) {
+        // Check that the returned root is +/- the given known answer
+        secp256k1_fe_negate(&r2, &r1, 1);
+        secp256k1_fe_add(&r1, k); secp256k1_fe_add(&r2, k);
+        secp256k1_fe_normalize(&r1); secp256k1_fe_normalize(&r2);
+        assert(secp256k1_fe_is_zero(&r1) || secp256k1_fe_is_zero(&r2));
+    }
 }
 
 void run_sqrt() {
