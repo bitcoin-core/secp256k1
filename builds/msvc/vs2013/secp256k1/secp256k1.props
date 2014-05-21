@@ -49,16 +49,16 @@
   <!-- Dependencies -->
   
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'dynamic'">
-    <Linkage-mpir>$(DefaultLinkage)</Linkage-mpir>
-    <Linkage-openssl>$(DefaultLinkage)</Linkage-openssl>
+    <Linkage-mpir>dynamic</Linkage-mpir>
+    <Linkage-openssl>dynamic</Linkage-openssl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'ltcg'">
     <Linkage-mpir>static</Linkage-mpir>
     <Linkage-openssl>static</Linkage-openssl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'static'">
-    <Linkage-mpir>$(DefaultLinkage)</Linkage-mpir>
-    <Linkage-openssl>$(DefaultLinkage)</Linkage-openssl>
+    <Linkage-mpir>static</Linkage-mpir>
+    <Linkage-openssl>static</Linkage-openssl>
   </PropertyGroup>
 
   <!-- Messages -->

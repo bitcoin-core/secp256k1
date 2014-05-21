@@ -59,18 +59,18 @@
 
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'dynamic'">
     <Linkage-secp256k1>static</Linkage-secp256k1>
-    <Linkage-mpir>$(DefaultLinkage)</Linkage-mpir>
-    <Linkage-openssl>$(DefaultLinkage)</Linkage-openssl>
+    <Linkage-mpir>dynamic</Linkage-mpir>
+    <Linkage-openssl>dynamic</Linkage-openssl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'ltcg'">
-    <Linkage-secp256k1>$(DefaultLinkage)</Linkage-secp256k1>
+    <Linkage-secp256k1>ltcg</Linkage-secp256k1>
     <Linkage-mpir>static</Linkage-mpir>
     <Linkage-openssl>static</Linkage-openssl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'static'">
-    <Linkage-secp256k1>$(DefaultLinkage)</Linkage-secp256k1>
-    <Linkage-mpir>$(DefaultLinkage)</Linkage-mpir>
-    <Linkage-openssl>$(DefaultLinkage)</Linkage-openssl>
+    <Linkage-secp256k1>static</Linkage-secp256k1>
+    <Linkage-mpir>static</Linkage-mpir>
+    <Linkage-openssl>static</Linkage-openssl>
   </PropertyGroup>
 
   <!-- Messages -->
