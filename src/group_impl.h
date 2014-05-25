@@ -5,6 +5,7 @@
 #ifndef _SECP256K1_GROUP_IMPL_H_
 #define _SECP256K1_GROUP_IMPL_H_
 
+#include <stdio.h>
 #include <string.h>
 
 #include "num.h"
@@ -304,38 +305,34 @@ void static secp256k1_gej_mul_lambda(secp256k1_gej_t *r, const secp256k1_gej_t *
 
 void static secp256k1_gej_split_exp(secp256k1_num_t *r1, secp256k1_num_t *r2, const secp256k1_num_t *a) {
     const secp256k1_ge_consts_t *c = secp256k1_ge_consts;
-    secp256k1_num_t bnc1, bnc2, bnt1, bnt2, bnn2;
 
-    secp256k1_num_init(&bnc1);
-    secp256k1_num_init(&bnc2);
-    secp256k1_num_init(&bnt1);
-    secp256k1_num_init(&bnt2);
-    secp256k1_num_init(&bnn2);
+    secp256k1_num_t d1, d2, t;
+    secp256k1_num_init(&d1);
+    secp256k1_num_init(&d2);
+    secp256k1_num_init(&t);
 
-    secp256k1_num_copy(&bnn2, &c->order);
-    secp256k1_num_shift(&bnn2, 1);
+    secp256k1_num_mul(&t, a, &c->g1);
+    secp256k1_num_trunc(&d1, &t, 272);
+    if (secp256k1_num_get_bit(&t, 271))
+        secp256k1_num_inc(&d1);
 
-    secp256k1_num_mul(&bnc1, a, &c->a1b2);
-    secp256k1_num_add(&bnc1, &bnc1, &bnn2);
-    secp256k1_num_div(&bnc1, &bnc1, &c->order);
+    secp256k1_num_mul(&t, a, &c->g2);
+    secp256k1_num_trunc(&d2, &t, 272);
+    if (secp256k1_num_get_bit(&t, 271))
+        secp256k1_num_inc(&d2);
 
-    secp256k1_num_mul(&bnc2, a, &c->b1);
-    secp256k1_num_add(&bnc2, &bnc2, &bnn2);
-    secp256k1_num_div(&bnc2, &bnc2, &c->order);
+    secp256k1_num_mul(&t, &d1, &c->a1b2);
+    secp256k1_num_sub(r1, a, &t);
+    secp256k1_num_mul(&t, &d2, &c->a2);
+    secp256k1_num_sub(r1, r1, &t);
 
-    secp256k1_num_mul(&bnt1, &bnc1, &c->a1b2);
-    secp256k1_num_mul(&bnt2, &bnc2, &c->a2);
-    secp256k1_num_add(&bnt1, &bnt1, &bnt2);
-    secp256k1_num_sub(r1, a, &bnt1);
-    secp256k1_num_mul(&bnt1, &bnc1, &c->b1);
-    secp256k1_num_mul(&bnt2, &bnc2, &c->a1b2);
-    secp256k1_num_sub(r2, &bnt1, &bnt2);
+    secp256k1_num_mul(r2, &d1, &c->b1);
+    secp256k1_num_mul(&t, &d2, &c->a1b2);
+    secp256k1_num_sub(r2, r2, &t);
 
-    secp256k1_num_free(&bnc1);
-    secp256k1_num_free(&bnc2);
-    secp256k1_num_free(&bnt1);
-    secp256k1_num_free(&bnt2);
-    secp256k1_num_free(&bnn2);
+    secp256k1_num_free(&d1);
+    secp256k1_num_free(&d2);
+    secp256k1_num_free(&t);
 }
 #endif
 
@@ -386,6 +383,33 @@ void static secp256k1_ge_start(void) {
         0x14,0xca,0x50,0xf7,0xa8,0xe2,0xf3,0xf6,
         0x57,0xc1,0x10,0x8d,0x9d,0x44,0xcf,0xd8
     };
+    /**
+     *  g1, g2 are precomputed constants used to replace division with a rounded multiplication
+     *  when decomposing the scalar for an endomorphism-based point multiplication.
+     *
+     *  The possibility of using precomputed estimates is mentioned in "Guide to Elliptic Curve
+     *  Cryptography" (Hankerson, Menezes, Vanstone) in section 3.5.
+     *
+     *  The derivation is described in the paper "Efficient Software Implementation of Public-Key
+     *  Cryptography on Sensor Networks Using the MSP430X Microcontroller" (Gouvea, Oliveira, Lopez),
+     *  Section 4.3 (here we use a somewhat higher-precision estimate):
+     *      d  = a1*b2 - b1*a2
+     *      g1 = round((2^272)*b2/d)
+     *      g2 = round((2^272)*b1/d)
+     *
+     *  (Note that 'd' is also equal to the curve order here because [a1,b1] and [a2,b2] are found
+     *  as outputs of the Extended Euclidean Algorithm on inputs 'order' and 'lambda').
+     */
+    static const unsigned char secp256k1_ge_consts_g1[] = {
+        0x30,0x86,
+        0xd2,0x21,0xa7,0xd4,0x6b,0xcd,0xe8,0x6c,
+        0x90,0xe4,0x92,0x84,0xeb,0x15,0x3d,0xab
+    };
+    static const unsigned char secp256k1_ge_consts_g2[] = {
+        0xe4,0x43,
+        0x7e,0xd6,0x01,0x0e,0x88,0x28,0x6f,0x54,
+        0x7f,0xa9,0x0a,0xbf,0xe4,0xc4,0x22,0x12
+    };
 #endif
     if (secp256k1_ge_consts == NULL) {
         secp256k1_ge_consts_t *ret = (secp256k1_ge_consts_t*)malloc(sizeof(secp256k1_ge_consts_t));
@@ -399,10 +423,14 @@ void static secp256k1_ge_start(void) {
         secp256k1_num_init(&ret->a1b2);
         secp256k1_num_init(&ret->a2);
         secp256k1_num_init(&ret->b1);
+        secp256k1_num_init(&ret->g1);
+        secp256k1_num_init(&ret->g2);
         secp256k1_num_set_bin(&ret->lambda, secp256k1_ge_consts_lambda, sizeof(secp256k1_ge_consts_lambda));
         secp256k1_num_set_bin(&ret->a1b2,   secp256k1_ge_consts_a1b2,   sizeof(secp256k1_ge_consts_a1b2));
         secp256k1_num_set_bin(&ret->a2,     secp256k1_ge_consts_a2,     sizeof(secp256k1_ge_consts_a2));
         secp256k1_num_set_bin(&ret->b1,     secp256k1_ge_consts_b1,     sizeof(secp256k1_ge_consts_b1));
+        secp256k1_num_set_bin(&ret->g1,     secp256k1_ge_consts_g1,     sizeof(secp256k1_ge_consts_g1));
+        secp256k1_num_set_bin(&ret->g2,     secp256k1_ge_consts_g2,     sizeof(secp256k1_ge_consts_g2));
         secp256k1_fe_set_b32(&ret->beta, secp256k1_ge_consts_beta);
 #endif
         secp256k1_fe_t g_x, g_y;
@@ -423,6 +451,8 @@ void static secp256k1_ge_stop(void) {
         secp256k1_num_free(&c->a1b2);
         secp256k1_num_free(&c->a2);
         secp256k1_num_free(&c->b1);
+        secp256k1_num_free(&c->g1);
+        secp256k1_num_free(&c->g2);
 #endif
         free((void*)c);
         secp256k1_ge_consts = NULL;
