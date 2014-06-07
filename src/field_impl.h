@@ -68,67 +68,74 @@ int static secp256k1_fe_sqrt(secp256k1_fe_t *r, const secp256k1_fe_t *a) {
     // { 2, 22, 223 }. Use an addition chain to calculate 2^n - 1 for each block:
     // 1, [2], 3, 6, 9, 11, [22], 44, 88, 176, 220, [223]
 
-    secp256k1_fe_t x2;
-    secp256k1_fe_sqr(&x2, a);
-    secp256k1_fe_mul(&x2, &x2, a);
+    secp256k1_fe_t an = *a; secp256k1_fe_normalize(&an);
 
-    secp256k1_fe_t x3;
-    secp256k1_fe_sqr(&x3, &x2);
-    secp256k1_fe_mul(&x3, &x3, a);
+    secp256k1_fec_t x1;
+    secp256k1_fec_set_fe(&x1, &an);
 
-    secp256k1_fe_t x6 = x3;
-    for (int j=0; j<3; j++) secp256k1_fe_sqr(&x6, &x6);
-    secp256k1_fe_mul(&x6, &x6, &x3);
+    secp256k1_fec_t x2;
+    secp256k1_fec_sqr(&x2, &x1);
+    secp256k1_fec_mul(&x2, &x2, &x1);
 
-    secp256k1_fe_t x9 = x6;
-    for (int j=0; j<3; j++) secp256k1_fe_sqr(&x9, &x9);
-    secp256k1_fe_mul(&x9, &x9, &x3);
+    secp256k1_fec_t x3;
+    secp256k1_fec_sqr(&x3, &x2);
+    secp256k1_fec_mul(&x3, &x3, &x1);
 
-    secp256k1_fe_t x11 = x9;
-    for (int j=0; j<2; j++) secp256k1_fe_sqr(&x11, &x11);
-    secp256k1_fe_mul(&x11, &x11, &x2);
+    secp256k1_fec_t x6 = x3;
+    secp256k1_fec_sqr_pow(&x6, 3);
+    secp256k1_fec_mul(&x6, &x6, &x3);
 
-    secp256k1_fe_t x22 = x11;
-    for (int j=0; j<11; j++) secp256k1_fe_sqr(&x22, &x22);
-    secp256k1_fe_mul(&x22, &x22, &x11);
+    secp256k1_fec_t x9 = x6;
+    secp256k1_fec_sqr_pow(&x9, 3);
+    secp256k1_fec_mul(&x9, &x9, &x3);
 
-    secp256k1_fe_t x44 = x22;
-    for (int j=0; j<22; j++) secp256k1_fe_sqr(&x44, &x44);
-    secp256k1_fe_mul(&x44, &x44, &x22);
+    secp256k1_fec_t x11 = x9;
+    secp256k1_fec_sqr_pow(&x11, 2);
+    secp256k1_fec_mul(&x11, &x11, &x2);
 
-    secp256k1_fe_t x88 = x44;
-    for (int j=0; j<44; j++) secp256k1_fe_sqr(&x88, &x88);
-    secp256k1_fe_mul(&x88, &x88, &x44);
+    secp256k1_fec_t x22 = x11;
+    secp256k1_fec_sqr_pow(&x22, 11);
+    secp256k1_fec_mul(&x22, &x22, &x11);
 
-    secp256k1_fe_t x176 = x88;
-    for (int j=0; j<88; j++) secp256k1_fe_sqr(&x176, &x176);
-    secp256k1_fe_mul(&x176, &x176, &x88);
+    secp256k1_fec_t x44 = x22;
+    secp256k1_fec_sqr_pow(&x44, 22);
+    secp256k1_fec_mul(&x44, &x44, &x22);
 
-    secp256k1_fe_t x220 = x176;
-    for (int j=0; j<44; j++) secp256k1_fe_sqr(&x220, &x220);
-    secp256k1_fe_mul(&x220, &x220, &x44);
+    secp256k1_fec_t x88 = x44;
+    secp256k1_fec_sqr_pow(&x88, 44);
+    secp256k1_fec_mul(&x88, &x88, &x44);
 
-    secp256k1_fe_t x223 = x220;
-    for (int j=0; j<3; j++) secp256k1_fe_sqr(&x223, &x223);
-    secp256k1_fe_mul(&x223, &x223, &x3);
+    secp256k1_fec_t x176 = x88;
+    secp256k1_fec_sqr_pow(&x176, 88);
+    secp256k1_fec_mul(&x176, &x176, &x88);
+
+    secp256k1_fec_t x220 = x176;
+    secp256k1_fec_sqr_pow(&x220, 44);
+    secp256k1_fec_mul(&x220, &x220, &x44);
+
+    secp256k1_fec_t x223 = x220;
+    secp256k1_fec_sqr_pow(&x223, 3);
+    secp256k1_fec_mul(&x223, &x223, &x3);
 
     // The final result is then assembled using a sliding window over the blocks.
 
-    secp256k1_fe_t t1 = x223;
-    for (int j=0; j<23; j++) secp256k1_fe_sqr(&t1, &t1);
-    secp256k1_fe_mul(&t1, &t1, &x22);
-    for (int j=0; j<6; j++) secp256k1_fe_sqr(&t1, &t1);
-    secp256k1_fe_mul(&t1, &t1, &x2);
-    secp256k1_fe_sqr(&t1, &t1);
-    secp256k1_fe_sqr(r, &t1);
+    secp256k1_fec_t t1 = x223;
+    secp256k1_fec_sqr_pow(&t1, 23);
+    secp256k1_fec_mul(&t1, &t1, &x22);
+    secp256k1_fec_sqr_pow(&t1, 6);
+    secp256k1_fec_mul(&t1, &t1, &x2);
+    secp256k1_fec_sqr_pow(&t1, 2);
+
+    secp256k1_fec_get_fe(r, &t1);
 
     // Check that a square root was actually calculated
 
-    secp256k1_fe_sqr(&t1, r);
-    secp256k1_fe_negate(&t1, &t1, 1);
-    secp256k1_fe_add(&t1, a);
-    secp256k1_fe_normalize(&t1);
-    return secp256k1_fe_is_zero(&t1);
+    secp256k1_fe_t t2;
+    secp256k1_fe_sqr(&t2, r);
+    secp256k1_fe_negate(&t2, &t2, 1);
+    secp256k1_fe_add(&t2, a);
+    secp256k1_fe_normalize(&t2);
+    return secp256k1_fe_is_zero(&t2);
 }
 
 void static secp256k1_fe_inv(secp256k1_fe_t *r, const secp256k1_fe_t *a) {
@@ -137,61 +144,68 @@ void static secp256k1_fe_inv(secp256k1_fe_t *r, const secp256k1_fe_t *a) {
     // { 1, 2, 22, 223 }. Use an addition chain to calculate 2^n - 1 for each block:
     // [1], [2], 3, 6, 9, 11, [22], 44, 88, 176, 220, [223]
 
-    secp256k1_fe_t x2;
-    secp256k1_fe_sqr(&x2, a);
-    secp256k1_fe_mul(&x2, &x2, a);
+    secp256k1_fe_t an = *a; secp256k1_fe_normalize(&an);
 
-    secp256k1_fe_t x3;
-    secp256k1_fe_sqr(&x3, &x2);
-    secp256k1_fe_mul(&x3, &x3, a);
+    secp256k1_fec_t x1;
+    secp256k1_fec_set_fe(&x1, &an);
 
-    secp256k1_fe_t x6 = x3;
-    for (int j=0; j<3; j++) secp256k1_fe_sqr(&x6, &x6);
-    secp256k1_fe_mul(&x6, &x6, &x3);
+    secp256k1_fec_t x2;
+    secp256k1_fec_sqr(&x2, &x1);
+    secp256k1_fec_mul(&x2, &x2, &x1);
 
-    secp256k1_fe_t x9 = x6;
-    for (int j=0; j<3; j++) secp256k1_fe_sqr(&x9, &x9);
-    secp256k1_fe_mul(&x9, &x9, &x3);
+    secp256k1_fec_t x3;
+    secp256k1_fec_sqr(&x3, &x2);
+    secp256k1_fec_mul(&x3, &x3, &x1);
 
-    secp256k1_fe_t x11 = x9;
-    for (int j=0; j<2; j++) secp256k1_fe_sqr(&x11, &x11);
-    secp256k1_fe_mul(&x11, &x11, &x2);
+    secp256k1_fec_t x6 = x3;
+    secp256k1_fec_sqr_pow(&x6, 3);
+    secp256k1_fec_mul(&x6, &x6, &x3);
 
-    secp256k1_fe_t x22 = x11;
-    for (int j=0; j<11; j++) secp256k1_fe_sqr(&x22, &x22);
-    secp256k1_fe_mul(&x22, &x22, &x11);
+    secp256k1_fec_t x9 = x6;
+    secp256k1_fec_sqr_pow(&x9, 3);
+    secp256k1_fec_mul(&x9, &x9, &x3);
 
-    secp256k1_fe_t x44 = x22;
-    for (int j=0; j<22; j++) secp256k1_fe_sqr(&x44, &x44);
-    secp256k1_fe_mul(&x44, &x44, &x22);
+    secp256k1_fec_t x11 = x9;
+    secp256k1_fec_sqr_pow(&x11, 2);
+    secp256k1_fec_mul(&x11, &x11, &x2);
 
-    secp256k1_fe_t x88 = x44;
-    for (int j=0; j<44; j++) secp256k1_fe_sqr(&x88, &x88);
-    secp256k1_fe_mul(&x88, &x88, &x44);
+    secp256k1_fec_t x22 = x11;
+    secp256k1_fec_sqr_pow(&x22, 11);
+    secp256k1_fec_mul(&x22, &x22, &x11);
 
-    secp256k1_fe_t x176 = x88;
-    for (int j=0; j<88; j++) secp256k1_fe_sqr(&x176, &x176);
-    secp256k1_fe_mul(&x176, &x176, &x88);
+    secp256k1_fec_t x44 = x22;
+    secp256k1_fec_sqr_pow(&x44, 22);
+    secp256k1_fec_mul(&x44, &x44, &x22);
 
-    secp256k1_fe_t x220 = x176;
-    for (int j=0; j<44; j++) secp256k1_fe_sqr(&x220, &x220);
-    secp256k1_fe_mul(&x220, &x220, &x44);
+    secp256k1_fec_t x88 = x44;
+    secp256k1_fec_sqr_pow(&x88, 44);
+    secp256k1_fec_mul(&x88, &x88, &x44);
 
-    secp256k1_fe_t x223 = x220;
-    for (int j=0; j<3; j++) secp256k1_fe_sqr(&x223, &x223);
-    secp256k1_fe_mul(&x223, &x223, &x3);
+    secp256k1_fec_t x176 = x88;
+    secp256k1_fec_sqr_pow(&x176, 88);
+    secp256k1_fec_mul(&x176, &x176, &x88);
+
+    secp256k1_fec_t x220 = x176;
+    secp256k1_fec_sqr_pow(&x220, 44);
+    secp256k1_fec_mul(&x220, &x220, &x44);
+
+    secp256k1_fec_t x223 = x220;
+    secp256k1_fec_sqr_pow(&x223, 3);
+    secp256k1_fec_mul(&x223, &x223, &x3);
 
     // The final result is then assembled using a sliding window over the blocks.
 
-    secp256k1_fe_t t1 = x223;
-    for (int j=0; j<23; j++) secp256k1_fe_sqr(&t1, &t1);
-    secp256k1_fe_mul(&t1, &t1, &x22);
-    for (int j=0; j<5; j++) secp256k1_fe_sqr(&t1, &t1);
-    secp256k1_fe_mul(&t1, &t1, a);
-    for (int j=0; j<3; j++) secp256k1_fe_sqr(&t1, &t1);
-    secp256k1_fe_mul(&t1, &t1, &x2);
-    for (int j=0; j<2; j++) secp256k1_fe_sqr(&t1, &t1);
-    secp256k1_fe_mul(r, &t1, a);
+    secp256k1_fec_t t1 = x223;
+    secp256k1_fec_sqr_pow(&t1, 23);
+    secp256k1_fec_mul(&t1, &t1, &x22);
+    secp256k1_fec_sqr_pow(&t1, 5);
+    secp256k1_fec_mul(&t1, &t1, &x1);
+    secp256k1_fec_sqr_pow(&t1, 3);
+    secp256k1_fec_mul(&t1, &t1, &x2);
+    secp256k1_fec_sqr_pow(&t1, 2);
+    secp256k1_fec_mul(&t1, &t1, &x1);
+
+    secp256k1_fec_get_fe(r, &t1);
 }
 
 void static secp256k1_fe_inv_var(secp256k1_fe_t *r, const secp256k1_fe_t *a) {

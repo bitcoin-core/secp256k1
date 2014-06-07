@@ -102,4 +102,121 @@ void static inline secp256k1_fe_sqr_inner(const uint64_t *a, uint64_t *r) {
 
 }
 
+typedef unsigned __int128 uint128_t;
+
+void static inline secp256k1_fec_mul_inner(const uint64_t *a, const uint64_t *b, uint64_t *r) {
+    uint64_t b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+
+    uint128_t ai = a[0];
+    uint128_t c = ai * b0;
+    uint64_t t0 = (uint64_t)c; c >>= 64;
+    c += ai * b1;
+    uint64_t t1 = (uint64_t)c; c >>= 64;
+    c += ai * b2;
+    uint64_t t2 = (uint64_t)c; c >>= 64;
+    c += ai * b3;
+    uint64_t t3 = (uint64_t)c; c >>= 64;
+    uint64_t t4 = (uint64_t)c;
+
+    ai = a[1];
+    c  = ai * b0 + t1;
+    t1 = (uint64_t)c; c >>= 64;
+    c += ai * b1 + t2;
+    t2 = (uint64_t)c; c >>= 64;
+    c += ai * b2 + t3;
+    t3 = (uint64_t)c; c >>= 64;
+    c += ai * b3 + t4;
+    t4 = (uint64_t)c; c >>= 64;
+    uint64_t t5 = (uint64_t)c;
+
+    ai = a[2];
+    c  = ai * b0 + t2;
+    t2 = (uint64_t)c; c >>= 64;
+    c += ai * b1 + t3;
+    t3 = (uint64_t)c; c >>= 64;
+    c += ai * b2 + t4;
+    t4 = (uint64_t)c; c >>= 64;
+    c += ai * b3 + t5;
+    t5 = (uint64_t)c; c >>= 64;
+    uint64_t t6 = (uint64_t)c;
+
+    ai = a[3];
+    c  = ai * b0 + t3;
+    t3 = (uint64_t)c; c >>= 64;
+    c += ai * b1 + t4;
+    t4 = (uint64_t)c; c >>= 64;
+    c += ai * b2 + t5;
+    t5 = (uint64_t)c; c >>= 64;
+    c += ai * b3 + t6;
+    t6 = (uint64_t)c; c >>= 64;
+
+    c *= 0x1000003D1ULL;
+    c += t3; t3 = (uint64_t)c; c >>= 64;
+    c += t4;
+    c *= 0x1000003D1ULL;
+    c += t0; t0 = (uint64_t)c; c >>= 64;
+
+    c += (uint128_t)t5 * 0x1000003D1ULL + t1; t1 = (uint64_t)c; c >>= 64;
+    c += (uint128_t)t6 * 0x1000003D1ULL + t2; t2 = (uint64_t)c; c >>= 64;
+
+    c += t3; r[3] = (uint64_t)c; c >>= 64;
+    c *= 0x1000003D1ULL;
+    c += t0; r[0] = (uint64_t)c; c >>= 64;
+    c += t1; r[1] = (uint64_t)c; c >>= 64;
+    c += t2; r[2] = (uint64_t)c;
+    assert((c >> 64) == 0);
+}
+
+void static inline secp256k1_fec_sqr_inner(const uint64_t *a, uint64_t *r) {
+    uint64_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+
+    uint128_t m = (uint128_t)a1 * a2;
+    uint128_t c = (uint128_t)a0 * a1;
+    uint64_t t1 = (uint64_t)c; c >>= 64;
+    c += (uint128_t)a0 * a2;
+    uint64_t t2 = (uint64_t)c; c >>= 64;
+    c += (uint128_t)a0 * a3 + (uint64_t)m;
+    uint64_t t3 = (uint64_t)c; c >>= 64;
+    c += (uint128_t)a1 * a3 + (uint64_t)(m >> 64);
+    uint64_t t4 = (uint64_t)c; c >>= 64;
+    c += (uint128_t)a2 * a3;
+    uint64_t t5 = (uint64_t)c; c >>= 64;
+    uint64_t t6 = (uint64_t)c;
+
+    m  = (uint128_t)a0 * a0;
+    uint64_t t0 = (uint64_t)m;
+    c  = ((uint128_t)t1 << 1) + (uint64_t)(m >> 64);
+    t1 = (uint64_t)c; c >>= 64;
+    m  = (uint128_t)a1 * a1;
+    c += ((uint128_t)t2 << 1) + (uint64_t)m;
+    t2 = (uint64_t)c; c >>= 64;
+    c += ((uint128_t)t3 << 1) + (uint64_t)(m >> 64);
+    t3 = (uint64_t)c; c >>= 64;
+    m  = (uint128_t)a2 * a2;
+    c += ((uint128_t)t4 << 1) + (uint64_t)m;
+    t4 = (uint64_t)c; c >>= 64;
+    c += ((uint128_t)t5 << 1) + (uint64_t)(m >> 64);
+    t5 = (uint64_t)c; c >>= 64;
+    m  = (uint128_t)a3 * a3;
+    c += ((uint128_t)t6 << 1) + (uint64_t)m;
+    t6 = (uint64_t)c; c >>= 64;
+    c += (uint64_t)(m >> 64);
+
+    c *= 0x1000003D1ULL;
+    c += t3; t3 = (uint64_t)c; c >>= 64;
+    c += t4;
+    c *= 0x1000003D1ULL;
+    c += t0; t0 = (uint64_t)c; c >>= 64;
+
+    c += (uint128_t)t5 * 0x1000003D1ULL + t1; t1 = (uint64_t)c; c >>= 64;
+    c += (uint128_t)t6 * 0x1000003D1ULL + t2; t2 = (uint64_t)c; c >>= 64;
+
+    c += t3; r[3] = (uint64_t)c; c >>= 64;
+    c *= 0x1000003D1ULL;
+    c += t0; r[0] = (uint64_t)c; c >>= 64;
+    c += t1; r[1] = (uint64_t)c; c >>= 64;
+    c += t2; r[2] = (uint64_t)c;
+    assert((c >> 64) == 0);
+}
+
 #endif

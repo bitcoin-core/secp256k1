@@ -109,4 +109,15 @@ void static secp256k1_fe_get_hex(char *r, int *rlen, const secp256k1_fe_t *a);
 /** Convert a hexadecimal string to a field element. */
 void static secp256k1_fe_set_hex(secp256k1_fe_t *r, const char *a, int alen);
 
+
+void static secp256k1_fec_set_fe(secp256k1_fec_t *r, const secp256k1_fe_t *a);
+
+void static secp256k1_fec_get_fe(secp256k1_fe_t *r, const secp256k1_fec_t *a);
+
+void static secp256k1_fec_mul(secp256k1_fec_t *r, const secp256k1_fec_t *a, const secp256k1_fec_t *b);
+
+void static secp256k1_fec_sqr(secp256k1_fec_t *r, const secp256k1_fec_t *a);
+
+void static secp256k1_fec_sqr_pow(secp256k1_fec_t *r, int n);
+
 #endif

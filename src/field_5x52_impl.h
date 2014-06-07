@@ -238,4 +238,42 @@ void static secp256k1_fe_sqr(secp256k1_fe_t *r, const secp256k1_fe_t *a) {
 #endif
 }
 
+void static secp256k1_fec_set_fe(secp256k1_fec_t *r, const secp256k1_fe_t *a) {
+#ifdef VERIFY
+    assert(a->magnitude <= 1);
+#endif
+    const uint64_t t0 = a->n[0], t1 = a->n[1], t2 = a->n[2], t3 = a->n[3], t4 = a->n[4];
+    r->n[0] = (t0      ) | (t1 << 52);
+    r->n[1] = (t1 >> 12) | (t2 << 40);
+    r->n[2] = (t2 >> 24) | (t3 << 28);
+    r->n[3] = (t3 >> 36) | (t4 << 16);
+}
+
+void static secp256k1_fec_get_fe(secp256k1_fe_t *r, const secp256k1_fec_t *a) {
+    const uint64_t t0 = a->n[0], t1 = a->n[1], t2 = a->n[2], t3 = a->n[3];
+    r->n[0] = t0 & 0xFFFFFFFFFFFFFULL;
+    r->n[1] = ((t0 >> 52) | (t1 << 12)) & 0xFFFFFFFFFFFFFULL;
+    r->n[2] = ((t1 >> 40) | (t2 << 24)) & 0xFFFFFFFFFFFFFULL;
+    r->n[3] = ((t2 >> 28) | (t3 << 36)) & 0xFFFFFFFFFFFFFULL;
+    r->n[4] = t3 >> 16;
+#ifdef VERIFY
+    r->magnitude = 1;
+    r->normalized = 0;
+#endif
+}
+
+void static secp256k1_fec_mul(secp256k1_fec_t *r, const secp256k1_fec_t *a, const secp256k1_fec_t *b) {
+    secp256k1_fec_mul_inner(a->n, b->n, r->n);
+}
+
+void static secp256k1_fec_sqr(secp256k1_fec_t *r, const secp256k1_fec_t *a) {
+    secp256k1_fec_sqr_inner(a->n, r->n);
+}
+
+void static secp256k1_fec_sqr_pow(secp256k1_fec_t *r, int n) {
+    for (int i=0; i<n; i++) {
+        secp256k1_fec_sqr_inner(r->n, r->n);
+    }
+}
+
 #endif
