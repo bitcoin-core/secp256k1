@@ -57,7 +57,7 @@ void static secp256k1_fe_set_hex(secp256k1_fe_t *r, const char *a, int alen) {
                                  0, 0, 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0};
     for (int i=0; i<32; i++) {
         if (alen > i*2)
-            tmp[32 - alen/2 + i] = (cvt[(unsigned char)a[2*i]] << 4) + cvt[(unsigned char)a[2*i+1]];
+            tmp[32 - alen/2 + i] = (unsigned char)((cvt[(unsigned char)a[2*i]] << 4) + cvt[(unsigned char)a[2*i+1]]);
     }
     secp256k1_fe_set_b32(r, tmp);
 }

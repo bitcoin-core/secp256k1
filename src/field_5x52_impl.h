@@ -76,7 +76,7 @@ void static secp256k1_fe_normalize(secp256k1_fe_t *r) {
 }
 
 void static inline secp256k1_fe_set_int(secp256k1_fe_t *r, int a) {
-    r->n[0] = a;
+    r->n[0] = (uint64_t)a;
     r->n[1] = r->n[2] = r->n[3] = r->n[4] = 0;
 #ifdef VERIFY
     r->magnitude = 1;
@@ -135,7 +135,7 @@ void static secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe_t *a) {
             int shift = (8*i+4*j)%52;
             c |= ((a->n[limb] >> shift) & 0xF) << (4 * j);
         }
-        r[31-i] = c;
+        r[31-i] = (unsigned char)c;
     }
 }
 
@@ -145,11 +145,11 @@ void static inline secp256k1_fe_negate(secp256k1_fe_t *r, const secp256k1_fe_t *
     r->magnitude = m + 1;
     r->normalized = 0;
 #endif
-    r->n[0] = 0xFFFFEFFFFFC2FULL * (m + 1) - a->n[0];
-    r->n[1] = 0xFFFFFFFFFFFFFULL * (m + 1) - a->n[1];
-    r->n[2] = 0xFFFFFFFFFFFFFULL * (m + 1) - a->n[2];
-    r->n[3] = 0xFFFFFFFFFFFFFULL * (m + 1) - a->n[3];
-    r->n[4] = 0x0FFFFFFFFFFFFULL * (m + 1) - a->n[4];
+    r->n[0] = 0xFFFFEFFFFFC2FULL * (unsigned long long)(m + 1) - a->n[0];
+    r->n[1] = 0xFFFFFFFFFFFFFULL * (unsigned long long)(m + 1) - a->n[1];
+    r->n[2] = 0xFFFFFFFFFFFFFULL * (unsigned long long)(m + 1) - a->n[2];
+    r->n[3] = 0xFFFFFFFFFFFFFULL * (unsigned long long)(m + 1) - a->n[3];
+    r->n[4] = 0x0FFFFFFFFFFFFULL * (unsigned long long)(m + 1) - a->n[4];
 }
 
 void static inline secp256k1_fe_mul_int(secp256k1_fe_t *r, int a) {
@@ -157,11 +157,11 @@ void static inline secp256k1_fe_mul_int(secp256k1_fe_t *r, int a) {
     r->magnitude *= a;
     r->normalized = 0;
 #endif
-    r->n[0] *= a;
-    r->n[1] *= a;
-    r->n[2] *= a;
-    r->n[3] *= a;
-    r->n[4] *= a;
+    r->n[0] *= (unsigned long)a;
+    r->n[1] *= (unsigned long)a;
+    r->n[2] *= (unsigned long)a;
+    r->n[3] *= (unsigned long)a;
+    r->n[4] *= (unsigned long)a;
 }
 
 void static inline secp256k1_fe_add(secp256k1_fe_t *r, const secp256k1_fe_t *a) {

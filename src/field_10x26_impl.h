@@ -71,7 +71,7 @@ void static secp256k1_fe_normalize(secp256k1_fe_t *r) {
 
     // Subtract p if result >= p
     uint64_t low = ((uint64_t)t1 << 26) | t0;
-    uint64_t mask = -(int64_t)((t9 < 0x03FFFFFUL) | (t8 < 0x3FFFFFFUL) | (t7 < 0x3FFFFFFUL) | (t6 < 0x3FFFFFFUL) | (t5 < 0x3FFFFFFUL) | (t4 < 0x3FFFFFFUL) | (t3 < 0x3FFFFFFUL) | (t2 < 0x3FFFFFFUL) | (low < 0xFFFFEFFFFFC2FULL));
+    uint64_t mask = (uint64_t)(-(int64_t)((t9 < 0x03FFFFFUL) | (t8 < 0x3FFFFFFUL) | (t7 < 0x3FFFFFFUL) | (t6 < 0x3FFFFFFUL) | (t5 < 0x3FFFFFFUL) | (t4 < 0x3FFFFFFUL) | (t3 < 0x3FFFFFFUL) | (t2 < 0x3FFFFFFUL) | (low < 0xFFFFEFFFFFC2FULL)));
     t9 &= mask;
     t8 &= mask;
     t7 &= mask;
@@ -94,7 +94,7 @@ void static secp256k1_fe_normalize(secp256k1_fe_t *r) {
 }
 
 void static inline secp256k1_fe_set_int(secp256k1_fe_t *r, int a) {
-    r->n[0] = a;
+    r->n[0] = (uint32_t)a;
     r->n[1] = r->n[2] = r->n[3] = r->n[4] = r->n[5] = r->n[6] = r->n[7] = r->n[8] = r->n[9] = 0;
 #ifdef VERIFY
     r->magnitude = 1;
@@ -155,7 +155,7 @@ void static secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe_t *a) {
             int shift = (8*i+2*j)%26;
             c |= ((a->n[limb] >> shift) & 0x3) << (2 * j);
         }
-        r[31-i] = c;
+        r[31-i] = (unsigned char)c;
     }
 }
 
@@ -165,16 +165,16 @@ void static inline secp256k1_fe_negate(secp256k1_fe_t *r, const secp256k1_fe_t *
     r->magnitude = m + 1;
     r->normalized = 0;
 #endif
-    r->n[0] = 0x3FFFC2FUL * (m + 1) - a->n[0];
-    r->n[1] = 0x3FFFFBFUL * (m + 1) - a->n[1];
-    r->n[2] = 0x3FFFFFFUL * (m + 1) - a->n[2];
-    r->n[3] = 0x3FFFFFFUL * (m + 1) - a->n[3];
-    r->n[4] = 0x3FFFFFFUL * (m + 1) - a->n[4];
-    r->n[5] = 0x3FFFFFFUL * (m + 1) - a->n[5];
-    r->n[6] = 0x3FFFFFFUL * (m + 1) - a->n[6];
-    r->n[7] = 0x3FFFFFFUL * (m + 1) - a->n[7];
-    r->n[8] = 0x3FFFFFFUL * (m + 1) - a->n[8];
-    r->n[9] = 0x03FFFFFUL * (m + 1) - a->n[9];
+    r->n[0] = (uint32_t)(0x3FFFC2FUL * (unsigned long)(m + 1) - a->n[0]);
+    r->n[1] = (uint32_t)(0x3FFFFBFUL * (unsigned long)(m + 1) - a->n[1]);
+    r->n[2] = (uint32_t)(0x3FFFFFFUL * (unsigned long)(m + 1) - a->n[2]);
+    r->n[3] = (uint32_t)(0x3FFFFFFUL * (unsigned long)(m + 1) - a->n[3]);
+    r->n[4] = (uint32_t)(0x3FFFFFFUL * (unsigned long)(m + 1) - a->n[4]);
+    r->n[5] = (uint32_t)(0x3FFFFFFUL * (unsigned long)(m + 1) - a->n[5]);
+    r->n[6] = (uint32_t)(0x3FFFFFFUL * (unsigned long)(m + 1) - a->n[6]);
+    r->n[7] = (uint32_t)(0x3FFFFFFUL * (unsigned long)(m + 1) - a->n[7]);
+    r->n[8] = (uint32_t)(0x3FFFFFFUL * (unsigned long)(m + 1) - a->n[8]);
+    r->n[9] = (uint32_t)(0x03FFFFFUL * (unsigned long)(m + 1) - a->n[9]);
 }
 
 void static inline secp256k1_fe_mul_int(secp256k1_fe_t *r, int a) {
@@ -182,16 +182,16 @@ void static inline secp256k1_fe_mul_int(secp256k1_fe_t *r, int a) {
     r->magnitude *= a;
     r->normalized = 0;
 #endif
-    r->n[0] *= a;
-    r->n[1] *= a;
-    r->n[2] *= a;
-    r->n[3] *= a;
-    r->n[4] *= a;
-    r->n[5] *= a;
-    r->n[6] *= a;
-    r->n[7] *= a;
-    r->n[8] *= a;
-    r->n[9] *= a;
+    r->n[0] *= (uint32_t)a;
+    r->n[1] *= (uint32_t)a;
+    r->n[2] *= (uint32_t)a;
+    r->n[3] *= (uint32_t)a;
+    r->n[4] *= (uint32_t)a;
+    r->n[5] *= (uint32_t)a;
+    r->n[6] *= (uint32_t)a;
+    r->n[7] *= (uint32_t)a;
+    r->n[8] *= (uint32_t)a;
+    r->n[9] *= (uint32_t)a;
 }
 
 void static inline secp256k1_fe_add(secp256k1_fe_t *r, const secp256k1_fe_t *a) {
@@ -331,7 +331,7 @@ void static inline secp256k1_fe_mul_inner(const uint32_t *a, const uint32_t *b, 
     uint32_t t17 = c & 0x3FFFFFFUL; c = c >> 26;
     c = c + (uint64_t)a[9] * b[9];
     uint32_t t18 = c & 0x3FFFFFFUL; c = c >> 26;
-    uint32_t t19 = c;
+    uint32_t t19 = (uint32_t)c;
 
     c = t0 + (uint64_t)t10 * 0x3D10UL;
     t0 = c & 0x3FFFFFFUL; c = c >> 26;
@@ -357,7 +357,7 @@ void static inline secp256k1_fe_mul_inner(const uint32_t *a, const uint32_t *b, 
     r[0] = d & 0x3FFFFFFUL; d = d >> 26;
     d = d + t1 + c*0x40;
     r[1] = d & 0x3FFFFFFUL; d = d >> 26;
-    r[2] = t2 + d;
+    r[2] = t2 + (uint32_t)d;
 }
 
 void static inline secp256k1_fe_sqr_inner(const uint32_t *a, uint32_t *r) {
@@ -435,7 +435,7 @@ void static inline secp256k1_fe_sqr_inner(const uint32_t *a, uint32_t *r) {
     uint32_t t17 = c & 0x3FFFFFFUL; c = c >> 26;
     c = c + (uint64_t)a[9] * a[9];
     uint32_t t18 = c & 0x3FFFFFFUL; c = c >> 26;
-    uint32_t t19 = c;
+    uint32_t t19 = (uint32_t)c;
 
     c = t0 + (uint64_t)t10 * 0x3D10UL;
     t0 = c & 0x3FFFFFFUL; c = c >> 26;
@@ -461,7 +461,7 @@ void static inline secp256k1_fe_sqr_inner(const uint32_t *a, uint32_t *r) {
     r[0] = d & 0x3FFFFFFUL; d = d >> 26;
     d = d + t1 + c*0x40;
     r[1] = d & 0x3FFFFFFUL; d = d >> 26;
-    r[2] = t2 + d;
+    r[2] = t2 + (uint32_t)d;
 }
 
 

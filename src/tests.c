@@ -128,7 +128,7 @@ void run_num_int() {
     secp256k1_num_init(&n1);
     for (int i=-255; i<256; i++) {
         unsigned char c1[3] = {0};
-        c1[2] = abs(i);
+        c1[2] = (unsigned char)abs(i);
         unsigned char c2[3] = {0x11,0x22,0x33};
         secp256k1_num_set_int(&n1, i);
         secp256k1_num_get_bin(c2, 3, &n1);
@@ -489,7 +489,7 @@ void test_ecdsa_openssl() {
     assert(ec_key);
     unsigned char signature[80];
     int sigsize = 80;
-    assert(ECDSA_sign(0, message, sizeof(message), signature, &sigsize, ec_key));
+    assert(ECDSA_sign(0, message, sizeof(message), signature, (unsigned int *)&sigsize, ec_key));
     secp256k1_ecdsa_sig_t sig;
     secp256k1_ecdsa_sig_init(&sig);
     assert(secp256k1_ecdsa_sig_parse(&sig, signature, sigsize));
@@ -517,7 +517,7 @@ void run_ecdsa_openssl() {
 
 int main(int argc, char **argv) {
     if (argc > 1)
-        count = strtol(argv[1], NULL, 0)*47;
+        count = (int)strtol(argv[1], NULL, 0)*47;
 
     printf("test count = %i\n", count);
 

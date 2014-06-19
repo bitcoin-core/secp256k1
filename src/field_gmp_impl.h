@@ -46,7 +46,7 @@ void static secp256k1_fe_normalize(secp256k1_fe_t *r) {
 }
 
 void static inline secp256k1_fe_set_int(secp256k1_fe_t *r, int a) {
-    r->n[0] = a;
+    r->n[0] = (mp_limb_t)a;
     for (int i=1; i<FIELD_LIMBS+1; i++)
         r->n[i] = 0;
 }
@@ -88,7 +88,7 @@ void static secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe_t *a) {
             int shift = (8*i+j)%GMP_NUMB_BITS;
             c |= ((a->n[limb] >> shift) & 0x1) << j;
         }
-        r[31-i] = c;
+        r[31-i] = (unsigned char)c;
     }
 }
 
@@ -107,7 +107,7 @@ void static inline secp256k1_fe_negate(secp256k1_fe_t *r, const secp256k1_fe_t *
 }
 
 void static inline secp256k1_fe_mul_int(secp256k1_fe_t *r, int a) {
-    mpn_mul_1(r->n, r->n, FIELD_LIMBS+1, a);
+    mpn_mul_1(r->n, r->n, FIELD_LIMBS+1, (mp_limb_t)a);
 }
 
 void static inline secp256k1_fe_add(secp256k1_fe_t *r, const secp256k1_fe_t *a) {
