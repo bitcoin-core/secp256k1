@@ -434,7 +434,6 @@ void random_sign(secp256k1_ecdsa_sig_t *sig, const secp256k1_num_t *key, const s
 }
 
 void test_ecdsa_sign_verify() {
-    const secp256k1_ge_consts_t *c = secp256k1_ge_consts;
     secp256k1_num_t msg, key;
     secp256k1_num_init(&msg);
     random_num_order_test(&msg);
@@ -473,7 +472,6 @@ EC_KEY *get_openssl_key(const secp256k1_num_t *key) {
 }
 
 void test_ecdsa_openssl() {
-    const secp256k1_ge_consts_t *c = secp256k1_ge_consts;
     secp256k1_num_t key, msg;
     secp256k1_num_init(&msg);
     unsigned char message[32];

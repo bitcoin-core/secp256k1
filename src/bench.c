@@ -30,7 +30,6 @@ int main() {
     secp256k1_ecmult_start();
 
     secp256k1_fe_t x;
-    const secp256k1_num_t *order = &secp256k1_ge_consts->order;
     secp256k1_num_t r, s, m;
     secp256k1_num_init(&r);
     secp256k1_num_init(&s);
