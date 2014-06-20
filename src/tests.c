@@ -87,7 +87,7 @@ void test_num_get_set_hex() {
         // check whether the lower 4 bits correspond to the last hex character
         int low1 = secp256k1_num_shift(&n1, 4);
         int lowh = c[63];
-        int low2 = (lowh>>6)*9+(lowh-'0')&15;
+        int low2 = (lowh>>6)*9+((lowh-'0')&15);
         assert(low1 == low2);
         // shift bits off the hex representation, and compare
         memmove(c+1, c, 63);
