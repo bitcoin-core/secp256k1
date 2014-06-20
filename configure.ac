@@ -20,6 +20,15 @@ if test x"$ac_cv_prog_cc_c99" == x"no"; then
   AC_MSG_ERROR([c99 compiler support required])
 fi
 
+AC_DEFUN([ADD_DEBUG_FLAGS],[
+  if test x$error_flag = x; then
+    AX_CHECK_COMPILE_FLAG([-Werror], [error_flag="-Werror"])
+  fi
+  for wflag in $1; do
+    AX_CHECK_COMPILE_FLAG([$error_flag $wflag],[WARNING_CFLAGS="$WARNING_CFLAGS $wflag"],,[$WARNING_CFLAGS])
+  done
+])
+
 case $host in
   *mingw*)
      use_pkgconfig=no
@@ -50,6 +59,16 @@ AC_ARG_ENABLE(endomorphism,
     AS_HELP_STRING([--enable-endomorphism],[enable endomorphism (default is no)]),
     [use_endomorphism=$enableval],
     [use_endomorphism=no])
+
+AC_ARG_ENABLE(extra-compiler-warnings,
+    AS_HELP_STRING([--enable-extra-compiler-warnings],[enable extra compiler warnings (default is no)]),
+    [use_extra_compiler_warnings=$enableval],
+    [use_extra_compiler_warnings=no])
+
+AC_ARG_ENABLE(warnings-as-errors,
+    AS_HELP_STRING([--enable-warnings-as-errors],[treat compiler warnings as errors (default is no)]),
+    [use_warnings_as_errors=$enableval],
+    [use_warnings_as_errors=no])
 
 AC_ARG_WITH([field], [AS_HELP_STRING([--with-field=gmp|64bit|64bit_asm|32bit|auto],
 [Specify Field Implementation. Default is auto])],[req_field=$withval], [req_field=auto])
@@ -290,6 +309,17 @@ if test x"$use_endomorphism" = x"yes"; then
   AC_DEFINE(USE_ENDOMORPHISM, 1, [Define this symbol to use endomorphism])
 fi
 
+if test x"$use_extra_compiler_warnings" = x"yes"; then
+  ADD_DEBUG_FLAGS([-Wall -Wextra -pedantic])
+  ADD_DEBUG_FLAGS([-Wno-unused-function -Wno-old-style-declaration -Wno-missing-prototypes])
+  ADD_DEBUG_FLAGS([-fdiagnostics-color=auto])
+  ADD_DEBUG_FLAGS([-Wno-unused-macros -Weverything])
+fi
+
+if test x"$use_warnings_as_errors" = x"yes"; then
+  AX_CHECK_COMPILE_FLAG([-Werror], [WARNING_CFLAGS="$WARNING_CFLAGS -Werror"], AC_MSG_ERROR([-Werror not supported]))
+fi
+
 AC_MSG_NOTICE([Using field implementation: $set_field])
 AC_MSG_NOTICE([Using bignum implementation: $set_bignum])
 
@@ -300,6 +330,7 @@ AC_SUBST(SECP_LIBS)
 AC_SUBST(SECP_TEST_LIBS)
 AC_SUBST(SECP_TEST_INCLUDES)
 AC_SUBST(YASM_BINFMT)
+AC_SUBST(WARNING_CFLAGS)
 AM_CONDITIONAL([USE_ASM], [test x"$set_field" == x"64bit_asm"])
 AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" != x"no"])
