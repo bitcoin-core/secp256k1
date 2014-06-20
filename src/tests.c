@@ -127,7 +127,7 @@ void run_num_int() {
     secp256k1_num_t n1;
     secp256k1_num_init(&n1);
     for (int i=-255; i<256; i++) {
-        unsigned char c1[3] = {};
+        unsigned char c1[3] = {0};
         c1[2] = abs(i);
         unsigned char c2[3] = {0x11,0x22,0x33};
         secp256k1_num_set_int(&n1, i);
