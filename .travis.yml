@@ -26,5 +26,5 @@ env:
     - FIELD=32bit     BIGNUM=openssl  ENDOMORPHISM=yes
     - BUILD=distcheck
 before_script: ./autogen.sh
-script: ./configure --enable-extra-compiler-warnings --enable-endomorphism=$ENDOMORPHISM --with-field=$FIELD --with-bignum=$BIGNUM && make -j2 $BUILD
+script: ./configure --enable-extra-compiler-warnings --enable-warnings-as-errors --enable-endomorphism=$ENDOMORPHISM --with-field=$FIELD --with-bignum=$BIGNUM && make -j2 $BUILD
 os: linux
