@@ -27,6 +27,7 @@ void static secp256k1_num_init(secp256k1_num_t *r) {
 }
 
 void static secp256k1_num_free(secp256k1_num_t *r) {
+(void)r;
 }
 
 void static secp256k1_num_copy(secp256k1_num_t *r, const secp256k1_num_t *a) {
@@ -85,6 +86,7 @@ void static secp256k1_num_add_abs(secp256k1_num_t *r, const secp256k1_num_t *a, 
 
 void static secp256k1_num_sub_abs(secp256k1_num_t *r, const secp256k1_num_t *a, const secp256k1_num_t *b) {
     mp_limb_t c = mpn_sub(r->data, a->data, a->limbs, b->data, b->limbs);
+    (void)c;
     assert(c == 0);
     r->limbs = a->limbs;
     while (r->limbs > 1 && r->data[r->limbs-1]==0) r->limbs--;
@@ -131,6 +133,7 @@ void static secp256k1_num_mod_inverse(secp256k1_num_t *r, const secp256k1_num_t 
     }
     mp_size_t sn = NUM_LIMBS+1;
     mp_size_t gn = mpn_gcdext(g, r->data, &sn, u, m->limbs, v, m->limbs);
+    (void)gn;
     assert(gn == 1);
     assert(g[0] == 1);
     r->neg = a->neg ^ m->neg;
