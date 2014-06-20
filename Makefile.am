@@ -1,4 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
+AM_CFLAGS = $(WARNING_CFLAGS)
+
 INCLUDES = $(SECP_INCLUDES)
 lib_LTLIBRARIES = libsecp256k1.la
 libsecp256k1_la_SOURCES = src/secp256k1.c
@@ -57,7 +59,7 @@ tests_LDFLAGS = -static
 TESTS = tests
 endif
 
-EXTRA_DIST = nasm_lt.sh
+EXTRA_DIST = autogen.sh nasm_lt.sh
 
 #x86_64 only
 if USE_ASM

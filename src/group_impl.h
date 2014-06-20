@@ -38,8 +38,8 @@ void static secp256k1_ge_get_hex(char *r, int *rlen, const secp256k1_ge_t *a) {
     char cy[65]; int ly=65;
     secp256k1_fe_get_hex(cx, &lx, &a->x);
     secp256k1_fe_get_hex(cy, &ly, &a->y);
-    lx = strlen(cx);
-    ly = strlen(cy);
+    lx = (int)strlen(cx);
+    ly = (int)strlen(cy);
     int len = lx + ly + 3 + 1;
     if (*rlen < len) {
         *rlen = len;
@@ -47,9 +47,9 @@ void static secp256k1_ge_get_hex(char *r, int *rlen, const secp256k1_ge_t *a) {
     }
     *rlen = len;
     r[0] = '(';
-    memcpy(r+1, cx, lx);
+    memcpy(r+1, cx, (unsigned long)lx);
     r[1+lx] = ',';
-    memcpy(r+2+lx, cy, ly);
+    memcpy(r+2+lx, cy, (unsigned long)ly);
     r[2+lx+ly] = ')';
     r[3+lx+ly] = 0;
 }

@@ -2,6 +2,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "secp256k1.h"
 #include "num_impl.h"
 #include "field_impl.h"
 #include "group_impl.h"
@@ -27,7 +28,7 @@ int secp256k1_ecdsa_verify(const unsigned char *msg, int msglen, const unsigned 
     secp256k1_ecdsa_sig_t s;
     secp256k1_ecdsa_sig_init(&s);
     secp256k1_ge_t q;
-    secp256k1_num_set_bin(&m, msg, msglen);
+    secp256k1_num_set_bin(&m, msg, (unsigned int)msglen);
 
     if (!secp256k1_ecdsa_pubkey_parse(&q, pubkey, pubkeylen)) {
         ret = -1;
@@ -55,7 +56,7 @@ int secp256k1_ecdsa_sign(const unsigned char *message, int messagelen, unsigned 
     secp256k1_num_init(&msg);
     secp256k1_num_set_bin(&sec, seckey, 32);
     secp256k1_num_set_bin(&non, nonce, 32);
-    secp256k1_num_set_bin(&msg, message, messagelen);
+    secp256k1_num_set_bin(&msg, message, (unsigned int)messagelen);
     int ret = !secp256k1_num_is_zero(&non) &&
               (secp256k1_num_cmp(&non, &secp256k1_ge_consts->order) < 0);
     secp256k1_ecdsa_sig_t sig;
@@ -80,7 +81,7 @@ int secp256k1_ecdsa_sign_compact(const unsigned char *message, int messagelen, u
     secp256k1_num_init(&msg);
     secp256k1_num_set_bin(&sec, seckey, 32);
     secp256k1_num_set_bin(&non, nonce, 32);
-    secp256k1_num_set_bin(&msg, message, messagelen);
+    secp256k1_num_set_bin(&msg, message, (unsigned int)messagelen);
     int ret = !secp256k1_num_is_zero(&non) &&
               (secp256k1_num_cmp(&non, &secp256k1_ge_consts->order) < 0);
     secp256k1_ecdsa_sig_t sig;
@@ -107,7 +108,7 @@ int secp256k1_ecdsa_recover_compact(const unsigned char *msg, int msglen, const 
     secp256k1_ecdsa_sig_init(&sig);
     secp256k1_num_set_bin(&sig.r, sig64, 32);
     secp256k1_num_set_bin(&sig.s, sig64 + 32, 32);
-    secp256k1_num_set_bin(&m, msg, msglen);
+    secp256k1_num_set_bin(&m, msg, (unsigned int)msglen);
 
     secp256k1_ge_t q;
     if (secp256k1_ecdsa_sig_recover(&sig, &q, &m, recid)) {

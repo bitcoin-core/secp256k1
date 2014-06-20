@@ -50,8 +50,8 @@ int static secp256k1_ecdsa_sig_parse(secp256k1_ecdsa_sig_t *r, const unsigned ch
     if (lenr == 0) return 0;
     if (sig[lenr+4] != 0x02) return 0;
     if (lens == 0) return 0;
-    secp256k1_num_set_bin(&r->r, sig+4, lenr);
-    secp256k1_num_set_bin(&r->s, sig+6+lenr, lens);
+    secp256k1_num_set_bin(&r->r, sig+4, (unsigned int)lenr);
+    secp256k1_num_set_bin(&r->s, sig+6+lenr, (unsigned int)lens);
     return 1;
 }
 
@@ -66,13 +66,13 @@ int static secp256k1_ecdsa_sig_serialize(unsigned char *sig, int *size, const se
         return 0;
     *size = 6 + lenS + lenR;
     sig[0] = 0x30;
-    sig[1] = 4 + lenS + lenR;
+    sig[1] = (unsigned char)(4 + lenS + lenR);
     sig[2] = 0x02;
-    sig[3] = lenR;
-    secp256k1_num_get_bin(sig+4, lenR, &a->r);
+    sig[3] = (unsigned char)lenR;
+    secp256k1_num_get_bin(sig+4, (unsigned int)lenR, &a->r);
     sig[4+lenR] = 0x02;
-    sig[5+lenR] = lenS;
-    secp256k1_num_get_bin(sig+lenR+6, lenS, &a->s);
+    sig[5+lenR] = (unsigned char)lenS;
+    secp256k1_num_get_bin(sig+lenR+6, (unsigned int)lenS, &a->s);
     return 1;
 }
 
@@ -274,7 +274,7 @@ int static secp256k1_ecdsa_privkey_serialize(unsigned char *privkey, int *privke
         memcpy(ptr, middle, sizeof(middle)); ptr += sizeof(middle);
         int pubkeylen = 0;
         secp256k1_ecdsa_pubkey_serialize(&r, ptr, &pubkeylen, 1); ptr += pubkeylen;
-        *privkeylen = ptr - privkey;
+        *privkeylen = (int)(ptr - privkey);
     } else {
         static const unsigned char begin[] = {
             0x30,0x82,0x01,0x13,0x02,0x01,0x01,0x04,0x20
@@ -298,7 +298,7 @@ int static secp256k1_ecdsa_privkey_serialize(unsigned char *privkey, int *privke
         memcpy(ptr, middle, sizeof(middle)); ptr += sizeof(middle);
         int pubkeylen = 0;
         secp256k1_ecdsa_pubkey_serialize(&r, ptr, &pubkeylen, 0); ptr += pubkeylen;
-        *privkeylen = ptr - privkey;
+        *privkeylen = (int)(ptr - privkey);
     }
     return 1;
 }

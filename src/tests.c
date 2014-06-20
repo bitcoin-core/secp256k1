@@ -87,7 +87,7 @@ void test_num_get_set_hex() {
         // check whether the lower 4 bits correspond to the last hex character
         int low1 = secp256k1_num_shift(&n1, 4);
         int lowh = c[63];
-        int low2 = (lowh>>6)*9+(lowh-'0')&15;
+        int low2 = (lowh>>6)*9+((lowh-'0')&15);
         assert(low1 == low2);
         // shift bits off the hex representation, and compare
         memmove(c+1, c, 63);
@@ -127,8 +127,8 @@ void run_num_int() {
     secp256k1_num_t n1;
     secp256k1_num_init(&n1);
     for (int i=-255; i<256; i++) {
-        unsigned char c1[3] = {};
-        c1[2] = abs(i);
+        unsigned char c1[3] = {0};
+        c1[2] = (unsigned char)abs(i);
         unsigned char c2[3] = {0x11,0x22,0x33};
         secp256k1_num_set_int(&n1, i);
         secp256k1_num_get_bin(c2, 3, &n1);
@@ -331,7 +331,9 @@ void run_ecmult_chain() {
         if (i == 19999) {
             char res[132]; int resl = 132;
             secp256k1_gej_get_hex(res, &resl, &x);
-            assert(strcmp(res, "(D6E96687F9B10D092A6F35439D86CEBEA4535D0D409F53586440BD74B933E830,B95CBCA2C77DA786539BE8FD53354D2D3B4F566AE658045407ED6015EE1B2A88)") == 0);
+            const char check[] = "(D6E96687F9B10D092A6F35439D86CEBEA4535D0D409F53586440BD74B933E830,"
+                                    "B95CBCA2C77DA786539BE8FD53354D2D3B4F566AE658045407ED6015EE1B2A88)";
+            assert(strcmp(res, check) == 0);
         }
     }
     // redo the computation, but directly with the resulting ae and ge coefficients:
@@ -434,7 +436,6 @@ void random_sign(secp256k1_ecdsa_sig_t *sig, const secp256k1_num_t *key, const s
 }
 
 void test_ecdsa_sign_verify() {
-    const secp256k1_ge_consts_t *c = secp256k1_ge_consts;
     secp256k1_num_t msg, key;
     secp256k1_num_init(&msg);
     random_num_order_test(&msg);
@@ -473,7 +474,6 @@ EC_KEY *get_openssl_key(const secp256k1_num_t *key) {
 }
 
 void test_ecdsa_openssl() {
-    const secp256k1_ge_consts_t *c = secp256k1_ge_consts;
     secp256k1_num_t key, msg;
     secp256k1_num_init(&msg);
     unsigned char message[32];
@@ -489,7 +489,7 @@ void test_ecdsa_openssl() {
     assert(ec_key);
     unsigned char signature[80];
     int sigsize = 80;
-    assert(ECDSA_sign(0, message, sizeof(message), signature, &sigsize, ec_key));
+    assert(ECDSA_sign(0, message, sizeof(message), signature, (unsigned int *)&sigsize, ec_key));
     secp256k1_ecdsa_sig_t sig;
     secp256k1_ecdsa_sig_init(&sig);
     assert(secp256k1_ecdsa_sig_parse(&sig, signature, sigsize));
@@ -517,7 +517,7 @@ void run_ecdsa_openssl() {
 
 int main(int argc, char **argv) {
     if (argc > 1)
-        count = strtol(argv[1], NULL, 0)*47;
+        count = (int)strtol(argv[1], NULL, 0)*47;
 
     printf("test count = %i\n", count);
 

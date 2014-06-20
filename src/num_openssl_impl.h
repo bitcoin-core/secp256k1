@@ -26,18 +26,18 @@ void static secp256k1_num_copy(secp256k1_num_t *r, const secp256k1_num_t *a) {
 }
 
 void static secp256k1_num_get_bin(unsigned char *r, unsigned int rlen, const secp256k1_num_t *a) {
-    unsigned int size = BN_num_bytes(&a->bn);
+    unsigned int size = (unsigned int)BN_num_bytes(&a->bn);
     assert(size <= rlen);
     memset(r,0,rlen);
     BN_bn2bin(&a->bn, r + rlen - size);
 }
 
 void static secp256k1_num_set_bin(secp256k1_num_t *r, const unsigned char *a, unsigned int alen) {
-    BN_bin2bn(a, alen, &r->bn);
+    BN_bin2bn(a, (int)alen, &r->bn);
 }
 
 void static secp256k1_num_set_int(secp256k1_num_t *r, int a) {
-    BN_set_word(&r->bn, a < 0 ? -a : a);
+    BN_set_word(&r->bn, a < 0 ? (unsigned long)-a : (unsigned long)a);
     BN_set_negative(&r->bn, a < 0);
 }
 
@@ -88,7 +88,7 @@ int static secp256k1_num_bits(const secp256k1_num_t *a) {
 }
 
 int static secp256k1_num_shift(secp256k1_num_t *r, int bits) {
-    int ret = BN_is_zero(&r->bn) ? 0 : r->bn.d[0] & ((1 << bits) - 1);
+    int ret = BN_is_zero(&r->bn) ? 0 : (int)(r->bn.d[0] & ((1 << bits) - 1));
     BN_rshift(&r->bn, &r->bn, bits);
     return ret;
 }
@@ -114,8 +114,8 @@ void static secp256k1_num_inc(secp256k1_num_t *r) {
 }
 
 void static secp256k1_num_set_hex(secp256k1_num_t *r, const char *a, int alen) {
-    char *str = (char*)malloc(alen+1);
-    memcpy(str, a, alen);
+    char *str = (char*)malloc((unsigned long)alen+1);
+    memcpy(str, a, (unsigned long)alen);
     str[alen] = 0;
     BIGNUM *pbn = &r->bn;
     BN_hex2bn(&pbn, str);
@@ -124,11 +124,11 @@ void static secp256k1_num_set_hex(secp256k1_num_t *r, const char *a, int alen) {
 
 void static secp256k1_num_get_hex(char *r, int rlen, const secp256k1_num_t *a) {
     char *str = BN_bn2hex(&a->bn);
-    int len = strlen(str);
+    int len = (int)strlen(str);
     assert(rlen >= len);
     for (int i=0; i<rlen-len; i++)
         r[i] = '0';
-    memcpy(r+rlen-len, str, len);
+    memcpy(r+rlen-len, str, (unsigned long)len);
     OPENSSL_free(str);
 }
 
