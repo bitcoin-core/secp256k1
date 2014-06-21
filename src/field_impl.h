@@ -151,7 +151,7 @@ void static secp256k1_fe_inv(secp256k1_fe_t *r, const secp256k1_fe_t *a) {
 
     secp256k1_fe_t x9 = x6;
     for (int j=0; j<3; j++) secp256k1_fe_sqr(&x9, &x9);
-    secp256k1_fe_mul(&x9, &x9, &x3);
+    secp256k1_fe_mul(&x9, &x9, &x2);
 
     secp256k1_fe_t x11 = x9;
     for (int j=0; j<2; j++) secp256k1_fe_sqr(&x11, &x11);
