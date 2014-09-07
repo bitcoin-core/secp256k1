@@ -352,6 +352,9 @@ void static secp256k1_gej_split_exp(secp256k1_num_t *r1, secp256k1_num_t *r2, co
 }
 #endif
 
+void static secp256k1_ge_scalar_inverse(secp256k1_num_t *r, const secp256k1_num_t *a) {
+    secp256k1_num_mod_inverse(r, a, &secp256k1_ge_consts->order);
+}
 
 void static secp256k1_ge_start(void) {
     static const unsigned char secp256k1_ge_consts_order[] = {

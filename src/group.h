@@ -112,6 +112,9 @@ void static secp256k1_gej_mul_lambda(secp256k1_gej_t *r, const secp256k1_gej_t *
 void static secp256k1_gej_split_exp(secp256k1_num_t *r1, secp256k1_num_t *r2, const secp256k1_num_t *a);
 #endif
 
+/** Compute the inverse of a scalar modulo the order of the curve. */
+void static secp256k1_ge_scalar_inverse(secp256k1_num_t *r, const secp256k1_num_t *a);
+
 /** Clear a secp256k1_gej_t to prevent leaking sensitive information. */
 void static secp256k1_gej_clear(secp256k1_gej_t *r);
 
