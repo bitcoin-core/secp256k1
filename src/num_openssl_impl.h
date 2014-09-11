@@ -80,12 +80,6 @@ void static secp256k1_num_mul(secp256k1_num_t *r, const secp256k1_num_t *a, cons
     BN_CTX_free(ctx);
 }
 
-void static secp256k1_num_div(secp256k1_num_t *r, const secp256k1_num_t *a, const secp256k1_num_t *b) {
-    BN_CTX *ctx = BN_CTX_new();
-    BN_div(&r->bn, NULL, &a->bn, &b->bn, ctx);
-    BN_CTX_free(ctx);
-}
-
 void static secp256k1_num_mod(secp256k1_num_t *r, const secp256k1_num_t *m) {
     BN_CTX *ctx = BN_CTX_new();
     BN_nnmod(&r->bn, &r->bn, &m->bn, ctx);
@@ -145,6 +139,10 @@ void static secp256k1_num_split(secp256k1_num_t *rl, secp256k1_num_t *rh, const 
     BN_copy(&rl->bn, &a->bn);
     BN_rshift(&rh->bn, &a->bn, bits);
     BN_mask_bits(&rl->bn, bits);
+}
+
+void static secp256k1_num_trunc(secp256k1_num_t *r, const secp256k1_num_t *a, int bits) {
+    BN_rshift(&r->bn, &a->bn, bits);
 }
 
 void static secp256k1_num_negate(secp256k1_num_t *r) {
