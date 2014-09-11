@@ -111,18 +111,16 @@ AC_DEFUN([SECP_OPENSSL_CHECK],[
 if test x"$use_pkgconfig" = x"yes"; then
     : #NOP
   m4_ifdef([PKG_CHECK_MODULES],[
-    PKG_CHECK_MODULES([SSL], [libssl], [has_libssl=yes; AC_DEFINE(HAVE_LIBSSL,1,[Define this symbol if libssl is installed])],[has_libssl=no])
     PKG_CHECK_MODULES([CRYPTO], [libcrypto], [has_libcrypto=yes; AC_DEFINE(HAVE_LIBCRYPTO,1,[Define this symbol if libcrypto is installed])],[has_libcrypto=no])
     : #NOP
   ])
 else
-  AC_CHECK_HEADER(openssl/ssl.h,[has_libssl=yes; AC_DEFINE(HAVE_LIBSSL,1,[Define this symbol if libssl is installed])])
   AC_CHECK_HEADER(openssl/crypto.h,[AC_CHECK_LIB(crypto, main,[has_libcrypto=yes; CRYPTO_LIBS=-lcrypto; AC_DEFINE(HAVE_LIBCRYPTO,1,[Define this symbol if libcrypto is installed])]
 )])
   LIBS=
 fi
-if test x"$has_libssl" == x"yes" && test x"$has_openssl_ec" = x; then
-  AC_MSG_CHECKING(for EC functions in libssl)
+if test x"$has_libcrypto" == x"yes" && test x"$has_openssl_ec" = x; then
+  AC_MSG_CHECKING(for EC functions in libcrypto)
   AC_TRY_COMPILE([
     #include <openssl/ec.h>
     #include <openssl/ecdsa.h>
@@ -135,9 +133,6 @@ if test x"$has_libssl" == x"yes" && test x"$has_openssl_ec" = x; then
   AC_MSG_RESULT([$has_openssl_ec])
 fi
 if test x"$set_bignum" = x"openssl"; then
-  if test x"$has_libssl" != x"yes"; then
-    AC_MSG_ERROR([$set_bignum field support explicitly requested but libssl was not found])
-  fi
   if test x"$has_libcrypto" != x"yes"; then
     AC_MSG_ERROR([$set_bignum field support explicitly requested but libcrypto was not found])
   fi
@@ -209,7 +204,7 @@ if test x"$req_bignum" = x"auto"; then
 
   if test x"$set_bignum" = x; then
     SECP_OPENSSL_CHECK
-    if test x"$has_libssl" = x"yes"; then
+    if test x"$has_libcrypto" = x"yes"; then
       set_bignum=openssl
     fi
   fi
@@ -259,11 +254,11 @@ case $set_bignum in
 gmp)
   AC_DEFINE(HAVE_LIBGMP,1,[Define this symbol if libgmp is installed])
   AC_DEFINE(USE_NUM_GMP, 1, [Define this symbol to use the gmp implementation])
-  AC_DEFINE(USE_FIELD_INV_NUM, 1, [Define this symbol to use the USE_FIELD_INV_NUM implementation])
+  AC_DEFINE(USE_FIELD_INV_NUM, 1, [Define this symbol to use the bignum field inverse implementation])
   ;;
 openssl)
   AC_DEFINE(USE_NUM_OPENSSL, 1,[Define this symbol to use the openssl implementation])
-  AC_DEFINE(USE_FIELD_INV_BUILTIN, 1, [Define this symbol to use the FIELD_INV_BUILTIN implementation])
+  AC_DEFINE(USE_FIELD_INV_BUILTIN, 1, [Define this symbol to use the builtin field inverse implementation])
   SECP_INCLUDES="$SSL_CFLAGS $CRYPTO_CFLAGS"
   SECP_LIBS="$CRYPTO_LIBS"
   ;;
@@ -271,6 +266,10 @@ openssl)
   AC_MSG_ERROR([invalid bignum implementation])
   ;;
 esac
+AC_DEFINE(USE_SCALAR_INV_NUM, 1, [Define this symbol to use the bignum scalar inverse implementation])
+if 0; then
+  AC_DEFINE(USE_SCALAR_INV_BUILTIN, 1, [Define this symbol to use the builtin scalar inverse implementation])
+fi
 
 if test x"$use_tests" = x"yes"; then
   SECP_OPENSSL_CHECK

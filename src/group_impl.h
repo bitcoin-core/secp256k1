@@ -349,6 +349,186 @@ void static secp256k1_gej_split_exp(secp256k1_num_t *r1, secp256k1_num_t *r2, co
 }
 #endif
 
+void static secp256k1_ge_scalar_inverse(secp256k1_num_t *r, const secp256k1_num_t *a) {
+#if defined(USE_SCALAR_INV_BUILTIN)
+    // order-2 has sequences of 1s with lengths: 1,2,3,4,6,8,127.
+    // First use an addition chain to compute power 2**n - 1 with n: [1],[2],[3],[4],[6],7,[8],15,30,60,120,[127]
+
+    const secp256k1_num_t *x1 = a;
+    secp256k1_num_t *x127 = r;
+    secp256k1_num_t x2, x3, x4, x6, x7, x8, x15, x30, x60, x120;
+    secp256k1_num_init(&x2);
+    secp256k1_num_init(&x3);
+    secp256k1_num_init(&x4);
+    secp256k1_num_init(&x6);
+    secp256k1_num_init(&x7);
+    secp256k1_num_init(&x8);
+    secp256k1_num_init(&x15);
+    secp256k1_num_init(&x30);
+    secp256k1_num_init(&x60);
+    secp256k1_num_init(&x120);
+
+    secp256k1_num_mod_mul(&x2,  x1,  x1, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x2, &x2,  x1, &secp256k1_ge_consts->order);
+
+    secp256k1_num_mod_mul(&x3, &x2, &x2, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x3, &x3,  x1, &secp256k1_ge_consts->order);
+
+    secp256k1_num_mod_mul(&x4, &x3, &x3, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x4, &x4,  x1, &secp256k1_ge_consts->order);
+
+    secp256k1_num_mod_mul(&x6, &x4, &x4, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x6, &x6, &x6, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x6, &x6, &x2, &secp256k1_ge_consts->order);
+
+    secp256k1_num_mod_mul(&x7, &x6, &x6, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x7, &x7,  x1, &secp256k1_ge_consts->order);
+
+    secp256k1_num_mod_mul(&x8, &x7, &x7, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x8, &x8,  x1, &secp256k1_ge_consts->order);
+
+    secp256k1_num_mod_mul(&x15, &x8, &x8, &secp256k1_ge_consts->order);
+    for (int i=0; i<6; i++)
+        secp256k1_num_mod_mul(&x15, &x15, &x15, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x15, &x15, &x7, &secp256k1_ge_consts->order);
+
+    secp256k1_num_mod_mul(&x30, &x15, &x15, &secp256k1_ge_consts->order);
+    for (int i=0; i<14; i++)
+        secp256k1_num_mod_mul(&x30, &x30, &x30, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x30, &x30, &x15, &secp256k1_ge_consts->order);
+
+    secp256k1_num_mod_mul(&x60, &x30, &x30, &secp256k1_ge_consts->order);
+    for (int i=0; i<29; i++)
+        secp256k1_num_mod_mul(&x60, &x60, &x60, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x60, &x60, &x30, &secp256k1_ge_consts->order);
+
+    secp256k1_num_mod_mul(&x120, &x60, &x60, &secp256k1_ge_consts->order);
+    for (int i=0; i<59; i++)
+        secp256k1_num_mod_mul(&x120, &x120, &x120, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(&x120, &x120, &x60, &secp256k1_ge_consts->order);
+
+    secp256k1_num_mod_mul(x127, &x120, &x120, &secp256k1_ge_consts->order);
+    for (int i=0; i<6; i++)
+        secp256k1_num_mod_mul(x127, x127, x127, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(x127, x127, &x7, &secp256k1_ge_consts->order);
+
+    // Then accumulate the final result (r starts at x127).
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<4; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x3, &secp256k1_ge_consts->order); // 111
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<4; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x3, &secp256k1_ge_consts->order); // 111
+    for (int i=0; i<3; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x2, &secp256k1_ge_consts->order); // 11
+    for (int i=0; i<4; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x3, &secp256k1_ge_consts->order); // 111
+    for (int i=0; i<5; i++) // 00
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x3, &secp256k1_ge_consts->order); // 111
+    for (int i=0; i<4; i++) // 00
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x2, &secp256k1_ge_consts->order); // 11
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<5; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x4, &secp256k1_ge_consts->order); // 1111
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<3; i++) // 00
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<4; i++) // 000
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<10; i++) // 0000000
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x3, &secp256k1_ge_consts->order); // 111
+    for (int i=0; i<4; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x3, &secp256k1_ge_consts->order); // 111
+    for (int i=0; i<9; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x8, &secp256k1_ge_consts->order); // 11111111
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<3; i++) // 00
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<3; i++) // 00
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<5; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x4, &secp256k1_ge_consts->order); // 1111
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<5; i++) // 000
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x2, &secp256k1_ge_consts->order); // 11
+    for (int i=0; i<4; i++) // 00
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x2, &secp256k1_ge_consts->order); // 11
+    for (int i=0; i<2; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<8; i++) // 000000
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x2, &secp256k1_ge_consts->order); // 11
+    for (int i=0; i<3; i++) // 0
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x2, &secp256k1_ge_consts->order); // 11
+    for (int i=0; i<3; i++) // 00
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<6; i++) // 00000
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, x1, &secp256k1_ge_consts->order); // 1
+    for (int i=0; i<8; i++) // 00
+        secp256k1_num_mod_mul(r, r, r, &secp256k1_ge_consts->order);
+    secp256k1_num_mod_mul(r, r, &x6, &secp256k1_ge_consts->order); // 111111
+
+    secp256k1_num_free(&x2);
+    secp256k1_num_free(&x3);
+    secp256k1_num_free(&x4);
+    secp256k1_num_free(&x6);
+    secp256k1_num_free(&x7);
+    secp256k1_num_free(&x8);
+    secp256k1_num_free(&x15);
+    secp256k1_num_free(&x30);
+    secp256k1_num_free(&x60);
+    secp256k1_num_free(&x120);
+#elif defined(USE_SCALAR_INV_NUM)
+    secp256k1_num_mod_inverse(r, a, &secp256k1_ge_consts->order);
+#else
+#error "Please select scalar inverse implementation"
+#endif
+}
 
 void static secp256k1_ge_start(void) {
     static const unsigned char secp256k1_ge_consts_order[] = {
