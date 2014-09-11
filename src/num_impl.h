@@ -15,6 +15,8 @@
 #include "num_gmp_impl.h"
 #elif defined(USE_NUM_OPENSSL)
 #include "num_openssl_impl.h"
+#elif defined(USE_NUM_BUILTIN)
+#include "num_internal_impl.h"
 #else
 #error "Please select num implementation"
 #endif

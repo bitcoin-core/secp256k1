@@ -13,6 +13,8 @@
 #include "num_gmp.h"
 #elif defined(USE_NUM_OPENSSL)
 #include "num_openssl.h"
+#elif defined(USE_NUM_BUILTIN)
+#include "num_internal.h"
 #else
 #error "Please select num implementation"
 #endif
