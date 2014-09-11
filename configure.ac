@@ -63,6 +63,24 @@ AC_ARG_WITH([bignum], [AS_HELP_STRING([--with-bignum=gmp|openssl|auto],
 
 AC_CHECK_TYPES([__int128])
 
+AC_LINK_IFELSE([
+  AC_LANG_SOURCE([[
+    int main(){
+      unsigned long ret = __builtin_addcl(0, 0, 0, 0);
+      return 0;}
+  ]])],
+  [AC_DEFINE([BUILTIN_ADDCL], [1],[Define if __builtin_addcl (clang builtin) exists.])]
+)
+
+AC_LINK_IFELSE([
+  AC_LANG_SOURCE([[
+    int main(){
+      unsigned long ret = __builtin_subcl(0, 0, 0, 0);
+      return 0;}
+  ]])],
+  [AC_DEFINE([BUILTIN_SUBCL], [1],[Define if __builtin_subcl (clang builtin) exists.])]
+)
+
 AC_DEFUN([SECP_INT128_CHECK],[
 has_int128=$ac_cv_type___int128
 if test x"$has_int128" != x"yes" && test x"$set_field" = x"64bit"; then
@@ -221,6 +239,9 @@ else
   openssl)
     SECP_OPENSSL_CHECK
     ;;
+  builtin)
+    SECP_GMP_CHECK
+    ;;
   *)
     AC_MSG_ERROR([invalid bignum implementation selection])
     ;;
@@ -262,14 +283,16 @@ openssl)
   SECP_INCLUDES="$SSL_CFLAGS $CRYPTO_CFLAGS"
   SECP_LIBS="$CRYPTO_LIBS"
   ;;
+builtin)
+  AC_DEFINE(USE_NUM_BUILTIN, 1,[Define this symbol to use the openssl implementation])
+  AC_DEFINE(USE_FIELD_INV_BUILTIN, 1, [Define this symbol to use the field inverse implementation])
+  AC_DEFINE(USE_SCALAR_INV_BUILTIN, 1, [Define this symbol to use the builtin scalar inverse implementation])
+  ;;
 *)
   AC_MSG_ERROR([invalid bignum implementation])
   ;;
 esac
 AC_DEFINE(USE_SCALAR_INV_NUM, 1, [Define this symbol to use the bignum scalar inverse implementation])
-if 0; then
-  AC_DEFINE(USE_SCALAR_INV_BUILTIN, 1, [Define this symbol to use the builtin scalar inverse implementation])
-fi
 
 if test x"$use_tests" = x"yes"; then
   SECP_OPENSSL_CHECK
@@ -287,7 +310,7 @@ if test x"$use_tests" = x"yes"; then
   fi
 fi
 
-if test x"$set_field" = x"gmp" || test x"$set_bignum" = x"gmp"; then
+if test x"$set_field" = x"gmp" || test x"$set_bignum" = x"gmp" || test x"$set_bignum" = x"builtin"; then
   SECP_LIBS="$SECP_LIBS $GMP_LIBS"
 fi
 
