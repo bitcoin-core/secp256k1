@@ -16,7 +16,7 @@ public class NativeSecp256k1 {
     static {
         boolean isEnabled = true;
         try {
-            System.loadLibrary("javasecp256k1");
+            System.loadLibrary("secp256k1");
         } catch (UnsatisfiedLinkError e) {
             isEnabled = false;
         }
