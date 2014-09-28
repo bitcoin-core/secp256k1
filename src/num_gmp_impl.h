@@ -55,7 +55,7 @@ void static secp256k1_num_get_bin(unsigned char *r, unsigned int rlen, const sec
     if (a->limbs>1 || a->data[0] != 0) {
         len = mpn_get_str(tmp, 256, (mp_limb_t*)a->data, a->limbs);
     }
-    int shift = 0;
+    unsigned int shift = 0;
     while (shift < len && tmp[shift] == 0) shift++;
     VERIFY_CHECK(len-shift <= rlen);
     memset(r, 0, rlen - len + shift);
@@ -298,7 +298,7 @@ void static secp256k1_num_set_hex(secp256k1_num_t *r, const char *a, int alen) {
         0, 0, 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,
         0, 0, 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0
     };
-    unsigned char num[257] = {};
+    unsigned char num[257] = { 0 };
     for (int i=0; i<alen; i++) {
         num[i] = cvt[(unsigned char)a[i]];
     }

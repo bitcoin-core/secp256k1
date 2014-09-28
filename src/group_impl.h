@@ -74,7 +74,7 @@ void static secp256k1_ge_set_gej(secp256k1_ge_t *r, secp256k1_gej_t *a) {
 void static secp256k1_ge_set_all_gej(size_t len, secp256k1_ge_t r[len], const secp256k1_gej_t a[len]) {
     int count = 0;
     secp256k1_fe_t az[len];
-    for (int i=0; i<len; i++) {
+    for (size_t i=0; i<len; i++) {
         if (!a[i].infinity) {
             az[count++] = a[i].z;
         }
@@ -84,7 +84,7 @@ void static secp256k1_ge_set_all_gej(size_t len, secp256k1_ge_t r[len], const se
     secp256k1_fe_inv_all_var(count, azi, az);
 
     count = 0;
-    for (int i=0; i<len; i++) {
+    for (size_t i=0; i<len; i++) {
         r[i].infinity = a[i].infinity;
         if (!a[i].infinity) {
             secp256k1_fe_t *zi = &azi[count++];

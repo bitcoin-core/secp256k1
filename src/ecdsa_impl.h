@@ -113,12 +113,15 @@ int static secp256k1_ecdsa_sig_recompute(secp256k1_num_t *r2, const secp256k1_ec
 int static secp256k1_ecdsa_sig_recover(const secp256k1_ecdsa_sig_t *sig, secp256k1_ge_t *pubkey, const secp256k1_num_t *message, int recid) {
     const secp256k1_ge_consts_t *c = secp256k1_ge_consts;
 
-    if (secp256k1_num_is_neg(&sig->r) || secp256k1_num_is_neg(&sig->s))
+    if (secp256k1_num_is_neg(&sig->r) || secp256k1_num_is_neg(&sig->s)) {
         return 0;
-    if (secp256k1_num_is_zero(&sig->r) || secp256k1_num_is_zero(&sig->s))
+    }
+    if (secp256k1_num_is_zero(&sig->r) || secp256k1_num_is_zero(&sig->s)) {
         return 0;
-    if (secp256k1_num_cmp(&sig->r, &c->order) >= 0 || secp256k1_num_cmp(&sig->s, &c->order) >= 0)
+    }
+    if (secp256k1_num_cmp(&sig->r, &c->order) >= 0 || secp256k1_num_cmp(&sig->s, &c->order) >= 0) {
         return 0;
+    }
 
     secp256k1_num_t rx;
     secp256k1_num_init(&rx);
@@ -134,8 +137,9 @@ int static secp256k1_ecdsa_sig_recover(const secp256k1_ecdsa_sig_t *sig, secp256
     secp256k1_fe_t fx;
     secp256k1_fe_set_b32(&fx, brx);
     secp256k1_ge_t x;
-    if (!secp256k1_ge_set_xo(&x, &fx, recid & 1))
+    if (!secp256k1_ge_set_xo(&x, &fx, recid & 1)) {
         return 0;
+    }
     secp256k1_gej_t xj;
     secp256k1_gej_set_ge(&xj, &x);
     secp256k1_num_t rn, u1, u2;
