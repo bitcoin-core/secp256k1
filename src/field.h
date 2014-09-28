@@ -97,10 +97,10 @@ void static secp256k1_fe_inv_var(secp256k1_fe_t *r, const secp256k1_fe_t *a);
 /** Calculate the (modular) inverses of a batch of field elements. Requires the inputs' magnitudes to be
  *  at most 8. The output magnitudes are 1 (but not guaranteed to be normalized). The inputs and
  *  outputs must not overlap in memory. */
-void static secp256k1_fe_inv_all(size_t len, secp256k1_fe_t r[len], const secp256k1_fe_t a[len]);
+void static secp256k1_fe_inv_all(size_t len, secp256k1_fe_t r[], const secp256k1_fe_t a[]);
 
 /** Potentially faster version of secp256k1_fe_inv_all, without constant-time guarantee. */
-void static secp256k1_fe_inv_all_var(size_t len, secp256k1_fe_t r[len], const secp256k1_fe_t a[len]);
+void static secp256k1_fe_inv_all_var(size_t len, secp256k1_fe_t r[], const secp256k1_fe_t a[]);
 
 
 /** Convert a field element to a hexadecimal string. */
