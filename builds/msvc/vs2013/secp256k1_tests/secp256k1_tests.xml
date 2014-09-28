@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions xmlns="clr-namespace:Microsoft.Build.Framework.XamlTypes;assembly=Microsoft.Build.Framework">
+  <Rule Name="secp256k1_test-options-uiextension" PageTemplate="tool" DisplayName="Secp256k1 Test Options" SwitchPrefix="/" Order="1">
+    <Rule.Categories>
+      <Category Name="bignum" DisplayName="bignum" />
+      <Category Name="field" DisplayName="field" />
+      <!--<Category Name="fieldimp" DisplayName="fieldimp" />-->
+      <Category Name="fieldinv" DisplayName="fieldinv" />
+      <Category Name="endomorph" DisplayName="endomorph" />
+      <Category Name="config" DisplayName="config" />
+      <Category Name="testssl" DisplayName="testssl" />
+    </Rule.Categories>
+    <Rule.DataSource>
+      <DataSource Persistence="ProjectFile" ItemType="" />
+    </Rule.DataSource>
+    <EnumProperty Name="Option-bignum" DisplayName="Choose Bignum Type" Description="Choose the type of big number to use (must match secp256k1 lib and linkage)" Category="bignum">
+      <EnumValue Name="" DisplayName="None" />
+      <EnumValue Name="gmp" DisplayName="GMP" />
+      <EnumValue Name="openssl" DisplayName="OpenSSL" />
+    </EnumProperty>
+    <EnumProperty Name="Option-field" DisplayName="Choose Field Type" Description="Choose the type of field to use (must match secp256k1 lib)" Category="field">
+      <EnumValue Name="" DisplayName="None" />
+      <EnumValue Name="gmp" DisplayName="GMP" />
+      <EnumValue Name="10x26" DisplayName="10x26" />
+      <!--<EnumValue Name="5x52" DisplayName="5x52" />-->
+    </EnumProperty>
+    <!--<EnumProperty Name="Option-fieldimp" DisplayName="Choose Field 5x52 Implementation" Description="Choose the field 5x52 implementation (must match secp256k1 lib)" Category="fieldimp">
+      <EnumValue Name="" DisplayName="None" />
+      <EnumValue Name="asm" DisplayName="Assembler" />
+      <EnumValue Name="int128" DisplayName="Int128" />
+    </EnumProperty>-->
+    <EnumProperty Name="Option-fieldinv" DisplayName="Choose Field Inverse Implementation" Description="Choose the type of field inverse implementation (must match secp256k1 lib)" Category="fieldinv">
+      <EnumValue Name="" DisplayName="None" />
+      <EnumValue Name="builtin" DisplayName="Builtin" />
+      <EnumValue Name="num" DisplayName="Number" />
+    </EnumProperty>
+    <EnumProperty Name="Option-endomorph" DisplayName="Use Endomorphism" Description="Use secp256k1's efficiently computable endomorphism." Category="endomorph">
+      <EnumValue Name="" DisplayName="No" />
+      <EnumValue Name="true" DisplayName="Yes" />
+    </EnumProperty>
+    <EnumProperty Name="Option-config" DisplayName="Include Configuration File" Description="Include 'libsecp256k1-config.h' from the secp256k1 project" Category="config">
+      <EnumValue Name="" DisplayName="No" />
+      <EnumValue Name="true" DisplayName="Yes" />
+    </EnumProperty>
+    <EnumProperty Name="Option-testssl" DisplayName="Enable OpenSSL Tests" Description="Choose to enable OpenSSL tests" Category="testssl">
+      <EnumValue Name="" DisplayName="No" />
+      <EnumValue Name="true" DisplayName="Yes" />
+    </EnumProperty>
+  </Rule>
+</ProjectSchemaDefinitions>

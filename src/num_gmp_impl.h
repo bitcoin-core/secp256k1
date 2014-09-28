@@ -51,11 +51,12 @@ int static secp256k1_num_bits(const secp256k1_num_t *a) {
 
 void static secp256k1_num_get_bin(unsigned char *r, unsigned int rlen, const secp256k1_num_t *a) {
     unsigned char tmp[65];
-    int len = 0;
+    unsigned int len = 0;
     if (a->limbs>1 || a->data[0] != 0) {
+        // warning C4267 : '=' : conversion from 'size_t' to 'unsigned int', possible loss of data (x64)
         len = mpn_get_str(tmp, 256, (mp_limb_t*)a->data, a->limbs);
     }
-    int shift = 0;
+    unsigned int shift = 0;
     while (shift < len && tmp[shift] == 0) shift++;
     VERIFY_CHECK(len-shift <= rlen);
     memset(r, 0, rlen - len + shift);
@@ -68,6 +69,7 @@ void static secp256k1_num_get_bin(unsigned char *r, unsigned int rlen, const sec
 void static secp256k1_num_set_bin(secp256k1_num_t *r, const unsigned char *a, unsigned int alen) {
     VERIFY_CHECK(alen > 0);
     VERIFY_CHECK(alen <= 64);
+    // warning C4267 : '=' : conversion from 'mp_limb_t' to 'int', possible loss of data (x64)
     int len = mpn_set_str(r->data, a, alen, 256);
     VERIFY_CHECK(len <= NUM_LIMBS*2);
     r->limbs = len;
@@ -147,6 +149,7 @@ void static secp256k1_num_mod_inverse(secp256k1_num_t *r, const secp256k1_num_t 
         r->limbs = m->limbs;
         while (r->limbs > 1 && r->data[r->limbs-1]==0) r->limbs--;
     } else {
+        // warning C4267 : '=' : conversion from 'mp_size_t' to 'int', possible loss of data (x64)
         r->limbs = sn;
     }
     memset(g, 0, sizeof(g));
@@ -264,6 +267,7 @@ int static secp256k1_num_shift(secp256k1_num_t *r, int bits) {
     mp_limb_t ret = mpn_rshift(r->data, r->data, r->limbs, bits);
     if (r->limbs>1 && r->data[r->limbs-1]==0) r->limbs--;
     ret >>= (GMP_NUMB_BITS - bits);
+    // warning C4267 : '=' : conversion from 'mp_limb_t' to 'int', possible loss of data (x64)
     return ret;
 }
 
@@ -298,10 +302,11 @@ void static secp256k1_num_set_hex(secp256k1_num_t *r, const char *a, int alen) {
         0, 0, 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,
         0, 0, 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0
     };
-    unsigned char num[257] = {};
+    unsigned char num[257] = { 0 };
     for (int i=0; i<alen; i++) {
         num[i] = cvt[(unsigned char)a[i]];
     }
+    // warning C4267 : '=' : conversion from 'mp_size_t' to 'int', possible loss of data (x64)
     r->limbs = mpn_set_str(r->data, num, alen, 16);
     while (r->limbs > 1 && r->data[r->limbs-1] == 0) r->limbs--;
 }

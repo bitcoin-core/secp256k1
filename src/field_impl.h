@@ -40,7 +40,7 @@ void static secp256k1_fe_get_hex(char *r, int *rlen, const secp256k1_fe_t *a) {
 }
 
 void static secp256k1_fe_set_hex(secp256k1_fe_t *r, const char *a, int alen) {
-    unsigned char tmp[32] = {};
+    unsigned char tmp[32] = { 0 };
     static const int cvt[256] = {0, 0, 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,
                                  0, 0, 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,
                                  0, 0, 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,
@@ -216,15 +216,16 @@ void static secp256k1_fe_inv_var(secp256k1_fe_t *r, const secp256k1_fe_t *a) {
 #endif
 }
 
-void static secp256k1_fe_inv_all(size_t len, secp256k1_fe_t r[len], const secp256k1_fe_t a[len]) {
-    if (len < 1)
+void static secp256k1_fe_inv_all(size_t len, secp256k1_fe_t r[], const secp256k1_fe_t a[]) {
+    if (len < 1) {
         return;
+    }
 
     VERIFY_CHECK((r + len <= a) || (a + len <= r));
 
     r[0] = a[0];
 
-    int i = 0;
+    size_t i = 0;
     while (++i < len) {
         secp256k1_fe_mul(&r[i], &r[i - 1], &a[i]);
     }
@@ -232,6 +233,7 @@ void static secp256k1_fe_inv_all(size_t len, secp256k1_fe_t r[len], const secp25
     secp256k1_fe_t u; secp256k1_fe_inv(&u, &r[--i]);
 
     while (i > 0) {
+        // warning C4267 : '=' : conversion from 'size_t' to 'int', possible loss of data (x64)
         int j = i--;
         secp256k1_fe_mul(&r[j], &r[i], &u);
         secp256k1_fe_mul(&u, &u, &a[j]);
@@ -240,15 +242,16 @@ void static secp256k1_fe_inv_all(size_t len, secp256k1_fe_t r[len], const secp25
     r[0] = u;
 }
 
-void static secp256k1_fe_inv_all_var(size_t len, secp256k1_fe_t r[len], const secp256k1_fe_t a[len]) {
-    if (len < 1)
+void static secp256k1_fe_inv_all_var(size_t len, secp256k1_fe_t r[], const secp256k1_fe_t a[]) {
+    if (len < 1) {
         return;
+    }
 
     VERIFY_CHECK((r + len <= a) || (a + len <= r));
 
     r[0] = a[0];
 
-    int i = 0;
+    size_t i = 0;
     while (++i < len) {
         secp256k1_fe_mul(&r[i], &r[i - 1], &a[i]);
     }
@@ -256,6 +259,7 @@ void static secp256k1_fe_inv_all_var(size_t len, secp256k1_fe_t r[len], const se
     secp256k1_fe_t u; secp256k1_fe_inv_var(&u, &r[--i]);
 
     while (i > 0) {
+        // warning C4267 : '=' : conversion from 'size_t' to 'int', possible loss of data (x64)
         int j = i--;
         secp256k1_fe_mul(&r[j], &r[i], &u);
         secp256k1_fe_mul(&u, &u, &a[j]);

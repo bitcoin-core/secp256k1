@@ -38,7 +38,9 @@ void static secp256k1_ge_get_hex(char *r, int *rlen, const secp256k1_ge_t *a) {
     char cy[65]; int ly=65;
     secp256k1_fe_get_hex(cx, &lx, &a->x);
     secp256k1_fe_get_hex(cy, &ly, &a->y);
+    // warning C4267 : '=' : conversion from 'size_t' to 'int', possible loss of data (x64)
     lx = strlen(cx);
+    // warning C4267: '=' : conversion from 'size_t' to 'int', possible loss of data (x64)
     ly = strlen(cy);
     int len = lx + ly + 3 + 1;
     if (*rlen < len) {
@@ -69,20 +71,26 @@ void static secp256k1_ge_set_gej(secp256k1_ge_t *r, secp256k1_gej_t *a) {
     r->y = a->y;
 }
 
-void static secp256k1_ge_set_all_gej(size_t len, secp256k1_ge_t r[len], const secp256k1_gej_t a[len]) {
+void static secp256k1_ge_set_all_gej(size_t len, secp256k1_ge_t r[], const secp256k1_gej_t a[]) {
     int count = 0;
-    secp256k1_fe_t az[len];
-    for (int i=0; i<len; i++) {
+
+    // secp256k1_fe_t az[len];
+    // Workaround for C98 lack of variable-length arrays.
+    secp256k1_fe_t *az = (secp256k1_fe_t *)malloc(len * sizeof(secp256k1_fe_t));
+
+    for (size_t i=0; i<len; i++) {
         if (!a[i].infinity) {
             az[count++] = a[i].z;
         }
     }
 
-    secp256k1_fe_t azi[count];
+    // secp256k1_fe_t azi[count];
+    // Workaround for C98 lack of variable-length arrays.
+    secp256k1_fe_t *azi = (secp256k1_fe_t *)malloc(count * sizeof(secp256k1_fe_t));
     secp256k1_fe_inv_all_var(count, azi, az);
 
     count = 0;
-    for (int i=0; i<len; i++) {
+    for (size_t i=0; i<len; i++) {
         r[i].infinity = a[i].infinity;
         if (!a[i].infinity) {
             secp256k1_fe_t *zi = &azi[count++];
@@ -92,6 +100,9 @@ void static secp256k1_ge_set_all_gej(size_t len, secp256k1_ge_t r[len], const se
             secp256k1_fe_mul(&r[i].y, &a[i].y, &zi3);
         }
     }
+
+    free(az);
+    free(azi);
 }
 
 void static secp256k1_gej_set_infinity(secp256k1_gej_t *r) {
@@ -159,8 +170,9 @@ int static secp256k1_gej_is_infinity(const secp256k1_gej_t *a) {
 }
 
 int static secp256k1_gej_is_valid(const secp256k1_gej_t *a) {
-    if (a->infinity)
+    if (a->infinity) {
         return 0;
+    }
     // y^2 = x^3 + 7
     // (Y/Z^3)^2 = (X/Z^2)^3 + 7
     // Y^2 / Z^6 = X^3 / Z^6 + 7
@@ -177,8 +189,9 @@ int static secp256k1_gej_is_valid(const secp256k1_gej_t *a) {
 }
 
 int static secp256k1_ge_is_valid(const secp256k1_ge_t *a) {
-    if (a->infinity)
+    if (a->infinity) {
         return 0;
+    }
     // y^2 = x^3 + 7
     secp256k1_fe_t y2; secp256k1_fe_sqr(&y2, &a->y);
     secp256k1_fe_t x3; secp256k1_fe_sqr(&x3, &a->x); secp256k1_fe_mul(&x3, &x3, &a->x);

@@ -317,6 +317,7 @@ void static inline secp256k1_fe_mul_inner(const uint32_t *a, const uint32_t *b, 
     uint32_t t17 = c & 0x3FFFFFFUL; c = c >> 26;
     c = c + (uint64_t)a[9] * b[9];
     uint32_t t18 = c & 0x3FFFFFFUL; c = c >> 26;
+    // warning C4244: 'initializing' : conversion from 'uint64_t' to 'uint32_t', possible loss of data (x86/x64)
     uint32_t t19 = c;
 
     c = t0 + (uint64_t)t10 * 0x3D10UL;
@@ -343,6 +344,7 @@ void static inline secp256k1_fe_mul_inner(const uint32_t *a, const uint32_t *b, 
     r[0] = d & 0x3FFFFFFUL; d = d >> 26;
     d = d + t1 + c*0x40;
     r[1] = d & 0x3FFFFFFUL; d = d >> 26;
+    // warning C4244: '=' : conversion from 'uint64_t' to 'uint32_t', possible loss of data (x86/x64)
     r[2] = t2 + d;
 }
 
@@ -421,6 +423,7 @@ void static inline secp256k1_fe_sqr_inner(const uint32_t *a, uint32_t *r) {
     uint32_t t17 = c & 0x3FFFFFFUL; c = c >> 26;
     c = c + (uint64_t)a[9] * a[9];
     uint32_t t18 = c & 0x3FFFFFFUL; c = c >> 26;
+    // warning C4244: 'initializing' : conversion from 'uint64_t' to 'uint32_t', possible loss of data (x86/x64)
     uint32_t t19 = c;
 
     c = t0 + (uint64_t)t10 * 0x3D10UL;
@@ -447,6 +450,7 @@ void static inline secp256k1_fe_sqr_inner(const uint32_t *a, uint32_t *r) {
     r[0] = d & 0x3FFFFFFUL; d = d >> 26;
     d = d + t1 + c*0x40;
     r[1] = d & 0x3FFFFFFUL; d = d >> 26;
+    // warning C4244: '=' : conversion from 'uint64_t' to 'uint32_t', possible loss of data (x86/x64)
     r[2] = t2 + d;
 }
 

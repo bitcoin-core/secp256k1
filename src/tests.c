@@ -123,7 +123,7 @@ void run_num_int() {
     secp256k1_num_t n1;
     secp256k1_num_init(&n1);
     for (int i=-255; i<256; i++) {
-        unsigned char c1[3] = {};
+        unsigned char c1[3] = { 0 };
         c1[2] = abs(i);
         unsigned char c2[3] = {0x11,0x22,0x33};
         secp256k1_num_set_int(&n1, i);
@@ -277,13 +277,13 @@ void run_field_inv_all() {
     secp256k1_fe_inv_all(0, xi, x);
     for (int i=0; i<count; i++) {
         size_t len = (secp256k1_rand32() & 15) + 1;
-        for (int j=0; j<len; j++)
+        for (size_t j=0; j<len; j++)
             random_fe_non_zero(&x[j]);
         secp256k1_fe_inv_all(len, xi, x);
-        for (int j=0; j<len; j++)
+        for (size_t j=0; j<len; j++)
             CHECK(check_fe_inverse(&x[j], &xi[j]));
         secp256k1_fe_inv_all(len, xii, xi);
-        for (int j=0; j<len; j++)
+        for (size_t j=0; j<len; j++)
             CHECK(check_fe_equal(&x[j], &xii[j]));
     }
 }
@@ -294,13 +294,13 @@ void run_field_inv_all_var() {
     secp256k1_fe_inv_all_var(0, xi, x);
     for (int i=0; i<count; i++) {
         size_t len = (secp256k1_rand32() & 15) + 1;
-        for (int j=0; j<len; j++)
+        for (size_t j=0; j<len; j++)
             random_fe_non_zero(&x[j]);
         secp256k1_fe_inv_all_var(len, xi, x);
-        for (int j=0; j<len; j++)
+        for (size_t j=0; j<len; j++)
             CHECK(check_fe_inverse(&x[j], &xi[j]));
         secp256k1_fe_inv_all_var(len, xii, xi);
-        for (int j=0; j<len; j++)
+        for (size_t j=0; j<len; j++)
             CHECK(check_fe_equal(&x[j], &xii[j]));
     }
 }
