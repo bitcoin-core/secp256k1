@@ -26,7 +26,7 @@
   
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(RepoRoot)src\;$(RepoRoot)include\%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(RepoRoot)src\;$(RepoRoot)\%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <EnablePREfast>false</EnablePREfast>
       <PreprocessorDefinitions>inline=__inline;%(PreprocessorDefinitions)</PreprocessorDefinitions>
