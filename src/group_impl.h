@@ -71,16 +71,22 @@ void static secp256k1_ge_set_gej(secp256k1_ge_t *r, secp256k1_gej_t *a) {
     r->y = a->y;
 }
 
-void static secp256k1_ge_set_all_gej(size_t len, secp256k1_ge_t r[len], const secp256k1_gej_t a[len]) {
+void static secp256k1_ge_set_all_gej(size_t len, secp256k1_ge_t r[], const secp256k1_gej_t a[]) {
     int count = 0;
-    secp256k1_fe_t az[len];
+
+    // secp256k1_fe_t az[len];
+    // Workaround for C98 lack of variable-length arrays.
+    secp256k1_fe_t *az = (secp256k1_fe_t *)malloc(len * sizeof(secp256k1_fe_t));
+
     for (size_t i=0; i<len; i++) {
         if (!a[i].infinity) {
             az[count++] = a[i].z;
         }
     }
 
-    secp256k1_fe_t azi[count];
+    // secp256k1_fe_t azi[count];
+    // Workaround for C98 lack of variable-length arrays.
+    secp256k1_fe_t *azi = (secp256k1_fe_t *)malloc(count * sizeof(secp256k1_fe_t));
     secp256k1_fe_inv_all_var(count, azi, az);
 
     count = 0;
@@ -94,6 +100,9 @@ void static secp256k1_ge_set_all_gej(size_t len, secp256k1_ge_t r[len], const se
             secp256k1_fe_mul(&r[i].y, &a[i].y, &zi3);
         }
     }
+
+    free(az);
+    free(azi);
 }
 
 void static secp256k1_gej_set_infinity(secp256k1_gej_t *r) {
