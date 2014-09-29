@@ -233,6 +233,66 @@ SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_mul(
   const unsigned char *tweak
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(3);
 
+/** Combine two public keys pubkey and pubkey2 (do an EC addition on the points), and put the result in pubkey. */
+int secp256k1_ec_pubkey_combine(unsigned char *pubkey, int pubkeylen, const unsigned char *pubkey2, int pubkey2len);
+
+/** A hash function for Schnorr
+ *  In:  r32:    a pointer to a 32-byte value (the X coordinate of the public
+ *               key corresponding to the nonce).
+ *       msg:    a pointer to a the message to be signed.
+ *       msglen: the length of the message being signed.
+ *  Out: h32:    a pointer to a 32-byte value where the resulting hash is to be
+ *               written. This is expected to be a hash of a concatenation of
+ *               r32 and the message.
+ */
+typedef void (*secp256k1_schnorr_hash_t)(unsigned char *h32, const unsigned char *r32, const unsigned char *msg, int msglen);
+
+/** Create a Schnorr signature.
+ *  In:  msg:      a pointer to the message to be signed.
+ *       msglen:   the length of the message to be signed.
+ *       seckey32: a pointer to a 32-byte private key.
+ *       nonce32:  a pointer to a 32-byte nonce.
+ *       hash:     a hash function to use.
+ *  Out: sig64:    a pointer to a 64-byte array where the Schnorr signature
+ *                 will be put.
+ */
+int secp256k1_schnorr_sign(const unsigned char *msg, int msglen, unsigned char *sig64, const unsigned char *seckey32, const unsigned char *nonce32, secp256k1_schnorr_hash_t hash);
+
+/** Verify a Schnorr signature.
+ *  In:      msg:       a pointer to the message that was signed.
+ *           msglen:    the length of the message that was signed.
+ *           sig64:     a pointer to a 64-byte Schnorr signature.
+ *           pubkey:    the public key corresponding to the private key that signed.
+ *           pubkeylen: the length of the public key.
+ *           hash:      the hash function to use.
+ *  Returns: 1 if the public key is valid and the signature is valid for that
+ *           message/public key combination. 0 otherwise.
+ */
+int secp256k1_schnorr_verify(const unsigned char *msg, int msglen, const unsigned char *sig64, const unsigned char *pubkey, int pubkeylen, secp256k1_schnorr_hash_t hash);
+
+/** Create one part of a Schnorr multiparty signature.
+ *  In:  msg:         a pointer to the message to be signed.
+ *       msglen:      the length of the message to be signed.
+ *       seckey32:    a pointer to a 32-byte private key.
+ *       nonce32:     a pointer to a 32-byte nonce.
+ *       allnonce:    a pointer to the public key which is the combination of all
+ *                    nonces used in the multiparty signature. This can be
+ *                    obtained by letting every participant publish the public key
+ *                    corresponding to their nonce (through secp256k1_ec_pubkey_create),
+ *                    and using secp256k1_ec_pubkey_combine to combine the results.
+ *       allnoncelen: the length of the public key in allnonce.
+ *       hash:        a hash function to use.
+ *  Out: sig64:       a pointer to a 64-byte array where the Schnorr signature
+ *                    will be put. After combining (using secp256k1_schnorr_combine),
+ *                    the result will be verifiable by secp256k1_schnorr_verify,
+ *                    using a public key that is the result of applying
+ *                    secp256k1_ec_pubkey_combine on the individual public keys.
+ */
+int secp256k1_schnorr_multisign(const unsigned char *msg, int msglen, unsigned char *sig64, const unsigned char *seckey32, const unsigned char *nonce32, const unsigned char *allnonce, int allnoncelen, secp256k1_schnorr_hash_t hash);
+
+/** Combine two Schnorr signatures (which must be for the same message, and the same set of nonces) into one. */
+int secp256k1_schnorr_combine(unsigned char *sig64, const unsigned char *sig64a, const unsigned char *sig64b);
+
 # ifdef __cplusplus
 }
 # endif

@@ -878,6 +878,89 @@ void run_ecdsa_sign_verify(void) {
     }
 }
 
+void test_schnorr_hash(unsigned char *h32, const unsigned char *r32, const unsigned char *msg, int msglen) {
+    CHECK(msglen == 32);
+    uint64_t h1 = *(uint64_t*)(r32+0);
+    uint64_t h2 = *(uint64_t*)(r32+8);
+    uint64_t h3 = *(uint64_t*)(r32+16);
+    uint64_t h4 = *(uint64_t*)(r32+24);
+    for (int i=0; i<8; i++) {
+        h1 += *(uint32_t*)(msg + i * 4);
+        h2 += h1;
+        h3 += h2;
+        h4 += h3;
+    }
+    *(uint64_t*)(h32+0) = h1;
+    *(uint64_t*)(h32+8) = h2;
+    *(uint64_t*)(h32+16) = h3;
+    *(uint64_t*)(h32+24) = h4;
+}
+
+void test_schnorr_multisign(void) {
+    unsigned char privkey[8][32]; /* the first 4 are keys, the last 4 are nonces */
+    unsigned char pubkey[8][65];
+    int pubkeylen[8];
+    unsigned char msg[32];
+
+    {
+        /* Generate message and keys/nonces. */
+        secp256k1_scalar_t n;
+        random_scalar_order_test(&n);
+        secp256k1_scalar_get_b32(msg, &n);
+        for (int i = 0; i < 8; i++) {
+            random_scalar_order_test(&n);
+            secp256k1_scalar_get_b32(privkey[i], &n);
+        }
+    }
+
+    /* Generate public keys for the keys and nonces. */
+    for (int i = 0; i < 8; i++) {
+        CHECK(secp256k1_ec_seckey_verify(privkey[i]) == 1);
+        pubkeylen[i] = 65;
+        CHECK(secp256k1_ec_pubkey_create(pubkey[i], &pubkeylen[i], privkey[i], secp256k1_rand32() % 2) == 1);
+        CHECK(secp256k1_ec_pubkey_verify(pubkey[i], pubkeylen[i]));
+    }
+
+    /* Compute the sums of the public keys of the nonces. */
+    unsigned char allnonce[65];
+    int allnoncelen;
+    memcpy(allnonce, pubkey[4], pubkeylen[4]);
+    allnoncelen = pubkeylen[4];
+    CHECK(secp256k1_ec_pubkey_combine(allnonce, allnoncelen, pubkey[5], pubkeylen[5]));
+    CHECK(secp256k1_ec_pubkey_combine(allnonce, allnoncelen, pubkey[6], pubkeylen[6]));
+    CHECK(secp256k1_ec_pubkey_combine(allnonce, allnoncelen, pubkey[7], pubkeylen[7]));
+    CHECK(secp256k1_ec_pubkey_verify(allnonce, allnoncelen));
+
+    /* Compute the combined public key. */
+    unsigned char fpubkey[65];
+    int fpubkeylen = pubkeylen[0];
+    memcpy(fpubkey, pubkey[0], pubkeylen[0]);
+    CHECK(secp256k1_ec_pubkey_combine(fpubkey, fpubkeylen, pubkey[1], pubkeylen[1]));
+    CHECK(secp256k1_ec_pubkey_combine(fpubkey, fpubkeylen, pubkey[2], pubkeylen[2]));
+    CHECK(secp256k1_ec_pubkey_combine(fpubkey, fpubkeylen, pubkey[3], pubkeylen[3]));
+
+    /* Generate the 4 partial signatures. */
+    unsigned char sig64[4][64];
+    for (int i = 0; i < 4; i++) {
+        CHECK(secp256k1_schnorr_multisign(msg, 32, sig64[i], privkey[i], privkey[i + 4], allnonce, allnoncelen, test_schnorr_hash));
+    }
+
+    /* Combine the signatures and verify them. */
+    unsigned char fsig64[64];
+    CHECK(secp256k1_schnorr_combine(fsig64, sig64[0], sig64[1]));
+    CHECK(!secp256k1_schnorr_verify(msg, 32, fsig64, pubkey[0], pubkeylen[0], test_schnorr_hash));
+    CHECK(secp256k1_schnorr_combine(fsig64, fsig64, sig64[2]));
+    CHECK(!secp256k1_schnorr_verify(msg, 32, fsig64, fpubkey, fpubkeylen, test_schnorr_hash));
+    CHECK(secp256k1_schnorr_combine(fsig64, fsig64, sig64[3]));
+    CHECK(secp256k1_schnorr_verify(msg, 32, fsig64, fpubkey, fpubkeylen, test_schnorr_hash));
+}
+
+void run_schnorr_multisign(void) {
+    for (int i=0; i<5*count; i++) {
+        test_schnorr_multisign();
+    }
+}
+
 void test_ecdsa_end_to_end(void) {
     unsigned char privkey[32];
     unsigned char message[32];
@@ -944,6 +1027,21 @@ void test_ecdsa_end_to_end(void) {
     /* Destroy signature and verify again. */
     signature[signaturelen - 1 - secp256k1_rand32() % 20] += 1 + (secp256k1_rand32() % 255);
     CHECK(secp256k1_ecdsa_verify(message, 32, signature, signaturelen, pubkey, pubkeylen) != 1);
+
+    /* Schnorr sign. */
+    unsigned char ssignature[64];
+    while(1) {
+        unsigned char rnd[32];
+        secp256k1_rand256_test(rnd);
+        if (secp256k1_schnorr_sign(message, 32, ssignature, privkey, rnd, test_schnorr_hash) == 1) {
+            break;
+        }
+    }
+    /* Schnorr verify. */
+    CHECK(secp256k1_schnorr_verify(message, 32, ssignature, pubkey, pubkeylen, test_schnorr_hash) == 1);
+    /* Destroy Schnorr signature and verify again. */
+    ssignature[secp256k1_rand32() % 64] += 1 + (secp256k1_rand32() % 255);
+    CHECK(secp256k1_schnorr_verify(message, 32, ssignature, pubkey, pubkeylen, test_schnorr_hash) != 1);
 
     /* Compact sign. */
     unsigned char csignature[64]; int recid = 0;
@@ -1205,6 +1303,9 @@ int main(int argc, char **argv) {
 #ifdef ENABLE_OPENSSL_TESTS
     run_ecdsa_openssl();
 #endif
+
+    // schnorr tests
+    run_schnorr_multisign();
 
     printf("random run = %llu\n", (unsigned long long)secp256k1_rand32() + ((unsigned long long)secp256k1_rand32() << 32));
 

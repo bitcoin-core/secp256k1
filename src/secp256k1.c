@@ -16,6 +16,7 @@
 #include "ecmult_impl.h"
 #include "ecmult_gen_impl.h"
 #include "ecdsa_impl.h"
+#include "schnorr_impl.h"
 #include "eckey_impl.h"
 
 void secp256k1_start(unsigned int flags) {
@@ -325,4 +326,113 @@ int secp256k1_ec_privkey_import(unsigned char *seckey, const unsigned char *priv
         secp256k1_scalar_get_b32(seckey, &key);
     secp256k1_scalar_clear(&key);
     return ret;
+}
+
+int secp256k1_ec_pubkey_combine(unsigned char *pubkey, int pubkeylen, const unsigned char *pubkey2, int pubkey2len) {
+    secp256k1_ge_t p1, p2;
+    if (!secp256k1_eckey_pubkey_parse(&p1, pubkey, pubkeylen)) {
+        return 0;
+    }
+    if (!secp256k1_eckey_pubkey_parse(&p2, pubkey2, pubkey2len)) {
+        return 0;
+    }
+    secp256k1_gej_t pj;
+    secp256k1_gej_set_ge(&pj, &p1);
+    secp256k1_gej_add_ge_var(&pj, &pj, &p2);
+    if (secp256k1_gej_is_infinity(&pj)) {
+        return 0;
+    }
+    secp256k1_ge_set_gej_var(&p1, &pj);
+    int pubkeylenres = 0;
+    secp256k1_eckey_pubkey_serialize(&p1, pubkey, &pubkeylenres, pubkeylen == 33);
+    DEBUG_CHECK(pubkeylenres == pubkeylen);
+    return 1;
+}
+
+typedef struct {
+    secp256k1_schnorr_hash_t hash;
+    const unsigned char *msg;
+    int msglen;
+} secp256k1_schnorr_hash_adapter_t;
+
+static void secp256k1_schnorr_hash_adapter(unsigned char *h32, const unsigned char *r32, const void *data) {
+    const secp256k1_schnorr_hash_adapter_t *adapter = (const secp256k1_schnorr_hash_adapter_t*)data;
+    adapter->hash(h32, r32, adapter->msg, adapter->msglen);
+}
+
+int secp256k1_schnorr_multisign(const unsigned char *msg, int msglen, unsigned char *sig64, const unsigned char *seckey32, const unsigned char *nonce32, const unsigned char *allnonce, int allnoncelen, secp256k1_schnorr_hash_t hash) {
+    DEBUG_CHECK(secp256k1_ecmult_gen_consts != NULL);
+    DEBUG_CHECK(msg != NULL);
+    DEBUG_CHECK(sig64 != NULL);
+    DEBUG_CHECK(seckey32 != NULL);
+    DEBUG_CHECK(nonce32 != NULL);
+    DEBUG_CHECK(allnonce != NULL);
+    DEBUG_CHECK(hash != NULL);
+
+    int overflow = 0;
+    secp256k1_scalar_t non;
+    secp256k1_scalar_set_b32(&non, nonce32, &overflow);
+    int ret = !overflow;
+    secp256k1_scalar_t key;
+    secp256k1_scalar_set_b32(&key, seckey32, &overflow);
+    ret &= !overflow;
+
+    secp256k1_ge_t N;
+    ret &= secp256k1_eckey_pubkey_parse(&N, allnonce, allnoncelen);
+    secp256k1_gej_t Nj;
+    secp256k1_gej_set_ge(&Nj, &N);
+
+    secp256k1_schnorr_hash_adapter_t adapter = {hash, msg, msglen};
+    ret &= secp256k1_schnorr_sig_sign(sig64, &key, &non, &Nj, secp256k1_schnorr_hash_adapter, &adapter);
+
+    secp256k1_scalar_clear(&non);
+    secp256k1_scalar_clear(&key);
+    return ret;
+}
+
+int secp256k1_schnorr_sign(const unsigned char *msg, int msglen, unsigned char *sig64, const unsigned char *seckey32, const unsigned char *nonce32, secp256k1_schnorr_hash_t hash) {
+    DEBUG_CHECK(secp256k1_ecmult_gen_consts != NULL);
+    DEBUG_CHECK(msg != NULL);
+    DEBUG_CHECK(sig64 != NULL);
+    DEBUG_CHECK(seckey32 != NULL);
+    DEBUG_CHECK(nonce32 != NULL);
+    DEBUG_CHECK(hash != NULL);
+
+    int overflow = 0;
+    secp256k1_scalar_t non;
+    secp256k1_scalar_set_b32(&non, nonce32, &overflow);
+    int ret = !overflow;
+    secp256k1_scalar_t key;
+    secp256k1_scalar_set_b32(&key, seckey32, &overflow);
+    ret &= !overflow;
+
+    secp256k1_gej_t Nj;
+    secp256k1_ecmult_gen(&Nj, &non);
+
+    secp256k1_schnorr_hash_adapter_t adapter = {hash, msg, msglen};
+    ret &= secp256k1_schnorr_sig_sign(sig64, &key, &non, &Nj, secp256k1_schnorr_hash_adapter, &adapter);
+
+    secp256k1_scalar_clear(&non);
+    secp256k1_scalar_clear(&key);
+    return ret;
+}
+
+int secp256k1_schnorr_verify(const unsigned char *msg, int msglen, const unsigned char *sig64, const unsigned char *pubkey, int pubkeylen, secp256k1_schnorr_hash_t hash) {
+    DEBUG_CHECK(secp256k1_ecmult_consts != NULL);
+    DEBUG_CHECK(msg != NULL);
+    DEBUG_CHECK(msglen <= 32);
+    DEBUG_CHECK(sig64 != NULL);
+    DEBUG_CHECK(pubkey != NULL);
+
+    secp256k1_ge_t Q;
+    if (!secp256k1_eckey_pubkey_parse(&Q, pubkey, pubkeylen)) {
+        return 0;
+    }
+
+    secp256k1_schnorr_hash_adapter_t adapter = {hash, msg, msglen};
+    return secp256k1_schnorr_sig_verify(sig64, &Q, secp256k1_schnorr_hash_adapter, &adapter);
+}
+
+int secp256k1_schnorr_combine(unsigned char *sig64, const unsigned char *sig64a, const unsigned char *sig64b) {
+    return secp256k1_schnorr_sig_combine(sig64, sig64a, sig64b);
 }

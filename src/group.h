@@ -81,6 +81,9 @@ static void secp256k1_gej_set_xy(secp256k1_gej_t *r, const secp256k1_fe_t *x, co
 static void secp256k1_gej_set_ge(secp256k1_gej_t *r, const secp256k1_ge_t *a);
 
 /** Get the X coordinate of a group element (jacobian). */
+static void secp256k1_gej_get_x(secp256k1_fe_t *r, const secp256k1_gej_t *a);
+
+/** Get the X coordinate of a group element (jacobian), without constant-time guarantee. */
 static void secp256k1_gej_get_x_var(secp256k1_fe_t *r, const secp256k1_gej_t *a);
 
 /** Set r equal to the inverse of a (i.e., mirrored around the X axis) */
