@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{148600EA-561B-4C78-A80A-2EB5046D0420}</ProjectGuid>
+    <ProjectName>secp256k1</ProjectName>
+    <PlatformToolset>CTP_Nov2013</PlatformToolset>
+    <NuGetPackageImportStamp>4fb55a9b</NuGetPackageImportStamp>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugDLL|Win32">
+      <Configuration>DebugDLL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDLL|Win32">
+      <Configuration>ReleaseDLL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugDLL|x64">
+      <Configuration>DebugDLL</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDLL|x64">
+      <Configuration>ReleaseDLL</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLTCG|Win32">
+      <Configuration>DebugLTCG</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLTCG|Win32">
+      <Configuration>ReleaseLTCG</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLTCG|x64">
+      <Configuration>DebugLTCG</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLTCG|x64">
+      <Configuration>ReleaseLTCG</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLIB|Win32">
+      <Configuration>DebugLIB</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLIB|Win32">
+      <Configuration>ReleaseLIB</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLIB|x64">
+      <Configuration>DebugLIB</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLIB|x64">
+      <Configuration>ReleaseLIB</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType Condition="$(Configuration.IndexOf('DLL')) == -1">StaticLibrary</ConfigurationType>
+    <ConfigurationType Condition="$(Configuration.IndexOf('DLL')) != -1">DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(ProjectDir)..\..\properties\$(Configuration).props" />
+    <Import Project="$(ProjectDir)..\..\properties\Output.props" />
+    <Import Project="$(ProjectDir)$(ProjectName).props" />
+  </ImportGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\nasm_lt.sh" />
+    <None Include="..\..\..\..\src\field_5x52_asm.asm" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\include\secp256k1.h" />
+    <ClInclude Include="..\..\..\..\src\ecdsa.h" />
+    <ClInclude Include="..\..\..\..\src\ecdsa_impl.h" />
+    <ClInclude Include="..\..\..\..\src\ecmult.h" />
+    <ClInclude Include="..\..\..\..\src\ecmult_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field.h" />
+    <ClInclude Include="..\..\..\..\src\field_10x26.h" />
+    <ClInclude Include="..\..\..\..\src\field_10x26_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field_5x52.h" />
+    <ClInclude Include="..\..\..\..\src\field_5x52_asm_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field_5x52_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field_5x52_int128_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field_gmp.h" />
+    <ClInclude Include="..\..\..\..\src\field_gmp_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field_impl.h" />
+    <ClInclude Include="..\..\..\..\src\group.h" />
+    <ClInclude Include="..\..\..\..\src\group_impl.h" />
+    <ClInclude Include="..\..\..\..\src\num.h" />
+    <ClInclude Include="..\..\..\..\src\num_gmp.h" />
+    <ClInclude Include="..\..\..\..\src\num_gmp_impl.h" />
+    <ClInclude Include="..\..\..\..\src\num_impl.h" />
+    <ClInclude Include="..\..\..\..\src\num_openssl.h" />
+    <ClInclude Include="..\..\..\..\src\num_openssl_impl.h" />
+    <ClInclude Include="..\..\..\..\src\util.h" />
+    <ClInclude Include="..\..\..\..\src\util_impl.h" />
+    <ClInclude Include="..\..\resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\secp256k1.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\resource.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup>
+    <Import Project="..\..\..\..\..\..\nuget\libgmp_vc120.5.1.3.2\build\native\libgmp_vc120.targets" Condition="Exists('..\..\..\..\..\..\nuget\libgmp_vc120.5.1.3.2\build\native\libgmp_vc120.targets')" />
+    <Import Project="..\..\..\..\..\..\nuget\openssl_no-asm_vc120.1.0.1.800\build\native\openssl_no-asm_vc120.targets" Condition="Exists('..\..\..\..\..\..\nuget\openssl_no-asm_vc120.1.0.1.800\build\native\openssl_no-asm_vc120.targets')" />
+  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\..\..\..\..\..\nuget\libgmp_vc120.5.1.3.2\build\native\libgmp_vc120.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\..\..\..\nuget\libgmp_vc120.5.1.3.2\build\native\libgmp_vc120.targets'))" />
+    <Error Condition="!Exists('..\..\..\..\..\..\nuget\openssl_no-asm_vc120.1.0.1.800\build\native\openssl_no-asm_vc120.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\..\..\..\nuget\openssl_no-asm_vc120.1.0.1.800\build\native\openssl_no-asm_vc120.targets'))" />
+  </Target>
+</Project>
