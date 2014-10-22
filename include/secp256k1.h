@@ -39,6 +39,7 @@ int secp256k1_ecdsa_verify(const unsigned char *msg, int msglen,
  *           msglen: the length of the message being signed
  *           seckey: pointer to a 32-byte secret key (assumed to be valid)
  *           nonce:  pointer to a 32-byte nonce (generated with a cryptographic PRNG)
+ *           lows:   whether S values should be negated (modulo the order) if above order/2
  *  Out:     sig:    pointer to a 72-byte array where the signature will be placed.
  *           siglen: pointer to an int, which will be updated to the signature length (<=72).
  * Requires starting using SECP256K1_START_SIGN.
@@ -46,7 +47,8 @@ int secp256k1_ecdsa_verify(const unsigned char *msg, int msglen,
 int secp256k1_ecdsa_sign(const unsigned char *msg, int msglen,
                          unsigned char *sig, int *siglen,
                          const unsigned char *seckey,
-                         const unsigned char *nonce);
+                         const unsigned char *nonce,
+                         int lows);
 
 /** Create a compact ECDSA signature (64 byte + recovery id).
  *  Returns: 1: signature created

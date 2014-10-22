@@ -164,7 +164,7 @@ int static secp256k1_ecdsa_sig_verify(const secp256k1_ecdsa_sig_t *sig, const se
     return ret;
 }
 
-int static secp256k1_ecdsa_sig_sign(secp256k1_ecdsa_sig_t *sig, const secp256k1_num_t *seckey, const secp256k1_num_t *message, const secp256k1_num_t *nonce, int *recid) {
+int static secp256k1_ecdsa_sig_sign(secp256k1_ecdsa_sig_t *sig, const secp256k1_num_t *seckey, const secp256k1_num_t *message, const secp256k1_num_t *nonce, int *recid, int lows) {
     const secp256k1_ge_consts_t *c = secp256k1_ge_consts;
 
     secp256k1_gej_t rp;
@@ -192,7 +192,7 @@ int static secp256k1_ecdsa_sig_sign(secp256k1_ecdsa_sig_t *sig, const secp256k1_
     secp256k1_ge_clear(&r);
     if (secp256k1_num_is_zero(&sig->s))
         return 0;
-    if (secp256k1_num_cmp(&sig->s, &c->half_order) > 0) {
+    if (lows && secp256k1_num_cmp(&sig->s, &c->half_order) > 0) {
         secp256k1_num_sub(&sig->s, &c->order, &sig->s);
         if (recid)
             *recid ^= 1;
