@@ -13,6 +13,8 @@
 #include "num_gmp.h"
 #elif defined(USE_NUM_OPENSSL)
 #include "num_openssl.h"
+#elif defined(USE_NUM_BUILTIN)
+#include "num_internal.h"
 #else
 #error "Please select num implementation"
 #endif
@@ -60,9 +62,6 @@ void static secp256k1_num_sub(secp256k1_num_t *r, const secp256k1_num_t *a, cons
 /** Multiply two (signed) numbers. */
 void static secp256k1_num_mul(secp256k1_num_t *r, const secp256k1_num_t *a, const secp256k1_num_t *b);
 
-/** Divide two (signed) numbers. */
-void static secp256k1_num_div(secp256k1_num_t *r, const secp256k1_num_t *a, const secp256k1_num_t *b);
-
 /** Replace a number by its remainder modulo m. M's sign is ignored. The result is a number between 0 and m-1,
     even if r was negative. */
 void static secp256k1_num_mod(secp256k1_num_t *r, const secp256k1_num_t *m);
@@ -96,6 +95,9 @@ void static secp256k1_num_get_hex(char *r, int rlen, const secp256k1_num_t *a);
 
 /** Split a number into a low and high part. */
 void static secp256k1_num_split(secp256k1_num_t *rl, secp256k1_num_t *rh, const secp256k1_num_t *a, int bits);
+
+/** Truncate a number, returning the high part only. */
+void static secp256k1_num_trunc(secp256k1_num_t *r, const secp256k1_num_t *a, int bits);
 
 /** Change a number's sign. */
 void static secp256k1_num_negate(secp256k1_num_t *r);

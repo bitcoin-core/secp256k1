@@ -92,7 +92,7 @@ int static secp256k1_ecdsa_sig_recompute(secp256k1_num_t *r2, const secp256k1_ec
     secp256k1_num_init(&sn);
     secp256k1_num_init(&u1);
     secp256k1_num_init(&u2);
-    secp256k1_num_mod_inverse(&sn, &sig->s, &c->order);
+    secp256k1_ge_scalar_inverse(&sn, &sig->s);
     secp256k1_num_mod_mul(&u1, &sn, message, &c->order);
     secp256k1_num_mod_mul(&u2, &sn, &sig->r, &c->order);
     secp256k1_gej_t pubkeyj; secp256k1_gej_set_ge(&pubkeyj, pubkey);
@@ -143,7 +143,7 @@ int static secp256k1_ecdsa_sig_recover(const secp256k1_ecdsa_sig_t *sig, secp256
     secp256k1_num_init(&rn);
     secp256k1_num_init(&u1);
     secp256k1_num_init(&u2);
-    secp256k1_num_mod_inverse(&rn, &sig->r, &c->order);
+    secp256k1_ge_scalar_inverse(&rn, &sig->r);
     secp256k1_num_mod_mul(&u1, &rn, message, &c->order);
     secp256k1_num_sub(&u1, &c->order, &u1);
     secp256k1_num_mod_mul(&u2, &rn, &sig->s, &c->order);
@@ -185,7 +185,7 @@ int static secp256k1_ecdsa_sig_sign(secp256k1_ecdsa_sig_t *sig, const secp256k1_
     secp256k1_num_mod_mul(&n, &sig->r, seckey, &c->order);
     secp256k1_num_add(&n, &n, message);
     secp256k1_num_mod(&n, &c->order);
-    secp256k1_num_mod_inverse(&sig->s, nonce, &c->order);
+    secp256k1_ge_scalar_inverse(&sig->s, nonce);
     secp256k1_num_mod_mul(&sig->s, &sig->s, &n, &c->order);
     secp256k1_num_clear(&n);
     secp256k1_num_free(&n);
