@@ -512,7 +512,7 @@ void random_sign(secp256k1_ecdsa_sig_t *sig, const secp256k1_num_t *key, const s
     secp256k1_num_init(&nonce);
     do {
         random_num_order_test(&nonce);
-    } while(!secp256k1_ecdsa_sig_sign(sig, key, msg, &nonce, recid));
+    } while(!secp256k1_ecdsa_sig_sign(sig, key, msg, &nonce, recid, 1));
     secp256k1_num_free(&nonce);
 }
 
@@ -603,7 +603,7 @@ void test_ecdsa_end_to_end() {
     while(1) {
         unsigned char rnd[32];
         secp256k1_rand256_test(rnd);
-        if (secp256k1_ecdsa_sign(message, 32, signature, &signaturelen, privkey, rnd) == 1) {
+        if (secp256k1_ecdsa_sign(message, 32, signature, &signaturelen, privkey, rnd, 1) == 1) {
             break;
         }
     }
