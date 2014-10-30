@@ -12,4 +12,9 @@ typedef struct {
     uint64_t d[4];
 } secp256k1_scalar_t;
 
+/** A scalar modulo the group order of the secp256k1 curve, multiplied with 2^256. */
+typedef struct {
+    uint64_t d[4];
+} secp256k1_scalar_mont_t;
+
 #endif

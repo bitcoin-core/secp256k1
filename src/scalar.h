@@ -58,4 +58,16 @@ int static secp256k1_scalar_is_high(const secp256k1_scalar_t *a);
 /** Convert a scalar to a number. */
 void static secp256k1_scalar_get_num(secp256k1_num_t *r, const secp256k1_scalar_t *a);
 
+/** Convert a scalar to Montgomery form (multiply with 2^256). */
+void static secp256k1_scalar_to_mont(secp256k1_scalar_mont_t *r, const secp256k1_scalar_t *a);
+
+/** Convert a scalar back from Montgomery form (multiply with the inverse of 2^256). */
+void static secp256k1_scalar_from_mont(secp256k1_scalar_t *r, const secp256k1_scalar_mont_t *a);
+
+/** Multiply two scalars in Montgomery form. */
+void static secp256k1_scalar_mul_mont(secp256k1_scalar_mont_t *r, const secp256k1_scalar_mont_t *a, const secp256k1_scalar_mont_t *b);
+
+/** Square a scalar in Montgomery form. */
+void static secp256k1_scalar_sqr_mont(secp256k1_scalar_mont_t *r, const secp256k1_scalar_mont_t *a);
+
 #endif
