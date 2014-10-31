@@ -264,8 +264,9 @@ int static secp256k1_scalar_is_high(const secp256k1_scalar_t *a) {
     VERIFY_CHECK(c2 == 0); \
 }
 
-/** Left shift the number (c0,c1,c2) 32 bits. */
+/** Left shift the number (c0,c1,c2) 32 bits. C0 is required to be 0. */
 #define drop() { \
+    VERIFY_CHECK(c0 == 0); \
     c0 = c1; \
     c1 = c2; \
     c2 = 0; \
@@ -339,9 +340,9 @@ void static secp256k1_scalar_reduce_512(uint32_t r[8], const uint32_t l[16]) {
     sumadd(n6);
     uint32_t m10; extract(m10);
     sumadd_fast(n7);
-    uint32_t m11; extract_fast(m11);
-    VERIFY_CHECK(c0 <= 1);
-    uint32_t m12 = c0;
+    uint32_t m11 = c0;
+    VERIFY_CHECK(c1 <= 1);
+    uint32_t m12 = c1;
 
     // Reduce 385 bits into 258.
     // p[0..8] = m[0..7] + m[8..12] * SECP256K1_N_C.
@@ -384,8 +385,8 @@ void static secp256k1_scalar_reduce_512(uint32_t r[8], const uint32_t l[16]) {
     sumadd_fast(m7);
     muladd_fast(m12, SECP256K1_N_C_3);
     sumadd_fast(m11);
-    uint32_t p7; extract_fast(p7);
-    uint32_t p8 = c0 + m12;
+    uint32_t p7 = c0;
+    uint32_t p8 = c1 + m12;
     VERIFY_CHECK(p8 <= 2);
 
     // Reduce 258 bits into 256.
@@ -494,9 +495,8 @@ void static secp256k1_scalar_mul_base(uint32_t l[16], const uint32_t a[8], const
     muladd(a[7], b[6]);
     extract(l[13]);
     muladd_fast(a[7], b[7]);
-    extract_fast(l[14]);
-    VERIFY_CHECK(c1 == 0);
-    l[15] = c0;
+    l[14] = c0;
+    l[15] = c1;
 }
 
 void static secp256k1_scalar_mul(secp256k1_scalar_t *r, const secp256k1_scalar_t *a, const secp256k1_scalar_t *b) {
@@ -560,9 +560,8 @@ void static secp256k1_scalar_sqr_base(uint32_t l[16], const uint32_t a[8]) {
     muladd2(a[6], a[7]);
     extract(l[13]);
     muladd_fast(a[7], a[7]);
-    extract_fast(l[14]);
-    VERIFY_CHECK(c1 == 0);
-    l[15] = c0;
+    l[14] = c0;
+    l[15] = c1;
 }
 
 void static secp256k1_scalar_sqr(secp256k1_scalar_t *r, const secp256k1_scalar_t *a) {

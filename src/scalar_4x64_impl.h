@@ -214,8 +214,9 @@ int static secp256k1_scalar_is_high(const secp256k1_scalar_t *a) {
     VERIFY_CHECK(c2 == 0); \
 }
 
-/** Left shift the number (c0,c1,c2) 64 bits. */
+/** Left shift the number (c0,c1,c2) 64 bits. C0 is required to be 0. */
 #define drop() { \
+    VERIFY_CHECK(c0 == 0); \
     c0 = c1; \
     c1 = c2; \
     c2 = 0; \
@@ -251,9 +252,9 @@ void static secp256k1_scalar_reduce_512(uint64_t r[4], const uint64_t l[8]) {
     sumadd(n2);
     uint64_t m4; extract(m4);
     sumadd_fast(n3);
-    uint64_t m5; extract_fast(m5);
-    VERIFY_CHECK(c0 <= 1);
-    uint32_t m6 = c0;
+    uint64_t m5 = c0;
+    VERIFY_CHECK(c1 <= 1);
+    uint32_t m6 = c1;
 
     // Reduce 385 bits into 258.
     // p[0..4] = m[0..3] + m[4..6] * SECP256K1_N_C.
@@ -272,8 +273,8 @@ void static secp256k1_scalar_reduce_512(uint64_t r[4], const uint64_t l[8]) {
     sumadd_fast(m3);
     muladd_fast(m6, SECP256K1_N_C_1);
     sumadd_fast(m5);
-    uint64_t p3; extract_fast(p3);
-    uint32_t p4 = c0 + m6;
+    uint64_t p3 = c0;
+    uint32_t p4 = c1 + m6;
     VERIFY_CHECK(p4 <= 2);
 
     // Reduce 258 bits into 256.
@@ -320,9 +321,8 @@ void static secp256k1_scalar_mul_base(uint64_t l[8], const uint64_t a[4], const 
     muladd(a[3], b[2]);
     extract(l[5]);
     muladd_fast(a[3], b[3]);
-    extract_fast(l[6]);
-    VERIFY_CHECK(c1 <= 0);
-    l[7] = c0;
+    l[6] = c0;
+    l[7] = c1;
 }
 
 void static secp256k1_scalar_mul(secp256k1_scalar_t *r, const secp256k1_scalar_t *a, const secp256k1_scalar_t *b) {
@@ -353,9 +353,8 @@ void static secp256k1_scalar_sqr_base(uint64_t l[8], const uint64_t a[4]) {
     muladd2(a[2], a[3]);
     extract(l[5]);
     muladd_fast(a[3], a[3]);
-    extract_fast(l[6]);
-    VERIFY_CHECK(c1 == 0);
-    l[7] = c0;
+    l[6] = c0;
+    l[7] = c1;
 }
 
 void static secp256k1_scalar_sqr(secp256k1_scalar_t *r, const secp256k1_scalar_t *a) {
@@ -387,8 +386,8 @@ void static secp256k1_scalar_to_mont(secp256k1_scalar_mont_t *r, const secp256k1
     sumadd(a->d[2]);
     extract(l[4]);
     sumadd_fast(a->d[3]);
-    extract_fast(l[5]);
-    l[6] = c0;
+    l[5] = c0;
+    l[6] = c1;
     l[7] = 0;
 
     secp256k1_scalar_reduce_512(r->d, l);
@@ -411,29 +410,25 @@ void static secp256k1_scalar_reduce_mont(uint64_t r[4], const uint64_t l[4]) {
     muladd(l[1], SECP256K1_N_MONT_2);
     muladd(l[2], SECP256K1_N_MONT_1);
     muladd(l[3], SECP256K1_N_MONT_0);
-    uint64_t m3; extract(m3);
+    uint64_t m3 = c0;
 
     c0 = l[0]; c1 = 0; c2 = 0;
     muladd_fast(m0, SECP256K1_N_0);
-    VERIFY_CHECK(c0 == 0);
     drop();
     muladd_fast(m0, SECP256K1_N_1);
     muladd(m1, SECP256K1_N_0);
     sumadd(l[1]);
-    VERIFY_CHECK(c0 == 0);
     drop();
     muladd(m0, SECP256K1_N_2);
     muladd(m1, SECP256K1_N_1);
     muladd(m2, SECP256K1_N_0);
     sumadd(l[2]);
-    VERIFY_CHECK(c0 == 0);
     drop();
     muladd(m0, SECP256K1_N_3);
     muladd(m1, SECP256K1_N_2);
     muladd(m2, SECP256K1_N_1);
     muladd(m3, SECP256K1_N_0);
     sumadd(l[3]);
-    VERIFY_CHECK(c0 == 0);
     drop();
     muladd(m1, SECP256K1_N_3);
     muladd(m2, SECP256K1_N_2);
