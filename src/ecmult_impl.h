@@ -12,7 +12,7 @@
 #include "ecmult.h"
 
 /* optimal for 128-bit and 256-bit exponents. */
-#define WINDOW_A 5
+#define WINDOW_A 6
 
 /** larger numbers may result in slightly better performance, at the cost of
     exponentially larger precomputed tables. */
@@ -23,6 +23,9 @@
 /** One table for window size 16: 1.375 MiB. */
 #define WINDOW_G 16
 #endif
+
+/** The number of entries a table with precomputed multiples needs to have. */
+#define ECMULT_TABLE_SIZE(w) (1 << ((w)-2))
 
 /** Fill a table 'pre' with precomputed odd multiples of a. W determines the size of the table.
  *  pre will contains the values [1*a,3*a,5*a,...,(2^(w-1)-1)*a], so it needs place for
@@ -36,27 +39,25 @@
  *  To compute a*P + b*G, we use the jacobian version for P, and the affine version for G, as
  *  G is constant, so it only needs to be done once in advance.
  */
-static void secp256k1_ecmult_table_precomp_gej_var(secp256k1_gej_t *pre, const secp256k1_gej_t *a, int w) {
-    pre[0] = *a;
-    secp256k1_gej_t d; secp256k1_gej_double_var(&d, &pre[0]);
-    for (int i=1; i<(1 << (w-2)); i++)
-        secp256k1_gej_add_var(&pre[i], &d, &pre[i-1]);
+static void secp256k1_ecmult_table_precomp_gej_var(secp256k1_gej_t *prej, const secp256k1_gej_t *a, int w) {
+    secp256k1_coz_t d; secp256k1_coz_dblu_var(&d, &prej[0], a);
+    secp256k1_fe_t zr;
+    for (int i=1; i<ECMULT_TABLE_SIZE(w); i++)
+        secp256k1_coz_zaddu_var(&prej[i], &d, &zr, &prej[i-1]);
 }
 
 static void secp256k1_ecmult_table_precomp_ge_var(secp256k1_ge_t *pre, const secp256k1_gej_t *a, int w) {
-    const int table_size = 1 << (w-2);
+    const int table_size = ECMULT_TABLE_SIZE(w);
     secp256k1_gej_t *prej = checked_malloc(sizeof(secp256k1_gej_t) * table_size);
-    prej[0] = *a;
-    secp256k1_gej_t d; secp256k1_gej_double_var(&d, a);
-    for (int i=1; i<table_size; i++) {
-        secp256k1_gej_add_var(&prej[i], &d, &prej[i-1]);
-    }
-    secp256k1_ge_set_all_gej_var(table_size, pre, prej);
+    secp256k1_fe_t *zr = checked_malloc(sizeof(secp256k1_fe_t) * table_size);
+    secp256k1_coz_t d; secp256k1_coz_dblu_var(&d, &prej[0], a);
+    for (int i=1; i<table_size; i++)
+        secp256k1_coz_zaddu_var(&prej[i], &d, &zr[i-1], &prej[i-1]);
+    secp256k1_fe_inv_var(&zr[table_size-1], &prej[table_size-1].z);
+    secp256k1_ge_set_table_gej(table_size, pre, prej, zr);
+    free(zr);
     free(prej);
 }
-
-/** The number of entries a table with precomputed multiples needs to have. */
-#define ECMULT_TABLE_SIZE(w) (1 << ((w)-2))
 
 /** The following two macro retrieves a particular odd multiple from a table
  *  of precomputed multiples. */
