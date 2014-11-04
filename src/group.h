@@ -25,6 +25,14 @@ typedef struct {
     int infinity; /* whether this represents the point at infinity */
 } secp256k1_gej_t;
 
+/** A group element of the secp256k1 curve, with an implicit z coordinate (and infinity flag).
+ *  An instance of secp256k1_coz_t is always "co-z" with some instance of secp256k1_gej_t, from
+ *  which it inherits its implied z coordinate and infinity flag. */
+typedef struct {
+    secp256k1_fe_t x; // actual X: x/z^2 (z implied)
+    secp256k1_fe_t y; // actual Y: y/z^3 (z implied)
+} secp256k1_coz_t;
+
 /** Global constants related to the group */
 typedef struct {
     secp256k1_ge_t g; /* the generator point */
@@ -69,6 +77,13 @@ static void secp256k1_ge_set_gej(secp256k1_ge_t *r, secp256k1_gej_t *a);
 
 /** Set a batch of group elements equal to the inputs given in jacobian coordinates */
 static void secp256k1_ge_set_all_gej_var(size_t len, secp256k1_ge_t r[len], const secp256k1_gej_t a[len]);
+
+/** Set a batch of group elements equal to the inputs given in jacobian coordinates (with known
+ *  z-ratios). zr must contain the known z-ratios such that mul(a[i].z, zr[i]) == a[i+1].z, with
+ *  mul(a[len-1].z, zr[len-1]) == 1 (i.e. the last zr element would normally be calculated by
+ *  a field inversion of the last z element). */
+static void secp256k1_ge_set_table_gej(size_t len, secp256k1_ge_t r[len], const secp256k1_gej_t a[len],
+    const secp256k1_fe_t zr[len]);
 
 
 /** Set a group element (jacobian) equal to the point at infinity. */
@@ -116,5 +131,13 @@ static void secp256k1_gej_clear(secp256k1_gej_t *r);
 
 /** Clear a secp256k1_ge_t to prevent leaking sensitive information. */
 static void secp256k1_ge_clear(secp256k1_ge_t *r);
+
+/** Set r equal to the double of a, and ra equal to a, such that r is co-z with ra. */
+static void secp256k1_coz_dblu_var(secp256k1_coz_t *r, secp256k1_gej_t *ra, const secp256k1_gej_t *a);
+
+/** Set r equal to the sum of ra and b. ra is initially co-z with b and finally co-z with r. rzr
+    returns the ratio r->z:b->z */
+static void secp256k1_coz_zaddu_var(secp256k1_gej_t *r, secp256k1_coz_t *ra, secp256k1_fe_t *rzr,
+    const secp256k1_gej_t *b);
 
 #endif
