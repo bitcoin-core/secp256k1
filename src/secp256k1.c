@@ -40,27 +40,22 @@ int secp256k1_ecdsa_verify(const unsigned char *msg, int msglen, const unsigned 
     DEBUG_CHECK(sig != NULL);
     DEBUG_CHECK(pubkey != NULL);
 
-    int ret = -3;
     secp256k1_num_t m; 
     secp256k1_ecdsa_sig_t s;
     secp256k1_ge_t q;
     secp256k1_num_set_bin(&m, msg, msglen);
 
     if (!secp256k1_eckey_pubkey_parse(&q, pubkey, pubkeylen)) {
-        ret = -1;
-        goto end;
+        return -1;
     }
     if (!secp256k1_ecdsa_sig_parse(&s, sig, siglen)) {
-        ret = -2;
-        goto end;
+        return -2;
     }
     if (!secp256k1_ecdsa_sig_verify(&s, &q, &m)) {
-        ret = 0;
-        goto end;
+        return 0;
     }
-    ret = 1;
-end:
-    return ret;
+    /* success is 1, all other values are fail */
+    return 1;
 }
 
 int secp256k1_ecdsa_sign(const unsigned char *message, int messagelen, unsigned char *signature, int *signaturelen, const unsigned char *seckey, const unsigned char *nonce) {
