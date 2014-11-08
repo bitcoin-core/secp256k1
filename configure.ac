@@ -38,8 +38,8 @@ esac
 
 case $host_os in
   darwin*)
-     CPPFLAGS="$CPPFLAGS -I/opt/local/include"
-     LDFLAGS="$LDFLAGS -L/opt/local/lib"
+     CPPFLAGS="$CPPFLAGS -I/opt/local/include -I/usr/local/include"
+     LDFLAGS="$LDFLAGS -L/opt/local/lib -L/usr/local/lib"
      ;;
 esac
 
