@@ -12,4 +12,6 @@ typedef struct {
     uint32_t d[8];
 } secp256k1_scalar_t;
 
+typedef secp256k1_scalar_t secp256k1_scalar_mont_t;
+
 #endif
