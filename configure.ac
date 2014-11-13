@@ -19,6 +19,11 @@ AC_PATH_TOOL(RANLIB, ranlib)
 AC_PATH_TOOL(STRIP, strip)
 
 AC_PROG_CC_C99
+AC_C_RESTRICT
+AC_C_INLINE
+AX_GCC_FUNC_ATTRIBUTE(nonnull)
+AX_GCC_FUNC_ATTRIBUTE(warn_unused_result)
+
 if test x"$ac_cv_prog_cc_c99" == x"no"; then
   AC_MSG_ERROR([c99 compiler support required])
 fi

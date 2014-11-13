@@ -5,53 +5,73 @@
 extern "C" {
 # endif
 
-# if !defined(SECP256K1_GNUC_PREREQ)
-#  if defined(__GNUC__)&&defined(__GNUC_MINOR__)
-#   define SECP256K1_GNUC_PREREQ(_maj,_min) \
- ((__GNUC__<<16)+__GNUC_MINOR__>=((_maj)<<16)+(_min))
-#  else
-#   define SECP256K1_GNUC_PREREQ(_maj,_min) 0
-#  endif
-# endif
-
-# if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
-#  if SECP256K1_GNUC_PREREQ(3,0)
-#   define SECP256K1_RESTRICT __restrict__
-#  elif (defined(_MSC_VER) && _MSC_VER >= 1400)
-#   define SECP256K1_RESTRICT __restrict
-#  else
-#   define SECP256K1_RESTRICT
-#  endif
-# else
+# if defined(SECP_INTERNAL) && defined(HAVE_CONFIG_H)
+#  include "libsecp256k1-config.h"
+   /* these are filled in by autoconf. If the keyword doesn't work, it's
+      defined to nothing */
 #  define SECP256K1_RESTRICT restrict
-# endif
-
-# if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
-#  if SECP256K1_GNUC_PREREQ(2,7)
-#   define SECP256K1_INLINE __inline__
-#  elif (defined(_MSC_VER))
-#   define SECP256K1_INLINE __inline
-#  else
-#   define SECP256K1_INLINE
-#  endif
-# else
 #  define SECP256K1_INLINE inline
-# endif
 
-/**Warning attributes
-  * NONNULL is not used if SECP256K1_BUILD is set to avoid the compiler optimizing out
-  * some paranoid null checks. */
-# if defined(__GNUC__) && SECP256K1_GNUC_PREREQ(3, 4)
-#  define SECP256K1_WARN_UNUSED_RESULT __attribute__ ((__warn_unused_result__))
-# else
-#  define SECP256K1_WARN_UNUSED_RESULT
-# endif
-# if !defined(SECP256K1_BUILD) && defined(__GNUC__) && SECP256K1_GNUC_PREREQ(3, 4)
-#  define SECP256K1_ARG_NONNULL(_x)  __attribute__ ((__nonnull__(_x)))
-# else
-#  define SECP256K1_ARG_NONNULL(_x)
-# endif
+#  if defined(HAVE_FUNC_ATTRIBUTE_WARN_UNUSED_RESULT)
+#   define SECP256K1_WARN_UNUSED_RESULT __attribute__ ((__warn_unused_result__))
+#  else
+#   define SECP256K1_WARN_UNUSED_RESULT
+#  endif
+#  if defined(HAVE_FUNC_ATTRIBUTE_NONNULL)
+#   define SECP256K1_ARG_NONNULL(_x)  __attribute__ ((__nonnull__(_x)))
+#  else
+#    define SECP256K1_ARG_NONNULL(_x)
+#  endif
 
+# else
+#  if !defined(SECP256K1_GNUC_PREREQ)
+#   if defined(__GNUC__)&&defined(__GNUC_MINOR__)
+#    define SECP256K1_GNUC_PREREQ(_maj,_min) \
+  ((__GNUC__<<16)+__GNUC_MINOR__>=((_maj)<<16)+(_min))
+#   else
+#    define SECP256K1_GNUC_PREREQ(_maj,_min) 0
+#   endif
+#  endif
+
+#  if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
+#   if SECP256K1_GNUC_PREREQ(3,0)
+#    define SECP256K1_RESTRICT __restrict__
+#   elif (defined(_MSC_VER) && _MSC_VER >= 1400)
+#    define SECP256K1_RESTRICT __restrict
+#   else
+#    define SECP256K1_RESTRICT
+#   endif
+#  else
+#   define SECP256K1_RESTRICT restrict
+#  endif
+
+#  if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
+#   if SECP256K1_GNUC_PREREQ(2,7)
+#    define SECP256K1_INLINE __inline__
+#   elif (defined(_MSC_VER))
+#    define SECP256K1_INLINE __inline
+#   else
+#    define SECP256K1_INLINE
+#   endif
+#  else
+#   define SECP256K1_INLINE inline
+#  endif
+
+ /**Warning attributes
+   * NONNULL is not used if SECP256K1_BUILD is set to avoid the compiler optimizing out
+   * some paranoid null checks. */
+#  if defined(__GNUC__) && SECP256K1_GNUC_PREREQ(3, 4)
+#   define SECP256K1_WARN_UNUSED_RESULT __attribute__ ((__warn_unused_result__))
+#  else
+#   define SECP256K1_WARN_UNUSED_RESULT
+#  endif
+#  if !defined(SECP256K1_BUILD) && defined(__GNUC__) && SECP256K1_GNUC_PREREQ(3, 4)
+#   define SECP256K1_ARG_NONNULL(_x)  __attribute__ ((__nonnull__(_x)))
+#  else
+#   define SECP256K1_ARG_NONNULL(_x)
+#  endif
+
+# endif
 
 /** Flags to pass to secp256k1_start. */
 # define SECP256K1_START_VERIFY (1 << 0)
