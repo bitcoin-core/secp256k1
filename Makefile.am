@@ -1,4 +1,5 @@
 ACLOCAL_AMFLAGS = -I build-aux/m4
+AM_CFLAGS=$(WARN_FLAGS)
 
 lib_LTLIBRARIES = libsecp256k1.la
 if USE_ASM
@@ -52,7 +53,7 @@ libsecp256k1_common_la_SOURCES = src/field_5x52_asm.asm
 endif
 
 libsecp256k1_la_SOURCES = src/secp256k1.c
-libsecp256k1_la_CPPFLAGS = -I$(top_srcdir)/include $(SECP_INCLUDES)
+libsecp256k1_la_CPPFLAGS = -I$(top_srcdir)/include $(SECP_INCLUDES) -DSECP_INTERNAL
 libsecp256k1_la_LIBADD = $(COMMON_LIB) $(SECP_LIBS)
 
 
