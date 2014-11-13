@@ -44,18 +44,32 @@ case $host_os in
      ;;
 esac
 
-CFLAGS="$CFLAGS -W"
+dnl Some compilers (clang) only warn when an option is invalid. Try to find
+dnl a flag for forcing errors. If there's a flag to disable warnings for unused
+dnl macros, check that first, or it could throw off the -Werror check.
+AX_CHECK_COMPILE_FLAG([-Wno-unused-macros], [WARN_UNUSED_MACROS=-Wno-unused-macros],[WARN_UNUSED_MACROS=])
+AX_CHECK_COMPILE_FLAG([-Werror], [WARN_FLAG_ERROR=-Werror],[WARN_FLAG_ERROR=], [$WARN_UNUSED_MACROS])
 
-warn_CFLAGS="-Wall -Wextra -Wcast-align -Wnested-externs -Wshadow -Wstrict-prototypes -Wno-unused-function"
-saved_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $warn_CFLAGS"
-AC_MSG_CHECKING([if ${CC} supports ${warn_CFLAGS}])
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
-    [ AC_MSG_RESULT([yes]) ],
-    [ AC_MSG_RESULT([no])
-      CFLAGS="$saved_CFLAGS"
-    ])
+dnl turn on these warnings if possible
+AX_CHECK_COMPILE_FLAG([-W], [WARN_FLAGS="$WARN_FLAGS -W"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wall], [WARN_FLAGS="$WARN_FLAGS -Wall"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wextra], [WARN_FLAGS="$WARN_FLAGS -Wextra"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wcast-align], [WARN_FLAGS="$WARN_FLAGS -Wcast-align"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wnested-externs], [WARN_FLAGS="$WARN_FLAGS -Wnested-externs"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wshadow], [WARN_FLAGS="$WARN_FLAGS -Wshadow"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wstrict-prototypes], [WARN_FLAGS="$WARN_FLAGS -Wstrict-prototypes"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Weverything], [WARN_FLAGS="$WARN_FLAGS -Weverything"],,[$WARN_FLAG_ERROR $WARN_UNUSED_MACROS])
 
+dnl turn off these warnings if possible
+AX_CHECK_COMPILE_FLAG([-Wno-unused-function], [WARN_FLAGS="$WARN_FLAGS -Wno-unused-function"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wno-sign-conversion], [WARN_FLAGS="$WARN_FLAGS -Wno-sign-conversion"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wno-missing-prototypes], [WARN_FLAGS="$WARN_FLAGS -Wno-missing-prototypes"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wno-shorten-64-to-32], [WARN_FLAGS="$WARN_FLAGS -Wno-shorten-64-to-32"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wno-conversion], [WARN_FLAGS="$WARN_FLAGS -Wno-conversion"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wno-padded], [WARN_FLAGS="$WARN_FLAGS -Wno-padded"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wno-vla], [WARN_FLAGS="$WARN_FLAGS -Wno-vla"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wno-gnu-empty-initializer], [WARN_FLAGS="$WARN_FLAGS -Wno-gnu-empty-initializer"],,[$WARN_FLAG_ERROR])
+AX_CHECK_COMPILE_FLAG([-Wno-unused-macros], [WARN_FLAGS="$WARN_FLAGS -Wno-unused-macros"],,[$WARN_FLAG_ERROR])
 
 AC_ARG_ENABLE(benchmark,
     AS_HELP_STRING([--enable-benchmark],[compile benchmark (default is yes)]),
@@ -258,6 +272,7 @@ AC_SUBST(SECP_LIBS)
 AC_SUBST(SECP_TEST_LIBS)
 AC_SUBST(SECP_TEST_INCLUDES)
 AC_SUBST(YASM_BINFMT)
+AC_SUBST(WARN_FLAGS)
 AM_CONDITIONAL([USE_ASM], [test x"$set_field" == x"64bit_asm"])
 AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" != x"no"])

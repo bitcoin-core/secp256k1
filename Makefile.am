@@ -1,4 +1,5 @@
 ACLOCAL_AMFLAGS = -I build-aux/m4
+AM_CFLAGS=$(WARN_FLAGS)
 
 lib_LTLIBRARIES = libsecp256k1.la
 if USE_ASM
