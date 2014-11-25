@@ -34,7 +34,7 @@ typedef struct {
 #ifdef USE_ENDOMORPHISM
     /* constants related to secp256k1's efficiently computable endomorphism */
     secp256k1_fe_t beta;
-    secp256k1_num_t lambda, a1b2, b1, a2;
+    secp256k1_num_t lambda, a1b2, b1, a2, g1, g2;
 #endif
 } secp256k1_ge_consts_t;
 
