@@ -18,4 +18,8 @@ typedef struct {
 #endif
 } secp256k1_fe_t;
 
+typedef struct {
+    uint64_t n[4];
+} secp256k1_fec_t;
+
 #endif
