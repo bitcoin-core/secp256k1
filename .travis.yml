@@ -25,7 +25,7 @@ env:
     - BUILD=distcheck
     - EXTRAFLAGS=CFLAGS=-DDETERMINISTIC
     - HOST=i686-linux-gnu EXTRAPACKAGES="gcc-multilib"
-    - HOST=i686-linux-gnu EXTRAPACKAGES="gcc-multilib" ENDOMORPHISM=yes
+    - HOST=i686-linux-gnu EXTRAPACKAGES="gcc-multilib" ENDOMORPHISM=yes test
 before_script: ./autogen.sh
 script:
  - if [ -n "$HOST" ]; then export USE_HOST="--host=$HOST"; fi
