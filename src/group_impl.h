@@ -231,26 +231,33 @@ static void secp256k1_gej_double_var(secp256k1_gej_t *r, const secp256k1_gej_t *
         return;
     }
 
+    secp256k1_fe_t t1, t2, t3, t4;
+
     secp256k1_fe_mul(&r->z, &a->z, &a->y);
-    secp256k1_fe_mul_int(&r->z, 2);       /* Z' = 2*Y*Z (2) */
-    secp256k1_fe_sqr(&t1, &a->x);
-    secp256k1_fe_mul_int(&t1, 3);         /* T1 = 3*X^2 (3) */
-    secp256k1_fe_sqr(&t2, &t1);           /* T2 = 9*X^4 (1) */
+    secp256k1_fe_mul_int(&r->z, 2);        /* Z' = 2*Y*Z (2) */
+
     secp256k1_fe_sqr(&t3, &a->y);
-    secp256k1_fe_mul_int(&t3, 2);         /* T3 = 2*Y^2 (2) */
-    secp256k1_fe_sqr(&t4, &t3);
-    secp256k1_fe_mul_int(&t4, 2);         /* T4 = 8*Y^4 (2) */
-    secp256k1_fe_mul(&t3, &t3, &a->x);    /* T3 = 2*X*Y^2 (1) */
-    r->x = t3;
-    secp256k1_fe_mul_int(&r->x, 4);       /* X' = 8*X*Y^2 (4) */
-    secp256k1_fe_negate(&r->x, &r->x, 4); /* X' = -8*X*Y^2 (5) */
-    secp256k1_fe_add(&r->x, &t2);         /* X' = 9*X^4 - 8*X*Y^2 (6) */
-    secp256k1_fe_negate(&t2, &t2, 1);     /* T2 = -9*X^4 (2) */
-    secp256k1_fe_mul_int(&t3, 6);         /* T3 = 12*X*Y^2 (6) */
-    secp256k1_fe_add(&t3, &t2);           /* T3 = 12*X*Y^2 - 9*X^4 (8) */
-    secp256k1_fe_mul(&r->y, &t1, &t3);    /* Y' = 36*X^3*Y^2 - 27*X^6 (1) */
-    secp256k1_fe_negate(&t2, &t4, 2);     /* T2 = -8*Y^4 (3) */
-    secp256k1_fe_add(&r->y, &t2);         /* Y' = 36*X^3*Y^2 - 27*X^6 - 8*Y^4 (4) */
+    secp256k1_fe_add(&t3, &t3);
+    secp256k1_fe_negate(&t3, &t3, 3);      /* t3 = -2*Y^2 (4) */
+
+    secp256k1_fe_mul(&t1, &t3, &a->x);     /* t1 = -2*X*Y^2 (1) */
+
+    secp256k1_fe_sqr(&t2, &a->x);
+    secp256k1_fe_mul_int(&t2, 3);          /* t2 = 3*X^2 (3) */
+
+    secp256k1_fe_sqr(&t4, &t2);            /* t4 = 9*X^4 (1) */
+    secp256k1_fe_add(&t1, &t1);            /* t1 = -4*X*Y^2 (2) */
+    secp256k1_fe_add(&t4, &t1);
+    secp256k1_fe_add(&t4, &t1);
+    r->x = t4;                             /* X' = 9*X^4 - 8*X*Y^2 (5) */
+
+    secp256k1_fe_add(&t4, &t1);            /* t4 = 9*X^4 - 12*X*Y^2 (7) */
+    secp256k1_fe_mul(&t4, &t4, &t2);       /* t4 = 27*X^6 - 36*X^3*Y^2 (1) */
+
+    secp256k1_fe_sqr(&t3, &t3);            /* t3 = 4*Y^4 (1) */
+    secp256k1_fe_add(&t3, &t3);            /* t3 = 8*Y^4 (2) */
+    secp256k1_fe_add(&t4, &t3);
+    secp256k1_fe_negate(&r->y, &t4, 3);    /* Y' = 36*X^3*Y^2 - 27*X^6 - 8*Y^4 (4) */
 }
 
 static void secp256k1_gej_add_var(secp256k1_gej_t *r, const secp256k1_gej_t *a, const secp256k1_gej_t *b) {
