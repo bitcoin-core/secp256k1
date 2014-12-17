@@ -1,6 +1,12 @@
 ACLOCAL_AMFLAGS = -I build-aux/m4
 
 lib_LTLIBRARIES = libsecp256k1.la
+if USE_JNI
+JNI_LIB = libsecp256k1_jni.la
+noinst_LTLIBRARIES = $(JNI_LIB)
+else
+JNI_LIB =
+endif
 include_HEADERS = include/secp256k1.h
 noinst_HEADERS =
 noinst_HEADERS += src/scalar.h
@@ -44,8 +50,10 @@ pkgconfig_DATA = libsecp256k1.pc
 
 libsecp256k1_la_SOURCES = src/secp256k1.c
 libsecp256k1_la_CPPFLAGS = -I$(top_srcdir)/include $(SECP_INCLUDES)
-libsecp256k1_la_LIBADD = $(SECP_LIBS)
+libsecp256k1_la_LIBADD = $(JNI_LIB) $(SECP_LIBS)
 
+libsecp256k1_jni_la_SOURCES  = src/java/org_bitcoin_NativeSecp256k1.c
+libsecp256k1_jni_la_CPPFLAGS = $(JNI_INCLUDES)
 
 noinst_PROGRAMS =
 if USE_BENCHMARK
