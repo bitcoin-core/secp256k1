@@ -116,12 +116,15 @@ static void secp256k1_gej_add_ge(secp256k1_gej_t *r, const secp256k1_gej_t *a, c
 /** Set r equal to the sum of a and b (with b given in affine coordinates). This is more efficient
     than secp256k1_gej_add_var. It is identical to secp256k1_gej_add_ge but without constant-time
     guarantee, and b is allowed to be infinity. */
-static void secp256k1_gej_add_ge_var(secp256k1_gej_t *r, const secp256k1_gej_t *a, const secp256k1_ge_t *b);
+static void secp256k1_gej_add_ge_var(secp256k1_gej_t *r, const secp256k1_gej_t *a, const secp256k1_fe_t *azr, const secp256k1_ge_t *b);
 
 /** Get a hex representation of a point. *rlen will be overwritten with the real length. */
 static void secp256k1_gej_get_hex(char *r, int *rlen, const secp256k1_gej_t *a);
 
 #ifdef USE_ENDOMORPHISM
+/** Set r to be equal to lambda times a, where lambda is chosen in a way such that this is very fast. */
+static void secp256k1_ge_mul_lambda(secp256k1_ge_t *r, const secp256k1_ge_t *a);
+
 /** Set r to be equal to lambda times a, where lambda is chosen in a way such that this is very fast. */
 static void secp256k1_gej_mul_lambda(secp256k1_gej_t *r, const secp256k1_gej_t *a);
 #endif

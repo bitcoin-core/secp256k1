@@ -50,7 +50,7 @@ static void secp256k1_ecmult_gen_start(void) {
         VERIFY_CHECK(secp256k1_ge_set_xo_var(&nums_ge, &nums_x, 0));
         secp256k1_gej_set_ge(&nums_gej, &nums_ge);
         /* Add G to make the bits in x uniformly distributed. */
-        secp256k1_gej_add_ge_var(&nums_gej, &nums_gej, g);
+        secp256k1_gej_add_ge_var(&nums_gej, &nums_gej, NULL, g);
     }
 
     /* compute prec. */

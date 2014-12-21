@@ -839,12 +839,12 @@ void test_ge(void) {
     secp256k1_gej_t iij; secp256k1_gej_add_var(&iij, &ij, &ij);
 
     /* gej + ge adds */
-    secp256k1_gej_t aa; secp256k1_gej_add_ge_var(&aa, &aj, &a);
-    secp256k1_gej_t ab; secp256k1_gej_add_ge_var(&ab, &aj, &b);
-    secp256k1_gej_t ai; secp256k1_gej_add_ge_var(&ai, &aj, &i);
-    secp256k1_gej_t an; secp256k1_gej_add_ge_var(&an, &aj, &n);
-    secp256k1_gej_t ia; secp256k1_gej_add_ge_var(&ia, &ij, &a);
-    secp256k1_gej_t ii; secp256k1_gej_add_ge_var(&ii, &ij, &i);
+    secp256k1_gej_t aa; secp256k1_gej_add_ge_var(&aa, &aj, NULL, &a);
+    secp256k1_gej_t ab; secp256k1_gej_add_ge_var(&ab, &aj, NULL, &b);
+    secp256k1_gej_t ai; secp256k1_gej_add_ge_var(&ai, &aj, NULL, &i);
+    secp256k1_gej_t an; secp256k1_gej_add_ge_var(&an, &aj, NULL, &n);
+    secp256k1_gej_t ia; secp256k1_gej_add_ge_var(&ia, &ij, NULL, &a);
+    secp256k1_gej_t ii; secp256k1_gej_add_ge_var(&ii, &ij, NULL, &i);
 
     /* const gej + ge adds */
     secp256k1_gej_t aac; secp256k1_gej_add_ge(&aac, &aj, &a);
