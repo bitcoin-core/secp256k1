@@ -39,12 +39,25 @@ noinst_HEADERS += src/field.h
 noinst_HEADERS += src/field_impl.h
 noinst_HEADERS += src/bench.h
 
+if USE_EXTERNAL_ASM
+COMMON_LIB = libsecp256k1_common.la
+noinst_LTLIBRARIES = $(COMMON_LIB)
+else
+COMMON_LIB =
+endif
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsecp256k1.pc
 
+if USE_EXTERNAL_ASM
+if USE_ASM_ARM
+libsecp256k1_common_la_SOURCES = src/asm/field_10x26_arm.s
+endif
+endif
+
 libsecp256k1_la_SOURCES = src/secp256k1.c
 libsecp256k1_la_CPPFLAGS = -I$(top_srcdir)/include $(SECP_INCLUDES)
-libsecp256k1_la_LIBADD = $(SECP_LIBS)
+libsecp256k1_la_LIBADD = $(SECP_LIBS) $(COMMON_LIB)
 
 
 noinst_PROGRAMS =
@@ -52,16 +65,16 @@ if USE_BENCHMARK
 noinst_PROGRAMS += bench_verify bench_recover bench_sign bench_internal
 bench_verify_SOURCES = src/bench_verify.c
 bench_verify_LDADD = libsecp256k1.la $(SECP_LIBS)
-bench_verify_LDFLAGS = -static
+bench_verify_LDFLAGS = -static $(COMMON_LIB)
 bench_recover_SOURCES = src/bench_recover.c
 bench_recover_LDADD = libsecp256k1.la $(SECP_LIBS)
-bench_recover_LDFLAGS = -static
+bench_recover_LDFLAGS = -static $(COMMON_LIB)
 bench_sign_SOURCES = src/bench_sign.c
 bench_sign_LDADD = libsecp256k1.la $(SECP_LIBS)
-bench_sign_LDFLAGS = -static
+bench_sign_LDFLAGS = -static $(COMMON_LIB)
 bench_internal_SOURCES = src/bench_internal.c
 bench_internal_LDADD = $(SECP_LIBS)
-bench_internal_LDFLAGS = -static
+bench_internal_LDFLAGS = -static $(COMMON_LIB)
 bench_internal_CPPFLAGS = $(SECP_INCLUDES)
 endif
 
@@ -69,7 +82,7 @@ if USE_TESTS
 noinst_PROGRAMS += tests
 tests_SOURCES = src/tests.c
 tests_CPPFLAGS = -DVERIFY $(SECP_INCLUDES) $(SECP_TEST_INCLUDES)
-tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS)
+tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB)
 tests_LDFLAGS = -static
 TESTS = tests
 endif
