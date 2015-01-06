@@ -19,7 +19,7 @@
 #include "eckey_impl.h"
 #include "hash_impl.h"
 
-void secp256k1_start(unsigned int flags) {
+void secp256k1_start(unsigned int flags, unsigned int tablesize) {
     secp256k1_fe_start();
     secp256k1_ge_start();
     secp256k1_scalar_start();
@@ -28,7 +28,7 @@ void secp256k1_start(unsigned int flags) {
         secp256k1_ecmult_gen_start();
     }
     if (flags & SECP256K1_START_VERIFY) {
-        secp256k1_ecmult_start();
+        secp256k1_ecmult_start(tablesize);
     }
 }
 

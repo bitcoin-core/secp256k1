@@ -1652,10 +1652,10 @@ int main(int argc, char **argv) {
     printf("random seed = %llu\n", (unsigned long long)seed);
 
     /* initialize */
-    secp256k1_start(SECP256K1_START_SIGN | SECP256K1_START_VERIFY);
+    secp256k1_start(SECP256K1_START_SIGN | SECP256K1_START_VERIFY, 0);
 
     /* initializing a second time shouldn't cause any harm or memory leaks. */
-    secp256k1_start(SECP256K1_START_SIGN | SECP256K1_START_VERIFY);
+    secp256k1_start(SECP256K1_START_SIGN | SECP256K1_START_VERIFY, 0);
 
     /* Likewise, re-running the internal init functions should be harmless. */
     secp256k1_fe_start();

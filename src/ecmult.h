@@ -10,7 +10,7 @@
 #include "num.h"
 #include "group.h"
 
-static void secp256k1_ecmult_start(void);
+static void secp256k1_ecmult_start(unsigned int);
 static void secp256k1_ecmult_stop(void);
 
 /** Double multiply: R = na*A + ng*G */

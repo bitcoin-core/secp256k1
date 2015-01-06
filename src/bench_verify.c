@@ -20,10 +20,10 @@ typedef struct {
     int pubkeylen;
 } benchmark_verify_t;
 
-static void benchmark_verify(void* arg) {
+static void benchmark_verify(void* arg, unsigned int iters) {
     benchmark_verify_t* data = (benchmark_verify_t*)arg;
 
-    for (int i=0; i<20000; i++) {
+    for (unsigned int i=0; i<iters; i++) {
         data->sig[data->siglen - 1] ^= (i & 0xFF);
         data->sig[data->siglen - 2] ^= ((i >> 8) & 0xFF);
         data->sig[data->siglen - 3] ^= ((i >> 16) & 0xFF);
@@ -34,8 +34,12 @@ static void benchmark_verify(void* arg) {
     }
 }
 
-int main(void) {
-    secp256k1_start(SECP256K1_START_VERIFY | SECP256K1_START_SIGN);
+int main(int argc, char **argv) {
+    int iters=20000, count=10, tablesize=0;
+
+    parse_bench_args(argc, argv, &iters, &count, &tablesize);
+
+    secp256k1_start(SECP256K1_START_VERIFY | SECP256K1_START_SIGN, tablesize);
 
     benchmark_verify_t data;
 
@@ -46,7 +50,7 @@ int main(void) {
     data.pubkeylen = 33;
     CHECK(secp256k1_ec_pubkey_create(data.pubkey, &data.pubkeylen, data.key, 1));
 
-    run_benchmark(benchmark_verify, NULL, NULL, &data, 10, 20000);
+    run_benchmark(benchmark_verify, NULL, NULL, &data, count, iters);
 
     secp256k1_stop();
     return 0;

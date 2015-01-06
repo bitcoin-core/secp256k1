@@ -32,20 +32,24 @@ void bench_inv_setup(void* arg) {
     secp256k1_scalar_set_b32(&data->x, init, NULL);
 }
 
-void bench_inv(void* arg) {
+void bench_inv(void* arg, unsigned int iters) {
     bench_inv_t *data = (bench_inv_t*)arg;
 
-    for (int i=0; i<20000; i++) {
+    for (unsigned int i=0; i<iters; i++) {
         secp256k1_scalar_inverse(&data->x, &data->x);
         secp256k1_scalar_add(&data->x, &data->x, &data->base);
     }
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+    int iters=20000, count=10, tablesize=0;
+
+    parse_bench_args(argc, argv, &iters, &count, &tablesize);
+
     secp256k1_ge_start();
 
     bench_inv_t data;
-    run_benchmark(bench_inv, bench_inv_setup, NULL, &data, 10, 20000);
+    run_benchmark(bench_inv, bench_inv_setup, NULL, &data, count, iters);
 
     secp256k1_ge_stop();
     return 0;

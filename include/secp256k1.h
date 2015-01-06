@@ -50,7 +50,8 @@ extern "C" {
  *  It cannot run in parallel with any other functions, but once
  *  secp256k1_start() returns, all other functions are thread-safe.
  */
-void secp256k1_start(unsigned int flags);
+void secp256k1_start(unsigned int flags, unsigned int tablesize);
+
 
 /** Free all memory associated with this library. After this, no
  *  functions can be called anymore, except secp256k1_start()

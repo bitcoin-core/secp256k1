@@ -13,11 +13,11 @@ typedef struct {
     unsigned char sig[64];
 } bench_recover_t;
 
-void bench_recover(void* arg) {
+void bench_recover(void* arg, unsigned int iters) {
     bench_recover_t *data = (bench_recover_t*)arg;
 
     unsigned char pubkey[33];
-    for (int i=0; i<20000; i++) {
+    for (unsigned int i=0; i<iters; i++) {
         int pubkeylen = 33;
         CHECK(secp256k1_ecdsa_recover_compact(data->msg, data->sig, pubkey, &pubkeylen, 1, i % 2));
         for (int j = 0; j < 32; j++) {
@@ -35,11 +35,15 @@ void bench_recover_setup(void* arg) {
     for (int i = 0; i < 64; i++) data->sig[i] = 65 + i;
 }
 
-int main(void) {
-    secp256k1_start(SECP256K1_START_VERIFY);
+int main(int argc, char **argv) {
+    int iters=20000,count=10,tablesize=0;
+
+    parse_bench_args(argc, argv, &iters, &count, &tablesize);
+
+    secp256k1_start(SECP256K1_START_VERIFY, tablesize);
 
     bench_recover_t data;
-    run_benchmark(bench_recover, bench_recover_setup, NULL, &data, 10, 20000);
+    run_benchmark(bench_recover, bench_recover_setup, NULL, &data, count, iters);
 
     secp256k1_stop();
     return 0;
