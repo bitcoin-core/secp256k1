@@ -96,7 +96,11 @@ static void secp256k1_ecmult_start(unsigned int tablesize) {
     /* Allocate the precomputation table. */
     secp256k1_ecmult_consts_t *ret = (secp256k1_ecmult_consts_t*)checked_malloc(sizeof(secp256k1_ecmult_consts_t));
     secp256k1_ge_t *getret = (secp256k1_ge_t*)checked_malloc(sizeof(secp256k1_ge_t)*ECMULT_TABLE_SIZE(ecmult_impl_windowG));
+    secp256k1_ge_t *getret_128 = (secp256k1_ge_t*)checked_malloc(sizeof(secp256k1_ge_t)*ECMULT_TABLE_SIZE(ecmult_impl_windowG));
     ret->pre_g = getret;
+#ifdef USE_ENDOMORPHISM
+    ret->pre_g_128 = getret_128;
+#endif
 
     /* get the generator */
     const secp256k1_ge_t *g = &secp256k1_ge_consts->g;
@@ -126,12 +130,20 @@ static void secp256k1_ecmult_stop(void) {
     secp256k1_ecmult_consts_t *c = (secp256k1_ecmult_consts_t*)secp256k1_ecmult_consts;
     secp256k1_ecmult_consts = NULL;
 
+#ifdef USE_ENDOMORPHISM
+    secp256k1_ge_t *e = c->pre_g_128;
+    if (c->pre_g_128 != NULL) {
+        c->pre_g_128 = NULL;
+        free(e);
+    }
+#endif
     secp256k1_ge_t *d = c->pre_g;
     if (c->pre_g != NULL) {
         c->pre_g = NULL;
+        free(d);
     }
 
-    free(c); free(d);
+    free(c);
 }
 
 /** Convert a number to WNAF notation. The number becomes represented by sum(2^i * wnaf[i], i=0..bits),
