@@ -115,6 +115,10 @@ extern const secp256k1_nonce_function_t secp256k1_nonce_function_default;
  *  In/Out:  siglen: pointer to an int with the length of sig, which will be updated
  *                   to contain the actual signature length (<=72).
  * Requires starting using SECP256K1_START_SIGN.
+ *
+ * Unlike the standard ECDSA signing algorithm, this function is guaranteed to
+ * only generate signatures where the S value is less than or equal to the order
+ * of the group divided by 2.  The motivation is explained in BIP 0062.
  */
 int secp256k1_ecdsa_sign(
   const unsigned char *msg32,
