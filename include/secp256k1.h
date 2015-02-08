@@ -115,6 +115,11 @@ extern const secp256k1_nonce_function_t secp256k1_nonce_function_default;
  *  In/Out:  siglen: pointer to an int with the length of sig, which will be updated
  *                   to contain the actual signature length (<=72).
  * Requires starting using SECP256K1_START_SIGN.
+ *
+ * If msg32 and seckey are all zeros, and noncefp always returns 1, then this
+ * function will never terminate.  A secret key that is all zeros is considered
+ * invalid, so you can avoid this issue if you validate seckey using
+ * secp256k1_ec_seckey_verify beforehand.
  */
 int secp256k1_ecdsa_sign(
   const unsigned char *msg32,
@@ -134,7 +139,9 @@ int secp256k1_ecdsa_sign(
  *           ndata:  pointer to arbitrary data used by the nonce generation function (can be NULL)
  *  Out:     sig:    pointer to a 64-byte array where the signature will be placed (cannot be NULL)
  *           recid:  pointer to an int, which will be updated to contain the recovery id (can be NULL)
- * Requires starting using SECP256K1_START_SIGN.
+ *
+ * Please see the documentation of secp256k1_ecdsa_sign because it has warnings
+ * that also apply to this function.
  */
 int secp256k1_ecdsa_sign_compact(
   const unsigned char *msg32,
