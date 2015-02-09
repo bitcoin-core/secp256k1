@@ -952,7 +952,7 @@ void test_ge(void) {
             secp256k1_ge_set_gej_var(&ref, &refj);
 
             /* Test gej + ge (var). */
-            secp256k1_gej_add_ge_var(&resj, &gej[i1], &ge[i2]);
+            secp256k1_gej_add_ge_var(&resj, &gej[i1], &ge[i2], NULL);
             ge_equals_gej(&ref, &resj);
 
             /* Test gej + ge (var, with additional Z factor). */
