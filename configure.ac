@@ -96,6 +96,11 @@ AC_ARG_ENABLE(endomorphism,
     [use_endomorphism=$enableval],
     [use_endomorphism=no])
 
+AC_ARG_ENABLE(coz,
+    AS_HELP_STRING([--enable-coz],[enable co-z precomputation (default is no)]),
+    [use_coz=$enableval],
+    [use_coz=no])
+
 AC_ARG_WITH([field], [AS_HELP_STRING([--with-field=64bit|32bit|auto],
 [Specify Field Implementation. Default is auto])],[req_field=$withval], [req_field=auto])
 
@@ -305,11 +310,16 @@ if test x"$use_endomorphism" = x"yes"; then
   AC_DEFINE(USE_ENDOMORPHISM, 1, [Define this symbol to use endomorphism optimization])
 fi
 
+if test x"$use_coz" = x"yes"; then
+  AC_DEFINE(USE_COZ, 1, [Define this symbol to use co-z optimization])
+fi
+
 AC_MSG_NOTICE([Using assembly optimizations: $set_asm])
 AC_MSG_NOTICE([Using field implementation: $set_field])
 AC_MSG_NOTICE([Using bignum implementation: $set_bignum])
 AC_MSG_NOTICE([Using scalar implementation: $set_scalar])
 AC_MSG_NOTICE([Using endomorphism optimizations: $use_endomorphism])
+AC_MSG_NOTICE([Using co-z precomputation optimization: $use_coz])
 
 AC_CONFIG_HEADERS([src/libsecp256k1-config.h])
 AC_CONFIG_FILES([Makefile libsecp256k1.pc])

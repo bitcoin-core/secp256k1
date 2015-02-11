@@ -882,6 +882,10 @@ void test_ge(void) {
      */
     secp256k1_ge_t *ge = malloc(sizeof(secp256k1_ge_t) * (1 + 4 * runs));
     secp256k1_gej_t *gej = malloc(sizeof(secp256k1_gej_t) * (1 + 4 * runs));
+    secp256k1_fe_t *zinv = malloc(sizeof(secp256k1_fe_t) * (1 + 4 * runs));
+    secp256k1_fe_t zf;
+    secp256k1_fe_t zfi2, zfi3;
+
     secp256k1_gej_set_infinity(&gej[0]);
     secp256k1_ge_clear(&ge[0]);
     secp256k1_ge_set_gej_var(&ge[0], &gej[0]);
@@ -906,18 +910,84 @@ void test_ge(void) {
         }
     }
 
+    /* Compute z inverses. */
+    {
+        secp256k1_fe_t *zs = malloc(sizeof(secp256k1_fe_t) * (1 + 4 * runs));
+        for (i = 0; i < 4 * runs + 1; i++) {
+            if (i == 0) {
+                /* The point at infinity does not have a meaningful z inverse. Any should do. */
+                do {
+                    random_field_element_test(&zs[i]);
+                } while(secp256k1_fe_is_zero(&zs[i]));
+            } else {
+                zs[i] = gej[i].z;
+            }
+        }
+        secp256k1_fe_inv_all_var(4 * runs + 1, zinv, zs);
+        free(zs);
+    }
+
+    /* Generate random zf, and zfi2 = 1/zf^2, zfi3 = 1/zf^3 */
+    do {
+        random_field_element_test(&zf);
+    } while(secp256k1_fe_is_zero(&zf));
+    random_field_element_magnitude(&zf);
+    secp256k1_fe_inv_var(&zfi3, &zf);
+    secp256k1_fe_sqr(&zfi2, &zfi3);
+    secp256k1_fe_mul(&zfi3, &zfi3, &zfi2);
+
     for (i1 = 0; i1 < 1 + 4 * runs; i1++) {
         int i2;
         for (i2 = 0; i2 < 1 + 4 * runs; i2++) {
             /* Compute reference result using gej + gej (var). */
             secp256k1_gej_t refj, resj;
             secp256k1_ge_t ref;
-            secp256k1_gej_add_var(&refj, &gej[i1], &gej[i2]);
+            secp256k1_fe_t zr;
+            secp256k1_gej_add_var(&refj, &gej[i1], &gej[i2], secp256k1_gej_is_infinity(&gej[i1]) ? NULL : &zr);
+            /* Check Z ratio. */
+            if (!secp256k1_gej_is_infinity(&gej[i1]) && !secp256k1_gej_is_infinity(&refj)) {
+                secp256k1_fe_t zrz; secp256k1_fe_mul(&zrz, &zr, &gej[i1].z);
+                CHECK(secp256k1_fe_equal_var(&zrz, &refj.z));
+            }
             secp256k1_ge_set_gej_var(&ref, &refj);
 
             /* Test gej + ge (var). */
-            secp256k1_gej_add_ge_var(&resj, &gej[i1], &ge[i2]);
+            secp256k1_gej_add_ge_var(&resj, &gej[i1], &ge[i2], NULL);
             ge_equals_gej(&ref, &resj);
+
+            /* Test gej + ge (var, with additional Z factor). */
+            {
+                secp256k1_ge_t ge2_zfi = ge[i2]; /* the second term with x and y rescaled for z = 1/zf */
+                secp256k1_fe_mul(&ge2_zfi.x, &ge2_zfi.x, &zfi2);
+                secp256k1_fe_mul(&ge2_zfi.y, &ge2_zfi.y, &zfi3);
+                random_field_element_magnitude(&ge2_zfi.x);
+                random_field_element_magnitude(&ge2_zfi.y);
+                secp256k1_gej_add_zinv_var(&resj, &gej[i1], &ge2_zfi, &zf);
+                ge_equals_gej(&ref, &resj);
+            }
+
+#ifdef USE_COZ
+            /* Test Co-Z gej + ge. */
+            if ((i1 == 0) == (i2 == 0)) {
+                /* ra is initially co-z with b (=gej[i2]). */
+                secp256k1_coz_t ra;
+                secp256k1_fe_t zr2;
+                secp256k1_fe_mul(&ra.x, &ge[i1].x, &gej[i2].z); secp256k1_fe_mul(&ra.x, &ra.x, &gej[i2].z);
+                secp256k1_fe_mul(&ra.y, &ge[i1].y, &gej[i2].z); secp256k1_fe_mul(&ra.y, &ra.y, &gej[i2].z); secp256k1_fe_mul(&ra.y, &ra.y, &gej[i2].z);
+                secp256k1_coz_zaddu_var(&resj, &ra, &zr2, &gej[i2]);
+                ge_equals_gej(&ref, &resj); /* Check sum */
+                if (!secp256k1_gej_is_infinity(&resj)) {
+                    /* Check that ra still represents the same point, but now Co-Z with r. */
+                    secp256k1_gej_t ra2;
+                    secp256k1_fe_t zz;
+                    ra2.x = ra.x; ra2.y = ra.y; ra2.z = resj.z; ra2.infinity = resj.infinity;
+                    ge_equals_gej(&ge[i1], &ra2);
+                    /* Check that zr * b.z = r.z */
+                    secp256k1_fe_mul(&zz, &gej[i2].z, &zr2);
+                    CHECK(secp256k1_fe_equal_var(&zz, &resj.z));
+                }
+            }
+#endif
 
             /* Test gej + ge (const). */
             if (i2 != 0) {
@@ -928,11 +998,35 @@ void test_ge(void) {
 
             /* Test doubling (var). */
             if ((i1 == 0 && i2 == 0) || ((i1 + 3)/4 == (i2 + 3)/4 && ((i1 + 3)%4)/2 == ((i2 + 3)%4)/2)) {
+                secp256k1_fe_t zr2;
+#ifdef USE_COZ
+                secp256k1_gej_t ra;
+                secp256k1_coz_t r;
+#endif
+                /* Normal doubling with Z ratio result. */
+                secp256k1_gej_double_var(&resj, &gej[i1], &zr2);
+                ge_equals_gej(&ref, &resj);
+                /* Check Z ratio. */
+                secp256k1_fe_mul(&zr2, &zr2, &gej[i1].z);
+                CHECK(secp256k1_fe_equal_var(&zr2, &resj.z));
                 /* Normal doubling. */
-                secp256k1_gej_double_var(&resj, &gej[i1]);
+                secp256k1_gej_double_var(&resj, &gej[i2], NULL);
                 ge_equals_gej(&ref, &resj);
-                secp256k1_gej_double_var(&resj, &gej[i2]);
+#ifdef USE_COZ
+                /* Co-Z doubling with Z ratio result. */
+                secp256k1_coz_dblu_var(&r, &ra, &gej[i1], &zr2);
+                resj.x = r.x; resj.y = r.y; resj.z = ra.z; resj.infinity = ra.infinity;
                 ge_equals_gej(&ref, &resj);
+                ge_equals_gej(&ge[i1], &ra);
+                /* Check Z ratio. */
+                secp256k1_fe_mul(&zr2, &zr2, &gej[i1].z);
+                CHECK(resj.infinity || secp256k1_fe_equal_var(&zr2, &ra.z));
+                /* Co-Z doubling. */
+                secp256k1_coz_dblu_var(&r, &ra, &gej[i2], &zr2);
+                resj.x = r.x; resj.y = r.y; resj.z = ra.z; resj.infinity = ra.infinity;
+                ge_equals_gej(&ref, &resj);
+                ge_equals_gej(&ge[i2], &ra);
+#endif
             }
 
             /* Test adding opposites. */
@@ -971,24 +1065,37 @@ void test_ge(void) {
         }
         secp256k1_gej_set_infinity(&sum);
         for (i = 0; i < 4 * runs + 1; i++) {
-            secp256k1_gej_add_var(&sum, &sum, &gej_shuffled[i]);
+            secp256k1_gej_add_var(&sum, &sum, &gej_shuffled[i], NULL);
         }
         CHECK(secp256k1_gej_is_infinity(&sum));
         free(gej_shuffled);
     }
 
-    /* Test batch gej -> ge conversion. */
+    /* Test batch gej -> ge conversion with and without known z ratios. */
     {
+        secp256k1_fe_t *zr = malloc((4 * runs + 1) * sizeof(secp256k1_fe_t));
+        secp256k1_ge_t *ge_set_table = malloc((4 * runs + 1) * sizeof(secp256k1_ge_t));
         secp256k1_ge_t *ge_set_all = malloc((4 * runs + 1) * sizeof(secp256k1_ge_t));
+        for (i = 0; i < 4 * runs + 1; i++) {
+            /* Compute gej[i + 1].z / gez[i].z (with gej[n].z taken to be 1). */
+            if (i < 4 * runs) {
+                secp256k1_fe_mul(&zr[i + 1], &zinv[i], &gej[i + 1].z);
+            }
+        }
+        secp256k1_ge_set_table_gej_var(4 * runs + 1, ge_set_table, gej, zr);
         secp256k1_ge_set_all_gej_var(4 * runs + 1, ge_set_all, gej);
         for (i = 0; i < 4 * runs + 1; i++) {
+            ge_equals_gej(&ge_set_table[i], &gej[i]);
             ge_equals_gej(&ge_set_all[i], &gej[i]);
         }
+        free(ge_set_table);
         free(ge_set_all);
+        free(zr);
     }
 
     free(ge);
     free(gej);
+    free(zinv);
 }
 
 void run_ge(void) {
@@ -1081,7 +1188,7 @@ void test_point_times_order(const secp256k1_gej_t *point) {
     secp256k1_scalar_negate(&nx, &x);
     secp256k1_ecmult(&res1, point, &x, &x); /* calc res1 = x * point + x * G; */
     secp256k1_ecmult(&res2, point, &nx, &nx); /* calc res2 = (order - x) * point + (order - x) * G; */
-    secp256k1_gej_add_var(&res1, &res1, &res2);
+    secp256k1_gej_add_var(&res1, &res1, &res2, NULL);
     CHECK(secp256k1_gej_is_infinity(&res1));
     CHECK(secp256k1_gej_is_valid_var(&res1) == 0);
     secp256k1_ge_set_gej(&res3, &res1);
