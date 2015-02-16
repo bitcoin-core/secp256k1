@@ -72,6 +72,15 @@ tests_CPPFLAGS = -DVERIFY $(SECP_INCLUDES) $(SECP_TEST_INCLUDES)
 tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS)
 tests_LDFLAGS = -static
 TESTS = tests
+if USE_GCOV
+tests_CPPFLAGS += $(COVERAGE_CPPFLAGS)
+tests_LDFLAGS += $(COVERAGE_LDFLAGS)
+TESTS += gcov
+gcov.log:
+	@gcov -b src/tests-tests.gcda -p > gcov.log
+	@touch gcov.trs
+MOSTLYCLEANFILES = src/*.gcda src/*.gcno *.gcov
+endif
 endif
 
 EXTRA_DIST = autogen.sh

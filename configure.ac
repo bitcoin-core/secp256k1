@@ -91,6 +91,11 @@ AC_ARG_ENABLE(tests,
     [use_tests=$enableval],
     [use_tests=yes])
 
+AC_ARG_ENABLE(gcov,
+    AS_HELP_STRING([--enable-gcov],[enable coverage testing (default is no)]),
+    [use_gcov=$enableval],
+    [use_gcov=no])
+
 AC_ARG_ENABLE(endomorphism,
     AS_HELP_STRING([--enable-endomorphism],[enable endomorphism (default is no)]),
     [use_endomorphism=$enableval],
@@ -280,6 +285,19 @@ case $set_scalar in
   ;;
 esac
 
+if test x"$use_gcov" != x"no"; then
+  use_tests=yes
+  changequote({,})
+  CFLAGS=`echo "$CFLAGS" | $SED -e 's/-O[0-9]*//g'`
+  CPPFLAGS=`echo "$CPPFLAGS" | $SED -e 's/-O[0-9]*//g'`
+  changequote([,])
+  COVERAGE_CFLAGS="-O0 --coverage"
+  COVERAGE_CPPFLAGS="-O0 --coverage"
+  COVERAGE_LDFLAGS="--coverage"
+  AC_SUBST(COVERAGE_CPPFLAGS)
+  AC_SUBST(COVERAGE_LDFLAGS)
+fi
+
 if test x"$use_tests" = x"yes"; then
   SECP_OPENSSL_CHECK
   if test x"$has_openssl_ec" = x"yes"; then
@@ -292,7 +310,6 @@ if test x"$use_tests" = x"yes"; then
       SECP_TEST_LIBS="$SECP_TEST_LIBS -lgdi32"
       ;;
     esac
-
   fi
 fi
 
@@ -318,6 +335,7 @@ AC_SUBST(SECP_LIBS)
 AC_SUBST(SECP_TEST_LIBS)
 AC_SUBST(SECP_TEST_INCLUDES)
 AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])
+AM_CONDITIONAL([USE_GCOV], [test x"$use_gcov" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
 
 dnl make sure nothing new is exported so that we don't break the cache
