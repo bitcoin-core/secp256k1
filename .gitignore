@@ -25,6 +25,11 @@ build-aux/
 *.lo
 *.o
 *~
+*.gcov
+*.gcda
+*.gcno
+*.log
+*.trs
 src/libsecp256k1-config.h
 src/libsecp256k1-config.h.in
 m4/libtool.m4
