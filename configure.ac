@@ -28,7 +28,7 @@ if test x"$ac_cv_prog_cc_c89" = x"no"; then
 fi
 
 case $host in
-  *mingw*)
+  *mingw* | *darwin*)
      use_pkgconfig=no
      ;;
    *)
