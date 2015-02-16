@@ -13,16 +13,20 @@
 
 /* A non-cryptographic RNG used only for test infrastructure. */
 
+typedef struct {
+    uint32_t Rz, Rw;
+} secp256k1_rand_t;
+
 /** Seed the pseudorandom number generator for testing. */
-SECP256K1_INLINE static void secp256k1_rand_seed(uint64_t v);
+SECP256K1_INLINE static void secp256k1_rand_seed(secp256k1_rand_t *state, uint64_t v);
 
 /** Generate a pseudorandom 32-bit number. */
-static uint32_t secp256k1_rand32(void);
+static uint32_t secp256k1_rand32(secp256k1_rand_t *state);
 
 /** Generate a pseudorandom 32-byte array. */
-static void secp256k1_rand256(unsigned char *b32);
+static void secp256k1_rand256(secp256k1_rand_t *state, unsigned char *b32);
 
 /** Generate a pseudorandom 32-byte array with long sequences of zero and one bits. */
-static void secp256k1_rand256_test(unsigned char *b32);
+static void secp256k1_rand256_test(secp256k1_rand_t *state, unsigned char *b32);
 
 #endif
