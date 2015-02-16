@@ -225,23 +225,23 @@ void random_num_negate(secp256k1_rand_t *rng, secp256k1_num_t *num) {
         secp256k1_num_negate(num);
 }
 
-void random_num_order_test(secp256k1_num_t *num) {
+void random_num_order_test(secp256k1_rand_t *rng, secp256k1_num_t *num) {
     secp256k1_scalar_t sc;
-    random_scalar_order_test(&sc);
+    random_scalar_order_test(rng, &sc);
     secp256k1_scalar_get_num(num, &sc);
 }
 
-void random_num_order(secp256k1_num_t *num) {
+void random_num_order(secp256k1_rand_t *rng, secp256k1_num_t *num) {
     secp256k1_scalar_t sc;
-    random_scalar_order(&sc);
+    random_scalar_order(rng, &sc);
     secp256k1_scalar_get_num(num, &sc);
 }
 
-void test_num_negate(void) {
+void test_num_negate(secp256k1_rand_t *rng) {
     secp256k1_num_t n1;
     secp256k1_num_t n2;
-    random_num_order_test(&n1); /* n1 = R */
-    random_num_negate(&n1);
+    random_num_order_test(rng, &n1); /* n1 = R */
+    random_num_negate(rng, &n1);
     secp256k1_num_copy(&n2, &n1); /* n2 = R */
     secp256k1_num_sub(&n1, &n2, &n1); /* n1 = n2-n1 = 0 */
     CHECK(secp256k1_num_is_zero(&n1));
@@ -262,13 +262,13 @@ void test_num_add_sub(secp256k1_rand_t *rng) {
     secp256k1_num_t n2;
     secp256k1_num_t n1p2, n2p1, n1m2, n2m1;
     int r = secp256k1_rand32(rng);
-    random_num_order_test(&n1); /* n1 = R1 */
+    random_num_order_test(rng, &n1); /* n1 = R1 */
     if (r & 1) {
-        random_num_negate(&n1);
+        random_num_negate(rng, &n1);
     }
-    random_num_order_test(&n2); /* n2 = R2 */
+    random_num_order_test(rng, &n2); /* n2 = R2 */
     if (r & 2) {
-        random_num_negate(&n2);
+        random_num_negate(rng, &n2);
     }
     secp256k1_num_add(&n1p2, &n1, &n2); /* n1p2 = R1 + R2 */
     secp256k1_num_add(&n2p1, &n2, &n1); /* n2p1 = R2 + R1 */
@@ -286,11 +286,11 @@ void test_num_add_sub(secp256k1_rand_t *rng) {
     CHECK(secp256k1_num_eq(&n2p1, &n1));
 }
 
-void run_num_smalltests(void) {
+void run_num_smalltests(secp256k1_rand_t *rng) {
     int i;
     for (i = 0; i < 100*count; i++) {
-        test_num_negate();
-        test_num_add_sub();
+        test_num_negate(rng);
+        test_num_add_sub(rng);
     }
 }
 #endif
@@ -429,7 +429,7 @@ void scalar_test(secp256k1_rand_t *rng) {
         secp256k1_num_t rnum;
         secp256k1_num_t rnum2;
         unsigned char cone[1] = {0x01};
-        unsigned int shift = 256 + (secp256k1_rand32() % 257);
+        unsigned int shift = 256 + (secp256k1_rand32(rng) % 257);
         secp256k1_scalar_mul_shift_var(&r, &s1, &s2, shift);
         secp256k1_num_mul(&rnum, &s1num, &s2num);
         secp256k1_num_shift(&rnum, shift - 1);
@@ -783,6 +783,7 @@ void run_field_inv_all_var(secp256k1_rand_t *rng) {
 }
 
 void run_sqr(void) {
+    /* Note: This does not actually CHECK anything. */
     secp256k1_fe_t x, s;
 
     {
@@ -1679,11 +1680,11 @@ void run_ecdsa_edge_cases(void) {
 }
 
 #ifdef ENABLE_OPENSSL_TESTS
-EC_KEY *get_openssl_key(const secp256k1_scalar_t *key) {
+EC_KEY *get_openssl_key(secp256k1_rand_t *rng, const secp256k1_scalar_t *key) {
     unsigned char privkey[300];
     int privkeylen;
     const unsigned char* pbegin = privkey;
-    int compr = secp256k1_rand32() & 1;
+    int compr = secp256k1_rand32(rng) & 1;
     EC_KEY *ec_key = EC_KEY_new_by_curve_name(NID_secp256k1);
     CHECK(secp256k1_eckey_privkey_serialize(privkey, &privkeylen, key, compr));
     CHECK(d2i_ECPrivateKey(&ec_key, &pbegin, privkeylen));
@@ -1691,7 +1692,7 @@ EC_KEY *get_openssl_key(const secp256k1_scalar_t *key) {
     return ec_key;
 }
 
-void test_ecdsa_openssl(void) {
+void test_ecdsa_openssl(secp256k1_rand_t *rng) {
     secp256k1_gej_t qj;
     secp256k1_ge_t q;
     secp256k1_ecdsa_sig_t sig;
@@ -1703,12 +1704,12 @@ void test_ecdsa_openssl(void) {
     int secp_sigsize = 80;
     unsigned char message[32];
     unsigned char signature[80];
-    secp256k1_rand256_test(message);
+    secp256k1_rand256_test(rng, message);
     secp256k1_scalar_set_b32(&msg, message, NULL);
-    random_scalar_order_test(&key);
+    random_scalar_order_test(rng, &key);
     secp256k1_ecmult_gen(&qj, &key);
     secp256k1_ge_set_gej(&q, &qj);
-    ec_key = get_openssl_key(&key);
+    ec_key = get_openssl_key(rng, &key);
     CHECK(ec_key);
     CHECK(ECDSA_sign(0, message, sizeof(message), signature, &sigsize, ec_key));
     CHECK(secp256k1_ecdsa_sig_parse(&sig, signature, sigsize));
@@ -1717,20 +1718,81 @@ void test_ecdsa_openssl(void) {
     secp256k1_scalar_add(&msg2, &msg, &one);
     CHECK(!secp256k1_ecdsa_sig_verify(&sig, &q, &msg2));
 
-    random_sign(&sig, &key, &msg, NULL);
+    random_sign(rng, &sig, &key, &msg, NULL);
     CHECK(secp256k1_ecdsa_sig_serialize(signature, &secp_sigsize, &sig));
     CHECK(ECDSA_verify(0, message, sizeof(message), signature, secp_sigsize, ec_key) == 1);
 
     EC_KEY_free(ec_key);
 }
 
-void run_ecdsa_openssl(void) {
+void run_ecdsa_openssl(secp256k1_rand_t *rng) {
     int i;
     for (i = 0; i < 10*count; i++) {
-        test_ecdsa_openssl();
+        test_ecdsa_openssl(rng);
     }
 }
 #endif
+
+void run_deterministic_tests(void) {
+    /* initialize */
+    secp256k1_start(SECP256K1_START_SIGN | SECP256K1_START_VERIFY);
+
+    /* initializing a second time shouldn't cause any harm or memory leaks. */
+    secp256k1_start(SECP256K1_START_SIGN | SECP256K1_START_VERIFY);
+
+    run_rfc6979_hmac_sha256_tests();
+    run_field_convert();
+    run_sqr();
+    run_ecdsa_edge_cases();
+    run_ecmult_chain(); /* Note: depends on count */
+
+    /* shutdown */
+    secp256k1_stop();
+
+    /* shutting down twice shouldn't cause any double frees. */
+    secp256k1_stop();
+}
+
+void run_randomized_tests(secp256k1_rand_t *rng) {
+    /* initialize */
+    secp256k1_start(SECP256K1_START_SIGN | SECP256K1_START_VERIFY);
+
+    run_sha256_tests(rng);
+    run_hmac_sha256_tests(rng);
+
+#ifndef USE_NUM_NONE
+    /* num tests */
+    run_num_smalltests(rng);
+#endif
+
+    /* scalar tests */
+    run_scalar_tests(rng);
+
+    /* field tests */
+    run_field_inv(rng);
+    run_field_inv_var(rng);
+    run_field_inv_all_var(rng);
+    run_field_misc(rng);
+    run_sqrt(rng);
+
+    /* group tests */
+    run_ge(rng);
+
+    /* ecmult tests */
+    run_wnaf(rng);
+    run_point_times_order(rng);
+
+    /* ecdsa tests */
+    run_random_pubkeys(rng);
+    run_ecdsa_sign_verify(rng);
+    run_ecdsa_end_to_end(rng);
+#ifdef ENABLE_OPENSSL_TESTS
+    run_ecdsa_openssl(rng);
+#endif
+
+    /* shutdown */
+    secp256k1_stop();
+}
 
 int main(int argc, char **argv) {
     secp256k1_rand_t rng;
@@ -1750,61 +1812,14 @@ int main(int argc, char **argv) {
         }
         fclose(frand);
     }
-    secp256k1_rand_seed(&rng, seed);
+
+    run_deterministic_tests();
 
     printf("test count = %i\n", count);
     printf("random seed = %" I64uFORMAT "\n", (unsigned long long)seed);
-
-    /* initialize */
-    secp256k1_start(SECP256K1_START_SIGN | SECP256K1_START_VERIFY);
-
-    /* initializing a second time shouldn't cause any harm or memory leaks. */
-    secp256k1_start(SECP256K1_START_SIGN | SECP256K1_START_VERIFY);
-
-    run_sha256_tests(&rng);
-    run_hmac_sha256_tests(&rng);
-    run_rfc6979_hmac_sha256_tests();
-
-#ifndef USE_NUM_NONE
-    /* num tests */
-    run_num_smalltests();
-#endif
-
-    /* scalar tests */
-    run_scalar_tests(&rng);
-
-    /* field tests */
-    run_field_inv(&rng);
-    run_field_inv_var(&rng);
-    run_field_inv_all_var(&rng);
-    run_field_misc(&rng);
-    run_field_convert();
-    run_sqr();
-    run_sqrt(&rng);
-
-    /* group tests */
-    run_ge(&rng);
-
-    /* ecmult tests */
-    run_wnaf(&rng);
-    run_point_times_order(&rng);
-    run_ecmult_chain();
-
-    /* ecdsa tests */
-    run_random_pubkeys(&rng);
-    run_ecdsa_sign_verify(&rng);
-    run_ecdsa_end_to_end(&rng);
-    run_ecdsa_edge_cases();
-#ifdef ENABLE_OPENSSL_TESTS
-    run_ecdsa_openssl();
-#endif
-
+    secp256k1_rand_seed(&rng, seed);
+    run_randomized_tests(&rng);
     printf("random run = %llu\n", (unsigned long long)secp256k1_rand32(&rng) + ((unsigned long long)secp256k1_rand32(&rng) << 32));
 
-    /* shutdown */
-    secp256k1_stop();
-
-    /* shutting down twice shouldn't cause any double frees. */
-    secp256k1_stop();
     return 0;
 }
