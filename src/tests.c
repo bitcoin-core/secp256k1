@@ -23,8 +23,6 @@
 #include "openssl/obj_mac.h"
 #endif
 
-static int count = 64;
-
 void random_field_element_test(secp256k1_rand_t *rng, secp256k1_fe_t *fe) {
     do {
         unsigned char b32[32];
@@ -286,7 +284,7 @@ void test_num_add_sub(secp256k1_rand_t *rng) {
     CHECK(secp256k1_num_eq(&n2p1, &n1));
 }
 
-void run_num_smalltests(secp256k1_rand_t *rng) {
+void run_num_smalltests(secp256k1_rand_t *rng, int count) {
     int i;
     for (i = 0; i < 100*count; i++) {
         test_num_negate(rng);
@@ -565,7 +563,7 @@ void scalar_test(secp256k1_rand_t *rng) {
 
 }
 
-void run_scalar_tests(secp256k1_rand_t *rng) {
+void run_scalar_tests(secp256k1_rand_t *rng, int count) {
     int i;
     for (i = 0; i < 128 * count; i++) {
         scalar_test(rng);
@@ -683,7 +681,7 @@ void run_field_convert(void) {
     CHECK(memcmp(&fes2, &fes, sizeof(fes)) == 0);
 }
 
-void run_field_misc(secp256k1_rand_t *rng) {
+void run_field_misc(secp256k1_rand_t *rng, int count) {
     const unsigned char f32_5[32] = {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -739,7 +737,7 @@ void run_field_misc(secp256k1_rand_t *rng) {
     }
 }
 
-void run_field_inv(secp256k1_rand_t *rng) {
+void run_field_inv(secp256k1_rand_t *rng, int count) {
     secp256k1_fe_t x, xi, xii;
     int i;
     for (i = 0; i < 10*count; i++) {
@@ -751,7 +749,7 @@ void run_field_inv(secp256k1_rand_t *rng) {
     }
 }
 
-void run_field_inv_var(secp256k1_rand_t *rng) {
+void run_field_inv_var(secp256k1_rand_t *rng, int count) {
     secp256k1_fe_t x, xi, xii;
     int i;
     for (i = 0; i < 10*count; i++) {
@@ -763,7 +761,7 @@ void run_field_inv_var(secp256k1_rand_t *rng) {
     }
 }
 
-void run_field_inv_all_var(secp256k1_rand_t *rng) {
+void run_field_inv_all_var(secp256k1_rand_t *rng, int count) {
     secp256k1_fe_t x[16], xi[16], xii[16];
     int i;
     /* Check it's safe to call for 0 elements */
@@ -813,7 +811,7 @@ void test_sqrt(const secp256k1_fe_t *a, const secp256k1_fe_t *k) {
     }
 }
 
-void run_sqrt(secp256k1_rand_t *rng) {
+void run_sqrt(secp256k1_rand_t *rng, int count) {
     secp256k1_fe_t ns, x, s, t;
     int i;
 
@@ -992,7 +990,7 @@ void test_ge(secp256k1_rand_t *rng) {
     free(gej);
 }
 
-void run_ge(secp256k1_rand_t *rng) {
+void run_ge(secp256k1_rand_t *rng, int count) {
     int i;
     for (i = 0; i < count * 32; i++) {
         test_ge(rng);
@@ -1001,7 +999,7 @@ void run_ge(secp256k1_rand_t *rng) {
 
 /***** ECMULT TESTS *****/
 
-void run_ecmult_chain(void) {
+void run_ecmult_chain(int count) {
     secp256k1_gej_t a;
     secp256k1_gej_t x;
     secp256k1_gej_t x2;
@@ -1146,7 +1144,7 @@ void test_wnaf(const secp256k1_scalar_t *number, int w) {
     CHECK(secp256k1_scalar_eq(&x, number)); /* check that wnaf represents number */
 }
 
-void run_wnaf(secp256k1_rand_t *rng) {
+void run_wnaf(secp256k1_rand_t *rng, int count) {
     int i;
     secp256k1_scalar_t n;
     for (i = 0; i < count; i++) {
@@ -1185,7 +1183,7 @@ void test_ecdsa_sign_verify(secp256k1_rand_t *rng) {
     CHECK(!secp256k1_ecdsa_sig_verify(&sig, &pub, &msg));
 }
 
-void run_ecdsa_sign_verify(secp256k1_rand_t *rng) {
+void run_ecdsa_sign_verify(secp256k1_rand_t *rng, int count) {
     int i;
     for (i = 0; i < 10*count; i++) {
         test_ecdsa_sign_verify(rng);
@@ -1373,14 +1371,14 @@ void test_random_pubkeys(secp256k1_rand_t *rng) {
     }
 }
 
-void run_random_pubkeys(secp256k1_rand_t *rng) {
+void run_random_pubkeys(secp256k1_rand_t *rng, int count) {
     int i;
     for (i = 0; i < 10*count; i++) {
         test_random_pubkeys(rng);
     }
 }
 
-void run_ecdsa_end_to_end(secp256k1_rand_t *rng) {
+void run_ecdsa_end_to_end(secp256k1_rand_t *rng, int count) {
     int i;
     for (i = 0; i < 64*count; i++) {
         test_ecdsa_end_to_end(rng);
@@ -1725,7 +1723,7 @@ void test_ecdsa_openssl(secp256k1_rand_t *rng) {
     EC_KEY_free(ec_key);
 }
 
-void run_ecdsa_openssl(secp256k1_rand_t *rng) {
+void run_ecdsa_openssl(secp256k1_rand_t *rng, int count) {
     int i;
     for (i = 0; i < 10*count; i++) {
         test_ecdsa_openssl(rng);
@@ -1744,7 +1742,6 @@ void run_deterministic_tests(void) {
     run_field_convert();
     run_sqr();
     run_ecdsa_edge_cases();
-    run_ecmult_chain(); /* Note: depends on count */
 
     /* shutdown */
     secp256k1_stop();
@@ -1753,7 +1750,7 @@ void run_deterministic_tests(void) {
     secp256k1_stop();
 }
 
-void run_randomized_tests(secp256k1_rand_t *rng) {
+void run_randomized_tests(secp256k1_rand_t *rng, int count) {
     /* initialize */
     secp256k1_start(SECP256K1_START_SIGN | SECP256K1_START_VERIFY);
 
@@ -1762,32 +1759,33 @@ void run_randomized_tests(secp256k1_rand_t *rng) {
 
 #ifndef USE_NUM_NONE
     /* num tests */
-    run_num_smalltests(rng);
+    run_num_smalltests(rng, count);
 #endif
 
     /* scalar tests */
-    run_scalar_tests(rng);
+    run_scalar_tests(rng, count);
 
     /* field tests */
-    run_field_inv(rng);
-    run_field_inv_var(rng);
-    run_field_inv_all_var(rng);
-    run_field_misc(rng);
-    run_sqrt(rng);
+    run_field_inv(rng, count);
+    run_field_inv_var(rng, count);
+    run_field_inv_all_var(rng, count);
+    run_field_misc(rng, count);
+    run_sqrt(rng, count);
 
     /* group tests */
-    run_ge(rng);
+    run_ge(rng, count);
 
     /* ecmult tests */
-    run_wnaf(rng);
+    run_wnaf(rng, count);
     run_point_times_order(rng);
+    run_ecmult_chain(count);
 
     /* ecdsa tests */
-    run_random_pubkeys(rng);
-    run_ecdsa_sign_verify(rng);
-    run_ecdsa_end_to_end(rng);
+    run_random_pubkeys(rng, count);
+    run_ecdsa_sign_verify(rng, count);
+    run_ecdsa_end_to_end(rng, count);
 #ifdef ENABLE_OPENSSL_TESTS
-    run_ecdsa_openssl(rng);
+    run_ecdsa_openssl(rng, count);
 #endif
 
     /* shutdown */
@@ -1797,6 +1795,8 @@ void run_randomized_tests(secp256k1_rand_t *rng) {
 int main(int argc, char **argv) {
     secp256k1_rand_t rng;
     uint64_t seed;
+    int count = 64;
+
     /* find iteration count */
     if (argc > 1) {
         count = strtol(argv[1], NULL, 0);
@@ -1818,7 +1818,7 @@ int main(int argc, char **argv) {
     printf("test count = %i\n", count);
     printf("random seed = %" I64uFORMAT "\n", (unsigned long long)seed);
     secp256k1_rand_seed(&rng, seed);
-    run_randomized_tests(&rng);
+    run_randomized_tests(&rng, count);
     printf("random run = %llu\n", (unsigned long long)secp256k1_rand32(&rng) + ((unsigned long long)secp256k1_rand32(&rng) << 32));
 
     return 0;
