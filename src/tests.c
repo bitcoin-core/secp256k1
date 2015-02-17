@@ -1815,11 +1815,13 @@ int main(int argc, char **argv) {
 
     run_deterministic_tests();
 
+#ifndef DETERMINISTIC_TESTS_ONLY
     printf("test count = %i\n", count);
     printf("random seed = %" I64uFORMAT "\n", (unsigned long long)seed);
     secp256k1_rand_seed(&rng, seed);
     run_randomized_tests(&rng, count);
     printf("random run = %llu\n", (unsigned long long)secp256k1_rand32(&rng) + ((unsigned long long)secp256k1_rand32(&rng) << 32));
+#endif
 
     return 0;
 }
