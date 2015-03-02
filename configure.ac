@@ -1,5 +1,6 @@
+dnl Require autoconf 2.60
 AC_PREREQ([2.60])
-AC_INIT([libsecp256k1],[0.1])
+AC_INIT([libsecp256k1], [0.1], [info@bitcoin.org], [libsecp256k1])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([build-aux/m4])
 AC_CANONICAL_HOST
@@ -14,9 +15,9 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 PKG_PROG_PKG_CONFIG
 
-AC_PATH_TOOL(AR, ar)
-AC_PATH_TOOL(RANLIB, ranlib)
-AC_PATH_TOOL(STRIP, strip)
+AC_PATH_TOOL([AR],     ar)
+AC_PATH_TOOL([RANLIB], ranlib)
+AC_PATH_TOOL([STRIP],  strip)
 
 if test "x$CFLAGS" = "x"; then
   CFLAGS="-O3 -g"
@@ -39,7 +40,7 @@ esac
 case $host_os in
   *darwin*)
      if  test x$cross_compiling != xyes; then
-       AC_PATH_PROG([BREW],brew,)
+       AC_PATH_PROG([BREW], brew)
        if test x$BREW != x; then
          dnl These Homebrew packages may be keg-only, meaning that they won't be found
          dnl in expected paths because they may conflict with system files. Ask
@@ -56,7 +57,7 @@ case $host_os in
            GMP_LIBS="-L$gmp_prefix/lib"
          fi
        else
-         AC_PATH_PROG([PORT],port,)
+         AC_PATH_PROG([PORT], port)
          dnl if homebrew isn't installed and macports is, add the macports default paths
          dnl as a last resort.
          if test x$PORT != x; then
@@ -75,46 +76,54 @@ saved_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS $warn_CFLAGS"
 AC_MSG_CHECKING([if ${CC} supports ${warn_CFLAGS}])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
-    [ AC_MSG_RESULT([yes]) ],
-    [ AC_MSG_RESULT([no])
-      CFLAGS="$saved_CFLAGS"
-    ])
+  [AC_MSG_RESULT([yes])],
+  [AC_MSG_RESULT([no])
+   CFLAGS="$saved_CFLAGS"
+  ])
 
+dnl Enable/with optional features:
+AC_ARG_ENABLE([benchmark],
+  AS_HELP_STRING([--enable-benchmark], [compile benchmark (default is no)]),
+  [use_benchmark=$enableval],
+  [use_benchmark=no])
 
-AC_ARG_ENABLE(benchmark,
-    AS_HELP_STRING([--enable-benchmark],[compile benchmark (default is no)]),
-    [use_benchmark=$enableval],
-    [use_benchmark=no])
+AC_ARG_ENABLE([tests],
+  AS_HELP_STRING([--enable-tests], [compile tests (default is yes)]),
+  [use_tests=$enableval],
+  [use_tests=yes])
 
-AC_ARG_ENABLE(tests,
-    AS_HELP_STRING([--enable-tests],[compile tests (default is yes)]),
-    [use_tests=$enableval],
-    [use_tests=yes])
+AC_ARG_ENABLE([endomorphism],
+  AS_HELP_STRING([--enable-endomorphism], [enable endomorphism (default is no)]),
+  [use_endomorphism=$enableval],
+  [use_endomorphism=no])
 
-AC_ARG_ENABLE(endomorphism,
-    AS_HELP_STRING([--enable-endomorphism],[enable endomorphism (default is no)]),
-    [use_endomorphism=$enableval],
-    [use_endomorphism=no])
+AC_ARG_WITH([field],
+  [AS_HELP_STRING([--with-field=64bit|32bit|auto], [Specify Field Implementation. Default is auto])],
+  [req_field=$withval],
+  [req_field=auto])
 
-AC_ARG_WITH([field], [AS_HELP_STRING([--with-field=64bit|32bit|auto],
-[Specify Field Implementation. Default is auto])],[req_field=$withval], [req_field=auto])
+AC_ARG_WITH([bignum],
+  [AS_HELP_STRING([--with-bignum=gmp|no|auto], [Specify Bignum Implementation. Default is auto])],
+  [req_bignum=$withval],
+  [req_bignum=auto])
 
-AC_ARG_WITH([bignum], [AS_HELP_STRING([--with-bignum=gmp|no|auto],
-[Specify Bignum Implementation. Default is auto])],[req_bignum=$withval], [req_bignum=auto])
+AC_ARG_WITH([scalar],
+  [AS_HELP_STRING([--with-scalar=64bit|32bit|auto], [Specify scalar implementation. Default is auto])],
+  [req_scalar=$withval],
+  [req_scalar=auto])
 
-AC_ARG_WITH([scalar], [AS_HELP_STRING([--with-scalar=64bit|32bit|auto],
-[Specify scalar implementation. Default is auto])],[req_scalar=$withval], [req_scalar=auto])
-
-AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|no|auto]
-[Specify assembly optimizations to use. Default is auto])],[req_asm=$withval], [req_asm=auto])
+AC_ARG_WITH([asm],
+  [AS_HELP_STRING([--with-asm=x86_64|no|auto], [Specify assembly optimizations to use. Default is auto])],
+  [req_asm=$withval],
+  [req_asm=auto])
 
 AC_CHECK_TYPES([__int128])
 
 AC_MSG_CHECKING([for __builtin_expect])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[void myfunc() {__builtin_expect(0,0);}]])],
-    [ AC_MSG_RESULT([yes]);AC_DEFINE(HAVE_BUILTIN_EXPECT,1,[Define this symbol if __builtin_expect is available]) ],
-    [ AC_MSG_RESULT([no])
-    ])
+  [AC_MSG_RESULT([yes])
+   AC_DEFINE([HAVE_BUILTIN_EXPECT], [1], [Define this symbol if __builtin_expect is available])],
+  [AC_MSG_RESULT([no])])
 
 if test x"$req_asm" = x"auto"; then
   SECP_64BIT_ASM_CHECK
@@ -227,7 +236,7 @@ fi
 # select assembly optimization
 case $set_asm in
 x86_64)
-  AC_DEFINE(USE_ASM_X86_64, 1, [Define this symbol to enable x86_64 assembly optimizations])
+  AC_DEFINE([USE_ASM_X86_64], [1], [Define this symbol to enable x86_64 assembly optimizations])
   ;;
 no)
   ;;
@@ -239,10 +248,10 @@ esac
 # select field implementation
 case $set_field in
 64bit)
-  AC_DEFINE(USE_FIELD_5X52, 1, [Define this symbol to use the FIELD_5X52 implementation])
+  AC_DEFINE([USE_FIELD_5X52], [1], [Define this symbol to use the FIELD_5X52 implementation])
   ;;
 32bit)
-  AC_DEFINE(USE_FIELD_10X26, 1, [Define this symbol to use the FIELD_10X26 implementation])
+  AC_DEFINE([USE_FIELD_10X26], [1], [Define this symbol to use the FIELD_10X26 implementation])
   ;;
 *)
   AC_MSG_ERROR([invalid field implementation])
@@ -252,15 +261,15 @@ esac
 # select bignum implementation
 case $set_bignum in
 gmp)
-  AC_DEFINE(HAVE_LIBGMP, 1, [Define this symbol if libgmp is installed])
-  AC_DEFINE(USE_NUM_GMP, 1, [Define this symbol to use the gmp implementation for num])
-  AC_DEFINE(USE_FIELD_INV_NUM, 1, [Define this symbol to use the num-based field inverse implementation])
-  AC_DEFINE(USE_SCALAR_INV_NUM, 1, [Define this symbol to use the num-based scalar inverse implementation])
+  AC_DEFINE([HAVE_LIBGMP],       [1], [Define this symbol if libgmp is installed])
+  AC_DEFINE([USE_NUM_GMP],       [1], [Define this symbol to use the gmp implementation for num])
+  AC_DEFINE([USE_FIELD_INV_NUM], [1], [Define this symbol to use the num-based field inverse implementation])
+  AC_DEFINE([USE_SCALAR_INV_NUM],[1], [Define this symbol to use the num-based scalar inverse implementation])
   ;;
 no)
-  AC_DEFINE(USE_NUM_NONE, 1, [Define this symbol to use no num implementation])
-  AC_DEFINE(USE_FIELD_INV_BUILTIN, 1, [Define this symbol to use the native field inverse implementation])
-  AC_DEFINE(USE_SCALAR_INV_BUILTIN, 1, [Define this symbol to use the native scalar inverse implementation])
+  AC_DEFINE([USE_NUM_NONE],          [1], [Define this symbol to use no num implementation])
+  AC_DEFINE([USE_FIELD_INV_BUILTIN], [1], [Define this symbol to use the native field inverse implementation])
+  AC_DEFINE([USE_SCALAR_INV_BUILTIN],[1], [Define this symbol to use the native scalar inverse implementation])
   ;;
 *)
   AC_MSG_ERROR([invalid bignum implementation])
@@ -270,10 +279,10 @@ esac
 #select scalar implementation
 case $set_scalar in
 64bit)
-  AC_DEFINE(USE_SCALAR_4X64, 1, [Define this symbol to use the 4x64 scalar implementation])
+  AC_DEFINE([USE_SCALAR_4X64], [1], [Define this symbol to use the 4x64 scalar implementation])
   ;;
 32bit)
-  AC_DEFINE(USE_SCALAR_8X32, 1, [Define this symbol to use the 8x32 scalar implementation])
+  AC_DEFINE([USE_SCALAR_8X32], [1], [Define this symbol to use the 8x32 scalar implementation])
   ;;
 *)
   AC_MSG_ERROR([invalid scalar implementation])
@@ -283,7 +292,7 @@ esac
 if test x"$use_tests" = x"yes"; then
   SECP_OPENSSL_CHECK
   if test x"$has_openssl_ec" = x"yes"; then
-    AC_DEFINE(ENABLE_OPENSSL_TESTS, 1, [Define this symbol if OpenSSL EC functions are available])
+    AC_DEFINE([ENABLE_OPENSSL_TESTS], [1], [Define this symbol if OpenSSL EC functions are available])
     SECP_TEST_INCLUDES="$SSL_CFLAGS $CRYPTO_CFLAGS"
     SECP_TEST_LIBS="$CRYPTO_LIBS"
 
@@ -302,10 +311,10 @@ if test x"$set_bignum" = x"gmp"; then
 fi
 
 if test x"$use_endomorphism" = x"yes"; then
-  AC_DEFINE(USE_ENDOMORPHISM, 1, [Define this symbol to use endomorphism optimization])
+  AC_DEFINE([USE_ENDOMORPHISM], [1], [Define this symbol to use endomorphism optimization])
 fi
 
-AC_C_BIGENDIAN()
+AC_C_BIGENDIAN([AC_MSG_ERROR(["Big Endian not supported"])])
 
 AC_MSG_NOTICE([Using assembly optimizations: $set_asm])
 AC_MSG_NOTICE([Using field implementation: $set_field])
@@ -313,14 +322,15 @@ AC_MSG_NOTICE([Using bignum implementation: $set_bignum])
 AC_MSG_NOTICE([Using scalar implementation: $set_scalar])
 AC_MSG_NOTICE([Using endomorphism optimizations: $use_endomorphism])
 
+AC_SUBST([SECP_INCLUDES])
+AC_SUBST([SECP_LIBS])
+AC_SUBST([SECP_TEST_LIBS])
+AC_SUBST([SECP_TEST_INCLUDES])
+AM_CONDITIONAL([USE_TESTS],     [test x"$use_tests" != x"no"])
+AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
+
 AC_CONFIG_HEADERS([src/libsecp256k1-config.h])
 AC_CONFIG_FILES([Makefile libsecp256k1.pc])
-AC_SUBST(SECP_INCLUDES)
-AC_SUBST(SECP_LIBS)
-AC_SUBST(SECP_TEST_LIBS)
-AC_SUBST(SECP_TEST_INCLUDES)
-AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])
-AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
 
 dnl make sure nothing new is exported so that we don't break the cache
 PKGCONFIG_PATH_TEMP="$PKG_CONFIG_PATH"
