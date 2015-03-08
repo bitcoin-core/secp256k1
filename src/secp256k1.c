@@ -9,6 +9,9 @@
 #include "include/secp256k1.h"
 
 #include "util.h"
+#if defined(USE_BIST) || defined(VERIFY)
+# include "bist_impl.h"
+#endif
 #include "num_impl.h"
 #include "field_impl.h"
 #include "scalar_impl.h"

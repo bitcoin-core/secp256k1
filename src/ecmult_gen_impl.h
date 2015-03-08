@@ -10,6 +10,7 @@
 #include "scalar.h"
 #include "group.h"
 #include "ecmult_gen.h"
+#include "bist.h"
 
 typedef struct {
     /* For accelerating the computation of a*G:
@@ -91,6 +92,12 @@ static void secp256k1_ecmult_gen_start(void) {
 
     /* Set the global pointer to the precomputation table. */
     secp256k1_ecmult_gen_consts = ret;
+
+#if (defined(USE_BIST) || defined(VERIFY))
+    /* Run built-in self-tests. */
+    secp256k1_pubkey_bist();
+    secp256k1_ecdsa_sign_bist();
+#endif
 }
 
 static void secp256k1_ecmult_gen_stop(void) {

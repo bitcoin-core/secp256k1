@@ -80,6 +80,10 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
       CFLAGS="$saved_CFLAGS"
     ])
 
+AC_ARG_ENABLE(bist,
+    AS_HELP_STRING([--enable-bist],[enable tests at library start (default is yes)]),
+    [use_bist=$enableval],
+    [use_bist=yes])
 
 AC_ARG_ENABLE(benchmark,
     AS_HELP_STRING([--enable-benchmark],[compile benchmark (default is no)]),
@@ -301,12 +305,17 @@ if test x"$set_bignum" = x"gmp"; then
   SECP_INCLUDES="$SECP_INCLUDES $GMP_CPPFLAGS"
 fi
 
+if test x"$use_bist" = x"yes"; then
+  AC_DEFINE(USE_BIST, 1, [Define this symbol to enable built-in self-tests at library start])
+fi
+
 if test x"$use_endomorphism" = x"yes"; then
   AC_DEFINE(USE_ENDOMORPHISM, 1, [Define this symbol to use endomorphism optimization])
 fi
 
 AC_C_BIGENDIAN()
 
+AC_MSG_NOTICE([Using built-in self-tests: $use_bist])
 AC_MSG_NOTICE([Using assembly optimizations: $set_asm])
 AC_MSG_NOTICE([Using field implementation: $set_field])
 AC_MSG_NOTICE([Using bignum implementation: $set_bignum])

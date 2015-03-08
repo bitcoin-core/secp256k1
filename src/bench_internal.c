@@ -14,6 +14,7 @@
 #include "group_impl.h"
 #include "scalar_impl.h"
 #include "ecmult_impl.h"
+#include "secp256k1.c"
 #include "bench.h"
 
 typedef struct {

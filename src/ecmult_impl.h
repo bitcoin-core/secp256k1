@@ -10,6 +10,7 @@
 #include "group.h"
 #include "scalar.h"
 #include "ecmult.h"
+#include "bist.h"
 
 /* optimal for 128-bit and 256-bit exponents. */
 #define WINDOW_A 5
@@ -130,6 +131,11 @@ static void secp256k1_ecmult_start(void) {
 
     /* Set the global pointer to the precomputation table. */
     secp256k1_ecmult_consts = ret;
+
+#if (defined(USE_BIST) || defined(VERIFY))
+    /* Run built-in self-tests. */
+    secp256k1_ecdsa_verify_bist();
+#endif
 }
 
 static void secp256k1_ecmult_stop(void) {
