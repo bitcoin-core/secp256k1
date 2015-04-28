@@ -39,8 +39,8 @@ noinst_HEADERS += src/java/org_bitcoin_NativeSecp256k1.h
 noinst_HEADERS += src/util.h
 noinst_HEADERS += src/testrand.h
 noinst_HEADERS += src/testrand_impl.h
-noinst_HEADERS += src/field_gmp.h
-noinst_HEADERS += src/field_gmp_impl.h
+noinst_HEADERS += src/hash.h
+noinst_HEADERS += src/hash_impl.h
 noinst_HEADERS += src/field.h
 noinst_HEADERS += src/field_impl.h
 noinst_HEADERS += src/bench.h
@@ -57,7 +57,7 @@ libsecp256k1_jni_la_CPPFLAGS = $(JNI_INCLUDES)
 
 noinst_PROGRAMS =
 if USE_BENCHMARK
-noinst_PROGRAMS += bench_verify bench_recover bench_sign bench_inv
+noinst_PROGRAMS += bench_verify bench_recover bench_sign bench_internal
 bench_verify_SOURCES = src/bench_verify.c
 bench_verify_LDADD = libsecp256k1.la $(SECP_LIBS)
 bench_verify_LDFLAGS = -static
@@ -67,10 +67,10 @@ bench_recover_LDFLAGS = -static
 bench_sign_SOURCES = src/bench_sign.c
 bench_sign_LDADD = libsecp256k1.la $(SECP_LIBS)
 bench_sign_LDFLAGS = -static
-bench_inv_SOURCES = src/bench_inv.c
-bench_inv_LDADD = $(SECP_LIBS)
-bench_inv_LDFLAGS = -static
-bench_inv_CPPFLAGS = $(SECP_INCLUDES)
+bench_internal_SOURCES = src/bench_internal.c
+bench_internal_LDADD = $(SECP_LIBS)
+bench_internal_LDFLAGS = -static
+bench_internal_CPPFLAGS = $(SECP_INCLUDES)
 endif
 
 if USE_TESTS

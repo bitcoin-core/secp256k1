@@ -5,7 +5,7 @@ AC_CONFIG_MACRO_DIR([build-aux/m4])
 AC_CANONICAL_HOST
 AH_TOP([#ifndef LIBSECP256K1_CONFIG_H])
 AH_TOP([#define LIBSECP256K1_CONFIG_H])
-AH_BOTTOM([#endif //LIBSECP256K1_CONFIG_H])
+AH_BOTTOM([#endif /*LIBSECP256K1_CONFIG_H*/])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 LT_INIT
 
@@ -22,9 +22,9 @@ if test "x$CFLAGS" = "x"; then
   CFLAGS="-O3 -g"
 fi
 
-AC_PROG_CC_C99
-if test x"$ac_cv_prog_cc_c99" = x"no"; then
-  AC_MSG_ERROR([c99 compiler support required])
+AC_PROG_CC_C89
+if test x"$ac_cv_prog_cc_c89" = x"no"; then
+  AC_MSG_ERROR([c89 compiler support required])
 fi
 
 case $host in
@@ -70,7 +70,7 @@ esac
 
 CFLAGS="$CFLAGS -W"
 
-warn_CFLAGS="-Wall -Wextra -Wcast-align -Wnested-externs -Wshadow -Wstrict-prototypes -Wno-unused-function"
+warn_CFLAGS="-std=c89 -pedantic -Wall -Wextra -Wcast-align -Wnested-externs -Wshadow -Wstrict-prototypes -Wno-unused-function -Wno-long-long -Wno-overlength-strings"
 saved_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS $warn_CFLAGS"
 AC_MSG_CHECKING([if ${CC} supports ${warn_CFLAGS}])
@@ -157,12 +157,6 @@ if test x"$req_field" = x"auto"; then
     fi
   fi
   if test x"$set_field" = x; then
-    SECP_GMP_CHECK
-    if test x"$has_gmp" = x"yes"; then
-      set_field=gmp
-    fi
-  fi
-  if test x"$set_field" = x; then
     set_field=32bit
   fi
 else
@@ -174,12 +168,6 @@ else
       if test x"$has_int128" != x"yes"; then
         AC_MSG_ERROR([64bit field explicitly requested but neither __int128 support or x86_64 assembly available])
       fi
-    fi
-    ;;
-  gmp)
-    SECP_GMP_CHECK
-    if test x"$has_gmp" != x"yes"; then
-      AC_MSG_ERROR([gmp field explicitly requested but libgmp not available])
     fi
     ;;
   32bit)
@@ -257,10 +245,6 @@ esac
 case $set_field in
 64bit)
   AC_DEFINE(USE_FIELD_5X52, 1, [Define this symbol to use the FIELD_5X52 implementation])
-  ;;
-gmp)
-  AC_DEFINE(HAVE_LIBGMP,1,[Define this symbol if libgmp is installed])
-  AC_DEFINE(USE_FIELD_GMP, 1, [Define this symbol to use the FIELD_GMP implementation])
   ;;
 32bit)
   AC_DEFINE(USE_FIELD_10X26, 1, [Define this symbol to use the FIELD_10X26 implementation])
@@ -341,6 +325,8 @@ fi
 if test x"$use_endomorphism" = x"yes"; then
   AC_DEFINE(USE_ENDOMORPHISM, 1, [Define this symbol to use endomorphism optimization])
 fi
+
+AC_C_BIGENDIAN()
 
 AC_MSG_NOTICE([Using assembly optimizations: $set_asm])
 AC_MSG_NOTICE([Using field implementation: $set_field])
