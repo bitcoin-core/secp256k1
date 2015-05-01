@@ -38,6 +38,10 @@ typedef struct {
 typedef struct {
     secp256k1_fe x; /* actual X: x/z^2 (z implied) */
     secp256k1_fe y; /* actual Y: y/z^3 (z implied) */
+#ifdef VERIFY
+    secp256k1_fe z; /* the implied z coordinate, make explicit for debug purposes */
+    int infinity;
+#endif
 } secp256k1_coz;
 #endif
 

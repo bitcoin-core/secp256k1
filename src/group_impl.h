@@ -638,22 +638,37 @@ static void secp256k1_coz_dblu_impl_var(secp256k1_coz *r, secp256k1_coz *ra, sec
 
 static void secp256k1_coz_dblu_var(secp256k1_coz *r, secp256k1_gej *ra, const secp256k1_gej *a, secp256k1_fe *rzr) {
     ra->infinity = a->infinity;
+#ifdef VERIFY
+    r->infinity = a->infinity;
+#endif
     if (a->infinity) {
         return;
     }
     secp256k1_coz_dblu_impl_var(r, (secp256k1_coz*)ra, rzr, a);
     secp256k1_fe_mul(&ra->z, &a->z, rzr);
+#ifdef VERIFY
+    r->z = ra->z;
+#endif
 }
 
 static void secp256k1_coz_zaddu_var(secp256k1_gej *r, secp256k1_coz *ra, secp256k1_fe *rzr, const secp256k1_gej *b) {
     /* 5 mul, 2 sqr, 6 normalize, 12 add/negate/mul_int */
     secp256k1_fe X1, Y1, X2, Y2, dX, dY, C, D, W1, W2, A1;
 
+#ifdef VERIFY
+    secp256k1_fe raz = ra->z, bz = b->z;
+    secp256k1_fe_normalize_var(&raz);
+    secp256k1_fe_normalize_var(&bz);
     VERIFY_CHECK(rzr != &r->z);
+    VERIFY_CHECK((ra->infinity && b->infinity) || (!ra->infinity && !b->infinity && secp256k1_fe_equal_var(&raz, &bz)));
+#endif
     /* Note that when b is infinity, ra is also infinity per the co-z definition */
     r->infinity = b->infinity;
     if (b->infinity) {
         secp256k1_fe_set_int(rzr, 0);
+#ifdef VERIFY
+        ra->infinity = 1;
+#endif
         return;
     }
 
@@ -671,6 +686,9 @@ static void secp256k1_coz_zaddu_var(secp256k1_gej *r, secp256k1_coz *ra, secp256
             secp256k1_fe_mul(&r->z, &b->z, rzr);
         } else {
             r->infinity = 1;
+#ifdef VERIFY
+            ra->infinity = 1;
+#endif
             secp256k1_fe_set_int(rzr, 0);
         }
         return;
@@ -693,6 +711,10 @@ static void secp256k1_coz_zaddu_var(secp256k1_gej *r, secp256k1_coz *ra, secp256
 
     secp256k1_fe_mul(&r->z, &b->z, &dX);
     *rzr = dX;
+#ifdef VERIFY
+    ra->z = r->z;
+    ra->infinity = r->infinity;
+#endif
 }
 #endif
 

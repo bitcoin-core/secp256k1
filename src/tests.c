@@ -1112,6 +1112,10 @@ void test_ge(void) {
                 secp256k1_fe zr2;
                 secp256k1_fe_mul(&ra.x, &ge[i1].x, &gej[i2].z); secp256k1_fe_mul(&ra.x, &ra.x, &gej[i2].z);
                 secp256k1_fe_mul(&ra.y, &ge[i1].y, &gej[i2].z); secp256k1_fe_mul(&ra.y, &ra.y, &gej[i2].z); secp256k1_fe_mul(&ra.y, &ra.y, &gej[i2].z);
+#ifdef VERIFY
+                ra.z = gej[i2].z;
+                ra.infinity = gej[i2].infinity;
+#endif
                 secp256k1_coz_zaddu_var(&resj, &ra, &zr2, &gej[i2]);
                 ge_equals_gej(&ref, &resj); /* Check sum */
                 if (!secp256k1_gej_is_infinity(&resj)) {
