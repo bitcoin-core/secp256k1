@@ -17,6 +17,14 @@ JNIEXPORT jlong JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1init_1contex
 
 /*
  * Class:     org_bitcoin_NativeSecp256k1
+ * Method:    secp256k1_destroy_context
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1destroy_1context
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     org_bitcoin_NativeSecp256k1
  * Method:    secp256k1_ecdsa_verify
  * Signature: (Ljava/nio/ByteBuffer;J)I
  */

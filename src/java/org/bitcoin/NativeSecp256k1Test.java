@@ -88,6 +88,7 @@ public class NativeSecp256k1Test {
         sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
         assertEquals( sigString, "" , "Case 10");
 
+        NativeSecp256k1.cleanup();
         System.out.println(" All tests passed." );
 
       }

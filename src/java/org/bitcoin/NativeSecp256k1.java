@@ -147,12 +147,21 @@ public class NativeSecp256k1 {
     } 
 
     /**
+     * libsecp256k1 Cleanup - This destroys the secp256k1 context object
+     * This should be called at the end of the program for proper cleanup of the context.
+     */
+    public static void cleanup() {
+        secp256k1_destroy_context(Secp256k1Context);
+    }
+    /**
      * @param byteBuff signature format is byte[32] data,
      *        native-endian int signatureLength, native-endian int pubkeyLength,
      *        byte[signatureLength] signature, byte[pubkeyLength] pub
      * @returns 1 for valid signature, anything else for invalid
      */
     private static native long secp256k1_init_context();
+
+    private static native void secp256k1_destroy_context(long context);
 
     private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff, long context);
 
