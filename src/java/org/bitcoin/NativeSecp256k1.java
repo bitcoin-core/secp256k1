@@ -13,14 +13,18 @@ import com.google.common.base.Preconditions;
  */
 public class NativeSecp256k1 {
     public static final boolean enabled;
+    private static final long Secp256k1Context; //ref to pointer to context obj
     static {
         boolean isEnabled = true;
+        long contextRef = -1;
         try {
             System.loadLibrary("secp256k1");
+            contextRef = secp256k1_init_context();
         } catch (UnsatisfiedLinkError e) {
             isEnabled = false;
         }
         enabled = isEnabled;
+        Secp256k1Context = contextRef;
     }
     
     private static ThreadLocal<ByteBuffer> nativeECDSABuffer = new ThreadLocal<ByteBuffer>();
@@ -47,7 +51,7 @@ public class NativeSecp256k1 {
         byteBuff.putInt(pub.length);
         byteBuff.put(signature);
         byteBuff.put(pub);
-        return secp256k1_ecdsa_verify(byteBuff) == 1;
+        return secp256k1_ecdsa_verify(byteBuff, Secp256k1Context) == 1;
     }
 
     /**
@@ -72,7 +76,7 @@ public class NativeSecp256k1 {
         byteBuff.rewind();
         byteBuff.put(data);
         byteBuff.put(sec);
-        return secp256k1_ecdsa_sign(byteBuff);
+        return secp256k1_ecdsa_sign(byteBuff, Secp256k1Context);
     } 
 
     /**
@@ -93,7 +97,7 @@ public class NativeSecp256k1 {
         byteBuff.rewind();
         byteBuff.putInt(pubkey.length);
         byteBuff.put(pubkey);
-        return secp256k1_ec_pubkey_verify(byteBuff) == 1;
+        return secp256k1_ec_pubkey_verify(byteBuff,Secp256k1Context) == 1;
     } 
 
     /**
@@ -113,7 +117,7 @@ public class NativeSecp256k1 {
         }
         byteBuff.rewind();
         byteBuff.put(seckey);
-        return secp256k1_ec_seckey_verify(byteBuff) == 1;
+        return secp256k1_ec_seckey_verify(byteBuff,Secp256k1Context) == 1;
     } 
 
 
@@ -139,7 +143,7 @@ public class NativeSecp256k1 {
         byteBuff.rewind();
         byteBuff.put(seckey);
         byteBuff.putInt(compressed);
-        return secp256k1_ec_pubkey_create(byteBuff);
+        return secp256k1_ec_pubkey_create(byteBuff, Secp256k1Context);
     } 
 
     /**
@@ -148,15 +152,17 @@ public class NativeSecp256k1 {
      *        byte[signatureLength] signature, byte[pubkeyLength] pub
      * @returns 1 for valid signature, anything else for invalid
      */
-    private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff);
+    private static native long secp256k1_init_context();
 
-    private static native byte[] secp256k1_ecdsa_sign(ByteBuffer byteBuff);
+    private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff, long context);
 
-    private static native int secp256k1_ec_seckey_verify(ByteBuffer byteBuff);
+    private static native byte[] secp256k1_ecdsa_sign(ByteBuffer byteBuff, long context);
 
-    private static native int secp256k1_ec_pubkey_verify(ByteBuffer byteBuff);
+    private static native int secp256k1_ec_seckey_verify(ByteBuffer byteBuff, long context);
 
-    private static native byte[] secp256k1_ec_pubkey_create(ByteBuffer byteBuff);
+    private static native int secp256k1_ec_pubkey_verify(ByteBuffer byteBuff, long context);
+
+    private static native byte[] secp256k1_ec_pubkey_create(ByteBuffer byteBuff, long context);
 
     // TODO
     // secp256k1_ec_pubkey_decompress

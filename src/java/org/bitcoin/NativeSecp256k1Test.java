@@ -78,7 +78,6 @@ public class NativeSecp256k1Test {
 
         resultArr = NativeSecp256k1.sign(data, sec);
         String sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
-
         assertEquals( sigString, "30440220182A108E1448DC8F1FB467D06A0F3BB8EA0533584CB954EF8DA112F1D60E39A202201C66F36DA211C087F3AF88B50EDF4F9BDAA6CF5FD6817E74DCA34DB12390C6E9" , "Case 9");
 
         //Case 10 - FAILING
@@ -87,11 +86,10 @@ public class NativeSecp256k1Test {
 
         resultArr = NativeSecp256k1.sign(data, sec);
         sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
-
-        System.out.println( sigString );
         assertEquals( sigString, "" , "Case 10");
 
         System.out.println(" All tests passed." );
+
       }
     }
 
