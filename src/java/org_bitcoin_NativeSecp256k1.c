@@ -8,7 +8,7 @@ JNIEXPORT jlong JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1init_1contex
 
   (void)classObject;(void)env;
 
-  return (long)ctx;
+  return (jlong)ctx;
 }
 
 
