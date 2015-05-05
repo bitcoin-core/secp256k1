@@ -22,17 +22,15 @@ JNIEXPORT void JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1destroy_1cont
 }
 
 JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1verify
-  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l)
+  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint sigLen, jint pubLen)
 {
 	secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
 
 	unsigned char* data = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
-	int sigLen = *((int*)(data + 32));
-	int pubLen = *((int*)(data + 32 + 4));
 
 	(void)classObject;
 
-	return secp256k1_ecdsa_verify(ctx, data, data+32+8, sigLen, data+32+8+sigLen, pubLen);
+	return secp256k1_ecdsa_verify(ctx, data, data+32, sigLen, data+32+sigLen, pubLen);
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign
@@ -68,12 +66,10 @@ JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1seckey_1v
 }
 
 JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1verify
-  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l)
+  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint pubLen)
 {
 	secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
-	unsigned char* data = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
-	int pubLen = *((int*)(data));
-	unsigned char* pubKey = (unsigned char*) (data + 4);
+	unsigned char* pubKey = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
 
 	(void)classObject;
 
@@ -81,11 +77,10 @@ JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1v
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1create
-  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l)
+  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint compressed)
 {
 	secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
 	unsigned char* secKey = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
-	int compressed = *((int*)(secKey + 32));
 
   unsigned char pubkey[65];
   int pubkeyLen = 65;
