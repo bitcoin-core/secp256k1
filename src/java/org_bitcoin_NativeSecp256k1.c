@@ -33,25 +33,40 @@ JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1verify
   return secp256k1_ecdsa_verify(ctx, data, data+32, sigLen, data+32+sigLen, pubLen);
 }
 
-JNIEXPORT jbyteArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign
   (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l)
 {
   secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
   unsigned char* data = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
   unsigned char* secKey = (unsigned char*) (data + 32);
 
-  jbyteArray sigArray;
+  jobjectArray retArray;
+  jbyteArray sigArray, intsByteArray;
+  unsigned char intsarray[2];
 
   unsigned char sig[72];
   int siglen = 72;
 
   int ret = secp256k1_ecdsa_sign(ctx, data, sig, &siglen, secKey, NULL, NULL );
 
+  intsarray[0] = siglen;
+  intsarray[1] = ret;
+
+  retArray = (*env)->NewObjectArray(env, 2,
+    (*env)->FindClass(env, "[B"),
+    (*env)->NewByteArray(env, 1));
+
   sigArray = (*env)->NewByteArray(env, siglen);
   (*env)->SetByteArrayRegion(env, sigArray, 0, siglen, (jbyte*)sig);
+  (*env)->SetObjectArrayElement(env, retArray, 0, sigArray);
 
-  (void)classObject; (void)ret;
-  return sigArray;
+  intsByteArray = (*env)->NewByteArray(env, 2);
+  (*env)->SetByteArrayRegion(env, intsByteArray, 0, 2, (jbyte*)intsarray);
+  (*env)->SetObjectArrayElement(env, retArray, 1, intsByteArray);
+
+  (void)classObject;
+
+  return retArray;
 }
 
 JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1seckey_1verify
@@ -85,13 +100,29 @@ JNIEXPORT jbyteArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pub
   unsigned char pubkey[65];
   int pubkeyLen = 65;
 
-  jbyteArray pubkeyArray;
+  jobjectArray retArray;
+  jbyteArray pubkeyArray, intsByteArray;
+  unsigned char intsarray[2];
 
   int ret = secp256k1_ec_pubkey_create(ctx, pubkey, &pubkeyLen, secKey, compressed );
 
+  intsarray[0] = pubkeyLen;
+  intsarray[1] = ret;
+
+  retArray = (*env)->NewObjectArray(env, 2,
+    (*env)->FindClass(env, "[B"),
+    (*env)->NewByteArray(env, 1));
+
   pubkeyArray = (*env)->NewByteArray(env, pubkeyLen);
   (*env)->SetByteArrayRegion(env, pubkeyArray, 0, pubkeyLen, (jbyte*)pubkey);
+  (*env)->SetObjectArrayElement(env, retArray, 0, pubkeyArray);
 
-  (void)classObject; (void)ret;
-  return pubkeyArray;
+  intsByteArray = (*env)->NewByteArray(env, 2);
+  (*env)->SetByteArrayRegion(env, intsByteArray, 0, 2, (jbyte*)intsarray);
+  (*env)->SetObjectArrayElement(env, retArray, 1, intsByteArray);
+
+  (void)classObject;
+
+  return retArray;
+
 }

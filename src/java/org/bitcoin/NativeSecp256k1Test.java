@@ -94,6 +94,11 @@ public class NativeSecp256k1Test {
       }
     }
 
+    public static void assertEquals( int val, int val2, String message ) throws AssertFailException{
+      if( val != val2 )
+        throw new AssertFailException("FAIL: " + message);
+    }
+
     private static void assertEquals( boolean val, boolean val2, String message ) throws AssertFailException{
       if( val != val2 ) 
         throw new AssertFailException("FAIL: " + message);
@@ -108,7 +113,7 @@ public class NativeSecp256k1Test {
         System.out.println("PASS: " + message);
     }
 
-    private static class AssertFailException extends Exception {
+    public static class AssertFailException extends Exception {
       public AssertFailException(String message) {
         super( message );
       }
