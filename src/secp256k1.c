@@ -278,7 +278,7 @@ int secp256k1_ec_pubkey_decompress(const secp256k1_context_t* ctx, unsigned char
     DEBUG_CHECK(pubkeylen != NULL);
     (void)ctx;
 
-    if (secp256k1_eckey_pubkey_parse(&p, pubkey, *pubkeylen)) {
+    if (secp256k1_eckey_pubkey_parse(&p, pubkey, pubkeylen)) {
         ret = secp256k1_eckey_pubkey_serialize(&p, pubkey, pubkeylen, 0);
     }
     return ret;
