@@ -54,6 +54,40 @@ public class NativeSecp256k1 {
     }
 
     /**
+     * recover the given secp256k1 pubkey in native code.
+     * 
+     * @param data The data which was signed, must be exactly 32 bytes
+     * @param signature The signature
+     * @param compressed whether to recover a compressed pubkey
+     * @param pub The public key which did the signing
+     */
+    public static byte[] recoverCompact(byte[] data, byte[] signature,int compressed, int recID) throws NativeSecp256k1Test.AssertFailException{
+        Preconditions.checkArgument(data.length == 32 && signature.length == 64 && (compressed == 0 || compressed == 1));
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null) {
+            byteBuff = ByteBuffer.allocateDirect(32 + 64);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(data);
+        byteBuff.put(signature);
+
+        byte[][] retByteArray = secp256k1_ecdsa_recover_compact(byteBuff, Secp256k1Context, compressed, recID);
+
+        byte[] pubArr = retByteArray[0];
+        int pubLen = new BigInteger(new byte[] { retByteArray[1][0] }).intValue();
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        NativeSecp256k1Test.assertEquals(pubArr.length,pubLen, "Got bad signature length." );
+
+        NativeSecp256k1Test.assertEquals(retVal,retVal, "Failed return value check.");
+
+        return pubArr;
+    }
+
+    /**
      * libsecp256k1 Create an ECDSA signature. 
      * 
      * @param data Message hash, 32 bytes
@@ -87,6 +121,43 @@ public class NativeSecp256k1 {
         NativeSecp256k1Test.assertEquals(retVal,retVal, "Failed return value check.");
 
         return sigArr;
+    } 
+
+    /**
+     * libsecp256k1 Create a compact ECDSA signature. 
+     * 
+     * @param data Message hash, 32 bytes
+     * @param key Secret key, 32 bytes
+     * 
+     * Return values
+     * @param sig byte array of signature
+     * @param recid recovery id
+     */
+    
+    public static byte[][] signCompact(byte[] data, byte[] sec) throws NativeSecp256k1Test.AssertFailException{
+        Preconditions.checkArgument(data.length == 32 && sec.length <= 32);
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null) {
+            byteBuff = ByteBuffer.allocateDirect(32 + 32);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(data);
+        byteBuff.put(sec);
+
+        byte[][] retByteArray = secp256k1_ecdsa_sign_compact(byteBuff, Secp256k1Context);
+
+        byte[] sigArr = retByteArray[0];
+        int recID = new BigInteger(new byte[] { retByteArray[1][0] }).intValue();
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        //NativeSecp256k1Test.assertEquals(sigArr.length,sigLen, "Got bad signature length." );
+
+        NativeSecp256k1Test.assertEquals(retVal,retVal, "Failed return value check.");
+
+        return new byte[][] { sigArr , new byte[]{ (byte) recID} };
     } 
 
     /**
@@ -205,6 +276,69 @@ public class NativeSecp256k1 {
     } 
 
     /**
+     * libsecp256k1 Secret Key Import - Import a secret key in DER format.
+     * 
+     * @param seckey DER Sec key
+     * @param compressed Compressed format
+     */
+    public static byte[] secKeyImport(byte[] seckey) throws NativeSecp256k1Test.AssertFailException{
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null) {
+            byteBuff = ByteBuffer.allocateDirect(seckey.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(seckey);
+
+        byte[][] retByteArray = secp256k1_ec_privkey_import(byteBuff,Secp256k1Context, seckey.length);
+
+        byte[] privArr = retByteArray[0];
+
+        int privLen = (byte) new BigInteger(new byte[] { retByteArray[1][0] }).intValue() & 0xFF;
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        NativeSecp256k1Test.assertEquals(privArr.length,privLen, "Got bad pubkey length." );
+
+        NativeSecp256k1Test.assertEquals(retVal,retVal, "Failed return value check.");
+
+        return privArr;
+    } 
+
+    /**
+     * libsecp256k1 Private Key Export - Export a private key in DER format.
+     * 
+     * @param seckey ECDSA Sec key, 33 or 65 bytes
+     * @param compressed Compressed format
+     */
+    public static byte[] privKeyExport(byte[] privkey, int compressed) throws NativeSecp256k1Test.AssertFailException{
+        Preconditions.checkArgument(privkey.length == 32 && (compressed == 0 || compressed == 1) );
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null) {
+            byteBuff = ByteBuffer.allocateDirect(privkey.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(privkey);
+
+        byte[][] retByteArray = secp256k1_ec_privkey_export(byteBuff,Secp256k1Context, privkey.length, compressed );
+
+        byte[] privArr = retByteArray[0];
+
+        int privLen = (byte) new BigInteger(new byte[] { retByteArray[1][0] }).intValue() & 0xFF;
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        NativeSecp256k1Test.assertEquals(privArr.length, compressed == 1? 214 : 279, "Got bad pubkey length." );
+
+        NativeSecp256k1Test.assertEquals(retVal,retVal, "Failed return value check.");
+
+        return privArr;
+    } 
+
+    /**
      * @param byteBuff signature format is byte[32] data,
      *        native-endian int signatureLength, native-endian int pubkeyLength,
      *        byte[signatureLength] signature, byte[pubkeyLength] pub
@@ -234,16 +368,15 @@ public class NativeSecp256k1 {
 
     private static native byte[][] secp256k1_ec_pubkey_create(ByteBuffer byteBuff, long context, int compressed);
 
-//
     private static native byte[][] secp256k1_ec_pubkey_decompress(ByteBuffer byteBuff, long context, int pubLen);
 
-    private static native int secp256k1_ec_pubkey_export(ByteBuffer byteBuff, long context, int compressed);
+    private static native byte[][] secp256k1_ec_privkey_export(ByteBuffer byteBuff, long context, int privLen, int compressed);
 
-    private static native int secp256k1_ec_pubkey_import(ByteBuffer byteBuff, long context, int privLen);
+    private static native byte[][] secp256k1_ec_privkey_import(ByteBuffer byteBuff, long context, int privLen);
+
+    private static native byte[][] secp256k1_ecdsa_recover_compact(ByteBuffer byteBuff, long context, int compressed, int recID);
 
     private static native byte[][] secp256k1_ecdsa_sign_compact(ByteBuffer byteBuff, long context);
-
-    private static native byte[][] secp256k1_ecdsa_sign_compact(ByteBuffer byteBuff, long context, int compressed);
 
     // TODO
     // thread exclusivity

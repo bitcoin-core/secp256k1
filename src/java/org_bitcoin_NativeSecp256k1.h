@@ -73,35 +73,35 @@ JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1p
 
 /*
  * Class:     org_bitcoin_NativeSecp256k1
- * Method:    secp256k1_ec_pubkey_export
- * Signature: (Ljava/nio/ByteBuffer;JI)I
+ * Method:    secp256k1_ec_privkey_export
+ * Signature: (Ljava/nio/ByteBuffer;JII)[[B
  */
-JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1export
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1privkey_1export
+  (JNIEnv *, jclass, jobject, jlong, jint, jint);
+
+/*
+ * Class:     org_bitcoin_NativeSecp256k1
+ * Method:    secp256k1_ec_privkey_import
+ * Signature: (Ljava/nio/ByteBuffer;JI)[[B
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1privkey_1import
   (JNIEnv *, jclass, jobject, jlong, jint);
 
 /*
  * Class:     org_bitcoin_NativeSecp256k1
- * Method:    secp256k1_ec_pubkey_import
- * Signature: (Ljava/nio/ByteBuffer;JI)I
+ * Method:    secp256k1_ecdsa_recover_compact
+ * Signature: (Ljava/nio/ByteBuffer;JII)[[B
  */
-JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1import
-  (JNIEnv *, jclass, jobject, jlong, jint);
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1recover_1compact
+  (JNIEnv *, jclass, jobject, jlong, jint, jint);
 
 /*
  * Class:     org_bitcoin_NativeSecp256k1
  * Method:    secp256k1_ecdsa_sign_compact
  * Signature: (Ljava/nio/ByteBuffer;J)[[B
  */
-JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign_1compact__Ljava_nio_ByteBuffer_2J
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign_1compact
   (JNIEnv *, jclass, jobject, jlong);
-
-/*
- * Class:     org_bitcoin_NativeSecp256k1
- * Method:    secp256k1_ecdsa_sign_compact
- * Signature: (Ljava/nio/ByteBuffer;JI)[[B
- */
-JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign_1compact__Ljava_nio_ByteBuffer_2JI
-  (JNIEnv *, jclass, jobject, jlong, jint);
 
 #ifdef __cplusplus
 }
