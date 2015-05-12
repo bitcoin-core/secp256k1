@@ -63,6 +63,46 @@ JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1v
 JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1create
   (JNIEnv *, jclass, jobject, jlong, jint);
 
+/*
+ * Class:     org_bitcoin_NativeSecp256k1
+ * Method:    secp256k1_ec_pubkey_decompress
+ * Signature: (Ljava/nio/ByteBuffer;JI)[[B
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1decompress
+  (JNIEnv *, jclass, jobject, jlong, jint);
+
+/*
+ * Class:     org_bitcoin_NativeSecp256k1
+ * Method:    secp256k1_ec_pubkey_export
+ * Signature: (Ljava/nio/ByteBuffer;JI)I
+ */
+JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1export
+  (JNIEnv *, jclass, jobject, jlong, jint);
+
+/*
+ * Class:     org_bitcoin_NativeSecp256k1
+ * Method:    secp256k1_ec_pubkey_import
+ * Signature: (Ljava/nio/ByteBuffer;JI)I
+ */
+JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1import
+  (JNIEnv *, jclass, jobject, jlong, jint);
+
+/*
+ * Class:     org_bitcoin_NativeSecp256k1
+ * Method:    secp256k1_ecdsa_sign_compact
+ * Signature: (Ljava/nio/ByteBuffer;J)[[B
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign_1compact__Ljava_nio_ByteBuffer_2J
+  (JNIEnv *, jclass, jobject, jlong);
+
+/*
+ * Class:     org_bitcoin_NativeSecp256k1
+ * Method:    secp256k1_ecdsa_sign_compact
+ * Signature: (Ljava/nio/ByteBuffer;JI)[[B
+ */
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign_1compact__Ljava_nio_ByteBuffer_2JI
+  (JNIEnv *, jclass, jobject, jlong, jint);
+
 #ifdef __cplusplus
 }
 #endif

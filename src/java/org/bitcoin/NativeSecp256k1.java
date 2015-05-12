@@ -172,6 +172,38 @@ public class NativeSecp256k1 {
     public static void cleanup() {
         secp256k1_destroy_context(Secp256k1Context);
     }
+
+    /**
+     * libsecp256k1 Pubkey Decompress - Decompress a public key
+     * 
+     * @param pubkey ECDSA Public key, 33 or 65 bytes
+     */
+    
+    public static byte[] pubKeyDecompress(byte[] pubkey) throws NativeSecp256k1Test.AssertFailException{
+        Preconditions.checkArgument(pubkey.length == 33 || pubkey.length == 65);
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null) {
+            byteBuff = ByteBuffer.allocateDirect(pubkey.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(pubkey);
+
+        byte[][] retByteArray = secp256k1_ec_pubkey_decompress(byteBuff,Secp256k1Context, pubkey.length);
+
+        byte[] pubArr = retByteArray[0];
+        int pubLen = new BigInteger(new byte[] { retByteArray[1][0] }).intValue();
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        NativeSecp256k1Test.assertEquals(pubArr.length,pubLen, "Got bad pubkey length." );
+
+        NativeSecp256k1Test.assertEquals(retVal,retVal, "Failed return value check.");
+
+        return pubArr;
+    } 
+
     /**
      * @param byteBuff signature format is byte[32] data,
      *        native-endian int signatureLength, native-endian int pubkeyLength,
@@ -179,7 +211,17 @@ public class NativeSecp256k1 {
      * @returns 1 for valid signature, anything else for invalid
      */
     private static native long secp256k1_init_context();
+/*
+    private static native long secp256k1_ctx_clone(long context);
 
+    private static native long secp256k1_privkey_tweak_add(ByteBuffer byteBuff, long context);
+
+    private static native long secp256k1_privkey_tweak_mul(ByteBuffer byteBuff, long context);
+
+    private static native long secp256k1_pubkey_tweak_add(ByteBuffer byteBuff, long context);
+
+    private static native long secp256k1_pubkey_tweak_mul(ByteBuffer byteBuff, long context);
+*/
     private static native void secp256k1_destroy_context(long context); //thread unsafe - need exclusive access to call
 
     private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff, long context, int sigLen, int pubLen);
@@ -192,18 +234,18 @@ public class NativeSecp256k1 {
 
     private static native byte[][] secp256k1_ec_pubkey_create(ByteBuffer byteBuff, long context, int compressed);
 
+//
+    private static native byte[][] secp256k1_ec_pubkey_decompress(ByteBuffer byteBuff, long context, int pubLen);
+
+    private static native int secp256k1_ec_pubkey_export(ByteBuffer byteBuff, long context, int compressed);
+
+    private static native int secp256k1_ec_pubkey_import(ByteBuffer byteBuff, long context, int privLen);
+
+    private static native byte[][] secp256k1_ecdsa_sign_compact(ByteBuffer byteBuff, long context);
+
+    private static native byte[][] secp256k1_ecdsa_sign_compact(ByteBuffer byteBuff, long context, int compressed);
+
     // TODO
     // thread exclusivity
-    // secp256k1_ec_pubkey_decompress
-    // secp256k1_ec_privkey_export
-    // secp256k1_ec_privkey_import
-    // secp256k1_ecdsa_sign_compact
-    // secp256k1_ecdsa_recover_compact
     // randomize() - thread unsafe - need exclusive access from all threads to call
-    // clone()
-    // privkey_tweak_add()
-    // privkey_tweak_mul()
-    // pubkey_tweak_add()
-    // pubkey_tweak_mul()
-
 }

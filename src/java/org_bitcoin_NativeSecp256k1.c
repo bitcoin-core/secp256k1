@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "org_bitcoin_NativeSecp256k1.h"
 #include "include/secp256k1.h"
 
@@ -126,3 +127,55 @@ JNIEXPORT jbyteArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pub
   return retArray;
 
 }
+
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1decompress
+  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint pubLen)
+{
+  secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
+
+  unsigned char* pubkey = (unsigned char*) malloc(sizeof(unsigned char)*65);
+
+  unsigned char* temp = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
+
+  int i, ret;
+  jobjectArray retArray;
+  jbyteArray pubkeyArray, intsByteArray;
+  unsigned char intsarray[2];
+
+  for(i = 0; i < pubLen; i++) pubkey[i] = temp[i];
+
+  ret = secp256k1_ec_pubkey_decompress(ctx, pubkey, &pubLen);
+
+  intsarray[0] = pubLen;
+  intsarray[1] = ret;
+
+  retArray = (*env)->NewObjectArray(env, 2,
+    (*env)->FindClass(env, "[B"),
+    (*env)->NewByteArray(env, 1));
+
+  pubkeyArray = (*env)->NewByteArray(env, pubLen);
+  (*env)->SetByteArrayRegion(env, pubkeyArray, 0, pubLen, (jbyte*)pubkey);
+  (*env)->SetObjectArrayElement(env, retArray, 0, pubkeyArray);
+
+  intsByteArray = (*env)->NewByteArray(env, 2);
+  (*env)->SetByteArrayRegion(env, intsByteArray, 0, 2, (jbyte*)intsarray);
+  (*env)->SetObjectArrayElement(env, retArray, 1, intsByteArray);
+
+  (void)classObject;
+
+  return retArray;
+}
+
+/*
+JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1export
+  (JNIEnv *, jclass, jobject, jlong, jint);
+
+JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1import
+  (JNIEnv *, jclass, jobject, jlong, jint);
+
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign_1compact__Ljava_nio_ByteBuffer_2J
+  (JNIEnv *, jclass, jobject, jlong);
+
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign_1compact__Ljava_nio_ByteBuffer_2JI
+  (JNIEnv *, jclass, jobject, jlong, jint);
+*/

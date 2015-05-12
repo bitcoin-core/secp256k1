@@ -88,6 +88,13 @@ public class NativeSecp256k1Test {
         sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
         assertEquals( sigString, "" , "Case 10");
 
+        //Case 11 - PASSING
+        pub = BaseEncoding.base16().lowerCase().decode("020A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE5".toLowerCase()); 
+
+        resultArr = NativeSecp256k1.pubKeyDecompress( pub );
+        sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
+        assertEquals( sigString , "040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40" , "Case 11");
+
         NativeSecp256k1.cleanup();
         System.out.println(" All tests passed." );
 
