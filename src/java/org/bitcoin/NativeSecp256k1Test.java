@@ -148,6 +148,38 @@ public class NativeSecp256k1Test {
         sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
         assertEquals( sigString , "02C591A8FF19AC9C4E4E5793673B83123437E975285E7B442F4EE2654DFFCA5E2D" , "Case 18");
 
+        //Case 18 - PASSING
+        sec = BaseEncoding.base16().lowerCase().decode("67E56582298859DDAE725F972992A07C6C4FB9F62A8FFF58CE3CA926A1063530".toLowerCase()); 
+        data = BaseEncoding.base16().lowerCase().decode("3982F19BEF1615BCCFBB05E321C10E1D4CBA3DF0E841C2E41EEB6016347653C3".toLowerCase()); //sha256hash of "tweak"
+
+        resultArr = NativeSecp256k1.privKeyTweakAdd( sec , data );
+        sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
+        assertEquals( sigString , "A168571E189E6F9A7E2D657A4B53AE99B909F7E712D1C23CED28093CD57C88F3" , "Case 18");
+
+        //Case 19 - PASSING
+        sec = BaseEncoding.base16().lowerCase().decode("67E56582298859DDAE725F972992A07C6C4FB9F62A8FFF58CE3CA926A1063530".toLowerCase()); 
+        data = BaseEncoding.base16().lowerCase().decode("3982F19BEF1615BCCFBB05E321C10E1D4CBA3DF0E841C2E41EEB6016347653C3".toLowerCase()); //sha256hash of "tweak"
+
+        resultArr = NativeSecp256k1.privKeyTweakMul( sec , data );
+        sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
+        assertEquals( sigString , "97F8184235F101550F3C71C927507651BD3F1CDB4A5A33B8986ACF0DEE20FFFC" , "Case 19");
+
+        //Case 20 - PASSING
+        pub = BaseEncoding.base16().lowerCase().decode("040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40".toLowerCase()); 
+        data = BaseEncoding.base16().lowerCase().decode("3982F19BEF1615BCCFBB05E321C10E1D4CBA3DF0E841C2E41EEB6016347653C3".toLowerCase()); //sha256hash of "tweak"
+
+        resultArr = NativeSecp256k1.pubKeyTweakAdd( pub , data );
+        sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
+        assertEquals( sigString , "0411C6790F4B663CCE607BAAE08C43557EDC1A4D11D88DFCB3D841D0C6A941AF525A268E2A863C148555C48FB5FBA368E88718A46E205FABC3DBA2CCFFAB0796EF" , "Case 20");
+
+        //Case 21 - PASSING
+        pub = BaseEncoding.base16().lowerCase().decode("040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40".toLowerCase()); 
+        data = BaseEncoding.base16().lowerCase().decode("3982F19BEF1615BCCFBB05E321C10E1D4CBA3DF0E841C2E41EEB6016347653C3".toLowerCase()); //sha256hash of "tweak"
+
+        resultArr = NativeSecp256k1.pubKeyTweakMul( pub , data );
+        sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
+        assertEquals( sigString , "04E0FE6FE55EBCA626B98A807F6CAF654139E14E5E3698F01A9A658E21DC1D2791EC060D4F412A794D5370F672BC94B722640B5F76914151CFCA6E712CA48CC589" , "Case 21");
+
         NativeSecp256k1.cleanup();
         System.out.println(" All tests passed." );
 

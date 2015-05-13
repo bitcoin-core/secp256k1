@@ -338,6 +338,141 @@ public class NativeSecp256k1 {
         return privArr;
     } 
 
+    public static long cloneContext() {
+       return secp256k1_ctx_clone(Secp256k1Context);
+    }
+
+    /**
+     * libsecp256k1 PrivKey Tweak-Mul - Tweak privkey by multiplying to it
+     * 
+     * @param tweak some bytes to tweak with
+     * @param seckey 32-byte seckey
+     */
+    public static byte[] privKeyTweakMul(byte[] privkey, byte[] tweak) throws NativeSecp256k1Test.AssertFailException{
+        Preconditions.checkArgument(privkey.length == 32);
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null) {
+            byteBuff = ByteBuffer.allocateDirect(privkey.length + tweak.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(privkey);
+        byteBuff.put(tweak);
+
+        byte[][] retByteArray = secp256k1_privkey_tweak_mul(byteBuff,Secp256k1Context);
+
+        byte[] privArr = retByteArray[0];
+
+        int privLen = (byte) new BigInteger(new byte[] { retByteArray[1][0] }).intValue() & 0xFF;
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        NativeSecp256k1Test.assertEquals(privArr.length, privLen, "Got bad pubkey length." );
+
+        NativeSecp256k1Test.assertEquals(retVal,retVal, "Failed return value check.");
+
+        return privArr;
+    }
+
+    /**
+     * libsecp256k1 PrivKey Tweak-Add - Tweak privkey by adding to it
+     * 
+     * @param tweak some bytes to tweak with
+     * @param seckey 32-byte seckey
+     */
+    public static byte[] privKeyTweakAdd(byte[] privkey, byte[] tweak) throws NativeSecp256k1Test.AssertFailException{
+        Preconditions.checkArgument(privkey.length == 32);
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null) {
+            byteBuff = ByteBuffer.allocateDirect(privkey.length + tweak.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(privkey);
+        byteBuff.put(tweak);
+
+        byte[][] retByteArray = secp256k1_privkey_tweak_add(byteBuff,Secp256k1Context);
+
+        byte[] privArr = retByteArray[0];
+
+        int privLen = (byte) new BigInteger(new byte[] { retByteArray[1][0] }).intValue() & 0xFF;
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        NativeSecp256k1Test.assertEquals(privArr.length, privLen, "Got bad pubkey length." );
+
+        NativeSecp256k1Test.assertEquals(retVal,retVal, "Failed return value check.");
+
+        return privArr;
+    }
+
+    /**
+     * libsecp256k1 PubKey Tweak-Add - Tweak pubkey by adding to it
+     * 
+     * @param tweak some bytes to tweak with
+     * @param pubkey 32-byte seckey
+     */
+    public static byte[] pubKeyTweakAdd(byte[] pubkey, byte[] tweak) throws NativeSecp256k1Test.AssertFailException{
+        Preconditions.checkArgument(pubkey.length == 33 || pubkey.length == 65);
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null) {
+            byteBuff = ByteBuffer.allocateDirect(pubkey.length + tweak.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(pubkey);
+        byteBuff.put(tweak);
+
+        byte[][] retByteArray = secp256k1_pubkey_tweak_add(byteBuff,Secp256k1Context, pubkey.length);
+
+        byte[] pubArr = retByteArray[0];
+
+        int pubLen = (byte) new BigInteger(new byte[] { retByteArray[1][0] }).intValue() & 0xFF;
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        NativeSecp256k1Test.assertEquals(pubArr.length, pubLen, "Got bad pubkey length." );
+
+        NativeSecp256k1Test.assertEquals(retVal,retVal, "Failed return value check.");
+
+        return pubArr;
+    }
+
+    /**
+     * libsecp256k1 PubKey Tweak-Mul - Tweak pubkey by multiplying to it
+     * 
+     * @param tweak some bytes to tweak with
+     * @param pubkey 32-byte seckey
+     */
+    public static byte[] pubKeyTweakMul(byte[] pubkey, byte[] tweak) throws NativeSecp256k1Test.AssertFailException{
+        Preconditions.checkArgument(pubkey.length == 33 || pubkey.length == 65);
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null) {
+            byteBuff = ByteBuffer.allocateDirect(pubkey.length + tweak.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(pubkey);
+        byteBuff.put(tweak);
+
+        byte[][] retByteArray = secp256k1_pubkey_tweak_mul(byteBuff,Secp256k1Context, pubkey.length);
+
+        byte[] pubArr = retByteArray[0];
+
+        int pubLen = (byte) new BigInteger(new byte[] { retByteArray[1][0] }).intValue() & 0xFF;
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        NativeSecp256k1Test.assertEquals(pubArr.length, pubLen, "Got bad pubkey length." );
+
+        NativeSecp256k1Test.assertEquals(retVal,retVal, "Failed return value check.");
+
+        return pubArr;
+    }
     /**
      * @param byteBuff signature format is byte[32] data,
      *        native-endian int signatureLength, native-endian int pubkeyLength,
@@ -345,17 +480,16 @@ public class NativeSecp256k1 {
      * @returns 1 for valid signature, anything else for invalid
      */
     private static native long secp256k1_init_context();
-/*
+
     private static native long secp256k1_ctx_clone(long context);
 
-    private static native long secp256k1_privkey_tweak_add(ByteBuffer byteBuff, long context);
+    private static native byte[][] secp256k1_privkey_tweak_add(ByteBuffer byteBuff, long context);
 
-    private static native long secp256k1_privkey_tweak_mul(ByteBuffer byteBuff, long context);
+    private static native byte[][] secp256k1_privkey_tweak_mul(ByteBuffer byteBuff, long context);
 
-    private static native long secp256k1_pubkey_tweak_add(ByteBuffer byteBuff, long context);
+    private static native byte[][] secp256k1_pubkey_tweak_add(ByteBuffer byteBuff, long context, int pubLen);
+    private static native byte[][] secp256k1_pubkey_tweak_mul(ByteBuffer byteBuff, long context, int pubLen);
 
-    private static native long secp256k1_pubkey_tweak_mul(ByteBuffer byteBuff, long context);
-*/
     private static native void secp256k1_destroy_context(long context); //thread unsafe - need exclusive access to call
 
     private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff, long context, int sigLen, int pubLen);
