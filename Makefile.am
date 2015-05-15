@@ -51,7 +51,7 @@ libsecp256k1_la_LIBADD = $(SECP_LIBS)
 
 noinst_PROGRAMS =
 if USE_BENCHMARK
-noinst_PROGRAMS += bench_verify bench_recover bench_sign bench_internal
+noinst_PROGRAMS += bench_verify bench_recover bench_sign bench_internal bench_ecdh
 bench_verify_SOURCES = src/bench_verify.c
 bench_verify_LDADD = libsecp256k1.la $(SECP_LIBS)
 bench_verify_LDFLAGS = -static
@@ -65,6 +65,10 @@ bench_internal_SOURCES = src/bench_internal.c
 bench_internal_LDADD = $(SECP_LIBS)
 bench_internal_LDFLAGS = -static
 bench_internal_CPPFLAGS = $(SECP_INCLUDES)
+bench_ecdh_SOURCES = src/bench_ecdh.c
+bench_ecdh_LDADD = libsecp256k1.la $(SECP_LIBS)
+bench_ecdh_LDFLAGS = -static
+bench_ecdh_CPPFLAGS = $(SECP_INCLUDES)
 endif
 
 if USE_TESTS
