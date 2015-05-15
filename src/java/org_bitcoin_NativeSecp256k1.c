@@ -25,6 +25,19 @@ JNIEXPORT jlong JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ctx_1clone
 
 }
 
+JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1context_1randomize
+  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l)
+{
+  secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
+
+  const unsigned char* seed = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
+
+  (void)classObject;
+
+  return secp256k1_context_randomize(ctx, seed);
+
+}
+
 JNIEXPORT void JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1destroy_1context
   (JNIEnv* env, jclass classObject, jlong ctx_l)
 {

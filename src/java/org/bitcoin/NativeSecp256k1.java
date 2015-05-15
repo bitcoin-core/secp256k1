@@ -6,7 +6,6 @@ import java.nio.ByteOrder;
 import java.math.BigInteger;
 import com.google.common.base.Preconditions;
 
-
 /**
  * This class holds native methods to handle ECDSA verification.
  * You can find an example library that can be used for this at
@@ -14,7 +13,7 @@ import com.google.common.base.Preconditions;
  */
 public class NativeSecp256k1 {
     public static final boolean enabled;
-    private static final long Secp256k1Context; //ref to pointer to context obj
+    public static final long Secp256k1Context; //ref to pointer to context obj
     static {
         boolean isEnabled = true;
         long contextRef = -1;
@@ -240,7 +239,7 @@ public class NativeSecp256k1 {
      * libsecp256k1 Cleanup - This destroys the secp256k1 context object
      * This should be called at the end of the program for proper cleanup of the context.
      */
-    public static void cleanup() {
+    public static synchronized void cleanup() {
         secp256k1_destroy_context(Secp256k1Context);
     }
 
@@ -473,6 +472,27 @@ public class NativeSecp256k1 {
 
         return pubArr;
     }
+
+    /**
+     * libsecp256k1 randomize - updates the context randomization
+     * 
+     * @param seed some random bytes to seed with
+     */
+    public static synchronized boolean randomize(byte[] seed) throws NativeSecp256k1Test.AssertFailException{
+        Preconditions.checkArgument(seed.length == 32 || seed == null);
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null) {
+            byteBuff = ByteBuffer.allocateDirect(seed.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(seed);
+
+        return secp256k1_context_randomize(byteBuff, Secp256k1Context) == 1;
+    }
+
     /**
      * @param byteBuff signature format is byte[32] data,
      *        native-endian int signatureLength, native-endian int pubkeyLength,
@@ -483,14 +503,17 @@ public class NativeSecp256k1 {
 
     private static native long secp256k1_ctx_clone(long context);
 
+    private static native int secp256k1_context_randomize(ByteBuffer byteBuff, long context);
+
     private static native byte[][] secp256k1_privkey_tweak_add(ByteBuffer byteBuff, long context);
 
     private static native byte[][] secp256k1_privkey_tweak_mul(ByteBuffer byteBuff, long context);
 
     private static native byte[][] secp256k1_pubkey_tweak_add(ByteBuffer byteBuff, long context, int pubLen);
+
     private static native byte[][] secp256k1_pubkey_tweak_mul(ByteBuffer byteBuff, long context, int pubLen);
 
-    private static native void secp256k1_destroy_context(long context); //thread unsafe - need exclusive access to call
+    private static native void secp256k1_destroy_context(long context);
 
     private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff, long context, int sigLen, int pubLen);
 
@@ -512,7 +535,4 @@ public class NativeSecp256k1 {
 
     private static native byte[][] secp256k1_ecdsa_sign_compact(ByteBuffer byteBuff, long context);
 
-    // TODO
-    // thread exclusivity
-    // randomize() - thread unsafe - need exclusive access from all threads to call
 }

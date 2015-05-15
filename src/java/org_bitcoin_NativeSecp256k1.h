@@ -25,6 +25,14 @@ JNIEXPORT jlong JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ctx_1clone
 
 /*
  * Class:     org_bitcoin_NativeSecp256k1
+ * Method:    secp256k1_context_randomize
+ * Signature: (Ljava/nio/ByteBuffer;J)[J
+ */
+JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1context_1randomize
+  (JNIEnv *, jclass, jobject, jlong);
+
+/*
+ * Class:     org_bitcoin_NativeSecp256k1
  * Method:    secp256k1_privkey_tweak_add
  * Signature: (Ljava/nio/ByteBuffer;J)[[B
  */
