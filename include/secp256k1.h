@@ -217,6 +217,24 @@ SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdsa_recover_compact(
   int recid
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
 
+/** Compute an EC Diffie-Hellman secret in constant time
+ *  Returns: 1: exponentiation was successful
+ *           0: scalar was zero (cannot serialize output point)
+ *          -1: scalar overflow
+ *          -2: invalid input point
+ *  In:      scalar:   a 32-byte scalar with which to multiply the point
+ *           point:    pointer to 33 or 65 byte array containing an EC point
+ *           pointlen: length of the point array
+ *  Out:     result:   a 32-byte array which will be populated by an ECDH
+ *                     secret computed from the point and scalar
+ */
+SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdh(
+  unsigned char *result,
+  unsigned char *point,
+  int *pointlen,
+  const unsigned char *scalar
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
 /** Verify an ECDSA secret key.
  *  Returns: 1: secret key is valid
  *           0: secret key is invalid

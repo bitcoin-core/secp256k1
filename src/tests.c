@@ -1348,11 +1348,48 @@ void ecdh_chain_multiply(void) {
     ge_equals_gej(&res, &expected_point);
 }
 
+void ecdh_generator_basepoint(void) {
+    secp256k1_ge_t gen = secp256k1_ge_const_g;
+    unsigned char point[33];
+    unsigned char point2[33];
+    int pointlen = sizeof(point), point2len = sizeof(point2);
+    int i;
+
+    /* Check against pubkey creation when the basepoint is the generator */
+    for (i = 0; i < 100; ++i) {
+        secp256k1_sha256_t sha;
+        unsigned char s_b32[32];
+        unsigned char output_ecdh[32];
+        unsigned char output_ser[32];
+        secp256k1_scalar_t s;
+
+        random_scalar_order(&s);
+        secp256k1_scalar_get_b32(s_b32, &s);
+
+        /* compute using ECDH function */
+        secp256k1_eckey_pubkey_serialize(&gen, point, &pointlen, 1);
+        CHECK(secp256k1_ecdh(output_ecdh, point, &pointlen, s_b32) == 1);
+        /* compute "explicitly" */
+        secp256k1_eckey_pubkey_serialize(&gen, point2, &point2len, 1);
+        CHECK(secp256k1_ec_pubkey_create(ctx, point2, &point2len, s_b32, 1) == 1);
+
+        secp256k1_sha256_initialize(&sha);
+        secp256k1_sha256_write(&sha, point2, sizeof(point2));
+        secp256k1_sha256_finalize(&sha, output_ser);
+        /* compare */
+        CHECK(memcmp(output_ecdh, output_ser, sizeof(output_ser)) == 0);
+    }
+}
+
 void run_ecdh_tests(void) {
     ecdh_mult_zero_one();
     ecdh_random_mult();
     ecdh_commutativity();
     ecdh_chain_multiply();
+}
+
+void run_ecdh_api_tests(void) {
+    ecdh_generator_basepoint();
 }
 
 /***** ECMULT TESTS *****/
