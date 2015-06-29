@@ -225,6 +225,50 @@ int secp256k1_ecdsa_recover_compact(const secp256k1_context_t* ctx, const unsign
     return ret;
 }
 
+int secp256k1_ecdh(unsigned char *result, unsigned char *point, int *pointlen, const unsigned char *scalar) {
+    int ret = 0;
+    int overflow = 0;
+    secp256k1_gej_t res;
+    secp256k1_ge_t pt;
+    secp256k1_scalar_t s;
+    DEBUG_CHECK(point != NULL);
+    DEBUG_CHECK(pointlen != NULL);
+    DEBUG_CHECK(scalar != NULL);
+
+    if (secp256k1_eckey_pubkey_parse(&pt, point, *pointlen)) {
+        secp256k1_scalar_set_b32(&s, scalar, &overflow);
+        if (secp256k1_scalar_is_zero(&s)) {
+            ret = -1;
+        } else if (overflow) {
+            ret = -2;
+        } else {
+            unsigned char x[32];
+            unsigned char y[1];
+            secp256k1_sha256_t sha;
+
+            secp256k1_point_multiply(&res, &pt, &s);
+            secp256k1_ge_set_gej(&pt, &res);
+            /* Compute a hash of the point in compressed form
+             * Note we cannot use secp256k1_eckey_pubkey_serialize here since it does not
+             * expect its output to be secret and has a timing sidechannel. */
+            secp256k1_fe_normalize(&pt.x);
+            secp256k1_fe_normalize(&pt.y);
+            secp256k1_fe_get_b32(x, &pt.x);
+            y[0] = 0x02 | secp256k1_fe_is_odd(&pt.y);
+
+            secp256k1_sha256_initialize(&sha);
+            secp256k1_sha256_write(&sha, y, sizeof(y));
+            secp256k1_sha256_write(&sha, x, sizeof(x));
+            secp256k1_sha256_finalize(&sha, result);
+            ret = 1;
+        }
+    } else {
+        ret = -3;
+    }
+    secp256k1_scalar_clear(&s);
+    return ret;
+}
+
 int secp256k1_ec_seckey_verify(const secp256k1_context_t* ctx, const unsigned char *seckey) {
     secp256k1_scalar_t sec;
     int ret;
