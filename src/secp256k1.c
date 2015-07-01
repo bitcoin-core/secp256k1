@@ -269,6 +269,47 @@ int secp256k1_ecdh(unsigned char *result, unsigned char *point, int *pointlen, c
     return ret;
 }
 
+int secp256k1_ecdh_xo(unsigned char *result, const unsigned char *x, const unsigned char *scalar) {
+    int ret = 0;
+    int overflow = 0;
+    secp256k1_fe_t k, t;
+    secp256k1_gej_t res;
+    secp256k1_ge_t pt;
+    secp256k1_scalar_t s;
+    unsigned char input[32];
+    secp256k1_sha256_t sha;
+    DEBUG_CHECK(result != NULL);
+    DEBUG_CHECK(x != NULL);
+    DEBUG_CHECK(scalar != NULL);
+
+    secp256k1_scalar_set_b32(&s, scalar, &overflow);
+    if (secp256k1_scalar_is_zero(&s)) {
+        ret = -1;
+    } else if (overflow) {
+        ret = -2;
+    } else if (secp256k1_fe_set_b32(&t, x) && secp256k1_ge_set_xo_iso_var(&pt, &k, &t)) {
+        secp256k1_point_multiply(&res, &pt, &s);
+        if (!res.infinity) {
+            secp256k1_fe_sqr(&t, &res.z);
+            secp256k1_fe_mul(&t, &t, &k);
+            secp256k1_fe_inv(&k, &t);
+            secp256k1_fe_mul(&t, &res.x, &k);
+            secp256k1_fe_normalize(&t);
+
+            /* secp256k1_fe_get_b32(result, &t); */
+            secp256k1_fe_get_b32(input, &t);
+            secp256k1_sha256_initialize(&sha);
+            secp256k1_sha256_write(&sha, input, sizeof(input));
+            secp256k1_sha256_finalize(&sha, result);
+            ret = 1;
+        }
+    } else {
+        ret = -3;
+    }
+    secp256k1_scalar_clear(&s);
+    return ret;
+}
+
 int secp256k1_ec_seckey_verify(const secp256k1_context_t* ctx, const unsigned char *seckey) {
     secp256k1_scalar_t sec;
     int ret;

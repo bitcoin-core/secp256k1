@@ -196,6 +196,21 @@ static int secp256k1_ge_set_xo_var(secp256k1_ge_t *r, const secp256k1_fe_t *x, i
     return 1;
 }
 
+static int secp256k1_ge_set_xo_iso_var(secp256k1_ge_t *r, secp256k1_fe_t *rk, const secp256k1_fe_t *x) {
+    secp256k1_fe_t t;
+    secp256k1_fe_sqr(&t, x);
+    secp256k1_fe_mul(&t, &t, x);
+    secp256k1_fe_set_int(rk, 7);
+    secp256k1_fe_add(rk, &t);           /* K = X^3 + 7 (2) */
+
+    /* TODO Jacobi symbol test to make sure K is a square */
+
+    r->infinity = 0;
+    secp256k1_fe_mul(&r->x, rk, x);     /* r->x = K*X (1) */
+    secp256k1_fe_sqr(&r->y, rk);        /* r->y = K^2 (1) */
+    return 1;
+}
+
 static void secp256k1_gej_set_ge(secp256k1_gej_t *r, const secp256k1_ge_t *a) {
    r->infinity = a->infinity;
    r->x = a->x;

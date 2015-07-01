@@ -1381,6 +1381,19 @@ void ecdh_generator_basepoint(void) {
         secp256k1_sha256_finalize(&sha, output_ser);
         /* compare */
         CHECK(memcmp(output_ecdh, output_ser, sizeof(output_ser)) == 0);
+
+        memset(output_ecdh, 0, sizeof(output_ecdh));
+        memset(output_ser, 0, sizeof(output_ser));
+
+        /* compute using x-only ECDH function */
+        secp256k1_eckey_pubkey_serialize(&gen, point, &pointlen, 1);
+        CHECK(secp256k1_ecdh_xo(output_ecdh, point+1, s_b32) == 1);
+        /* compute "explicitly" */
+        secp256k1_sha256_initialize(&sha);
+        secp256k1_sha256_write(&sha, point2+1, sizeof(point2)-1);
+        secp256k1_sha256_finalize(&sha, output_ser);
+        /* compare */
+        CHECK(memcmp(output_ecdh, output_ser, sizeof(output_ser)) == 0);
     }
 }
 

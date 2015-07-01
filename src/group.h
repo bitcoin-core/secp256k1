@@ -48,6 +48,8 @@ static void secp256k1_ge_set_xy(secp256k1_ge_t *r, const secp256k1_fe_t *x, cons
  *  for Y. Return value indicates whether the result is valid. */
 static int secp256k1_ge_set_xo_var(secp256k1_ge_t *r, const secp256k1_fe_t *x, int odd);
 
+static int secp256k1_ge_set_xo_iso_var(secp256k1_ge_t *r, secp256k1_fe_t *rk, const secp256k1_fe_t *x);
+
 /** Check whether a group element is the point at infinity. */
 static int secp256k1_ge_is_infinity(const secp256k1_ge_t *a);
 

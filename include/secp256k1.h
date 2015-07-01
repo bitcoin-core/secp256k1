@@ -235,6 +235,12 @@ SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdh(
   const unsigned char *scalar
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
+SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdh_xo(
+  unsigned char *result,
+  const unsigned char *x,
+  const unsigned char *scalar
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
 /** Verify an ECDSA secret key.
  *  Returns: 1: secret key is valid
  *           0: secret key is invalid
