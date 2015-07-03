@@ -219,9 +219,9 @@ SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdsa_recover_compact(
 
 /** Compute an EC Diffie-Hellman secret in constant time
  *  Returns: 1: exponentiation was successful
- *           0: scalar was zero (cannot serialize output point)
- *          -1: scalar overflow
- *          -2: invalid input point
+ *          -1: scalar was zero
+ *          -2: scalar overflow
+ *          -3: invalid input point
  *  In:      scalar:   a 32-byte scalar with which to multiply the point
  *           point:    pointer to 33 or 65 byte array containing an EC point
  *           pointlen: length of the point array

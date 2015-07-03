@@ -2503,6 +2503,7 @@ int main(int argc, char **argv) {
 
     /* ecdh tests */
     run_ecdh_tests();
+    run_ecdh_api_tests();
 
     /* ecdsa tests */
     run_random_pubkeys();
