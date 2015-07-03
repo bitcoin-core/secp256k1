@@ -96,6 +96,16 @@ static void secp256k1_num_shift(secp256k1_num *r, int bits) {
         r->data[i] = 0;
 }
 
+SECP256K1_INLINE static int secp256k1_num_is_one(const secp256k1_num *a) {
+    int i;
+    if (a->data[0] != 1)
+        return 0;
+    for (i = 1; i < NUM_N_WORDS - 1; ++i)
+        if (a->data[i] != 0)
+            return 0;
+    return 1;
+}
+
 SECP256K1_INLINE static int secp256k1_num_is_zero(const secp256k1_num *a) {
     int i;
     for (i = 0; i < NUM_N_WORDS - 1; ++i)
@@ -590,5 +600,81 @@ done:
     }
 }
 /* end mod inverse */
+
+/* start jacobi symbol */
+/* Compute a number modulo some power of 2 */
+SECP256K1_INLINE static int secp256k1_num_mod_2(const secp256k1_num *a, int m) {
+    VERIFY_CHECK(m > 0);
+    VERIFY_CHECK((m & (m - 1)) == 0);  /* check that m is a power of 2 */
+    /* Since our words are powers of 2 we only need to mod the lowest digit */
+    return a->data[0] % m;
+}
+
+static int secp256k1_num_jacobi_1(secp256k1_num_word a, secp256k1_num_word b) {
+    int ret = 1;
+    secp256k1_num_word t;
+    /* Iterate, left-multiplying it by [[0 1] [1 -w]] as many times as we can. */
+    while (1) {
+        a %= b;
+        if (a == 0)
+            return 0;
+        if (a % 2 == 0) {
+            int shift = NUM_WORD_CTZ(a);
+            a >>= shift;
+            if ((b % 8 == 3 || b % 8 == 5) && shift % 2 == 1)
+                ret *= -1;
+        }
+        if (a == 1)
+            break;
+        if (b % 4 == 3 && a % 4 == 3)
+            ret *= -1;
+        t = a; a = b; b = t;
+    }
+    return ret;
+}
+
+/* Compute the Jacobian symbol (a|b) assuming b is an odd prime */
+static int secp256k1_num_jacobi(const secp256k1_num *a, const secp256k1_num *b) {
+    secp256k1_num top = *a, bot = *b, scratch;
+    secp256k1_num_word x, y;
+    int index[2];
+    int ret = 1;
+
+    while (1) {
+        int mod8 = secp256k1_num_mod_2(&bot, 8);
+        secp256k1_num_leading_digit(&x, &index[0], &top);
+        secp256k1_num_leading_digit(&y, &index[1], &bot);
+
+        if (index[0] == 0 && index[1] == 0)
+            return ret * secp256k1_num_jacobi_1(x, y);
+
+        /* Algorithm from https://en.wikipedia.org/wiki/Jacobi_symbol#Calculating_the_Jacobi_symbol */
+        secp256k1_num_div_mod(&scratch, &top, &top, &bot); /* top <- top mod bottom */
+
+        /* are we done? */
+        if (secp256k1_num_is_zero(&top))
+            return 0;
+
+        /* cast out powers of two from the "numerator" */
+        while (secp256k1_num_mod_2(&top, 2) == 0) {
+            int shift = NUM_WORD_CTZ(top.data[0]);
+            secp256k1_num_shift(&top, shift);
+            if ((mod8 == 3 || mod8 == 5) && shift % 2 == 1)
+                ret *= -1;
+        }
+
+        /* are we done? */
+        if (secp256k1_num_is_one(&top))
+            return ret;
+        /* if not, iterate */
+        if (mod8 % 4 == 3 && secp256k1_num_mod_2(&top, 4) == 3)
+            ret *= -1;
+
+        scratch = top;
+        top = bot;
+        bot = scratch;
+    }
+}
+/* end jacobi symbol */
 
 #endif

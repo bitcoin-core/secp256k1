@@ -500,11 +500,32 @@ void test_num_add_sub(void) {
     CHECK(secp256k1_num_eq(&n2p1, &n1));
 }
 
+void test_num_jacobi(void) {
+    secp256k1_scalar sqr;
+    secp256k1_scalar five;  /* five is not a quadratic residue */
+    secp256k1_num order, n;
+
+    /* setup values */
+    random_scalar_order_test(&sqr);
+    secp256k1_scalar_sqr(&sqr, &sqr);
+    secp256k1_scalar_set_int(&five, 5);
+    secp256k1_scalar_order_get_num(&order);
+
+    /* test residue */
+    secp256k1_scalar_get_num(&n, &sqr);
+    CHECK(secp256k1_num_jacobi(&n, &order) == 1);
+    /* test nonresidue */
+    secp256k1_scalar_mul(&sqr, &sqr, &five);
+    secp256k1_scalar_get_num(&n, &sqr);
+    CHECK(secp256k1_num_jacobi(&n, &order) == -1);
+}
+
 void run_num_smalltests(void) {
     int i;
     for (i = 0; i < 100*count; i++) {
         test_num_negate();
         test_num_add_sub();
+        test_num_jacobi();
     }
 }
 

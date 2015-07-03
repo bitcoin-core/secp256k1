@@ -12,6 +12,7 @@
 #define NUM_N_WORDS	5
 #define NUM_WORD_WIDTH	64
 #define NUM_WORD_CTLZ __builtin_clzl
+#define NUM_WORD_CTZ __builtin_ctzl
 typedef uint64_t secp256k1_num_word;
 typedef int64_t secp256k1_num_sword;
 typedef uint128_t secp256k1_num_dword;

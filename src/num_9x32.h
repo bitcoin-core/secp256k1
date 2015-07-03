@@ -12,6 +12,7 @@
 #define NUM_N_WORDS	9
 #define NUM_WORD_WIDTH	32
 #define NUM_WORD_CTLZ __builtin_clz
+#define NUM_WORD_CTZ __builtin_ctz
 typedef uint32_t secp256k1_num_word;
 typedef int32_t secp256k1_num_sword;
 typedef uint64_t secp256k1_num_dword;
