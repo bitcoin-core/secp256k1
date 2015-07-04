@@ -197,6 +197,10 @@ static int secp256k1_ge_set_xo_var(secp256k1_ge_t *r, const secp256k1_fe_t *x, i
 }
 
 static int secp256k1_ge_set_xo_iso_var(secp256k1_ge_t *r, secp256k1_fe_t *rk, const secp256k1_fe_t *x) {
+#ifdef USE_NUM_NONE
+    secp256k1_fe_set_int(rk, 1);
+    return secp256k1_ge_set_xo_var(r, x, 0);
+#else
     secp256k1_fe_t t;
     secp256k1_num_t a, p;
     unsigned char b[32];
@@ -227,6 +231,7 @@ static int secp256k1_ge_set_xo_iso_var(secp256k1_ge_t *r, secp256k1_fe_t *rk, co
     secp256k1_fe_mul(&r->x, rk, x);     /* r->x = K*X (1) */
     secp256k1_fe_sqr(&r->y, rk);        /* r->y = K^2 (1) */
     return 1;
+#endif
 }
 
 static void secp256k1_gej_set_ge(secp256k1_gej_t *r, const secp256k1_ge_t *a) {
