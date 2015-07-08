@@ -196,6 +196,44 @@ static int secp256k1_ge_set_xo_var(secp256k1_ge_t *r, const secp256k1_fe_t *x, i
     return 1;
 }
 
+static int secp256k1_ge_set_xo_iso_var(secp256k1_ge_t *r, secp256k1_fe_t *rk, const secp256k1_fe_t *x) {
+#ifdef USE_NUM_NONE
+    secp256k1_fe_set_int(rk, 1);
+    return secp256k1_ge_set_xo_var(r, x, 0);
+#else
+    secp256k1_fe_t t;
+    secp256k1_num_t a, p;
+    unsigned char b[32];
+
+    /* secp256k1 field prime, value p defined in "Standards for Efficient Cryptography" (SEC2) 2.7.1. */
+    static const unsigned char prime[32] = {
+        0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+        0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+        0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+        0xFF,0xFF,0xFF,0xFE,0xFF,0xFF,0xFC,0x2F
+    };
+
+    secp256k1_fe_sqr(&t, x);
+    secp256k1_fe_mul(&t, &t, x);
+    secp256k1_fe_set_int(rk, 7);
+    secp256k1_fe_add(rk, &t);           /* K = X^3 + 7 (2) */
+
+    /* Perform a Jacobi symbol test on K to verify that it's a non-zero quadratic residue */
+    secp256k1_fe_normalize_var(rk);
+    secp256k1_fe_get_b32(b, rk);
+    secp256k1_num_set_bin(&a, b, 32);
+    secp256k1_num_set_bin(&p, prime, 32);
+    if (secp256k1_num_jacobi(&a, &p) != 1) {
+        return 0;
+    }
+
+    r->infinity = 0;
+    secp256k1_fe_mul(&r->x, rk, x);     /* r->x = K*X (1) */
+    secp256k1_fe_sqr(&r->y, rk);        /* r->y = K^2 (1) */
+    return 1;
+#endif
+}
+
 static void secp256k1_gej_set_ge(secp256k1_gej_t *r, const secp256k1_ge_t *a) {
    r->infinity = a->infinity;
    r->x = a->x;

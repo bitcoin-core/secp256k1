@@ -242,7 +242,7 @@ static int secp256k1_ecmult_wnaf(int *wnaf, const secp256k1_scalar_t *a, int w) 
         }
         word = secp256k1_scalar_get_bits_var(&s, bit, now);
         if (word & (1 << (w-1))) {
-            secp256k1_scalar_add_bit(&s, bit + w);
+            secp256k1_scalar_cadd_bit(&s, bit + w, 1);
             wnaf[set_bits++] = sign * (word - (1 << w));
         } else {
             wnaf[set_bits++] = sign * word;
@@ -280,7 +280,7 @@ static void secp256k1_ecmult(const secp256k1_ecmult_context_t *ctx, secp256k1_ge
 
 #ifdef USE_ENDOMORPHISM
     /* split na into na_1 and na_lam (where na = na_1 + na_lam*lambda, and na_1 and na_lam are ~128 bit) */
-    secp256k1_scalar_split_lambda_var(&na_1, &na_lam, na);
+    secp256k1_scalar_split_lambda(&na_1, &na_lam, na);
 
     /* build wnaf representation for na_1 and na_lam. */
     bits_na_1   = secp256k1_ecmult_wnaf(wnaf_na_1,   &na_1,   WINDOW_A);

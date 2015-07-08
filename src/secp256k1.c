@@ -13,6 +13,8 @@
 #include "field_impl.h"
 #include "scalar_impl.h"
 #include "group_impl.h"
+#include "ecdsa_impl.h"
+#include "ecdh_impl.h"
 #include "ecmult_impl.h"
 #include "ecmult_gen_impl.h"
 #include "ecdsa_impl.h"
@@ -220,6 +222,91 @@ int secp256k1_ecdsa_recover_compact(const secp256k1_context_t* ctx, const unsign
             }
         }
     }
+    return ret;
+}
+
+int secp256k1_ecdh(unsigned char *result, unsigned char *point, int *pointlen, const unsigned char *scalar) {
+    int ret = 0;
+    int overflow = 0;
+    secp256k1_gej_t res;
+    secp256k1_ge_t pt;
+    secp256k1_scalar_t s;
+    DEBUG_CHECK(point != NULL);
+    DEBUG_CHECK(pointlen != NULL);
+    DEBUG_CHECK(scalar != NULL);
+
+    if (secp256k1_eckey_pubkey_parse(&pt, point, *pointlen)) {
+        secp256k1_scalar_set_b32(&s, scalar, &overflow);
+        if (secp256k1_scalar_is_zero(&s)) {
+            ret = -1;
+        } else if (overflow) {
+            ret = -2;
+        } else {
+            unsigned char x[32];
+            unsigned char y[1];
+            secp256k1_sha256_t sha;
+
+            secp256k1_point_multiply(&res, &pt, &s);
+            secp256k1_ge_set_gej(&pt, &res);
+            /* Compute a hash of the point in compressed form
+             * Note we cannot use secp256k1_eckey_pubkey_serialize here since it does not
+             * expect its output to be secret and has a timing sidechannel. */
+            secp256k1_fe_normalize(&pt.x);
+            secp256k1_fe_normalize(&pt.y);
+            secp256k1_fe_get_b32(x, &pt.x);
+            y[0] = 0x02 | secp256k1_fe_is_odd(&pt.y);
+
+            secp256k1_sha256_initialize(&sha);
+            secp256k1_sha256_write(&sha, y, sizeof(y));
+            secp256k1_sha256_write(&sha, x, sizeof(x));
+            secp256k1_sha256_finalize(&sha, result);
+            ret = 1;
+        }
+    } else {
+        ret = -3;
+    }
+    secp256k1_scalar_clear(&s);
+    return ret;
+}
+
+int secp256k1_ecdh_xo(unsigned char *result, const unsigned char *x, const unsigned char *scalar) {
+    int ret = 0;
+    int overflow = 0;
+    secp256k1_fe_t k, t;
+    secp256k1_gej_t res;
+    secp256k1_ge_t pt;
+    secp256k1_scalar_t s;
+    unsigned char input[32];
+    secp256k1_sha256_t sha;
+    DEBUG_CHECK(result != NULL);
+    DEBUG_CHECK(x != NULL);
+    DEBUG_CHECK(scalar != NULL);
+
+    secp256k1_scalar_set_b32(&s, scalar, &overflow);
+    if (secp256k1_scalar_is_zero(&s)) {
+        ret = -1;
+    } else if (overflow) {
+        ret = -2;
+    } else if (secp256k1_fe_set_b32(&t, x) && secp256k1_ge_set_xo_iso_var(&pt, &k, &t)) {
+        secp256k1_point_multiply(&res, &pt, &s);
+        if (!res.infinity) {
+            secp256k1_fe_sqr(&t, &res.z);
+            secp256k1_fe_mul(&t, &t, &k);
+            secp256k1_fe_inv(&k, &t);
+            secp256k1_fe_mul(&t, &res.x, &k);
+            secp256k1_fe_normalize(&t);
+
+            /* secp256k1_fe_get_b32(result, &t); */
+            secp256k1_fe_get_b32(input, &t);
+            secp256k1_sha256_initialize(&sha);
+            secp256k1_sha256_write(&sha, input, sizeof(input));
+            secp256k1_sha256_finalize(&sha, result);
+            ret = 1;
+        }
+    } else {
+        ret = -3;
+    }
+    secp256k1_scalar_clear(&s);
     return ret;
 }
 
