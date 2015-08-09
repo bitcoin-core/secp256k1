@@ -25,6 +25,8 @@ noinst_HEADERS += src/eckey.h
 noinst_HEADERS += src/eckey_impl.h
 noinst_HEADERS += src/ecmult.h
 noinst_HEADERS += src/ecmult_impl.h
+noinst_HEADERS += src/ecmult_const.h
+noinst_HEADERS += src/ecmult_const_impl.h
 noinst_HEADERS += src/ecmult_gen.h
 noinst_HEADERS += src/ecmult_gen_impl.h
 noinst_HEADERS += src/num.h
@@ -49,7 +51,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsecp256k1.pc
 
 libsecp256k1_la_SOURCES = src/secp256k1.c
-libsecp256k1_la_CPPFLAGS = -I$(top_srcdir)/include $(SECP_INCLUDES)
+libsecp256k1_la_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/src $(SECP_INCLUDES)
 libsecp256k1_la_LIBADD = $(JNI_LIB) $(SECP_LIBS)
 
 libsecp256k1_jni_la_SOURCES  = src/java/org_bitcoin_NativeSecp256k1.c
@@ -76,12 +78,13 @@ endif
 if USE_TESTS
 noinst_PROGRAMS += tests
 tests_SOURCES = src/tests.c
-tests_CPPFLAGS = -DVERIFY $(SECP_INCLUDES) $(SECP_TEST_INCLUDES)
+tests_CPPFLAGS = -DVERIFY -I$(top_srcdir)/src $(SECP_INCLUDES) $(SECP_TEST_INCLUDES)
 tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS)
 tests_LDFLAGS = -static
 TESTS = tests
 endif
 
+<<<<<<< HEAD
 JAVAROOT=src/java
 JAVAORG=org/bitcoin
 JAVA_GUAVA=$(srcdir)/$(JAVAROOT)/guava/guava-18.0.jar
@@ -111,3 +114,35 @@ endif
 endif
 CLEANFILES = $(JAVAROOT)/$(JAVAORG)/*.class .stamp-java
 EXTRA_DIST = autogen.sh $(JAVA_FILES)
+=======
+if USE_ECMULT_STATIC_PRECOMPUTATION
+CPPFLAGS_FOR_BUILD +=-I$(top_srcdir)/
+CFLAGS_FOR_BUILD += -Wall -Wextra -Wno-unused-function
+
+gen_context_OBJECTS = gen_context.o
+gen_context_BIN = gen_context$(BUILD_EXEEXT)
+gen_%.o: src/gen_%.c
+	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) $(CFLAGS_FOR_BUILD) -c $< -o $@
+
+$(gen_context_BIN): $(gen_context_OBJECTS)
+	$(CC_FOR_BUILD) $^ -o $@
+
+$(libsecp256k1_la_OBJECTS): src/ecmult_static_context.h
+$(tests_OBJECTS): src/ecmult_static_context.h
+
+src/ecmult_static_context.h: $(gen_context_BIN)
+	./$(gen_context_BIN)
+
+CLEANFILES = $(gen_context_BIN) src/ecmult_static_context.h
+endif
+
+EXTRA_DIST = autogen.sh src/gen_context.c src/basic-config.h
+
+if ENABLE_MODULE_ECDH
+include src/modules/ecdh/Makefile.am.include
+endif
+
+if ENABLE_MODULE_SCHNORR
+include src/modules/schnorr/Makefile.am.include
+endif
+>>>>>>> 9d96e362a54e8d6527c510199f465600112d7117
