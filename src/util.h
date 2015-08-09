@@ -107,4 +107,21 @@ static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_
 SECP256K1_GNUC_EXT typedef unsigned __int128 uint128_t;
 #endif
 
+#define BYTESWAP32(p) ((((p) & 0xFF) << 24) | (((p) & 0xFF00) << 8) | (((p) & 0xFF0000) >> 8) | (((p) & 0xFF000000) >> 24))
+#define BYTESWAP64(p) ((((p) & 0xFF) << 56) | (((p) & 0xFF00) << 40) | (((p) & 0xFF0000) << 24) | (((p) & 0xFF000000) << 8) | \
+                         (((p) & 0xFF00000000ull) >> 8) | (((p) & 0xFF0000000000ull) >> 24) | \
+                         (((p) & 0xFF000000000000ull) >> 40) | (((p) & 0xFF00000000000000ull) >> 56))
+
+#ifdef WORDS_BIGENDIAN
+#define BE32(x) (x)
+#define BE64(x) (x)
+#define LE32(p) BYTESWAP32(p)
+#define LE64(p) BYTESWAP64(p)
+#else
+#define BE32(p) BYTESWAP32(p)
+#define BE64(p) BYTESWAP64(p)
+#define LE32(x) (x)
+#define LE64(x) (x)
+#endif
+
 #endif
