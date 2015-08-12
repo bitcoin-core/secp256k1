@@ -44,9 +44,6 @@ static void secp256k1_num_add(secp256k1_num *r, const secp256k1_num *a, const se
 /** Subtract two (signed) numbers. */
 static void secp256k1_num_sub(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b);
 
-/** Multiply two (signed) numbers. */
-static void secp256k1_num_mul(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b);
-
 /** Replace a number by its remainder modulo m. M's sign is ignored. The result is a number between 0 and m-1,
     even if r was negative. */
 static void secp256k1_num_mod(secp256k1_num *r, const secp256k1_num *m);
