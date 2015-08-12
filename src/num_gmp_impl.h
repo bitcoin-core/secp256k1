@@ -206,33 +206,6 @@ static void secp256k1_num_sub(secp256k1_num *r, const secp256k1_num *a, const se
     secp256k1_num_subadd(r, a, b, 1);
 }
 
-static void secp256k1_num_mul(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b) {
-    mp_limb_t tmp[2*NUM_LIMBS+1];
-    secp256k1_num_sanity(a);
-    secp256k1_num_sanity(b);
-
-    VERIFY_CHECK(a->limbs + b->limbs <= 2*NUM_LIMBS+1);
-    if ((a->limbs==1 && a->data[0]==0) || (b->limbs==1 && b->data[0]==0)) {
-        r->limbs = 1;
-        r->neg = 0;
-        r->data[0] = 0;
-        return;
-    }
-    if (a->limbs >= b->limbs) {
-        mpn_mul(tmp, a->data, a->limbs, b->data, b->limbs);
-    } else {
-        mpn_mul(tmp, b->data, b->limbs, a->data, a->limbs);
-    }
-    r->limbs = a->limbs + b->limbs;
-    if (r->limbs > 1 && tmp[r->limbs - 1]==0) {
-        r->limbs--;
-    }
-    VERIFY_CHECK(r->limbs <= 2*NUM_LIMBS);
-    mpn_copyi(r->data, tmp, r->limbs);
-    r->neg = a->neg ^ b->neg;
-    memset(tmp, 0, sizeof(tmp));
-}
-
 static void secp256k1_num_shift(secp256k1_num *r, int bits) {
     if (bits % GMP_NUMB_BITS) {
         /* Shift within limbs. */
