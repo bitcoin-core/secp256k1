@@ -15,8 +15,10 @@
 
 #if defined(USE_NUM_GMP)
 #include "num_gmp_impl.h"
-#elif defined(USE_NUM_NONE)
-/* Nothing. */
+#elif defined(USE_NUM_5X64)
+#include "num_5x64_impl.h"
+#elif defined(USE_NUM_9X32)
+#include "num_9x32_impl.h"
 #else
 #error "Please select num implementation"
 #endif

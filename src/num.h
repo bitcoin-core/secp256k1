@@ -7,14 +7,16 @@
 #ifndef _SECP256K1_NUM_
 #define _SECP256K1_NUM_
 
-#ifndef USE_NUM_NONE
-
 #if defined HAVE_CONFIG_H
 #include "libsecp256k1-config.h"
 #endif
 
 #if defined(USE_NUM_GMP)
 #include "num_gmp.h"
+#elif defined(USE_NUM_5X64)
+#include "num_5x64.h"
+#elif defined(USE_NUM_9X32)
+#include "num_9x32.h"
 #else
 #error "Please select num implementation"
 #endif
@@ -59,7 +61,5 @@ static int secp256k1_num_is_neg(const secp256k1_num *a);
 
 /** Change a number's sign. */
 static void secp256k1_num_negate(secp256k1_num *r);
-
-#endif
 
 #endif

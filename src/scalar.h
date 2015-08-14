@@ -80,13 +80,11 @@ static int secp256k1_scalar_is_high(const secp256k1_scalar *a);
  * Returns -1 if the number was negated, 1 otherwise */
 static int secp256k1_scalar_cond_negate(secp256k1_scalar *a, int flag);
 
-#ifndef USE_NUM_NONE
 /** Convert a scalar to a number. */
 static void secp256k1_scalar_get_num(secp256k1_num *r, const secp256k1_scalar *a);
 
 /** Get the order of the group as a number. */
 static void secp256k1_scalar_order_get_num(secp256k1_num *r);
-#endif
 
 /** Compare two scalars. */
 static int secp256k1_scalar_eq(const secp256k1_scalar *a, const secp256k1_scalar *b);
