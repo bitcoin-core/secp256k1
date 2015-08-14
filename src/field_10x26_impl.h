@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "util.h"
-#include "num.h"
+#include "num_impl.h"
 #include "field.h"
 
 #ifdef VERIFY

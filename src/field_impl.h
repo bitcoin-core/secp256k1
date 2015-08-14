@@ -21,6 +21,10 @@
 #error "Please select field implementation"
 #endif
 
+#if defined(USE_FIELD_INV_NUM)
+#include "num_impl.h"
+#endif
+
 SECP256K1_INLINE static int secp256k1_fe_equal_var(const secp256k1_fe *a, const secp256k1_fe *b) {
     secp256k1_fe na;
     secp256k1_fe_negate(&na, a, 1);

@@ -433,7 +433,6 @@ void run_rand_int(void) {
 
 /***** NUM TESTS *****/
 
-#ifndef USE_NUM_NONE
 void random_num_negate(secp256k1_num *num) {
     if (secp256k1_rand_bits(1)) {
         secp256k1_num_negate(num);
@@ -486,6 +485,7 @@ void test_num_add_sub(void) {
     }
     secp256k1_num_add(&n1p2, &n1, &n2); /* n1p2 = R1 + R2 */
     secp256k1_num_add(&n2p1, &n2, &n1); /* n2p1 = R2 + R1 */
+    CHECK(secp256k1_num_eq(&n1p2, &n2p1));
     secp256k1_num_sub(&n1m2, &n1, &n2); /* n1m2 = R1 - R2 */
     secp256k1_num_sub(&n2m1, &n2, &n1); /* n2m1 = R2 - R1 */
     CHECK(secp256k1_num_eq(&n1p2, &n2p1));
@@ -507,7 +507,6 @@ void run_num_smalltests(void) {
         test_num_add_sub();
     }
 }
-#endif
 
 /***** SCALAR TESTS *****/
 
@@ -515,10 +514,8 @@ void scalar_test(void) {
     secp256k1_scalar s;
     secp256k1_scalar s1;
     secp256k1_scalar s2;
-#ifndef USE_NUM_NONE
     secp256k1_num snum, s1num, s2num;
     secp256k1_num order, half_order;
-#endif
     unsigned char c[32];
 
     /* Set 's' to a random scalar, with value 'snum'. */
@@ -531,7 +528,6 @@ void scalar_test(void) {
     random_scalar_order_test(&s2);
     secp256k1_scalar_get_b32(c, &s2);
 
-#ifndef USE_NUM_NONE
     secp256k1_scalar_get_num(&snum, &s);
     secp256k1_scalar_get_num(&s1num, &s1);
     secp256k1_scalar_get_num(&s2num, &s2);
@@ -539,7 +535,6 @@ void scalar_test(void) {
     secp256k1_scalar_order_get_num(&order);
     half_order = order;
     secp256k1_num_shift(&half_order, 1);
-#endif
 
     {
         int i;
@@ -580,7 +575,6 @@ void scalar_test(void) {
         CHECK(secp256k1_scalar_eq(&n, &s));
     }
 
-#ifndef USE_NUM_NONE
     {
         /* Test that adding the scalars together is equal to adding their numbers together modulo the order. */
         secp256k1_num rnum;
@@ -632,22 +626,17 @@ void scalar_test(void) {
             CHECK(expected == low);
         }
     }
-#endif
 
     {
         /* Test that scalar inverses are equal to the inverse of their number modulo the order. */
         if (!secp256k1_scalar_is_zero(&s)) {
             secp256k1_scalar inv;
-#ifndef USE_NUM_NONE
             secp256k1_num invnum;
             secp256k1_num invnum2;
-#endif
             secp256k1_scalar_inverse(&inv, &s);
-#ifndef USE_NUM_NONE
             secp256k1_num_mod_inverse(&invnum, &snum, &order);
             secp256k1_scalar_get_num(&invnum2, &inv);
             CHECK(secp256k1_num_eq(&invnum, &invnum2));
-#endif
             secp256k1_scalar_mul(&inv, &inv, &s);
             /* Multiplying a scalar with its inverse must result in one. */
             CHECK(secp256k1_scalar_is_one(&inv));
@@ -779,7 +768,6 @@ void run_scalar_tests(void) {
         CHECK(secp256k1_scalar_is_zero(&o));
     }
 
-#ifndef USE_NUM_NONE
     {
         /* A scalar with value of the curve order should be 0. */
         secp256k1_num order;
@@ -792,7 +780,6 @@ void run_scalar_tests(void) {
         CHECK(overflow == 1);
         CHECK(secp256k1_scalar_is_zero(&zero));
     }
-#endif
 
     {
         /* Does check_overflow check catch all ones? */
@@ -4214,10 +4201,8 @@ int main(int argc, char **argv) {
     run_hmac_sha256_tests();
     run_rfc6979_hmac_sha256_tests();
 
-#ifndef USE_NUM_NONE
     /* num tests */
     run_num_smalltests();
-#endif
 
     /* scalar tests */
     run_scalar_tests();
