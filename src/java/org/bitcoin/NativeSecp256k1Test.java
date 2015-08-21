@@ -2,6 +2,7 @@ package org.bitcoin;
 
 import com.google.common.io.BaseEncoding;
 import java.util.Arrays;
+import java.math.BigInteger;
 import javax.xml.bind.DatatypeConverter;
 
 public class NativeSecp256k1Test {
@@ -13,13 +14,25 @@ public class NativeSecp256k1Test {
       if( NativeSecp256k1.enabled ) {
 
         boolean result = false;
+        //byte[] resultbytes = null;
+
+        //Case 1
+        //byte[] data = BaseEncoding.base16().lowerCase().decode("CF80CD8AED482D5D1527D7DC72FCEFF84E6326592848447D2DC0B0E87DFC9A90".toLowerCase()); //sha256hash of "testing"
+        //byte[] sec = BaseEncoding.base16().lowerCase().decode("CF80CD8AED482D5D1527D7DC72FCEFF84E6326592848447D2DC0B0E87DFC9A90".toLowerCase());
+
+        //resultbytes = NativeSecp256k1.sign( data, sec );
+        //System.out.println(" TEST " + new BigInteger(1, resultbytes).toString(16));
+        //assertEquals( result, true , "Case 1");
 
         //Case 1
         byte[] data = BaseEncoding.base16().lowerCase().decode("CF80CD8AED482D5D1527D7DC72FCEFF84E6326592848447D2DC0B0E87DFC9A90".toLowerCase()); //sha256hash of "testing"
         byte[] sig = BaseEncoding.base16().lowerCase().decode("3044022079BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F817980220294F14E883B3F525B5367756C2A11EF6CF84B730B36C17CB0C56F0AAB2C98589".toLowerCase());
         byte[] pub = BaseEncoding.base16().lowerCase().decode("040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40".toLowerCase()); 
+        boolean compact = false;
+        int recovery = 0;
 
-        result = NativeSecp256k1.verify( data, sig, pub );
+        result = NativeSecp256k1.verify( data, sig, pub, compact, recovery );
+System.out.println(" TEST " + result);
         assertEquals( result, true , "Case 1");
 
         //Case 2
@@ -27,7 +40,7 @@ public class NativeSecp256k1Test {
         sig = BaseEncoding.base16().lowerCase().decode("3044022079BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F817980220294F14E883B3F525B5367756C2A11EF6CF84B730B36C17CB0C56F0AAB2C98589".toLowerCase());
         pub = BaseEncoding.base16().lowerCase().decode("040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40".toLowerCase()); 
 
-        result = NativeSecp256k1.verify( data, sig, pub );
+        result = NativeSecp256k1.verify( data, sig, pub, compact, recovery );
         assertEquals( result, false , "Case 2");
 
         //Case 3

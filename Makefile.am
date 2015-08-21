@@ -112,9 +112,7 @@ check-java: libsecp256k1.la $(JAVA_GUAVA) .stamp-java
 
 endif
 endif
-CLEANFILES = $(JAVAROOT)/$(JAVAORG)/*.class .stamp-java
-EXTRA_DIST = autogen.sh $(JAVA_FILES)
-=======
+
 if USE_ECMULT_STATIC_PRECOMPUTATION
 CPPFLAGS_FOR_BUILD +=-I$(top_srcdir)/
 CFLAGS_FOR_BUILD += -Wall -Wextra -Wno-unused-function
@@ -133,10 +131,10 @@ $(tests_OBJECTS): src/ecmult_static_context.h
 src/ecmult_static_context.h: $(gen_context_BIN)
 	./$(gen_context_BIN)
 
-CLEANFILES = $(gen_context_BIN) src/ecmult_static_context.h
+CLEANFILES = $(gen_context_BIN) src/ecmult_static_context.h $(JAVAROOT)/$(JAVAORG)/*.class .stamp-java 
 endif
 
-EXTRA_DIST = autogen.sh src/gen_context.c src/basic-config.h
+EXTRA_DIST = autogen.sh src/gen_context.c src/basic-config.h $(JAVA_FILES)
 
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include
@@ -145,4 +143,3 @@ endif
 if ENABLE_MODULE_SCHNORR
 include src/modules/schnorr/Makefile.am.include
 endif
->>>>>>> 9d96e362a54e8d6527c510199f465600112d7117

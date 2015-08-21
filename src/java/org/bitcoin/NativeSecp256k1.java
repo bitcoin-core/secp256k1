@@ -35,21 +35,40 @@ public class NativeSecp256k1 {
      * @param data The data which was signed, must be exactly 32 bytes
      * @param signature The signature
      * @param pub The public key which did the signing
+     * @param compact Verify a compact signature
+     * @param recovery Signature recovery ID (-1 if not compact)
      */
-    public static boolean verify(byte[] data, byte[] signature, byte[] pub) {
+    public static boolean verify(byte[] data, byte[] signature, byte[] pub, boolean compact, int recovery) {
         Preconditions.checkArgument(data.length == 32 && signature.length <= 520 && pub.length <= 520);
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
         if (byteBuff == null) {
-            byteBuff = ByteBuffer.allocateDirect(32 + 520 + 520);
+            byteBuff = ByteBuffer.allocateDirect(520);
             byteBuff.order(ByteOrder.nativeOrder());
             nativeECDSABuffer.set(byteBuff);
         }
         byteBuff.rewind();
-        byteBuff.put(data);
         byteBuff.put(signature);
+
+        long[] sigRef;
+        if(compact)
+          sigRef = secp256k1_ecdsa_signature_parse_compact(byteBuff, Secp256k1Context, recovery);
+        else
+          sigRef = secp256k1_ecdsa_signature_parse_der(byteBuff, Secp256k1Context, signature.length); 
+
+        System.out.println(" SigRef " + sigRef[1]);
+
+        byteBuff.rewind();
         byteBuff.put(pub);
-        return secp256k1_ecdsa_verify(byteBuff, Secp256k1Context, signature.length, pub.length) == 1;
+
+        long[] pubRef = secp256k1_ec_pubkey_parse(byteBuff, Secp256k1Context, pub.length);
+
+        System.out.println(" PubRef " + pubRef[1]);
+
+        byteBuff.rewind();
+        byteBuff.put(data);
+
+        return secp256k1_ecdsa_verify(byteBuff, Secp256k1Context, sigRef[1], pubRef[1] ) == 1;
     }
 
     /**
@@ -515,7 +534,7 @@ public class NativeSecp256k1 {
 
     private static native void secp256k1_destroy_context(long context);
 
-    private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff, long context, int sigLen, int pubLen);
+    private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff, long context, long signature, long pubkey);
 
     private static native byte[][] secp256k1_ecdsa_sign(ByteBuffer byteBuff, long context);
 
@@ -525,14 +544,37 @@ public class NativeSecp256k1 {
 
     private static native byte[][] secp256k1_ec_pubkey_create(ByteBuffer byteBuff, long context, int compressed);
 
+    //deprecated
     private static native byte[][] secp256k1_ec_pubkey_decompress(ByteBuffer byteBuff, long context, int pubLen);
 
     private static native byte[][] secp256k1_ec_privkey_export(ByteBuffer byteBuff, long context, int privLen, int compressed);
 
     private static native byte[][] secp256k1_ec_privkey_import(ByteBuffer byteBuff, long context, int privLen);
 
+    //deprecated
     private static native byte[][] secp256k1_ecdsa_recover_compact(ByteBuffer byteBuff, long context, int compressed, int recID);
 
+    //deprecated
     private static native byte[][] secp256k1_ecdsa_sign_compact(ByteBuffer byteBuff, long context);
 
+    //TODO support sending back error codes
+    //TODO make verify() work again
+    //TODO fix old methods to support new types and remove stale function args
+    //TODO add below methods
+    //TODO fix locking https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/ReadWriteLock.html#readLock()
+    private static native long[] secp256k1_ecdsa_signature_parse_der(ByteBuffer byteBuff, long context, int inputLen);
+
+    private static native long[] secp256k1_ecdsa_signature_parse_compact(ByteBuffer byteBuff, long context, int recovery);
+
+    private static native byte[][] secp256k1_ecdsa_signature_serialize_der(ByteBuffer byteBuff, long context);
+
+    private static native byte[][] secp256k1_ecdsa_signature_serialize_compact(ByteBuffer byteBuff, long context);
+
+    private static native long[] secp256k1_ec_pubkey_parse(ByteBuffer byteBuff, long context, int inputLen);
+
+    private static native byte[][] secp256k1_ecdsa_pubkey_serialize(ByteBuffer byteBuff, long context);
+
+    private static native long secp256k1_ecdsa_pubkey_combine(ByteBuffer byteBuff, long context, int keys);
+
+    //private static native byte[][] secp256k1_ecdsa_recover_compact(ByteBuffer byteBuff, long context, int compressed, int recID);
 }
