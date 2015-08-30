@@ -11,13 +11,13 @@ cache:
   - src/java/guava/
 env:
   global:
-    - FIELD=auto  BIGNUM=auto  SCALAR=auto  ENDOMORPHISM=no  STATICPRECOMPUTATION=yes  ASM=no  BUILD=check  EXTRAFLAGS=  HOST=  ECDH=no  schnorr=NO
+    - FIELD=auto  BIGNUM=auto  SCALAR=auto  ENDOMORPHISM=no  STATICPRECOMPUTATION=yes  ASM=no  BUILD=check  EXTRAFLAGS=  HOST=  ECDH=no  schnorr=NO  RECOVERY=NO
     - GUAVA_URL=https://search.maven.org/remotecontent?filepath=com/google/guava/guava/18.0/guava-18.0.jar GUAVA_JAR=src/java/guava/guava-18.0.jar
   matrix:
-    - SCALAR=32bit
+    - SCALAR=32bit    RECOVERY=yes
     - SCALAR=32bit    FIELD=32bit       ECDH=yes
     - SCALAR=64bit
-    - FIELD=64bit
+    - FIELD=64bit     RECOVERY=yes
     - FIELD=64bit     ENDOMORPHISM=yes
     - FIELD=64bit     ENDOMORPHISM=yes  ECDH=yes
     - FIELD=64bit                       ASM=x86_64
@@ -25,7 +25,7 @@ env:
     - FIELD=32bit     SCHNORR=yes
     - FIELD=32bit     ENDOMORPHISM=yes
     - BIGNUM=no
-    - BIGNUM=no       ENDOMORPHISM=yes SCHNORR=yes
+    - BIGNUM=no       ENDOMORPHISM=yes SCHNORR=yes  RECOVERY=yes
     - BIGNUM=no       STATICPRECOMPUTATION=no
     - BUILD=distcheck
     - EXTRAFLAGS=CFLAGS=-DDETERMINISTIC

@@ -119,7 +119,12 @@ AC_ARG_ENABLE(jni,
     [use_jni=$enableval],
     [use_jni=auto])
 
-AC_ARG_WITH([field], [AS_HELP_STRING([--with-field=gmp|64bit|32bit|auto],
+AC_ARG_ENABLE(module_recovery,
+    AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module (default is no)]),
+    [enable_module_recovery=$enableval],
+    [enable_module_recovery=no])
+
+AC_ARG_WITH([field], [AS_HELP_STRING([--with-field=64bit|32bit|auto],
 [Specify Field Implementation. Default is auto])],[req_field=$withval], [req_field=auto])
 
 AC_ARG_WITH([bignum], [AS_HELP_STRING([--with-bignum=gmp|no|auto],
@@ -356,6 +361,10 @@ if test x"$enable_module_schnorr" = x"yes"; then
   AC_DEFINE(ENABLE_MODULE_SCHNORR, 1, [Define this symbol to enable the Schnorr signature module])
 fi
 
+if test x"$enable_module_recovery" = x"yes"; then
+  AC_DEFINE(ENABLE_MODULE_RECOVERY, 1, [Define this symbol to enable the ECDSA pubkey recovery module])
+fi
+
 AC_C_BIGENDIAN()
 
 AC_MSG_NOTICE([Using assembly optimizations: $set_asm])
@@ -367,6 +376,7 @@ AC_MSG_NOTICE([Using jni: $use_jni])
 AC_MSG_NOTICE([Building ECDH module: $enable_module_ecdh])
 
 AC_MSG_NOTICE([Building Schnorr signatures module: $enable_module_schnorr])
+AC_MSG_NOTICE([Building ECDSA pubkey recovery module: $enable_module_recovery])
 
 AC_CONFIG_HEADERS([src/libsecp256k1-config.h])
 AC_CONFIG_FILES([Makefile libsecp256k1.pc])
@@ -381,6 +391,7 @@ AM_CONDITIONAL([USE_JNI], [test x"$use_jni" == x"yes"])
 AM_CONDITIONAL([USE_ECMULT_STATIC_PRECOMPUTATION], [test x"$use_ecmult_static_precomputation" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORR], [test x"$enable_module_schnorr" = x"yes"])
+AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
 
 dnl make sure nothing new is exported so that we don't break the cache
 PKGCONFIG_PATH_TEMP="$PKG_CONFIG_PATH"
