@@ -49,30 +49,17 @@ JNIEXPORT void JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1destroy_1cont
 }
 
 JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1verify
-  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jlong sig_l, jlong pub_l)
+  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l)
 {
-
-  printf(" \n JLONG 2: %ld \n", sig_l);
-  printf(" \n JLONG 2: %ld \n", pub_l);
   secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
-  secp256k1_ecdsa_signature_t *sig = (secp256k1_ecdsa_signature_t*)sig_l;
-  secp256k1_pubkey_t *pub = (secp256k1_pubkey_t*)pub_l;
 
   unsigned char* data = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
+  const secp256k1_ecdsa_signature_t *sig = {  (unsigned char*) (data + 32) };
+  const secp256k1_pubkey_t *pub = { (unsigned char*) (data + 64 + 32) };
 
-  printf("hashedChars 2: ");
-  int i;
-   for (i = 0; i < 64; i++) {
-    printf("%x", sig->data[i]);
-   }
-  printf("\n");
-
-/*
   (void)classObject;
 
   return secp256k1_ecdsa_verify(ctx, data, sig, pub);
-*/
-  return 0;
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign
@@ -494,7 +481,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1pubke
   return retArray;
 }
 
-JNIEXPORT jlongArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1signature_1parse_1der
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1signature_1parse_1der
   (JNIEnv * env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint inputlen)
 {
   const secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
@@ -502,25 +489,25 @@ JNIEXPORT jlongArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1
   secp256k1_ecdsa_signature_t sig;
   unsigned char* input = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
 
+  jobjectArray retArray;
+  jbyteArray sigArray, intsByteArray;
+  unsigned char intsarray[1];
+
   int ret = secp256k1_ecdsa_signature_parse_der(ctx, &sig, input, inputlen);  
 
-  /*TODO return error value?*/
-  jlong sig_l = (jlong) &sig;
+  intsarray[0] = ret;
 
-  jlongArray retArray;
+  retArray = (*env)->NewObjectArray(env, 2,
+    (*env)->FindClass(env, "[B"),
+    (*env)->NewByteArray(env, 1));
 
-  printf("hashedChars 0: ");
-  int i;
-   for (i = 0; i < 64; i++) {
-    printf("%x", sig.data[i]);
-   }
-  printf("\n");
-  printf(" \n JLONG 0: %ld \n", sig_l);
+  sigArray = (*env)->NewByteArray(env, 64);
+  (*env)->SetByteArrayRegion(env, sigArray, 0, 64, (jbyte*)sig.data);
+  (*env)->SetObjectArrayElement(env, retArray, 0, sigArray);
 
-  retArray = (*env)->NewLongArray(env, 2);
-
-  (*env)->SetLongArrayRegion(env, retArray, 0, 1, &sig_l);
-  (*env)->SetLongArrayRegion(env, retArray, 1, 1, &sig_l);
+  intsByteArray = (*env)->NewByteArray(env, 1);
+  (*env)->SetByteArrayRegion(env, intsByteArray, 0, 1, (jbyte*)intsarray);
+  (*env)->SetObjectArrayElement(env, retArray, 1, intsByteArray);
 
   (void)classObject;
 
@@ -531,10 +518,11 @@ JNIEXPORT jlongArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1
   (JNIEnv * env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint recovery)
 {
   (void)classObject;
+
   return 0;
 }
 
-JNIEXPORT jlongArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1parse
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1parse
   (JNIEnv * env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint inputlen)
 {
   const secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
@@ -542,17 +530,25 @@ JNIEXPORT jlongArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pub
   secp256k1_pubkey_t pubkey;
   unsigned char* input = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
 
+  jobjectArray retArray;
+  jbyteArray pubArray, intsByteArray;
+  unsigned char intsarray[2];
+
   int ret = secp256k1_ec_pubkey_parse(ctx, &pubkey, input, inputlen);  
 
-  /*TODO return error value?*/
-  jlong pubkey_l = (jlong) &pubkey;
+  intsarray[0] = ret;
 
-  jlongArray retArray;
+  retArray = (*env)->NewObjectArray(env, 2,
+    (*env)->FindClass(env, "[B"),
+    (*env)->NewByteArray(env, 1));
 
-  retArray = (*env)->NewLongArray(env, 2);
+  pubArray = (*env)->NewByteArray(env, 64);
+  (*env)->SetByteArrayRegion(env, pubArray, 0, 64, (jbyte*)pubkey.data);
+  (*env)->SetObjectArrayElement(env, retArray, 0, pubArray);
 
-  (*env)->SetLongArrayRegion(env, retArray, 0, 1, &pubkey_l);
-  (*env)->SetLongArrayRegion(env, retArray, 1, 1, &pubkey_l);
+  intsByteArray = (*env)->NewByteArray(env, 1);
+  (*env)->SetByteArrayRegion(env, intsByteArray, 0, 1, (jbyte*)intsarray);
+  (*env)->SetObjectArrayElement(env, retArray, 1, intsByteArray);
 
   (void)classObject;
 

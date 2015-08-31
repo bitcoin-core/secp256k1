@@ -35,10 +35,8 @@ public class NativeSecp256k1 {
      * @param data The data which was signed, must be exactly 32 bytes
      * @param signature The signature
      * @param pub The public key which did the signing
-     * @param compact Verify a compact signature
-     * @param recovery Signature recovery ID (-1 if not compact)
      */
-    public static boolean verify(byte[] data, byte[] signature, byte[] pub, boolean compact, int recovery) {
+    public static boolean verify(byte[] data, byte[] signature, byte[] pub) throws NativeSecp256k1Test.AssertFailException{
         Preconditions.checkArgument(data.length == 32 && signature.length <= 520 && pub.length <= 520);
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
@@ -50,25 +48,37 @@ public class NativeSecp256k1 {
         byteBuff.rewind();
         byteBuff.put(signature);
 
-        long[] sigRef;
-        if(compact)
-          sigRef = secp256k1_ecdsa_signature_parse_compact(byteBuff, Secp256k1Context, recovery);
-        else
-          sigRef = secp256k1_ecdsa_signature_parse_der(byteBuff, Secp256k1Context, signature.length); 
+        byte[][] retByteArray = secp256k1_ecdsa_signature_parse_der(byteBuff, Secp256k1Context, signature.length);  
 
-        System.out.println(" SigRef " + sigRef[1]);
+        byte[] sigArr = retByteArray[0];
+        //DEBUG System.out.println(" Sigarr is " + new BigInteger(1, sigArr).toString(16));
+        int retVal = new BigInteger(new byte[] { retByteArray[1][0] }).intValue();
+        //DEBUG System.out.println(" RetVal is " + retVal);
+
+        NativeSecp256k1Test.assertEquals(sigArr.length, 64, "Got bad signature length." );
+
+        NativeSecp256k1Test.assertEquals(retVal, 1, "Failed return value check.");
 
         byteBuff.rewind();
         byteBuff.put(pub);
 
-        long[] pubRef = secp256k1_ec_pubkey_parse(byteBuff, Secp256k1Context, pub.length);
+        retByteArray = secp256k1_ec_pubkey_parse(byteBuff, Secp256k1Context, pub.length);
 
-        System.out.println(" PubRef " + pubRef[1]);
+        byte[] pubArr = retByteArray[0];
+        //DEBUG System.out.println(" Pubarr is " + new BigInteger(1, pubArr).toString(16));
+        retVal = new BigInteger(new byte[] { retByteArray[1][0] }).intValue();
+        //DEBUG System.out.println(" RetVal is " + retVal);
+
+        NativeSecp256k1Test.assertEquals(pubArr.length, 64, "Got bad pubkey length." );
+
+        NativeSecp256k1Test.assertEquals(retVal, 1, "Failed return value check.");
 
         byteBuff.rewind();
         byteBuff.put(data);
+        byteBuff.put(sigArr);
+        byteBuff.put(pubArr);
 
-        return secp256k1_ecdsa_verify(byteBuff, Secp256k1Context, sigRef[1], pubRef[1] ) == 1;
+        return secp256k1_ecdsa_verify(byteBuff, Secp256k1Context) == 1;
     }
 
     /**
@@ -534,7 +544,7 @@ public class NativeSecp256k1 {
 
     private static native void secp256k1_destroy_context(long context);
 
-    private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff, long context, long signature, long pubkey);
+    private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff, long context);
 
     private static native byte[][] secp256k1_ecdsa_sign(ByteBuffer byteBuff, long context);
 
@@ -562,15 +572,15 @@ public class NativeSecp256k1 {
     //TODO fix old methods to support new types and remove stale function args
     //TODO add below methods
     //TODO fix locking https://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/ReadWriteLock.html#readLock()
-    private static native long[] secp256k1_ecdsa_signature_parse_der(ByteBuffer byteBuff, long context, int inputLen);
+    private static native byte[][] secp256k1_ecdsa_signature_parse_der(ByteBuffer byteBuff, long context, int inputLen);
 
-    private static native long[] secp256k1_ecdsa_signature_parse_compact(ByteBuffer byteBuff, long context, int recovery);
+    //private static native long[] secp256k1_ecdsa_signature_parse_compact(ByteBuffer byteBuff, long context, int recovery);
 
     private static native byte[][] secp256k1_ecdsa_signature_serialize_der(ByteBuffer byteBuff, long context);
 
     private static native byte[][] secp256k1_ecdsa_signature_serialize_compact(ByteBuffer byteBuff, long context);
 
-    private static native long[] secp256k1_ec_pubkey_parse(ByteBuffer byteBuff, long context, int inputLen);
+    private static native byte[][] secp256k1_ec_pubkey_parse(ByteBuffer byteBuff, long context, int inputLen);
 
     private static native byte[][] secp256k1_ecdsa_pubkey_serialize(ByteBuffer byteBuff, long context);
 
