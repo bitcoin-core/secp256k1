@@ -54,12 +54,23 @@ JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1verify
   secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
 
   unsigned char* data = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
-  const secp256k1_ecdsa_signature_t *sig = {  (unsigned char*) (data + 32) };
-  const secp256k1_pubkey_t *pub = { (unsigned char*) (data + 64 + 32) };
+  const secp256k1_ecdsa_signature_t *sig = {  (secp256k1_ecdsa_signature_t*) (data + 32) };
+  const secp256k1_pubkey_t *pub = { (secp256k1_pubkey_t*) (data + 64 + 32) };
+
+  printf("\nData: ");
+  int i;
+  for( i = 0; i < 32; i++) printf("%x", data[i]);
+  printf("\nSig: ");
+  for( i = 0; i < 64; i++) printf("%x", sig->data[i]);
+  printf("\nPub: ");
+  for( i = 0; i < 64; i++) printf("%x", pub->data[i]);
 
   (void)classObject;
 
-  return secp256k1_ecdsa_verify(ctx, data, sig, pub);
+  int result = secp256k1_ecdsa_verify(ctx, data, sig, pub);
+  printf("\nResult: %d", result);
+  printf("\n");
+  return result;
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign
@@ -109,17 +120,6 @@ JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1seckey_1v
   return secp256k1_ec_seckey_verify(ctx, secKey);
 }
 
-JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1verify
-  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint pubLen)
-{
-  secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
-  unsigned char* pubKey = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
-
-  (void)classObject;
-
-  return secp256k1_ec_pubkey_verify(ctx, pubKey, pubLen);
-}
-
 JNIEXPORT jbyteArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1create
   (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint compressed)
 {
@@ -156,6 +156,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pub
 
 }
 
+/*
 JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1decompress
   (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint pubLen)
 {
@@ -192,7 +193,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1p
   (void)classObject;
 
   return retArray;
-}
+}*/
 
 
 JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1privkey_1export
@@ -271,7 +272,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1p
 }
 
 
-JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign_1compact
+/*JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign_1compact
   (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l)
 {
   secp256k1_context_t *ctx = (secp256k1_context_t*)ctx_l;
@@ -306,7 +307,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa
   (void)classObject;
 
   return retArray;
-}
+}*/
 
 
 JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1recover_1compact
@@ -517,7 +518,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa
 JNIEXPORT jlongArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1signature_1parse_1compact
   (JNIEnv * env, jclass classObject, jobject byteBufferObject, jlong ctx_l, jint recovery)
 {
-  (void)classObject;
+  (void)classObject;(void)env;(void)byteBufferObject;(void)ctx_l;(void)recovery;
 
   return 0;
 }

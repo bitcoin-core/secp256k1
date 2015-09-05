@@ -81,7 +81,6 @@ tests_LDFLAGS = -static
 TESTS = tests
 endif
 
-<<<<<<< HEAD
 JAVAROOT=src/java
 JAVAORG=org/bitcoin
 JAVA_GUAVA=$(srcdir)/$(JAVAROOT)/guava/guava-18.0.jar
