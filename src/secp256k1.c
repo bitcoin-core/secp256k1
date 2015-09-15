@@ -254,7 +254,10 @@ static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *m
    return 1;
 }
 
+SECP256K1_API
 const secp256k1_nonce_function_t secp256k1_nonce_function_rfc6979 = nonce_function_rfc6979;
+
+SECP256K1_API
 const secp256k1_nonce_function_t secp256k1_nonce_function_default = nonce_function_rfc6979;
 
 int secp256k1_ecdsa_sign(const secp256k1_context_t* ctx, secp256k1_ecdsa_signature_t *signature, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function_t noncefp, const void* noncedata) {

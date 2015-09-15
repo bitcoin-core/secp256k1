@@ -132,24 +132,24 @@ typedef int (*secp256k1_nonce_function_t)(
 # endif
 
 # if defined _MSC_VER || defined __CYGWIN__
-#  define SECP256K1_HELPER_STATIC
+#  define SECP256K1_HELPER_LOCAL
 #  define SECP256K1_HELPER_DLL_IMPORT __declspec(dllimport)
 #  define SECP256K1_HELPER_DLL_EXPORT __declspec(dllexport)
 # else
 #  if __GNUC__ >= 4
-#   define SECP256K1_HELPER_STATIC     __attribute__ ((visibility ("hidden")))
+#   define SECP256K1_HELPER_LOCAL      __attribute__ ((visibility ("hidden")))
 #   define SECP256K1_HELPER_DLL_IMPORT __attribute__ ((visibility ("default")))
 #   define SECP256K1_HELPER_DLL_EXPORT __attribute__ ((visibility ("default")))
 #  else
-#   define SECP256K1_HELPER_STATIC
+#   define SECP256K1_HELPER_LOCAL
 #   define SECP256K1_HELPER_DLL_IMPORT
 #   define SECP256K1_HELPER_DLL_EXPORT
 #  endif
 # endif
 
 # if defined SECP256K1_STATIC
-#  define SECP256K1_API SECP256K1_HELPER_STATIC
-# elif defined SECP256K1_DLL
+#  define SECP256K1_API SECP256K1_HELPER_LOCAL
+# elif defined SECP256K1_EXPORTS
 #  define SECP256K1_API SECP256K1_HELPER_DLL_EXPORT
 # else
 #  define SECP256K1_API SECP256K1_HELPER_DLL_IMPORT
@@ -339,9 +339,11 @@ SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdsa_verify(
  * If a data pointer is passed, it is assumed to be a pointer to 32 bytes of
  * extra entropy.
  */
+SECP256K1_API
 extern const secp256k1_nonce_function_t secp256k1_nonce_function_rfc6979;
 
 /** A default safe nonce generation function (currently equal to secp256k1_nonce_function_rfc6979). */
+SECP256K1_API
 extern const secp256k1_nonce_function_t secp256k1_nonce_function_default;
 
 /** Create an ECDSA signature.
