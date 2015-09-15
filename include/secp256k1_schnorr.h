@@ -24,6 +24,7 @@ extern "C" {
  *           ndata:  pointer to arbitrary data used by the nonce generation
  *                   function (can be NULL)
  */
+SECP256K1_API
 int secp256k1_schnorr_sign(
   const secp256k1_context_t* ctx,
   unsigned char *sig64,
@@ -41,6 +42,7 @@ int secp256k1_schnorr_sign(
  *           msg32:     the 32-byte message hash being verified (cannot be NULL)
  *           pubkey:    the public key to verify with (cannot be NULL)
  */
+SECP256K1_API
 SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_verify(
   const secp256k1_context_t* ctx,
   const unsigned char *sig64,
@@ -61,6 +63,7 @@ SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_verify(
  *           msg32:      the 32-byte message hash assumed to be signed (cannot
  *                       be NULL)
  */
+SECP256K1_API
 int secp256k1_schnorr_recover(
   const secp256k1_context_t* ctx,
   secp256k1_pubkey_t *pubkey,
@@ -86,6 +89,7 @@ int secp256k1_schnorr_recover(
  *
  *  Do not use the output as a private/public key pair for signing/validation.
  */
+SECP256K1_API
 int secp256k1_schnorr_generate_nonce_pair(
   const secp256k1_context_t* ctx,
   secp256k1_pubkey_t *pubnonce,
@@ -138,6 +142,7 @@ int secp256k1_schnorr_generate_nonce_pair(
  *  pre-combine several inputs already with one call, and add more inputs later
  *  by calling the function again (they are commutative and associative).
  */
+SECP256K1_API
 SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_partial_sign(
   const secp256k1_context_t* ctx,
   unsigned char *sig64,
@@ -159,6 +164,7 @@ SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_partial_sign(
  *                   signatures
  *         n:        the number of signatures to combine (at least 1)
  */
+SECP256K1_API
 SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_partial_combine(
   const secp256k1_context_t* ctx,
   unsigned char *sig64,
