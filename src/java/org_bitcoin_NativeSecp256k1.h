@@ -9,14 +9,6 @@ extern "C" {
 #endif
 /*
  * Class:     org_bitcoin_NativeSecp256k1
- * Method:    secp256k1_init_context
- * Signature: ()J
- */
-JNIEXPORT jlong JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1init_1context
-  (JNIEnv *, jclass);
-
-/*
- * Class:     org_bitcoin_NativeSecp256k1
  * Method:    secp256k1_ctx_clone
  * Signature: (J)J
  */
@@ -102,7 +94,6 @@ JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1seckey_1v
  */
 JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1create
   (JNIEnv *, jclass, jobject, jlong, jint);
-
 
 /*
  * Class:     org_bitcoin_NativeSecp256k1

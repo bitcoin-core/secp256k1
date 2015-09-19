@@ -2,15 +2,6 @@
 #include "org_bitcoin_NativeSecp256k1.h"
 #include "include/secp256k1.h"
 
-JNIEXPORT jlong JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1init_1context
-  (JNIEnv* env, jclass classObject)
-{
-  secp256k1_context_t *ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-
-  (void)classObject;(void)env;
-
-  return (jlong)ctx;
-}
 
 JNIEXPORT jlong JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ctx_1clone
   (JNIEnv* env, jclass classObject, jlong ctx_l)

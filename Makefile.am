@@ -38,6 +38,7 @@ noinst_HEADERS += src/field_5x52_impl.h
 noinst_HEADERS += src/field_5x52_int128_impl.h
 noinst_HEADERS += src/field_5x52_asm_impl.h
 noinst_HEADERS += src/java/org_bitcoin_NativeSecp256k1.h
+noinst_HEADERS += src/java/org_bitcoin_Secp256k1Context.h
 noinst_HEADERS += src/util.h
 noinst_HEADERS += src/testrand.h
 noinst_HEADERS += src/testrand_impl.h
@@ -54,7 +55,7 @@ libsecp256k1_la_SOURCES = src/secp256k1.c
 libsecp256k1_la_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/src $(SECP_INCLUDES)
 libsecp256k1_la_LIBADD = $(JNI_LIB) $(SECP_LIBS)
 
-libsecp256k1_jni_la_SOURCES  = src/java/org_bitcoin_NativeSecp256k1.c
+libsecp256k1_jni_la_SOURCES  = src/java/org_bitcoin_NativeSecp256k1.c src/java/org_bitcoin_Secp256k1Context.c
 libsecp256k1_jni_la_CPPFLAGS = $(JNI_INCLUDES)
 
 noinst_PROGRAMS =
@@ -87,7 +88,9 @@ JAVA_GUAVA=$(srcdir)/$(JAVAROOT)/guava/guava-18.0.jar
 CLASSPATH_ENV=CLASSPATH=$(JAVA_GUAVA)
 JAVA_FILES= \
   $(JAVAROOT)/$(JAVAORG)/NativeSecp256k1.java \
-  $(JAVAROOT)/$(JAVAORG)/NativeSecp256k1Test.java
+  $(JAVAROOT)/$(JAVAORG)/NativeSecp256k1Test.java \
+  $(JAVAROOT)/$(JAVAORG)/NativeSecp256k1Util.java \
+  $(JAVAROOT)/$(JAVAORG)/Secp256k1Context.java
 
 if USE_JNI
 
