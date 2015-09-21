@@ -33,6 +33,7 @@ typedef struct {
  *  In:   input64: a pointer to a 64-byte compact signature
  *        recid:   the recovery id (0, 1, 2 or 3)
  */
+SECP256K1_API
 int secp256k1_ecdsa_recoverable_signature_parse_compact(
     const secp256k1_context_t* ctx,
     secp256k1_ecdsa_recoverable_signature_t* sig,
@@ -46,6 +47,7 @@ int secp256k1_ecdsa_recoverable_signature_parse_compact(
  *  Out: sig:    a pointer to a normal signature (cannot be NULL).
  *  In:  sigin:  a pointer to a recoverable signature (cannot be NULL).
  */
+SECP256K1_API
 int secp256k1_ecdsa_recoverable_signature_convert(
     const secp256k1_context_t* ctx,
     secp256k1_ecdsa_signature_t* sig,
@@ -60,6 +62,7 @@ int secp256k1_ecdsa_recoverable_signature_convert(
  *        recid:    a pointer to an integer to hold the recovery id (can be NULL).
  *  In:   sig:      a pointer to an initialized signature object (cannot be NULL)
  */
+SECP256K1_API
 int secp256k1_ecdsa_recoverable_signature_serialize_compact(
     const secp256k1_context_t* ctx,
     unsigned char *output64,
@@ -78,6 +81,7 @@ int secp256k1_ecdsa_recoverable_signature_serialize_compact(
  *           noncefp:pointer to a nonce generation function. If NULL, secp256k1_nonce_function_default is used
  *           ndata:  pointer to arbitrary data used by the nonce generation function (can be NULL)
  */
+SECP256K1_API
 int secp256k1_ecdsa_sign_recoverable(
     const secp256k1_context_t* ctx,
     secp256k1_ecdsa_recoverable_signature_t *sig,
@@ -96,6 +100,7 @@ int secp256k1_ecdsa_sign_recoverable(
  *  In:      sig:        pointer to initialized signature that supports pubkey recovery (cannot be NULL)
  *           msg32:      the 32-byte message hash assumed to be signed (cannot be NULL)
  */
+SECP256K1_API
 SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdsa_recover(
     const secp256k1_context_t* ctx,
     secp256k1_pubkey_t *pubkey,
