@@ -52,7 +52,7 @@ void test_schnorr_sign_verify(void) {
     unsigned char sig64[3][64];
     secp256k1_gej pubkeyj[3];
     secp256k1_ge pubkey[3];
-    secp256k1_scalar nonce[3], key[3];
+    secp256k1_scalar key[3];
     int i = 0;
     int k;
 
@@ -62,8 +62,11 @@ void test_schnorr_sign_verify(void) {
         random_scalar_order_test(&key[k]);
 
         do {
-            random_scalar_order_test(&nonce[k]);
-            if (secp256k1_schnorr_sig_sign(&ctx->ecmult_gen_ctx, sig64[k], &key[k], &nonce[k], NULL, &test_schnorr_hash, msg32)) {
+            unsigned char nonce32[32];
+            secp256k1_ge pubnonce;
+            secp256k1_scalar privnonce;
+            secp256k1_rand256_test(nonce32);
+            if (secp256k1_schnorr_nonces_set_b32(&ctx->ecmult_gen_ctx, &privnonce, &pubnonce, nonce32, NULL) && secp256k1_schnorr_sig_sign(sig64[k], &key[k], &privnonce, &pubnonce, &test_schnorr_hash, msg32)) {
                 break;
             }
         } while(1);
@@ -82,60 +85,61 @@ void test_schnorr_sign_verify(void) {
     }
 }
 
-void test_schnorr_threshold(void) {
+void test_multischnorr(void) {
     unsigned char msg[32];
     unsigned char sec[5][32];
     secp256k1_pubkey pub[5];
-    unsigned char nonce[5][32];
-    secp256k1_pubkey pubnonce[5];
-    unsigned char sig[5][64];
-    const unsigned char* sigs[5];
+    unsigned char stage1[5][32];
+    unsigned char stage2[5][64];
     unsigned char allsig[64];
-    const secp256k1_pubkey* pubs[5];
+    const secp256k1_pubkey *allpubs[5];
+    const unsigned char *allstage2s[5];
     secp256k1_pubkey allpub;
     int n, i;
     int damage;
     int ret = 0;
 
-    damage = secp256k1_rand_bits(1) ? (1 + secp256k1_rand_int(4)) : 0;
+    n = 1 + secp256k1_rand_int(5);
+    if (n == 1) {
+        damage = secp256k1_rand_bits(1) ? 2 + secp256k1_rand_int(3) : 0;
+    } else {
+        damage = secp256k1_rand_bits(1) ? 1 + secp256k1_rand_int(4) : 0;
+    }
     secp256k1_rand256_test(msg);
-    n = 2 + secp256k1_rand_int(4);
     for (i = 0; i < n; i++) {
         do {
             secp256k1_rand256_test(sec[i]);
         } while (!secp256k1_ec_seckey_verify(ctx, sec[i]));
         CHECK(secp256k1_ec_pubkey_create(ctx, &pub[i], sec[i]));
-        CHECK(secp256k1_schnorr_generate_nonce_pair(ctx, &pubnonce[i], nonce[i], msg, sec[i], NULL, NULL));
-        pubs[i] = &pub[i];
+        CHECK(secp256k1_multischnorr_stage1(ctx, stage1[i], msg, sec[i], NULL, NULL));
+        allpubs[i] = &pub[i];
     }
     if (damage == 1) {
-        nonce[secp256k1_rand_int(n)][secp256k1_rand_int(32)] ^= 1 + secp256k1_rand_int(255);
+        stage1[secp256k1_rand_int(n - 1)][secp256k1_rand_bits(5)] ^= 1 + secp256k1_rand_int(255);
     } else if (damage == 2) {
         sec[secp256k1_rand_int(n)][secp256k1_rand_int(32)] ^= 1 + secp256k1_rand_int(255);
     }
     for (i = 0; i < n; i++) {
-        secp256k1_pubkey allpubnonce;
-        const secp256k1_pubkey *pubnonces[4];
+        const unsigned char *stage1s[4];
         int j;
         for (j = 0; j < i; j++) {
-            pubnonces[j] = &pubnonce[j];
+            stage1s[j] = stage1[j];
         }
         for (j = i + 1; j < n; j++) {
-            pubnonces[j - 1] = &pubnonce[j];
+            stage1s[j - 1] = stage1[j];
         }
-        CHECK(secp256k1_ec_pubkey_combine(ctx, &allpubnonce, pubnonces, n - 1));
-        ret |= (secp256k1_schnorr_partial_sign(ctx, sig[i], msg, sec[i], &allpubnonce, nonce[i]) != 1) * 1;
-        sigs[i] = sig[i];
+        ret |= (secp256k1_multischnorr_stage2(ctx, stage2[i], stage1s, n - 1, msg, sec[i], NULL, NULL) != 1) * 1;
+        allstage2s[i] = stage2[i];
     }
     if (damage == 3) {
-        sig[secp256k1_rand_int(n)][secp256k1_rand_bits(6)] ^= 1 + secp256k1_rand_int(255);
+        stage2[secp256k1_rand_int(n)][secp256k1_rand_bits(6)] ^= 1 + secp256k1_rand_int(5);
     }
-    ret |= (secp256k1_ec_pubkey_combine(ctx, &allpub, pubs, n) != 1) * 2;
+    ret |= (secp256k1_multischnorr_combine_keys(ctx, &allpub, allpubs, n) != 1) * 2;
     if ((ret & 1) == 0) {
-        ret |= (secp256k1_schnorr_partial_combine(ctx, allsig, sigs, n) != 1) * 4;
+        ret |= (secp256k1_multischnorr_combine_sigs(ctx, allsig, allstage2s, n) != 1) * 4;
     }
     if (damage == 4) {
-        allsig[secp256k1_rand_int(32)] ^= 1 + secp256k1_rand_int(255);
+        allsig[secp256k1_rand_bits(6)] ^= 1 + secp256k1_rand_int(255);
     }
     if ((ret & 7) == 0) {
         ret |= (secp256k1_schnorr_verify(ctx, allsig, msg, &allpub) != 1) * 8;
@@ -168,7 +172,7 @@ void run_schnorr_tests(void) {
          test_schnorr_recovery();
     }
     for (i = 0; i < 10 * count; i++) {
-         test_schnorr_threshold();
+         test_multischnorr();
     }
 }
 
