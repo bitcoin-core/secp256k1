@@ -68,90 +68,67 @@ int secp256k1_schnorr_recover(
   const unsigned char *msg32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
-/** Generate a nonce pair deterministically for use with
- *  secp256k1_schnorr_partial_sign.
- *  Returns: 1: valid nonce pair was generated.
- *           0: otherwise (nonce generation function failed)
- *  Args:    ctx:         pointer to a context object, initialized for signing
- *                        (cannot be NULL)
- *  Out:     pubnonce:    public side of the nonce (cannot be NULL)
- *           privnonce32: private side of the nonce (32 byte) (cannot be NULL)
- *  In:      msg32:       the 32-byte message hash assumed to be signed (cannot
- *                        be NULL)
- *           sec32:       the 32-byte private key (cannot be NULL)
- *           noncefp:     pointer to a nonce generation function. If NULL,
- *                        secp256k1_nonce_function_default is used
- *           noncedata:   pointer to arbitrary data used by the nonce generation
- *                        function (can be NULL)
+/** Produce a 96-byte first stage partial multisignature.
+ *  Returns: 1: a first stage partial signature was created
+ *           0: otherwise (nonce generation failed, invalid private key, or
+ *              a very unlikely unsignable combination)
+ *  Args:    ctx:       pointer to a context object, initialized for signing
+ *                      (cannot be NULL)
+ *  Out:     stage1sig96: pointer to a 96-byte array to store the signature
+ *  In:      msg32:  the 32-byte message hash being signed (cannot be NULL)
+ *           seckey: pointer to a 32-byte secret key (cannot be NULL)
+ *           noncefp:pointer to a nonce generation function. If NULL,
+ *                   secp256k1_nonce_function_default is used
+ *           ndata:  pointer to arbitrary data used by the nonce generation
+ *                   function (can be NULL)
  *
- *  Do not use the output as a private/public key pair for signing/validation.
+ *  Internal details:
+ *    The 96-byte structure consists of:
+ *    - 32-byte serialization of the r that would be used in a normal signature
+ *      of msg32 using key sec32
+ *    - a 64-byte normal signature of SHA256(R || msg32) using key sec32
+ *    Its purpose is simply communicating the nonce that was committed to for
+ *    signing, and proving access to the corresponding private key.
  */
-int secp256k1_schnorr_generate_nonce_pair(
+SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_multisign_stage1(
   const secp256k1_context* ctx,
-  secp256k1_pubkey *pubnonce,
-  unsigned char *privnonce32,
+  unsigned char *stage1sig96,
   const unsigned char *msg32,
   const unsigned char *sec32,
   secp256k1_nonce_function noncefp,
   const void* noncedata
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(6) SECP256K1_ARG_NONNULL(7);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
-/** Produce a partial Schnorr signature, which can be combined using
- *  secp256k1_schnorr_partial_combine, to end up with a full signature that is
- *  verifiable using secp256k1_schnorr_verify.
- *  Returns: 1: signature created succesfully.
- *           0: no valid signature exists with this combination of keys, nonces
- *              and message (chance around 1 in 2^128)
- *          -1: invalid private key, nonce, or public nonces.
- *  Args: ctx:             pointer to context object, initialized for signing (cannot
- *                         be NULL)
- *  Out:  sig64:           pointer to 64-byte array to put partial signature in
- *  In:   msg32:           pointer to 32-byte message to sign
- *        sec32:           pointer to 32-byte private key
- *        pubnonce_others: pointer to pubkey containing the sum of the other's
- *                         nonces (see secp256k1_ec_pubkey_combine)
- *        secnonce32:      pointer to 32-byte array containing our nonce
- *
- * The intended procedure for creating a multiparty signature is:
- * - Each signer S[i] with private key x[i] and public key Q[i] runs
- *   secp256k1_schnorr_generate_nonce_pair to produce a pair (k[i],R[i]) of
- *   private/public nonces.
- * - All signers communicate their public nonces to each other (revealing your
- *   private nonce can lead to discovery of your private key, so it should be
- *   considered secret).
- * - All signers combine all the public nonces they received (excluding their
- *   own) using secp256k1_ec_pubkey_combine to obtain an
- *   Rall[i] = sum(R[0..i-1,i+1..n]).
- * - All signers produce a partial signature using
- *   secp256k1_schnorr_partial_sign, passing in their own private key x[i],
- *   their own private nonce k[i], and the sum of the others' public nonces
- *   Rall[i].
- * - All signers communicate their partial signatures to each other.
- * - Someone combines all partial signatures using
- *   secp256k1_schnorr_partial_combine, to obtain a full signature.
- * - The resulting signature is validatable using secp256k1_schnorr_verify, with
- *   public key equal to the result of secp256k1_ec_pubkey_combine of the
- *   signers' public keys (sum(Q[0..n])).
- *
- *  Note that secp256k1_schnorr_partial_combine and secp256k1_ec_pubkey_combine
- *  function take their arguments in any order, and it is possible to
- *  pre-combine several inputs already with one call, and add more inputs later
- *  by calling the function again (they are commutative and associative).
+/** Produce a 64-byte second partial multisignature, given all first stages.
+ *  Returns: 1: a second stage partial signature was created.
+ *           0: otherwise (nonce generation failed, invalid private key,
+ *              invalid stage1 signatures, or a very unlikely unsignable
+ *              combination)
+ *  Args:    ctx:       pointer to a context object, initialized for signing
+ *                      and verification (cannot be NULL)
+ *  Out:     stage2sig64: pointer to a 64-byte array to store the signature
+ *  In:      msg32:  the 32-byte message hash being signed (cannot be NULL)
+ *           seckey: pointer to a 32-byte secret key (cannot be NULL)
+ *           noncefp:pointer to a nonce generation function. If NULL,
+ *                   secp256k1_nonce_function_default is used
+ *           ndata:  pointer to arbitrary data used by the nonce generation
+ *                   function (can be NULL)
  */
-SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_partial_sign(
+SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_multisign_stage2(
   const secp256k1_context* ctx,
-  unsigned char *sig64,
+  unsigned char *stage2sig64,
+  const unsigned char * const * other_stage1sig96s,
+  size_t num_others,
   const unsigned char *msg32,
+  const secp256k1_pubkey * const *other_pubkeys,
   const unsigned char *sec32,
-  const secp256k1_pubkey *pubnonce_others,
-  const unsigned char *secnonce32
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
+  secp256k1_nonce_function noncefp,
+  const void* noncedata
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(6) SECP256K1_ARG_NONNULL(7);
 
 /** Combine multiple Schnorr partial signatures.
  * Returns: 1: the passed signatures were succesfully combined.
- *          0: the resulting signature is not valid (chance of 1 in 2^256)
- *         -1: some inputs were invalid, or the signatures were not created
- *             using the same set of nonces
+ *          0: the resulting signature is not valid (chance of 1 in 2^256) or the inputs were not created using the same set of keys
  * Args:   ctx:      pointer to a context object
  * Out:    sig64:    pointer to a 64-byte array to place the combined signature
  *                   (cannot be NULL)
@@ -159,10 +136,10 @@ SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_partial_sign(
  *                   signatures
  *         n:        the number of signatures to combine (at least 1)
  */
-SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_partial_combine(
+SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_multisign_combine(
   const secp256k1_context* ctx,
   unsigned char *sig64,
-  const unsigned char * const * sig64sin,
+  const unsigned char * const * stage2sig64s,
   int n
 ) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
