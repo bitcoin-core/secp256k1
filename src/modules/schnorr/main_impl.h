@@ -20,8 +20,9 @@ static void secp256k1_schnorr_msghash_sha256(unsigned char *h32, const unsigned 
 
 static const unsigned char secp256k1_schnorr_algo16[17] = "Schnorr+SHA256  ";
 
-int secp256k1_schnorr_sign(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, const void* noncedata) {
-    secp256k1_scalar sec, non;
+int secp256k1_schnorr_sign(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, const void *ndata) {
+    secp256k1_scalar sec, nonce_mine;
+    secp256k1_ge pubnonce_all;
     int ret = 0;
     int overflow = 0;
     unsigned int count = 0;
@@ -34,26 +35,26 @@ int secp256k1_schnorr_sign(const secp256k1_context* ctx, unsigned char *sig64, c
         noncefp = secp256k1_nonce_function_default;
     }
 
-    secp256k1_scalar_set_b32(&sec, seckey, NULL);
-    while (1) {
+    secp256k1_scalar_set_b32(&sec, seckey, &overflow);
+    ret = !secp256k1_scalar_is_zero(&sec) && !overflow;
+    while (ret) {
         unsigned char nonce32[32];
-        ret = noncefp(nonce32, msg32, seckey, secp256k1_schnorr_algo16, (void*)noncedata, count);
+        ret = noncefp(nonce32, msg32, seckey, secp256k1_schnorr_algo16, (void*)ndata, count);
         if (!ret) {
             break;
         }
-        secp256k1_scalar_set_b32(&non, nonce32, &overflow);
+        ret = secp256k1_schnorr_nonces_set_b32(&ctx->ecmult_gen_ctx, &nonce_mine, &pubnonce_all, nonce32, NULL) &&
+            secp256k1_schnorr_sig_sign(sig64, &sec, &nonce_mine, &pubnonce_all, secp256k1_schnorr_msghash_sha256, msg32);
         memset(nonce32, 0, 32);
-        if (!secp256k1_scalar_is_zero(&non) && !overflow) {
-            if (secp256k1_schnorr_sig_sign(&ctx->ecmult_gen_ctx, sig64, &sec, &non, NULL, secp256k1_schnorr_msghash_sha256, msg32)) {
-                break;
-            }
+        if (ret) {
+            break;
         }
         count++;
     }
     if (!ret) {
         memset(sig64, 0, 64);
     }
-    secp256k1_scalar_clear(&non);
+    secp256k1_scalar_clear(&nonce_mine);
     secp256k1_scalar_clear(&sec);
     return ret;
 }
@@ -88,44 +89,37 @@ int secp256k1_schnorr_recover(const secp256k1_context* ctx, secp256k1_pubkey *pu
     }
 }
 
-static int secp256k1_schnorr_generate_nonce_pair(const secp256k1_context* ctx, secp256k1_ge *pubnonce, unsigned char *privnonce32, const unsigned char *msg32, const unsigned char *sec32, secp256k1_nonce_function noncefp, const void* noncedata) {
+static int secp256k1_schnorr_multisign_generate_nonces(const secp256k1_context* ctx, secp256k1_scalar* nonce_mine, secp256k1_ge *pubnonce_all, const secp256k1_ge *pubnonce_others, const unsigned char *msg32, const unsigned char *sec32, secp256k1_nonce_function noncefp, const void* ndata) {
+    int ret;
     int count = 0;
-    int ret = 1;
-    secp256k1_gej Qj;
-    secp256k1_scalar sec;
 
     if (noncefp == NULL) {
         noncefp = secp256k1_nonce_function_default;
     }
 
-    do {
-        int overflow;
-        ret = noncefp(privnonce32, msg32, sec32, secp256k1_schnorr_algo16, (void*)noncedata, count++);
+    while (1) {
+        unsigned char nonce32[32];
+        ret = noncefp(nonce32, msg32, sec32, secp256k1_schnorr_algo16, (void*)ndata, count);
         if (!ret) {
             break;
         }
-        secp256k1_scalar_set_b32(&sec, privnonce32, &overflow);
-        if (overflow || secp256k1_scalar_is_zero(&sec)) {
-            continue;
+        ret = secp256k1_schnorr_nonces_set_b32(&ctx->ecmult_gen_ctx, nonce_mine, pubnonce_all, nonce32, pubnonce_others);
+        memset(nonce32, 0, 32);
+        if (ret) {
+            break;
         }
-        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &Qj, &sec);
-        secp256k1_ge_set_gej(pubnonce, &Qj);
-        secp256k1_fe_normalize(&pubnonce->y);
-        if (secp256k1_fe_is_odd(&pubnonce->y)) {
-            secp256k1_scalar_negate(&sec, &sec);
-            secp256k1_scalar_get_b32(privnonce32, &sec);
-            secp256k1_ge_neg(pubnonce, pubnonce);
-        }
-        break;
-    } while(1);
+        count++;
+    }
 
-    secp256k1_scalar_clear(&sec);
+    if (!ret) {
+        secp256k1_scalar_clear(nonce_mine);
+    }
     return ret;
 }
 
 int secp256k1_schnorr_multisign_stage1(const secp256k1_context* ctx, unsigned char *stage1, const unsigned char *msg32, const unsigned char *sec32, secp256k1_nonce_function noncefp, const void* noncedata) {
-    secp256k1_ge pubnonce;
-    unsigned char privnonce32[32];
+    secp256k1_scalar nonce_mine;
+    secp256k1_ge pubnonce_mine;
     unsigned char tmphash[32];
     secp256k1_sha256_t sha;
     int ret;
@@ -136,10 +130,10 @@ int secp256k1_schnorr_multisign_stage1(const secp256k1_context* ctx, unsigned ch
     ARG_CHECK(sec32 != NULL);
     ARG_CHECK(stage1 != NULL);
 
-    ret = secp256k1_schnorr_generate_nonce_pair(ctx, &pubnonce, privnonce32, msg32, sec32, noncefp, noncedata);
-    memset(privnonce32, 0, 32);
-    secp256k1_fe_normalize(&pubnonce.x);
-    secp256k1_fe_get_b32(stage1, &pubnonce.x);
+    ret = secp256k1_schnorr_multisign_generate_nonces(ctx, &nonce_mine, &pubnonce_mine, NULL, msg32, sec32, noncefp, noncedata);
+    secp256k1_scalar_clear(&nonce_mine);
+    secp256k1_schnorr_ge_get_b32(stage1, &pubnonce_mine);
+    secp256k1_fe_normalize(&pubnonce_mine.x);
     secp256k1_sha256_initialize(&sha);
     secp256k1_sha256_write(&sha, stage1, 32);
     secp256k1_sha256_write(&sha, msg32, 32);
@@ -155,11 +149,9 @@ int secp256k1_schnorr_multisign_stage1(const secp256k1_context* ctx, unsigned ch
 int secp256k1_schnorr_multisign_stage2(const secp256k1_context* ctx, unsigned char *stage2, const unsigned char * const *other_stage1s, size_t num_others, const unsigned char *msg32, const secp256k1_pubkey * const *other_pubkeys, const unsigned char *sec32, secp256k1_nonce_function noncefp, const void* noncedata) {
     int ret = 1;
     int overflow = 0;
-    secp256k1_scalar sec, non;
-    secp256k1_gej pubnonj;
-    secp256k1_ge pubnon;
-    secp256k1_ge pubnon_mine;
-    unsigned char privnonce32[32];
+    secp256k1_scalar sec, nonce_mine;
+    secp256k1_ge pubnonce_others;
+    secp256k1_ge pubnonce_all;
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
@@ -180,9 +172,10 @@ int secp256k1_schnorr_multisign_stage2(const secp256k1_context* ctx, unsigned ch
     }
 
     if (num_others > 0) {
+        secp256k1_gej pubnoncej_others;
         size_t n = 0;
         while (n < num_others) {
-            secp256k1_fe fex;
+            secp256k1_ge tmppub;
             secp256k1_sha256_t sha;
             unsigned char tmphash[32];
             secp256k1_sha256_initialize(&sha);
@@ -190,27 +183,23 @@ int secp256k1_schnorr_multisign_stage2(const secp256k1_context* ctx, unsigned ch
             secp256k1_sha256_write(&sha, msg32, 32);
             secp256k1_sha256_finalize(&sha, tmphash);
             ret = ret & secp256k1_schnorr_verify(ctx, other_stage1s[n] + 32, tmphash, other_pubkeys[n]);
-            ret = ret & secp256k1_fe_set_b32(&fex, other_stage1s[n]);
-            ret = ret & secp256k1_ge_set_xo_var(&pubnon, &fex, 0);
+            ret = ret & secp256k1_schnorr_ge_set_b32(&tmppub, other_stage1s[n]);
             if (n) {
-                secp256k1_gej_add_ge(&pubnonj, &pubnonj, &pubnon);
+                secp256k1_gej_add_ge(&pubnoncej_others, &pubnoncej_others, &tmppub);
             } else {
-                secp256k1_gej_set_ge(&pubnonj, &pubnon);
+                secp256k1_gej_set_ge(&pubnoncej_others, &tmppub);
             }
             n++;
         }
         if (ret) {
-            secp256k1_ge_set_gej(&pubnon, &pubnonj);
+            secp256k1_ge_set_gej(&pubnonce_others, &pubnoncej_others);
         }
     }
 
-    ret = ret & secp256k1_schnorr_generate_nonce_pair(ctx, &pubnon_mine, privnonce32, msg32, sec32, noncefp, noncedata);
-    secp256k1_scalar_set_b32(&non, privnonce32, &overflow);
-    memset(privnonce32, 0, 32);
-    ret = ret & (overflow == 0) & !secp256k1_scalar_is_zero(&non);
-    ret = ret && secp256k1_schnorr_sig_sign(&ctx->ecmult_gen_ctx, stage2, &sec, &non, num_others > 0 ? &pubnon : NULL, secp256k1_schnorr_msghash_sha256, msg32);
+    ret = ret & secp256k1_schnorr_multisign_generate_nonces(ctx, &nonce_mine, &pubnonce_all, num_others > 0 ? &pubnonce_others : NULL, msg32, sec32, noncefp, noncedata);
+    ret = ret && secp256k1_schnorr_sig_sign(stage2, &sec, &nonce_mine, &pubnonce_all, secp256k1_schnorr_msghash_sha256, msg32);
     secp256k1_scalar_clear(&sec);
-    secp256k1_scalar_clear(&non);
+    secp256k1_scalar_clear(&nonce_mine);
     if (!ret) {
         memset(stage2, 0, 64);
     }
