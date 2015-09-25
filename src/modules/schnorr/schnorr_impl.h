@@ -16,49 +16,6 @@
 #include "ecmult.h"
 #include "ecmult_gen.h"
 
-/**
- * Custom Schnorr-based signature scheme. They support multiparty signing, public key
- * recovery and batch validation.
- *
- * Rationale for verifying R's y coordinate:
- * In order to support batch validation and public key recovery, the full R point must
- * be known to verifiers, rather than just its x coordinate. In order to not risk
- * being more strict in batch validation than normal validation, validators must be
- * required to reject signatures with incorrect y coordinate. This is only possible
- * by including a (relatively slow) field inverse, or a field square root. However,
- * batch validation offers potentially much higher benefits than this cost.
- *
- * Rationale for having an implicit y coordinate oddness:
- * If we commit to having the full R point known to verifiers, there are two mechanism.
- * Either include its oddness in the signature, or give it an implicit fixed value.
- * As the R y coordinate can be flipped by a simple negation of the nonce, we choose the
- * latter, as it comes with nearly zero impact on signing or validation performance, and
- * saves a byte in the signature.
- *
- * Signing:
- *   Inputs: 32-byte message m, 32-byte scalar key x (!=0), 32-byte scalar nonce k (!=0)
- *
- *   Compute point R = k * G. Reject nonce if R's y coordinate is odd (or negate nonce).
- *   Compute 32-byte r, the serialization of R's x coordinate.
- *   Compute scalar h = Hash(r || m). Reject nonce if h == 0 or h >= order.
- *   Compute scalar s = k - h * x.
- *   The signature is (r, s).
- *
- *
- * Verification:
- *   Inputs: 32-byte message m, public key point Q, signature: (32-byte r, scalar s)
- *
- *   Signature is invalid if s >= order.
- *   Signature is invalid if r >= p.
- *   Compute scalar h = Hash(r || m). Signature is invalid if h == 0 or h >= order.
- *   Option 1 (faster for single verification):
- *     Compute point R = h * Q + s * G. Signature is invalid if R is infinity or R's y coordinate is odd.
- *     Signature is valid if the serialization of R's x coordinate equals r.
- *   Option 2 (allows batch validation and pubkey recovery):
- *     Decompress x coordinate r into point R, with odd y coordinate. Fail if R is not on the curve.
- *     Signature is valid if R + h * Q + s * G == 0.
- */
-
 static void secp256k1_schnorr_ge_get_b32(unsigned char *b32, secp256k1_ge* p) {
     secp256k1_fe_normalize(&p->x);
     secp256k1_fe_get_b32(b32, &p->x);

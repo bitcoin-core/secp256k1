@@ -9,7 +9,8 @@ extern "C" {
 
 /** This header file defines an API for a custom EC-Schnorr-SHA256 constructions.
  *  It supports non-malleable 64-byte signatures which support public key
- *  recovery, batch validation, and multiparty signing.
+ *  recovery, batch validation, and multiparty signing. See schnorr.md for more
+ *  details.
  */
 
 /** Create a single party Schnorr signature.
@@ -96,12 +97,6 @@ SECP256K1_API int secp256k1_schnorr_recover(
  *  The purpose of the stage 1 round is establishing a shared public nonce that
  *  all cosigners agree on (without revealing their secret nonces), and proving
  *  access to their private keys.
- *
- *  Internal details:
- *    The 96-byte structure consists of:
- *    - 32-byte serialization of the R.x coordinate that would be used in a
- *      normal signature of msg32 using key sec32
- *    - a 64-byte normal signature of SHA256(R || msg32) using key sec32
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_multisign_stage1(
   const secp256k1_context* ctx,
@@ -142,19 +137,15 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_multisign_stage
  *  result is a full signature (and identical to the one produced by
  *  secp256k1_schnorr_sign, given the same msg32, sec32, noncefp, ndata).
  *
+ *  You must make sure that the keys in other_pubkeys are those of the
+ *  cosigners you're willing to sign with.
+ *
  *  All cosigners must use the same msg32, and the same as in stage1. You must
  *  also use the same noncefp/ndata for your own stage1 and stage2. Other
  *  participants may use different nonce generation, though.
  *
  *  The order of stage 1 signatures in other_stage1sig96s does not matter, but
  *  it must match that of the public keys in other_pubkeys.
- *
- *  Internal details:
- *    The 64-byte structure is equal to that of a final signature:
- *    - 32-byte serialization of the R.x coordinate that will be used by the
- *      final signature.
- *    - 32-byte serialization of the s value, based on the hash of the final
- *      R.x, but using only the value of our own k value.
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_multisign_stage2(
   const secp256k1_context* ctx,
