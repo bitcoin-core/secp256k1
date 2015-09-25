@@ -9,7 +9,8 @@ extern "C" {
 
 /** This header file defines an API for a custom EC-Schnorr-SHA256 constructions.
  *  It supports non-malleable 64-byte signatures which support public key
- *  recovery, batch validation, and multiparty signing.
+ *  recovery, batch validation, and multiparty signing. See schnorr.md for more
+ *  details.
  */
 
 /** Create a single party Schnorr signature.
