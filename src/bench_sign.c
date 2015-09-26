@@ -9,7 +9,7 @@
 #include "bench.h"
 
 typedef struct {
-    secp256k1_context_t* ctx;
+    secp256k1_context* ctx;
     unsigned char msg[32];
     unsigned char key[32];
 } bench_sign_t;
@@ -18,8 +18,12 @@ static void bench_sign_setup(void* arg) {
     int i;
     bench_sign_t *data = (bench_sign_t*)arg;
 
-    for (i = 0; i < 32; i++) data->msg[i] = i + 1;
-    for (i = 0; i < 32; i++) data->key[i] = i + 65;
+    for (i = 0; i < 32; i++) {
+        data->msg[i] = i + 1;
+    }
+    for (i = 0; i < 32; i++) {
+        data->key[i] = i + 65;
+    }
 }
 
 static void bench_sign(void* arg) {
@@ -27,11 +31,11 @@ static void bench_sign(void* arg) {
     bench_sign_t *data = (bench_sign_t*)arg;
 
     unsigned char sig[74];
-    int siglen = 74;
     for (i = 0; i < 20000; i++) {
+        size_t siglen = 74;
         int j;
-        secp256k1_ecdsa_signature_t signature;
-        CHECK(secp256k1_ecdsa_sign(data->ctx, data->msg, &signature, data->key, NULL, NULL));
+        secp256k1_ecdsa_signature signature;
+        CHECK(secp256k1_ecdsa_sign(data->ctx, &signature, data->msg, data->key, NULL, NULL));
         CHECK(secp256k1_ecdsa_signature_serialize_der(data->ctx, sig, &siglen, &signature));
         for (j = 0; j < 32; j++) {
             data->msg[j] = sig[j];

@@ -10,7 +10,7 @@
 #include "bench.h"
 
 typedef struct {
-    secp256k1_context_t *ctx;
+    secp256k1_context *ctx;
     unsigned char msg[32];
     unsigned char sig[64];
 } bench_recover_t;
@@ -18,16 +18,16 @@ typedef struct {
 void bench_recover(void* arg) {
     int i;
     bench_recover_t *data = (bench_recover_t*)arg;
-    secp256k1_pubkey_t pubkey;
+    secp256k1_pubkey pubkey;
     unsigned char pubkeyc[33];
 
     for (i = 0; i < 20000; i++) {
         int j;
-        int pubkeylen = 33;
-        secp256k1_ecdsa_recoverable_signature_t sig;
+        size_t pubkeylen = 33;
+        secp256k1_ecdsa_recoverable_signature sig;
         CHECK(secp256k1_ecdsa_recoverable_signature_parse_compact(data->ctx, &sig, data->sig, i % 2));
-        CHECK(secp256k1_ecdsa_recover(data->ctx, data->msg, &sig, &pubkey));
-        CHECK(secp256k1_ec_pubkey_serialize(data->ctx, pubkeyc, &pubkeylen, &pubkey, 1));
+        CHECK(secp256k1_ecdsa_recover(data->ctx, &pubkey, &sig, data->msg));
+        CHECK(secp256k1_ec_pubkey_serialize(data->ctx, pubkeyc, &pubkeylen, &pubkey, SECP256K1_EC_COMPRESSED));
         for (j = 0; j < 32; j++) {
             data->sig[j + 32] = data->msg[j];    /* Move former message to S. */
             data->msg[j] = data->sig[j];         /* Move former R to message. */
@@ -40,8 +40,12 @@ void bench_recover_setup(void* arg) {
     int i;
     bench_recover_t *data = (bench_recover_t*)arg;
 
-    for (i = 0; i < 32; i++) data->msg[i] = 1 + i;
-    for (i = 0; i < 64; i++) data->sig[i] = 65 + i;
+    for (i = 0; i < 32; i++) {
+        data->msg[i] = 1 + i;
+    }
+    for (i = 0; i < 64; i++) {
+        data->sig[i] = 65 + i;
+    }
 }
 
 int main(void) {

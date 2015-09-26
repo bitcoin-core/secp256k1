@@ -30,15 +30,6 @@ if test x"$ac_cv_prog_cc_c89" = x"no"; then
   AC_MSG_ERROR([c89 compiler support required])
 fi
 
-case $host in
-  *mingw*)
-     use_pkgconfig=no
-     ;;
-   *)
-     use_pkgconfig=yes
-     ;;
-esac
-
 case $host_os in
   *darwin*)
      if  test x$cross_compiling != xyes; then
@@ -83,6 +74,14 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
       CFLAGS="$saved_CFLAGS"
     ])
 
+saved_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -fvisibility=hidden"
+AC_MSG_CHECKING([if ${CC} supports -fvisibility=hidden])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
+    [ AC_MSG_RESULT([yes]) ],
+    [ AC_MSG_RESULT([no])
+      CFLAGS="$saved_CFLAGS"
+    ])
 
 AC_ARG_ENABLE(benchmark,
     AS_HELP_STRING([--enable-benchmark],[compile benchmark (default is no)]),
