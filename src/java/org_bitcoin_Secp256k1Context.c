@@ -5,7 +5,7 @@
 JNIEXPORT jlong JNICALL Java_org_bitcoin_Secp256k1Context_secp256k1_1init_1context 
   (JNIEnv* env, jclass classObject)
 {
-  secp256k1_context_t *ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+  secp256k1_context *ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
 
   (void)classObject;(void)env;
 

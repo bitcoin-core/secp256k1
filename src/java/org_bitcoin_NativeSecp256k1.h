@@ -93,7 +93,7 @@ JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1seckey_1v
  * Signature: (Ljava/nio/ByteBuffer;JI)[[B
  */
 JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1create
-  (JNIEnv *, jclass, jobject, jlong, jint);
+  (JNIEnv *, jclass, jobject, jlong);
 
 /*
  * Class:     org_bitcoin_NativeSecp256k1

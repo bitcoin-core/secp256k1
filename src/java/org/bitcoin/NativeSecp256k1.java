@@ -14,8 +14,7 @@ import static org.bitcoin.NativeSecp256k1Util.*;
  * You can find an example library that can be used for this at
  * https://github.com/sipa/secp256k1
  */
-//TODO fix old methods to support new types and remove stale function args
-//TODO add new methods from, _schnor, _ecdh, and _recovery includes
+//TODO add new methods from, _schnor, _ecdh, and _recovery includes, fix/add tests
 //TODO rebase
 //TODO fixup of travis errors https://travis-ci.org/bitcoin/secp256k1/jobs/79025947
 public class NativeSecp256k1 {
@@ -209,7 +208,7 @@ public class NativeSecp256k1 {
      * @param pubkey ECDSA Public key, 33 or 65 bytes
      */
     
-    public static byte[] computePubkey(byte[] seckey, int compressed) throws AssertFailException{
+    public static byte[] computePubkey(byte[] seckey) throws AssertFailException{
         Preconditions.checkArgument(seckey.length == 32);
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
@@ -225,7 +224,7 @@ public class NativeSecp256k1 {
 
         r.lock();
         try {
-          retByteArray = secp256k1_ec_pubkey_create(byteBuff, Secp256k1Context.getContext(), compressed);
+          retByteArray = secp256k1_ec_pubkey_create(byteBuff, Secp256k1Context.getContext());
         } finally {
           r.unlock();
         }
@@ -545,7 +544,7 @@ public class NativeSecp256k1 {
 
     private static native int secp256k1_ec_seckey_verify(ByteBuffer byteBuff, long context);
 
-    private static native byte[][] secp256k1_ec_pubkey_create(ByteBuffer byteBuff, long context, int compressed);
+    private static native byte[][] secp256k1_ec_pubkey_create(ByteBuffer byteBuff, long context);
 
     private static native byte[][] secp256k1_ec_privkey_export(ByteBuffer byteBuff, long context, int privLen, int compressed);
 
