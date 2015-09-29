@@ -276,6 +276,182 @@ void run_rfc6979_hmac_sha256_tests(void) {
 /***** NUM TESTS *****/
 
 #ifndef USE_NUM_NONE
+/** Convert a scalar to a number. */
+static void secp256k1_scalar_get_num(secp256k1_num *r, const secp256k1_scalar *a) {
+    unsigned char c[32];
+    secp256k1_scalar_get_b32(c, a);
+    secp256k1_num_set_bin(r, c, 32);
+}
+
+/** Check whether a number is zero. */
+static int secp256k1_num_is_zero(const secp256k1_num *a) {
+    return (a->limbs == 1 && a->data[0] == 0);
+}
+
+/** Compare the absolute value of two numbers. */
+static int secp256k1_num_cmp(const secp256k1_num *a, const secp256k1_num *b) {
+    if (a->limbs > b->limbs) {
+        return 1;
+    }
+    if (a->limbs < b->limbs) {
+        return -1;
+    }
+    return mpn_cmp(a->data, b->data, a->limbs);
+}
+
+/** Copy a number. */
+static void secp256k1_num_copy(secp256k1_num *r, const secp256k1_num *a) {
+    *r = *a;
+}
+
+/** Test whether two number are equal (including sign). */
+static int secp256k1_num_eq(const secp256k1_num *a, const secp256k1_num *b) {
+    if (a->limbs > b->limbs) {
+        return 0;
+    }
+    if (a->limbs < b->limbs) {
+        return 0;
+    }
+    if ((a->neg && !secp256k1_num_is_zero(a)) != (b->neg && !secp256k1_num_is_zero(b))) {
+        return 0;
+    }
+    return mpn_cmp(a->data, b->data, a->limbs) == 0;
+}
+
+static void secp256k1_num_add_abs(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b) {
+    mp_limb_t c = mpn_add(r->data, a->data, a->limbs, b->data, b->limbs);
+    r->limbs = a->limbs;
+    if (c != 0) {
+        VERIFY_CHECK(r->limbs < 2*NUM_LIMBS);
+        r->data[r->limbs++] = c;
+    }
+}
+
+static void secp256k1_num_sub_abs(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b) {
+    mp_limb_t c = mpn_sub(r->data, a->data, a->limbs, b->data, b->limbs);
+    VERIFY_CHECK(c == 0);
+    r->limbs = a->limbs;
+    while (r->limbs > 1 && r->data[r->limbs-1]==0) {
+        r->limbs--;
+    }
+}
+
+static void secp256k1_num_subadd(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b, int bneg) {
+    if (!(b->neg ^ bneg ^ a->neg)) { /* a and b have the same sign */
+        r->neg = a->neg;
+        if (a->limbs >= b->limbs) {
+            secp256k1_num_add_abs(r, a, b);
+        } else {
+            secp256k1_num_add_abs(r, b, a);
+        }
+    } else {
+        if (secp256k1_num_cmp(a, b) > 0) {
+            r->neg = a->neg;
+            secp256k1_num_sub_abs(r, a, b);
+        } else {
+            r->neg = b->neg ^ bneg;
+            secp256k1_num_sub_abs(r, b, a);
+        }
+    }
+}
+
+/** Add two (signed) numbers. */
+static void secp256k1_num_add(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b) {
+    secp256k1_num_sanity(a);
+    secp256k1_num_sanity(b);
+    secp256k1_num_subadd(r, a, b, 0);
+}
+
+/** Subtract two (signed) numbers. */
+static void secp256k1_num_sub(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b) {
+    secp256k1_num_sanity(a);
+    secp256k1_num_sanity(b);
+    secp256k1_num_subadd(r, a, b, 1);
+}
+
+/** Multiply two (signed) numbers. */
+static void secp256k1_num_mul(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b) {
+    mp_limb_t tmp[2*NUM_LIMBS+1];
+    secp256k1_num_sanity(a);
+    secp256k1_num_sanity(b);
+
+    VERIFY_CHECK(a->limbs + b->limbs <= 2*NUM_LIMBS+1);
+    if ((a->limbs==1 && a->data[0]==0) || (b->limbs==1 && b->data[0]==0)) {
+        r->limbs = 1;
+        r->neg = 0;
+        r->data[0] = 0;
+        return;
+    }
+    if (a->limbs >= b->limbs) {
+        mpn_mul(tmp, a->data, a->limbs, b->data, b->limbs);
+    } else {
+        mpn_mul(tmp, b->data, b->limbs, a->data, a->limbs);
+    }
+    r->limbs = a->limbs + b->limbs;
+    if (r->limbs > 1 && tmp[r->limbs - 1]==0) {
+        r->limbs--;
+    }
+    VERIFY_CHECK(r->limbs <= 2*NUM_LIMBS);
+    mpn_copyi(r->data, tmp, r->limbs);
+    r->neg = a->neg ^ b->neg;
+    memset(tmp, 0, sizeof(tmp));
+}
+
+/** Replace a number by its remainder modulo m. M's sign is ignored. The result is a number between 0 and m-1,
+    even if r was negative. */
+static void secp256k1_num_mod(secp256k1_num *r, const secp256k1_num *m) {
+    secp256k1_num_sanity(r);
+    secp256k1_num_sanity(m);
+
+    if (r->limbs >= m->limbs) {
+        mp_limb_t t[2*NUM_LIMBS];
+        mpn_tdiv_qr(t, r->data, 0, r->data, r->limbs, m->data, m->limbs);
+        memset(t, 0, sizeof(t));
+        r->limbs = m->limbs;
+        while (r->limbs > 1 && r->data[r->limbs-1]==0) {
+            r->limbs--;
+        }
+    }
+
+    if (r->neg && (r->limbs > 1 || r->data[0] != 0)) {
+        secp256k1_num_sub_abs(r, m, r);
+        r->neg = 0;
+    }
+}
+
+/** Right-shift the passed number by bits bits. */
+static void secp256k1_num_shift(secp256k1_num *r, int bits) {
+    if (bits % GMP_NUMB_BITS) {
+        /* Shift within limbs. */
+        mpn_rshift(r->data, r->data, r->limbs, bits % GMP_NUMB_BITS);
+    }
+    if (bits >= GMP_NUMB_BITS) {
+        int i;
+        /* Shift full limbs. */
+        for (i = 0; i < r->limbs; i++) {
+            int index = i + (bits / GMP_NUMB_BITS);
+            if (index < r->limbs && index < 2*NUM_LIMBS) {
+                r->data[i] = r->data[index];
+            } else {
+                r->data[i] = 0;
+            }
+        }
+    }
+    while (r->limbs>1 && r->data[r->limbs-1]==0) {
+        r->limbs--;
+    }
+}
+
+/** Check whether a number is strictly negative. */
+static int secp256k1_num_is_neg(const secp256k1_num *a) {
+    return (a->limbs > 1 || a->data[0] != 0) && a->neg;
+}
+
+/** Change a number's sign. */
+static void secp256k1_num_negate(secp256k1_num *r) {
+    r->neg ^= 1;
+}
+
 void random_num_negate(secp256k1_num *num) {
     if (secp256k1_rand32() & 1) {
         secp256k1_num_negate(num);
@@ -943,6 +1119,26 @@ void run_sqrt(void) {
 }
 
 /***** GROUP TESTS *****/
+
+static int secp256k1_gej_is_valid_var(const secp256k1_gej *a) {
+    secp256k1_fe y2, x3, z2, z6;
+    if (a->infinity) {
+        return 0;
+    }
+    /** y^2 = x^3 + 7
+     *  (Y/Z^3)^2 = (X/Z^2)^3 + 7
+     *  Y^2 / Z^6 = X^3 / Z^6 + 7
+     *  Y^2 = X^3 + 7*Z^6
+     */
+    secp256k1_fe_sqr(&y2, &a->y);
+    secp256k1_fe_sqr(&x3, &a->x); secp256k1_fe_mul(&x3, &x3, &a->x);
+    secp256k1_fe_sqr(&z2, &a->z);
+    secp256k1_fe_sqr(&z6, &z2); secp256k1_fe_mul(&z6, &z6, &z2);
+    secp256k1_fe_mul_int(&z6, 7);
+    secp256k1_fe_add(&x3, &z6);
+    secp256k1_fe_normalize_weak(&x3);
+    return secp256k1_fe_equal_var(&y2, &x3);
+}
 
 void ge_equals_ge(const secp256k1_ge *a, const secp256k1_ge *b) {
     CHECK(a->infinity == b->infinity);
