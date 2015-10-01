@@ -240,6 +240,16 @@ SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) 
 }
 
 static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
+#if !defined(USE_SCALAR_INV_BUILTIN) && !defined(USE_SCALAR_INV_NUM)
+    /* In case no scalar inverse implementation has been selected,
+       choose one based on num implementation. */
+    #if defined(USE_NUM_GMP)
+        #define USE_SCALAR_INV_NUM 1 /* "NUM" implementation requires GMP */
+    #else
+        #define USE_SCALAR_INV_BUILTIN 1
+    #endif
+#endif
+
 #if defined(USE_SCALAR_INV_BUILTIN)
     secp256k1_scalar_inverse(r, x);
 #elif defined(USE_SCALAR_INV_NUM)

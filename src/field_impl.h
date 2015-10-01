@@ -208,6 +208,16 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 }
 
 static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
+#if !defined(USE_FIELD_INV_BUILTIN) && !defined(USE_FIELD_INV_NUM)
+    /* In case no field inverse implementation has been selected,
+       choose one based on num implementation. */
+    #if defined(USE_NUM_GMP)
+        #define USE_FIELD_INV_NUM 1 /* "NUM" implementation requires GMP */
+    #else
+        #define USE_FIELD_INV_BUILTIN 1
+    #endif
+#endif
+
 #if defined(USE_FIELD_INV_BUILTIN)
     secp256k1_fe_inv(r, a);
 #elif defined(USE_FIELD_INV_NUM)
