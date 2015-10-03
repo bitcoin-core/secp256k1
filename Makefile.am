@@ -107,7 +107,7 @@ $(JAVA_GUAVA):
 if USE_TESTS
 
 check-java: libsecp256k1.la $(JAVA_GUAVA) .stamp-java
-	$(AM_V_at)java -Djava.library.path=".libs/" -cp "$(JAVA_GUAVA):$(JAVAROOT)" $(JAVAORG)/NativeSecp256k1Test
+	$(AM_V_at)java -Djava.library.path="./:./src:./src/.libs:.libs/" -cp "$(JAVA_GUAVA):$(JAVAROOT)" $(JAVAORG)/NativeSecp256k1Test
 
 endif
 endif
