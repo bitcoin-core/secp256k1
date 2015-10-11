@@ -62,27 +62,6 @@ case $host_os in
    ;;
 esac
 
-CFLAGS="$CFLAGS -W"
-
-warn_CFLAGS="-std=c89 -pedantic -Wall -Wextra -Wcast-align -Wnested-externs -Wshadow -Wstrict-prototypes -Wno-unused-function -Wno-long-long -Wno-overlength-strings"
-saved_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $warn_CFLAGS"
-AC_MSG_CHECKING([if ${CC} supports ${warn_CFLAGS}])
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
-    [ AC_MSG_RESULT([yes]) ],
-    [ AC_MSG_RESULT([no])
-      CFLAGS="$saved_CFLAGS"
-    ])
-
-saved_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -fvisibility=hidden"
-AC_MSG_CHECKING([if ${CC} supports -fvisibility=hidden])
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
-    [ AC_MSG_RESULT([yes]) ],
-    [ AC_MSG_RESULT([no])
-      CFLAGS="$saved_CFLAGS"
-    ])
-
 AC_ARG_ENABLE(benchmark,
     AS_HELP_STRING([--enable-benchmark],[compile benchmark (default is no)]),
     [use_benchmark=$enableval],
@@ -129,6 +108,42 @@ AC_ARG_WITH([scalar], [AS_HELP_STRING([--with-scalar=64bit|32bit|auto],
 
 AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|no|auto]
 [Specify assembly optimizations to use. Default is auto])],[req_asm=$withval], [req_asm=auto])
+
+CFLAGS="$CFLAGS -W"
+
+dnl There are a few intentionally unused functions if you are not building with all the bells and whistles.
+warn_unused_CFLAGS="-Wno-unused-function"
+dnl if all modules are enabled and no static precomp, don't add -Wno-unused-function
+if test x"$use_ecmult_static_precomputation" = x"no"; then
+ if test x"$enable_module_ecdh" = x"yes"; then
+  if test x"$enable_module_schnorr" = x"yes"; then
+   if test x"$enable_module_recovery" = x"yes"; then
+    warn_unused_CFLAGS=""
+   fi
+  fi
+ fi
+fi
+
+dnl -Wno-overlength-strings is needed by some versions of clang due to spurious warnings on assembly code.
+warn_CFLAGS="-std=c89 -pedantic -Wall -Wextra -Wcast-align -Wnested-externs -Wshadow -Wstrict-prototypes -Wno-long-long -Wno-overlength-strings $warn_unused_CFLAGS"
+
+saved_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS $warn_CFLAGS"
+AC_MSG_CHECKING([if ${CC} supports ${warn_CFLAGS}])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
+    [ AC_MSG_RESULT([yes]) ],
+    [ AC_MSG_RESULT([no])
+      CFLAGS="$saved_CFLAGS"
+    ])
+
+saved_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -fvisibility=hidden"
+AC_MSG_CHECKING([if ${CC} supports -fvisibility=hidden])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
+    [ AC_MSG_RESULT([yes]) ],
+    [ AC_MSG_RESULT([no])
+      CFLAGS="$saved_CFLAGS"
+    ])
 
 AC_CHECK_TYPES([__int128])
 
