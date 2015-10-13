@@ -40,7 +40,7 @@ static int secp256k1_eckey_pubkey_serialize(secp256k1_ge *elem, unsigned char *p
     secp256k1_fe_normalize_var(&elem->x);
     secp256k1_fe_normalize_var(&elem->y);
     secp256k1_fe_get_b32(&pub[1], &elem->x);
-    if (flags & SECP256K1_EC_COMPRESSED) {
+    if (flags & SECP256K1_EC_COMPRESSED_BIT) {
         *size = 33;
         pub[0] = 0x02 | (secp256k1_fe_is_odd(&elem->y) ? 0x01 : 0x00);
     } else {
@@ -119,7 +119,7 @@ static int secp256k1_eckey_privkey_serialize(const secp256k1_ecmult_gen_context 
         memcpy(ptr, begin, sizeof(begin)); ptr += sizeof(begin);
         secp256k1_scalar_get_b32(ptr, key); ptr += 32;
         memcpy(ptr, middle, sizeof(middle)); ptr += sizeof(middle);
-        if (!secp256k1_eckey_pubkey_serialize(&r, ptr, &pubkeylen, 1)) {
+        if (!secp256k1_eckey_pubkey_serialize(&r, ptr, &pubkeylen, SECP256K1_EC_COMPRESSED)) {
             return 0;
         }
         ptr += pubkeylen;
@@ -145,7 +145,7 @@ static int secp256k1_eckey_privkey_serialize(const secp256k1_ecmult_gen_context 
         memcpy(ptr, begin, sizeof(begin)); ptr += sizeof(begin);
         secp256k1_scalar_get_b32(ptr, key); ptr += 32;
         memcpy(ptr, middle, sizeof(middle)); ptr += sizeof(middle);
-        if (!secp256k1_eckey_pubkey_serialize(&r, ptr, &pubkeylen, 0)) {
+        if (!secp256k1_eckey_pubkey_serialize(&r, ptr, &pubkeylen, SECP256K1_EC_UNCOMPRESSED)) {
             return 0;
         }
         ptr += pubkeylen;
