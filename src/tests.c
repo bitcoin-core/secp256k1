@@ -433,7 +433,6 @@ void run_rand_int(void) {
 
 /***** NUM TESTS *****/
 
-#ifndef USE_NUM_NONE
 void random_num_negate(secp256k1_num *num) {
     if (secp256k1_rand_bits(1)) {
         secp256k1_num_negate(num);
@@ -486,6 +485,7 @@ void test_num_add_sub(void) {
     }
     secp256k1_num_add(&n1p2, &n1, &n2); /* n1p2 = R1 + R2 */
     secp256k1_num_add(&n2p1, &n2, &n1); /* n2p1 = R2 + R1 */
+    CHECK(secp256k1_num_eq(&n1p2, &n2p1));
     secp256k1_num_sub(&n1m2, &n1, &n2); /* n1m2 = R1 - R2 */
     secp256k1_num_sub(&n2m1, &n2, &n1); /* n2m1 = R2 - R1 */
     CHECK(secp256k1_num_eq(&n1p2, &n2p1));
@@ -500,14 +500,34 @@ void test_num_add_sub(void) {
     CHECK(secp256k1_num_eq(&n2p1, &n1));
 }
 
+void test_num_jacobi(void) {
+    secp256k1_scalar sqr;
+    secp256k1_scalar five;  /* five is not a quadratic residue */
+    secp256k1_num order, n;
+
+    /* setup values */
+    random_scalar_order_test(&sqr);
+    secp256k1_scalar_sqr(&sqr, &sqr);
+    secp256k1_scalar_set_int(&five, 5);
+    secp256k1_scalar_order_get_num(&order);
+
+    /* test residue */
+    secp256k1_scalar_get_num(&n, &sqr);
+    CHECK(secp256k1_num_jacobi(&n, &order) == 1);
+    /* test nonresidue */
+    secp256k1_scalar_mul(&sqr, &sqr, &five);
+    secp256k1_scalar_get_num(&n, &sqr);
+    CHECK(secp256k1_num_jacobi(&n, &order) == -1);
+}
+
 void run_num_smalltests(void) {
     int i;
     for (i = 0; i < 100*count; i++) {
         test_num_negate();
         test_num_add_sub();
+        test_num_jacobi();
     }
 }
-#endif
 
 /***** SCALAR TESTS *****/
 
@@ -515,10 +535,8 @@ void scalar_test(void) {
     secp256k1_scalar s;
     secp256k1_scalar s1;
     secp256k1_scalar s2;
-#ifndef USE_NUM_NONE
     secp256k1_num snum, s1num, s2num;
     secp256k1_num order, half_order;
-#endif
     unsigned char c[32];
 
     /* Set 's' to a random scalar, with value 'snum'. */
@@ -531,7 +549,6 @@ void scalar_test(void) {
     random_scalar_order_test(&s2);
     secp256k1_scalar_get_b32(c, &s2);
 
-#ifndef USE_NUM_NONE
     secp256k1_scalar_get_num(&snum, &s);
     secp256k1_scalar_get_num(&s1num, &s1);
     secp256k1_scalar_get_num(&s2num, &s2);
@@ -539,7 +556,6 @@ void scalar_test(void) {
     secp256k1_scalar_order_get_num(&order);
     half_order = order;
     secp256k1_num_shift(&half_order, 1);
-#endif
 
     {
         int i;
@@ -580,7 +596,6 @@ void scalar_test(void) {
         CHECK(secp256k1_scalar_eq(&n, &s));
     }
 
-#ifndef USE_NUM_NONE
     {
         /* Test that adding the scalars together is equal to adding their numbers together modulo the order. */
         secp256k1_num rnum;
@@ -591,23 +606,6 @@ void scalar_test(void) {
         secp256k1_scalar_add(&r, &s, &s2);
         secp256k1_scalar_get_num(&r2num, &r);
         CHECK(secp256k1_num_eq(&rnum, &r2num));
-    }
-
-    {
-        /* Test that multiplying the scalars is equal to multiplying their numbers modulo the order. */
-        secp256k1_scalar r;
-        secp256k1_num r2num;
-        secp256k1_num rnum;
-        secp256k1_num_mul(&rnum, &snum, &s2num);
-        secp256k1_num_mod(&rnum, &order);
-        secp256k1_scalar_mul(&r, &s, &s2);
-        secp256k1_scalar_get_num(&r2num, &r);
-        CHECK(secp256k1_num_eq(&rnum, &r2num));
-        /* The result can only be zero if at least one of the factors was zero. */
-        CHECK(secp256k1_scalar_is_zero(&r) == (secp256k1_scalar_is_zero(&s) || secp256k1_scalar_is_zero(&s2)));
-        /* The results can only be equal to one of the factors if that factor was zero, or the other factor was one. */
-        CHECK(secp256k1_num_eq(&rnum, &snum) == (secp256k1_scalar_is_zero(&s) || secp256k1_scalar_is_one(&s2)));
-        CHECK(secp256k1_num_eq(&rnum, &s2num) == (secp256k1_scalar_is_zero(&s2) || secp256k1_scalar_is_one(&s)));
     }
 
     {
@@ -637,24 +635,6 @@ void scalar_test(void) {
     }
 
     {
-        /* Test secp256k1_scalar_mul_shift_var. */
-        secp256k1_scalar r;
-        secp256k1_num one;
-        secp256k1_num rnum;
-        secp256k1_num rnum2;
-        unsigned char cone[1] = {0x01};
-        unsigned int shift = 256 + secp256k1_rand_int(257);
-        secp256k1_scalar_mul_shift_var(&r, &s1, &s2, shift);
-        secp256k1_num_mul(&rnum, &s1num, &s2num);
-        secp256k1_num_shift(&rnum, shift - 1);
-        secp256k1_num_set_bin(&one, cone, 1);
-        secp256k1_num_add(&rnum, &rnum, &one);
-        secp256k1_num_shift(&rnum, 1);
-        secp256k1_scalar_get_num(&rnum2, &r);
-        CHECK(secp256k1_num_eq(&rnum, &rnum2));
-    }
-
-    {
         /* test secp256k1_scalar_shr_int */
         secp256k1_scalar r;
         int i;
@@ -667,22 +647,17 @@ void scalar_test(void) {
             CHECK(expected == low);
         }
     }
-#endif
 
     {
         /* Test that scalar inverses are equal to the inverse of their number modulo the order. */
         if (!secp256k1_scalar_is_zero(&s)) {
             secp256k1_scalar inv;
-#ifndef USE_NUM_NONE
             secp256k1_num invnum;
             secp256k1_num invnum2;
-#endif
             secp256k1_scalar_inverse(&inv, &s);
-#ifndef USE_NUM_NONE
             secp256k1_num_mod_inverse(&invnum, &snum, &order);
             secp256k1_scalar_get_num(&invnum2, &inv);
             CHECK(secp256k1_num_eq(&invnum, &invnum2));
-#endif
             secp256k1_scalar_mul(&inv, &inv, &s);
             /* Multiplying a scalar with its inverse must result in one. */
             CHECK(secp256k1_scalar_is_one(&inv));
@@ -814,7 +789,6 @@ void run_scalar_tests(void) {
         CHECK(secp256k1_scalar_is_zero(&o));
     }
 
-#ifndef USE_NUM_NONE
     {
         /* A scalar with value of the curve order should be 0. */
         secp256k1_num order;
@@ -827,7 +801,6 @@ void run_scalar_tests(void) {
         CHECK(overflow == 1);
         CHECK(secp256k1_scalar_is_zero(&zero));
     }
-#endif
 
     {
         /* Does check_overflow check catch all ones? */
@@ -2466,12 +2439,21 @@ void run_ecmult_gen_blind(void) {
 /***** ENDOMORPHISH TESTS *****/
 void test_scalar_split(void) {
     secp256k1_scalar full;
-    secp256k1_scalar s1, slam;
+    secp256k1_scalar s1, slam, stmp;
     const unsigned char zero[32] = {0};
     unsigned char tmp[32];
+    secp256k1_scalar lambda = SECP256K1_SCALAR_CONST(
+        0x5363ad4c, 0xc05c30e0, 0xa5261c02, 0x8812645a,
+        0x122e22ea, 0x20816678, 0xdf02967c, 0x1b23bd72
+    );
 
     random_scalar_order_test(&full);
     secp256k1_scalar_split_lambda(&s1, &slam, &full);
+
+    /* check that they are a lambda decomposition */
+    secp256k1_scalar_mul(&stmp, &lambda, &slam);
+    secp256k1_scalar_add(&stmp, &stmp, &s1);
+    CHECK(secp256k1_scalar_eq(&stmp, &full));
 
     /* check that both are <= 128 bits in size */
     if (secp256k1_scalar_is_high(&s1)) {
@@ -4240,10 +4222,8 @@ int main(int argc, char **argv) {
     run_hmac_sha256_tests();
     run_rfc6979_hmac_sha256_tests();
 
-#ifndef USE_NUM_NONE
     /* num tests */
     run_num_smalltests();
-#endif
 
     /* scalar tests */
     run_scalar_tests();

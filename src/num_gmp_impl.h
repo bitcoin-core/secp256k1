@@ -144,6 +144,28 @@ static void secp256k1_num_mod_inverse(secp256k1_num *r, const secp256k1_num *a, 
     memset(v, 0, sizeof(v));
 }
 
+static int secp256k1_num_jacobi(const secp256k1_num *a, const secp256k1_num *b) {
+    int ret;
+    mpz_t ga, gb;
+    secp256k1_num_sanity(a);
+    secp256k1_num_sanity(b);
+    VERIFY_CHECK(!b->neg && (b->limbs > 0) && (b->data[0] & 1));
+
+    mpz_inits(ga, gb, NULL);
+
+    mpz_import(gb, b->limbs, -1, sizeof(mp_limb_t), 0, 0, b->data);
+    mpz_import(ga, a->limbs, -1, sizeof(mp_limb_t), 0, 0, a->data);
+    if (a->neg) {
+        mpz_neg(ga, ga);
+    }
+
+    ret = mpz_jacobi(ga, gb);
+
+    mpz_clears(ga, gb, NULL);
+
+    return ret;
+}
+
 static int secp256k1_num_is_zero(const secp256k1_num *a) {
     return (a->limbs == 1 && a->data[0] == 0);
 }
@@ -204,33 +226,6 @@ static void secp256k1_num_sub(secp256k1_num *r, const secp256k1_num *a, const se
     secp256k1_num_sanity(a);
     secp256k1_num_sanity(b);
     secp256k1_num_subadd(r, a, b, 1);
-}
-
-static void secp256k1_num_mul(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b) {
-    mp_limb_t tmp[2*NUM_LIMBS+1];
-    secp256k1_num_sanity(a);
-    secp256k1_num_sanity(b);
-
-    VERIFY_CHECK(a->limbs + b->limbs <= 2*NUM_LIMBS+1);
-    if ((a->limbs==1 && a->data[0]==0) || (b->limbs==1 && b->data[0]==0)) {
-        r->limbs = 1;
-        r->neg = 0;
-        r->data[0] = 0;
-        return;
-    }
-    if (a->limbs >= b->limbs) {
-        mpn_mul(tmp, a->data, a->limbs, b->data, b->limbs);
-    } else {
-        mpn_mul(tmp, b->data, b->limbs, a->data, a->limbs);
-    }
-    r->limbs = a->limbs + b->limbs;
-    if (r->limbs > 1 && tmp[r->limbs - 1]==0) {
-        r->limbs--;
-    }
-    VERIFY_CHECK(r->limbs <= 2*NUM_LIMBS);
-    mpn_copyi(r->data, tmp, r->limbs);
-    r->neg = a->neg ^ b->neg;
-    memset(tmp, 0, sizeof(tmp));
 }
 
 static void secp256k1_num_shift(secp256k1_num *r, int bits) {

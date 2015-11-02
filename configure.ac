@@ -121,7 +121,7 @@ AC_ARG_ENABLE(module_recovery,
 AC_ARG_WITH([field], [AS_HELP_STRING([--with-field=64bit|32bit|auto],
 [Specify Field Implementation. Default is auto])],[req_field=$withval], [req_field=auto])
 
-AC_ARG_WITH([bignum], [AS_HELP_STRING([--with-bignum=gmp|no|auto],
+AC_ARG_WITH([bignum], [AS_HELP_STRING([--with-bignum=gmp|64bit|32bit|auto],
 [Specify Bignum Implementation. Default is auto])],[req_bignum=$withval], [req_bignum=auto])
 
 AC_ARG_WITH([scalar], [AS_HELP_STRING([--with-scalar=64bit|32bit|auto],
@@ -225,9 +225,14 @@ if test x"$req_bignum" = x"auto"; then
   if test x"$has_gmp" = x"yes"; then
     set_bignum=gmp
   fi
-
+  if test x"$set_field" = x; then
+    SECP_INT128_CHECK
+    if test x"$has_int128" = x"yes"; then
+      set_bignum=64bit
+    fi
+  fi
   if test x"$set_bignum" = x; then
-    set_bignum=no
+    set_bignum=32bit
   fi
 else
   set_bignum=$req_bignum
@@ -238,7 +243,12 @@ else
       AC_MSG_ERROR([gmp bignum explicitly requested but libgmp not available])
     fi
     ;;
-  no)
+  32bit)
+    ;;
+  64bit)
+      if test x"$has_int128" != x"yes"; then
+        AC_MSG_ERROR([64bit bignum explicitly requested but __int128 support is not available])
+      fi
     ;;
   *)
     AC_MSG_ERROR([invalid bignum implementation selection])
@@ -279,10 +289,15 @@ gmp)
   AC_DEFINE(USE_FIELD_INV_NUM, 1, [Define this symbol to use the num-based field inverse implementation])
   AC_DEFINE(USE_SCALAR_INV_NUM, 1, [Define this symbol to use the num-based scalar inverse implementation])
   ;;
-no)
-  AC_DEFINE(USE_NUM_NONE, 1, [Define this symbol to use no num implementation])
-  AC_DEFINE(USE_FIELD_INV_BUILTIN, 1, [Define this symbol to use the native field inverse implementation])
-  AC_DEFINE(USE_SCALAR_INV_BUILTIN, 1, [Define this symbol to use the native scalar inverse implementation])
+32bit)
+  AC_DEFINE(USE_NUM_9X32, 1, [Define this symbol to use the native 32-bit num implementation])
+  AC_DEFINE(USE_FIELD_INV_NUM, 1, [Define this symbol to use the num-based field inverse implementation])
+  AC_DEFINE(USE_SCALAR_INV_NUM, 1, [Define this symbol to use the num-based scalar inverse implementation])
+  ;;
+64bit)
+  AC_DEFINE(USE_NUM_5X64, 1, [Define this symbol to use the native 64-bit num implementation])
+  AC_DEFINE(USE_FIELD_INV_NUM, 1, [Define this symbol to use the num-based field inverse implementation])
+  AC_DEFINE(USE_SCALAR_INV_NUM, 1, [Define this symbol to use the num-based scalar inverse implementation])
   ;;
 *)
   AC_MSG_ERROR([invalid bignum implementation])

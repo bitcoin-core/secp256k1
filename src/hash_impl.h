@@ -8,6 +8,7 @@
 #define _SECP256K1_HASH_IMPL_H_
 
 #include "hash.h"
+#include "util.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -26,12 +27,6 @@
     (d) += t1; \
     (h) = t1 + t2; \
 } while(0)
-
-#ifdef WORDS_BIGENDIAN
-#define BE32(x) (x)
-#else
-#define BE32(p) ((((p) & 0xFF) << 24) | (((p) & 0xFF00) << 8) | (((p) & 0xFF0000) >> 8) | (((p) & 0xFF000000) >> 24))
-#endif
 
 static void secp256k1_sha256_initialize(secp256k1_sha256_t *hash) {
     hash->s[0] = 0x6a09e667ul;

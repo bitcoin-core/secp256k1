@@ -7,14 +7,16 @@
 #ifndef _SECP256K1_NUM_
 #define _SECP256K1_NUM_
 
-#ifndef USE_NUM_NONE
-
 #if defined HAVE_CONFIG_H
 #include "libsecp256k1-config.h"
 #endif
 
 #if defined(USE_NUM_GMP)
 #include "num_gmp.h"
+#elif defined(USE_NUM_5X64)
+#include "num_5x64.h"
+#elif defined(USE_NUM_9X32)
+#include "num_9x32.h"
 #else
 #error "Please select num implementation"
 #endif
@@ -32,6 +34,9 @@ static void secp256k1_num_set_bin(secp256k1_num *r, const unsigned char *a, unsi
 /** Compute a modular inverse. The input must be less than the modulus. */
 static void secp256k1_num_mod_inverse(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *m);
 
+/** Compute the jacobi symbol (a|b). b must be positive and odd. */
+static int secp256k1_num_jacobi(const secp256k1_num *a, const secp256k1_num *b);
+
 /** Compare the absolute value of two numbers. */
 static int secp256k1_num_cmp(const secp256k1_num *a, const secp256k1_num *b);
 
@@ -43,9 +48,6 @@ static void secp256k1_num_add(secp256k1_num *r, const secp256k1_num *a, const se
 
 /** Subtract two (signed) numbers. */
 static void secp256k1_num_sub(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b);
-
-/** Multiply two (signed) numbers. */
-static void secp256k1_num_mul(secp256k1_num *r, const secp256k1_num *a, const secp256k1_num *b);
 
 /** Replace a number by its remainder modulo m. M's sign is ignored. The result is a number between 0 and m-1,
     even if r was negative. */
@@ -62,7 +64,5 @@ static int secp256k1_num_is_neg(const secp256k1_num *a);
 
 /** Change a number's sign. */
 static void secp256k1_num_negate(secp256k1_num *r);
-
-#endif
 
 #endif

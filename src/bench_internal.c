@@ -299,6 +299,19 @@ void bench_context_sign(void* arg) {
     }
 }
 
+void bench_num_jacobi(void* arg) {
+    int i;
+    bench_inv_t *data = (bench_inv_t*)arg;
+    secp256k1_num nx, norder;
+
+    secp256k1_scalar_get_num(&nx, &data->scalar_x);
+    secp256k1_scalar_order_get_num(&norder);
+    secp256k1_scalar_get_num(&norder, &data->scalar_y);
+
+    for (i = 0; i < 200000; i++) {
+        secp256k1_num_jacobi(&nx, &norder);
+    }
+}
 
 int have_flag(int argc, char** argv, char *flag) {
     char** argm = argv + argc;
@@ -350,5 +363,6 @@ int main(int argc, char **argv) {
     if (have_flag(argc, argv, "context") || have_flag(argc, argv, "verify")) run_benchmark("context_verify", bench_context_verify, bench_setup, NULL, &data, 10, 20);
     if (have_flag(argc, argv, "context") || have_flag(argc, argv, "sign")) run_benchmark("context_sign", bench_context_sign, bench_setup, NULL, &data, 10, 200);
 
+    if (have_flag(argc, argv, "num") || have_flag(argc, argv, "jacobi")) run_benchmark("num_jacobi", bench_num_jacobi, bench_setup, NULL, &data, 10, 200000);
     return 0;
 }
