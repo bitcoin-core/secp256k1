@@ -383,25 +383,28 @@ static int secp256k1_num_div_mod(secp256k1_num *rq, secp256k1_num *rr, const sec
      * exceeded our base). This can only happen on the first iteration,
      * so we special-case it here before starting the real algorithm. */
     if (rem_high >= div_high) {
+        /* Our shifting above guarantees us that div_high >= B/2, where B is our
+         * word base. By definitien rem_high < B, as rem_high is one word. So we
+         * have inside this if block that:
+         *     B > rem_high >= div_high >= B/2
+         *
+         * The inner inequality forces q = rem_high/div_high >= 1; then the
+         * outer inequalities force q <= 1. So q always equals 1 here.
+         */
         secp256k1_num sub;
-        secp256k1_num_word q = rem_high / div_high;
+        secp256k1_num_word q = 1;
         secp256k1_num_mul_word_shift(&sub, &div, q, output_idx);
-        /* Correct for error in the quotient. This was a while loop, but as it is
-         * mathematically guaranteed to iterate at most twice, we can unroll it
-         * into a pair of nested ifs. Note that we are guaranteed q > 0 here by
-         * virtue of being in this if block. */
+        /* This said, rem_high/div_high = 1 does not necessarily imply that the
+         * actual quotient is 1. As described in the above block comment, this
+         * is an overshoot of at most 2, i.e. maybe the actual quotient is zero.
+         * In this case our reduction is a no-op! So rather than correcting q,
+         * as we do in the analogous check in the loop below, we do nothing. */
         if (secp256k1_num_cmp (&sub, rr) > 0) {
-            secp256k1_num_sub_shift_word (&sub, &sub, &div, output_idx, i + 1);
-            --q;
-            if (secp256k1_num_cmp (&sub, rr) >= 0) {
-                secp256k1_num_sub_shift_word (&sub, &sub, &div, output_idx, i + 1);
-                --q;
-            }
-        }
-        /* Reduce remainder */
-        secp256k1_num_sub_shift_word(rr, rr, &sub, 0, i + 1);
-        rq->data[output_idx] = q;
-        if (q != 0) {
+            /* Do nothing. */
+        } else {
+            /* Reduce remainder */
+            secp256k1_num_sub_shift_word(rr, rr, &sub, 0, i + 1);
+            rq->data[output_idx] = q;
             ret = output_idx;
         }
     }
