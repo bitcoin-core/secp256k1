@@ -623,4 +623,20 @@ static void secp256k1_ge_mul_lambda(secp256k1_ge *r, const secp256k1_ge *a) {
 }
 #endif
 
+static int secp256k1_gej_has_quad_y_var(const secp256k1_gej *a) {
+    secp256k1_fe yz;
+
+    if (a->infinity) {
+        return 0;
+    }
+
+    /* (Y|p) = (a->y / a->z^3 | p)
+     *       = (a->y / a->z^3 | p) * 1
+     *       = (a->y / a->z^3 | p) * (a->z^4 | p)
+     *       = (a->y * a->z | p)
+     */
+    secp256k1_fe_mul(&yz, &a->y, &a->z);
+    return secp256k1_fe_is_quad_var(&yz);
+}
+
 #endif
