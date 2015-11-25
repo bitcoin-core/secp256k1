@@ -90,7 +90,7 @@ int secp256k1_schnorr_recover(const secp256k1_context* ctx, secp256k1_pubkey *pu
     }
 }
 
-static int secp256k1_multischnorr_generate_key_nonces(const secp256k1_context* ctx, secp256k1_scalar* key_mine, secp256k1_scalar* nonce_mine, secp256k1_ge *pubnonce_all, const secp256k1_ge *pubnonce_others, const unsigned char *msg32, const unsigned char *sec32, secp256k1_nonce_function noncefp, const void* ndata) {
+static int secp256k1_multischnorr_generate_key_nonces(const secp256k1_context* ctx, secp256k1_scalar* key_mine, secp256k1_scalar* nonce_mine, secp256k1_ge *pubnonce_all, const secp256k1_gej *pubnonce_others, const unsigned char *msg32, const unsigned char *sec32, secp256k1_nonce_function noncefp, const void* ndata) {
     unsigned char sec32t[32];
     int ret;
     int count = 0;
@@ -149,7 +149,7 @@ int secp256k1_multischnorr_stage1(const secp256k1_context* ctx, unsigned char *s
 int secp256k1_multischnorr_stage2(const secp256k1_context* ctx, unsigned char *stage2, const unsigned char * const *other_stage1s, size_t num_others, const unsigned char *msg32, const unsigned char *sec32, secp256k1_nonce_function noncefp, const void* noncedata) {
     int ret = 1;
     secp256k1_scalar sec, nonce_mine;
-    secp256k1_ge pubnonce_others;
+    secp256k1_gej pubnoncej_others;
     secp256k1_ge pubnonce_all;
 
     VERIFY_CHECK(ctx != NULL);
@@ -165,7 +165,6 @@ int secp256k1_multischnorr_stage2(const secp256k1_context* ctx, unsigned char *s
     ARG_CHECK(sec32 != NULL);
 
     if (num_others > 0) {
-        secp256k1_gej pubnoncej_others;
         size_t n = 0;
         while (n < num_others) {
             secp256k1_ge tmppub;
@@ -180,12 +179,9 @@ int secp256k1_multischnorr_stage2(const secp256k1_context* ctx, unsigned char *s
             }
             n++;
         }
-        if (ret) {
-            secp256k1_ge_set_gej(&pubnonce_others, &pubnoncej_others);
-        }
     }
 
-    ret = ret && secp256k1_multischnorr_generate_key_nonces(ctx, &sec, &nonce_mine, &pubnonce_all, num_others > 0 ? &pubnonce_others : NULL, msg32, sec32, noncefp, noncedata);
+    ret = ret && secp256k1_multischnorr_generate_key_nonces(ctx, &sec, &nonce_mine, &pubnonce_all, num_others > 0 ? &pubnoncej_others : NULL, msg32, sec32, noncefp, noncedata);
     ret = ret && secp256k1_schnorr_sig_sign(stage2, &sec, &nonce_mine, &pubnonce_all, secp256k1_schnorr_msghash_sha256, msg32);
     secp256k1_scalar_clear(&sec);
     secp256k1_scalar_clear(&nonce_mine);

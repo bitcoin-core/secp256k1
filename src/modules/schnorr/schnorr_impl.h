@@ -26,11 +26,11 @@ static int secp256k1_schnorr_ge_set_b32(secp256k1_ge* p, const unsigned char *b3
     if (!secp256k1_fe_set_b32(&x, b32)) {
         return 0;
     }
-    return secp256k1_ge_set_xo_var(p, &x, 0);
+    return secp256k1_ge_set_xquad_var(p, &x);
 }
 
-/** Computes {priv = +/- (scalar)b32; pub' = priv * G; pub = +-(pub' + pub_others} with pub'.y and pub.y even. */
-static int secp256k1_schnorr_nonces_set_b32(const secp256k1_ecmult_gen_context* ctx, secp256k1_scalar* priv, secp256k1_ge* pub, const unsigned char *b32, const secp256k1_ge* pub_others) {
+/** Computes {priv = +/- (scalar)b32; pub' = priv * G; pub = +-(pub' + pub_others} with pub'.y and pub.y quadratic residues. */
+static int secp256k1_schnorr_nonces_set_b32(const secp256k1_ecmult_gen_context* ctx, secp256k1_scalar* priv, secp256k1_ge* pub, const unsigned char *b32, const secp256k1_gej* pub_others) {
     int overflow = 0;
     int flip = 0;
     secp256k1_gej gej;
@@ -41,31 +41,26 @@ static int secp256k1_schnorr_nonces_set_b32(const secp256k1_ecmult_gen_context* 
         return 0;
     }
     secp256k1_ecmult_gen(ctx, &gej, priv);
-    VERIFY_CHECK(!secp256k1_gej_is_infinity(&gej));
-    secp256k1_ge_set_gej(pub, &gej);
-    secp256k1_fe_normalize(&pub->y);
-    if (secp256k1_fe_is_odd(&pub->y)) {
-        /* our R's y coordinate is odd, which is not allowed (see rationale above).
-           Force it to be even by negating our nonce. */
+    if (secp256k1_gej_is_infinity(&gej)) {
+        return 0;
+    }
+    if (!secp256k1_gej_has_quad_y_var(&gej)) {
+        /* our R's y coordinate is not a quadratic residue, which is not
+           allowed. Force it to be a one by negating our nonce. */
         flip++;
-        if (pub_others != NULL) {
-            secp256k1_gej_neg(&gej, &gej);
-        } else {
-            secp256k1_ge_neg(pub, pub);
-        }
+        secp256k1_gej_neg(&gej, &gej);
     }
     if (pub_others != NULL) {
-        secp256k1_gej_add_ge(&gej, &gej, pub_others);
-        secp256k1_ge_set_gej(pub, &gej);
-        secp256k1_fe_normalize(&pub->y);
-        if (secp256k1_fe_is_odd(&pub->y)) {
-            /* The combined R's y coordinate odd, which is not allowed. Force it
-               to be even by by negating our nonce (and assuming everyone else
+        secp256k1_gej_add_var(&gej, &gej, pub_others, NULL);
+        if (!secp256k1_gej_has_quad_y_var(&gej)) {
+            /* The combined R's y coordinate is not a quadratic residue. Force
+               it to be one by negating our nonce (and assuming everyone else
                does the same). */
             flip++;
-            secp256k1_ge_neg(pub, pub);
+            secp256k1_gej_neg(&gej, &gej);
         }
     }
+    secp256k1_ge_set_gej(pub, &gej);
     if (flip & 1) {
         secp256k1_scalar_negate(priv, priv);
     }
@@ -98,7 +93,6 @@ static int secp256k1_schnorr_sig_sign(unsigned char *sig64, const secp256k1_scal
 
 static int secp256k1_schnorr_sig_verify(const secp256k1_ecmult_context* ctx, const unsigned char *sig64, const secp256k1_ge *pubkey, secp256k1_schnorr_msghash hash, const unsigned char *msg32) {
     secp256k1_gej Qj, Rj;
-    secp256k1_ge Ra;
     secp256k1_fe Rx;
     secp256k1_scalar h, s;
     unsigned char hh[32];
@@ -126,12 +120,10 @@ static int secp256k1_schnorr_sig_verify(const secp256k1_ecmult_context* ctx, con
     if (secp256k1_gej_is_infinity(&Rj)) {
         return 0;
     }
-    secp256k1_ge_set_gej_var(&Ra, &Rj);
-    secp256k1_fe_normalize_var(&Ra.y);
-    if (secp256k1_fe_is_odd(&Ra.y)) {
+    if (!secp256k1_gej_has_quad_y_var(&Rj)) {
         return 0;
     }
-    return secp256k1_fe_equal_var(&Rx, &Ra.x);
+    return secp256k1_gej_eq_x_var(&Rx, &Rj);
 }
 
 static int secp256k1_schnorr_sig_recover(const secp256k1_ecmult_context* ctx, const unsigned char *sig64, secp256k1_ge *pubkey, secp256k1_schnorr_msghash hash, const unsigned char *msg32) {

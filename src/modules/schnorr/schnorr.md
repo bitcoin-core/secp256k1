@@ -30,7 +30,7 @@ Inputs:
 
 Steps:
 * Compute public nonce `R = k * G`.
-* If R.y is odd, negate `k` and `R`.
+* If R.y is not a quadratic residue, negate `k` and `R`.
 * Compute scalar `e = SHA256(R.x || m)`. If `e == 0` or `e >= order`, fail.
 * Compute scalar `s = k - e * x`.
 * The signature is `(R.x, s)`.
@@ -48,7 +48,7 @@ Steps:
 * Compute scalar `e = SHA256(R.x || m)`. Signature is invalid if `e == 0` or
   `e >= order`
 * Compute point `R' = e * Q + s * G`. Signature is invalid if `R'` is infinity
-  or `R'.y` is odd.
+  or `R'.y` is not a quadratic residue.
 * Signature is valid if `R'.x == R.x`.
 
 This method is faster for single signature verification.
@@ -65,9 +65,9 @@ Steps:
 * Signature is invalid if `R.x >= p`.
 * Compute scalar `e = SHA256(R.x || m)`. Signature is invalid if `e == 0` or
   `e >= order`.
-* Decompress `R.x` into point `R'`, with odd `y` coordinate. Fail if `R'` is
-  not on the curve.
-* Signature is valid if `R' + e * Q + s * G == 0`.
+* Decompress `R.x` into point `R'`, such that its `y` coordinate is a quadratic
+  residue. Fail if `R'` is not on the curve.
+* Signature is valid if `R == e * Q + s * G.
 
 As this results in a verification equation that is entirely in the point domain,
 it can be adapted easily for batch verification or public key recovery.
@@ -103,12 +103,12 @@ Inputs:
 Steps:
 * Tweak the private key: multiply `x(i)` by `SHA256(x(i) * G)`.
 * Compute (or reuse from stage 1) public nonce `R(i) = k(i) * G`.
-* If `R(i).y` is odd, negate `k(i)` and `R(i)`.
-* Convert each `R(j).x` coordinate into an `R(j)` point, with even `y`
-  coordinate.
+* If `R(i).y` is not a quadratic residue, negate `k(i)` and `R(i)`.
+* Convert each `R(j).x` coordinate into an `R(j)` point such that its `y`
+  coordinate is a quadratic residue.
 * Compute the sum `R_all(i)` of all the `R(j)` points, including your own
   `R(i)`.
-* If `R_all.y` is odd, negate `k(i)` and `R_all(i)`.
+* If `R_all.y` is not a quadratic residue, negate `k(i)` and `R_all(i)`.
 * Compute scalar `e = SHA256(R_all(i).x || m)`. If `e == 0` or `e >= order`,
   fail.
 * Compute scalar `s(i) = k(i) - e * x`.
@@ -145,11 +145,11 @@ This is only possible by:
   switch from one `y` to the other by negating R, this has negligable
   performance overhead compared to the previous option, and saves one bit.
 
-The mechanism chosen here is to require that the `y` coordinate is even.
-Unfortunately, that does require either a field inverse to compute `y` in a
-normalized form that shows its oddness, or a field square root to recover `R`
-from `R.x`. The potential performance benefit from having batch validation is
-much larger though.
+The mechanism chosen here is to require that the `y` coordinate is a quadratic
+residue (its Legendre symbol modulo the field size has to be one). This is cheap
+to compute, and can be done directly with Jacobian coordinates. Alternative
+symmetry breakers (like requiring `y` to be even, or in the lower half of the
+range) require a (slow) conversion to affine coordinates first.
 
 ##### Multiplying public keys by their hash in multisigning
 
