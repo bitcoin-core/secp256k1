@@ -40,11 +40,14 @@ typedef struct {
 
 #define SECP256K1_GE_STORAGE_CONST_GET(t) SECP256K1_FE_STORAGE_CONST_GET(t.x), SECP256K1_FE_STORAGE_CONST_GET(t.y)
 
-/** Set a group element equal to the point at infinity */
-static void secp256k1_ge_set_infinity(secp256k1_ge *r);
-
 /** Set a group element equal to the point with given X and Y coordinates */
 static void secp256k1_ge_set_xy(secp256k1_ge *r, const secp256k1_fe *x, const secp256k1_fe *y);
+
+/** Set a group element (affine) equal to the point with the given X coordinate
+ *  and a Y coordinate that is a quadratic residue modulo p. The return value
+ *  is true iff a coordinate with the given X coordinate exists.
+ */
+static int secp256k1_ge_set_xquad_var(secp256k1_ge *r, const secp256k1_fe *x);
 
 /** Set a group element (affine) equal to the point with the given X coordinate, and given oddness
  *  for Y. Return value indicates whether the result is valid. */
@@ -78,9 +81,6 @@ static void secp256k1_ge_globalz_set_table_gej(size_t len, secp256k1_ge *r, secp
 
 /** Set a group element (jacobian) equal to the point at infinity. */
 static void secp256k1_gej_set_infinity(secp256k1_gej *r);
-
-/** Set a group element (jacobian) equal to the point with given X and Y coordinates. */
-static void secp256k1_gej_set_xy(secp256k1_gej *r, const secp256k1_fe *x, const secp256k1_fe *y);
 
 /** Set a group element (jacobian) equal to another which is given in affine coordinates. */
 static void secp256k1_gej_set_ge(secp256k1_gej *r, const secp256k1_ge *a);
