@@ -11,8 +11,7 @@ import static org.bitcoin.NativeSecp256k1Util.*;
  */
 public class NativeSecp256k1Test {
 
-    //TODO formatting for 100char wide 
-    //TODO improve comments
+    //TODO improve comments/add more tests
     /**
       * This tests verify() for a valid signature
       */
@@ -61,7 +60,7 @@ public class NativeSecp256k1Test {
 
         result = NativeSecp256k1.secKeyVerify( sec );
         //System.out.println(" TEST " + new BigInteger(1, resultbytes).toString(16));
-        assertEquals( result, false , "testSecKeyVerifyPos");
+        assertEquals( result, false , "testSecKeyVerifyNeg");
     }
 
     /**
@@ -72,7 +71,7 @@ public class NativeSecp256k1Test {
 
         byte[] resultArr = NativeSecp256k1.computePubkey( sec);
         String pubkeyString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
-        assertEquals( pubkeyString , "04C591A8FF19AC9C4E4E5793673B83123437E975285E7B442F4EE2654DFFCA5E2D2103ED494718C697AC9AEBCFD19612E224DB46661011863ED2FC54E71861E2A6" , "Case 7");
+        assertEquals( pubkeyString , "04C591A8FF19AC9C4E4E5793673B83123437E975285E7B442F4EE2654DFFCA5E2D2103ED494718C697AC9AEBCFD19612E224DB46661011863ED2FC54E71861E2A6" , "testPubKeyCreatePos");
     }
 
     /**
@@ -83,7 +82,7 @@ public class NativeSecp256k1Test {
 
        byte[] resultArr = NativeSecp256k1.computePubkey( sec);
        String pubkeyString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
-       assertEquals( pubkeyString, "" , "Case 8");
+       assertEquals( pubkeyString, "" , "testPubKeyCreateNeg");
     }
 
     /**
@@ -96,7 +95,7 @@ public class NativeSecp256k1Test {
 
         byte[] resultArr = NativeSecp256k1.sign(data, sec);
         String sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
-        assertEquals( sigString, "30440220182A108E1448DC8F1FB467D06A0F3BB8EA0533584CB954EF8DA112F1D60E39A202201C66F36DA211C087F3AF88B50EDF4F9BDAA6CF5FD6817E74DCA34DB12390C6E9" , "Case 9");
+        assertEquals( sigString, "30440220182A108E1448DC8F1FB467D06A0F3BB8EA0533584CB954EF8DA112F1D60E39A202201C66F36DA211C087F3AF88B50EDF4F9BDAA6CF5FD6817E74DCA34DB12390C6E9" , "testSignPos");
     }
 
     /**
@@ -108,7 +107,7 @@ public class NativeSecp256k1Test {
 
         byte[] resultArr = NativeSecp256k1.sign(data, sec);
         String sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
-        assertEquals( sigString, "" , "Case 10");
+        assertEquals( sigString, "" , "testSignNeg");
     }
 
     /**
@@ -215,35 +214,7 @@ public class NativeSecp256k1Test {
         assertEquals( result, true, "testRandomize");
     }
 
-    public static void main(String[] args) throws AssertFailException{
-
-      System.out.println("\n libsecp256k1 enabled: " + Secp256k1Context.isEnabled() + "\n");
-
-      if( Secp256k1Context.isEnabled() ) {
-
-        //Test verify() success/fail
-        testVerifyPos();
-        testVerifyNeg();
-
-        //Test secKeyVerify() success/fail
-        testSecKeyVerifyPos();
-        testSecKeyVerifyNeg();
-
-        //Test computePubkey() success/fail
-        //testPubKeyCreatePos(); // TODO Update API
-        //testPubKeyCreatePos(); // TODO Update API
-
-        //Test sign() success/fail
-        //testSignPos(); //TODO update API
-        //testSignNeg(); //TODO update API
-
-        //Test privKeyExport() compressed/uncomp
-        testPrivKeyExportComp();
-        testPrivKeyExportUncomp();
-
-        //Test secKeyImport()/2 
-        testSecKeyImportPos();
-        testSecKeyImportPos2();
+    public static void testRecover() throws AssertFailException {
 
         /* TODO update this with functions from include/secp256k1_recovery.h 
         //Case 17
@@ -260,6 +231,73 @@ public class NativeSecp256k1Test {
         sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
         assertEquals( sigString , "02C591A8FF19AC9C4E4E5793673B83123437E975285E7B442F4EE2654DFFCA5E2D" , "Case 18");
         */
+    }
+
+    public static void testRecoverCompact() throws AssertFailException {
+
+        /* TODO update this with functions from include/secp256k1_recovery.h 
+        //Case 17
+        data = BaseEncoding.base16().lowerCase().decode("CF80CD8AED482D5D1527D7DC72FCEFF84E6326592848447D2DC0B0E87DFC9A91".toLowerCase()); //sha256hash of "testing"
+        sig = BaseEncoding.base16().lowerCase().decode("A33C093C80B84CA1AFBC8974EE3C42FC1CBC966CAE66612593CD1E44646BABFF00CB69703B98B0103AE22C7F9CCADD8DD98F9505BE7A66B1AE459576E930C4F6".toLowerCase());
+        pub = BaseEncoding.base16().lowerCase().decode("040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40".toLowerCase()); 
+        int recid = 1;
+
+        resultArr = NativeSecp256k1.recoverCompact( data , sig , 0, recid );
+        sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
+        assertEquals( sigString , "04C591A8FF19AC9C4E4E5793673B83123437E975285E7B442F4EE2654DFFCA5E2D2103ED494718C697AC9AEBCFD19612E224DB46661011863ED2FC54E71861E2A6" , "Case 17");
+
+        resultArr = NativeSecp256k1.recoverCompact( data , sig , 1, recid );
+        sigString = javax.xml.bind.DatatypeConverter.printHexBinary(resultArr);
+        assertEquals( sigString , "02C591A8FF19AC9C4E4E5793673B83123437E975285E7B442F4EE2654DFFCA5E2D" , "Case 18");
+        */
+    }
+
+    public static void main(String[] args) throws AssertFailException{
+
+
+      System.out.println("\n libsecp256k1 enabled: " + Secp256k1Context.isEnabled() + "\n");
+
+      if( Secp256k1Context.isEnabled() ) {
+
+        //Test verify() success/fail
+        testVerifyPos();
+        testVerifyNeg();
+
+        //Test secKeyVerify() success/fail
+        testSecKeyVerifyPos();
+        testSecKeyVerifyNeg();
+
+        //Test computePubkey() success/fail
+        testPubKeyCreatePos(); 
+        testPubKeyCreateNeg();
+
+        //Test sign() success/fail
+        testSignPos(); 
+        testSignNeg(); 
+
+        //Test privKeyExport() compressed/uncomp
+        //testPrivKeyExportComp(); //Now in /contrib
+        //testPrivKeyExportUncomp(); //Now in /contrib
+
+        //Test secKeyImport()/2 
+        //testSecKeyImportPos();  //Now in /contrib
+        //testSecKeyImportPos2();  //Now in /contrib
+
+        //Test recovery //TODO
+        //testRecoverCompact();
+        //testRecover();
+        //testCreateRecoverable();
+
+        //Test ECDH //TODO
+        //testECDHSecretGen();
+
+        //Test Schnorr (partial support) //TODO
+        //testSchnorrSign
+        //testSchnorrVerify
+        //testSchnorrRecovery
+
+        //Test pubkeyCombine //TODO
+        //test pubkeyCombine
 
         //Test privKeyTweakAdd() 1
         testPrivKeyTweakAdd_1();
@@ -268,10 +306,10 @@ public class NativeSecp256k1Test {
         testPrivKeyTweakMul_1();
 
         //Test privKeyTweakAdd() 3
-        //TODO FIX test testPrivKeyTweakAdd_2();
+        testPrivKeyTweakAdd_2();
 
         //Test privKeyTweakMul() 4
-        //TODO FIX test testPrivKeyTweakMul_2();
+        testPrivKeyTweakMul_2();
 
         //Test randomize()
         testRandomize();

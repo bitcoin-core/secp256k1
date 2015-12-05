@@ -66,10 +66,10 @@ JNIEXPORT void JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1destroy_1cont
 /*
  * Class:     org_bitcoin_NativeSecp256k1
  * Method:    secp256k1_ecdsa_verify
- * Signature: (Ljava/nio/ByteBuffer;J)I
+ * Signature: (Ljava/nio/ByteBuffer;JII)I
  */
 JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1verify
-  (JNIEnv *, jclass, jobject, jlong);
+  (JNIEnv *, jclass, jobject, jlong, jint, jint);
 
 /*
  * Class:     org_bitcoin_NativeSecp256k1
@@ -90,7 +90,7 @@ JNIEXPORT jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1seckey_1v
 /*
  * Class:     org_bitcoin_NativeSecp256k1
  * Method:    secp256k1_ec_pubkey_create
- * Signature: (Ljava/nio/ByteBuffer;JI)[[B
+ * Signature: (Ljava/nio/ByteBuffer;J)[[B
  */
 JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1create
   (JNIEnv *, jclass, jobject, jlong);
@@ -121,18 +121,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa
 
 /*
  * Class:     org_bitcoin_NativeSecp256k1
- * Method:    secp256k1_ecdsa_signature_serialize_der
+ * Method:    secp256k1_ecdsa_signature_normalize
  * Signature: (Ljava/nio/ByteBuffer;J)[[B
  */
-JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1signature_1serialize_1der
-  (JNIEnv *, jclass, jobject, jlong);
-
-/*
- * Class:     org_bitcoin_NativeSecp256k1
- * Method:    secp256k1_ecdsa_signature_serialize_compact
- * Signature: (Ljava/nio/ByteBuffer;J)[[B
- */
-JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1signature_1serialize_1compact
+JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1signature_1normalize
   (JNIEnv *, jclass, jobject, jlong);
 
 /*
@@ -142,14 +134,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa
  */
 JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1parse
   (JNIEnv *, jclass, jobject, jlong, jint);
-
-/*
- * Class:     org_bitcoin_NativeSecp256k1
- * Method:    secp256k1_ecdsa_pubkey_serialize
- * Signature: (Ljava/nio/ByteBuffer;J)[[B
- */
-JNIEXPORT jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1pubkey_1serialize
-  (JNIEnv *, jclass, jobject, jlong);
 
 /*
  * Class:     org_bitcoin_NativeSecp256k1
