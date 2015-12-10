@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <_PropertySheetDisplayName>SECP256K1 Bench Common Settings</_PropertySheetDisplayName>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+  </PropertyGroup>
+
+  <!-- User Interface -->
+
+  <ItemGroup Label="BuildOptionsExtension">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)$(ProjectName).xml" />
+  </ItemGroup>
+
+  <!-- Configuration -->
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <DisableSpecificWarnings>4244;4267;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <EnablePREfast>false</EnablePREfast>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0600;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <!-- These are not standard library imports. The test code reaches into private implementation and as 
+      such the tests require static linkage. For the same reason these symbol defines must match the library build. -->
+      <PreprocessorDefinitions>inline=__inline;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      
+      <PreprocessorDefinitions Condition="'$(Option-gmp)' == ''">USE_NUM_NONE;USE_FIELD_INV_BUILTIN;USE_SCALAR_INV_BUILTIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-gmp)' == 'true'">USE_NUM_GMP;USE_FIELD_INV_NUM;USE_SCALAR_INV_NUM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      
+      <!-- USE_ASM_X86_64 does not compile in VC and requires USE_FIELD_5X52. -->
+      <PreprocessorDefinitions Condition="'$(Option-assembly)' == 'true' And '$(Platform)' == 'x64'">USE_ASM_X86_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      
+      <!-- Either endomorphism or gmp must be specified. -->
+      <PreprocessorDefinitions Condition="'$(Option-endomorphism)' == 'true'">USE_ENDOMORPHISM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      
+      <PreprocessorDefinitions Condition="'$(Option-config)' == 'true'">HAVE_CONFIG_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      
+      <!-- USE_FIELD_5X52 requires uint128_t which is not yet defined in VC or USE_ASM_X86_64. -->
+      <PreprocessorDefinitions Condition="'$(Option-field64)' == ''">USE_FIELD_10X26;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-field64)' == 'true'">USE_FIELD_5X52;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      
+      <!-- USE_SCALAR_4X64 requires uint128_t which is not yet defined in VC. -->
+      <PreprocessorDefinitions Condition="'$(Option-scalar64)' == ''">USE_SCALAR_8X32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Option-scalar64)' == 'true'">USE_SCALAR_4X64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <!-- Dependencies -->
+  
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(SolutionDir)secp256k1.import.props" />
+  </ImportGroup>  
+
+  <PropertyGroup Condition="'$(DefaultLinkage)' == 'dynamic'">
+    <Linkage-secp256k1>static</Linkage-secp256k1>
+    <Linkage-mpir>dynamic</Linkage-mpir>
+    <Linkage-openssl>dynamic</Linkage-openssl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(DefaultLinkage)' == 'ltcg'">
+    <Linkage-secp256k1>ltcg</Linkage-secp256k1>
+    <Linkage-mpir>static</Linkage-mpir>
+    <Linkage-openssl>static</Linkage-openssl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(DefaultLinkage)' == 'static'">
+    <Linkage-secp256k1>static</Linkage-secp256k1>
+    <Linkage-mpir>static</Linkage-mpir>
+    <Linkage-openssl>static</Linkage-openssl>
+  </PropertyGroup>
+
+  <!-- Messages -->
+
+  <Target Name="OptionInfo" BeforeTargets="PrepareForBuild">
+    <Message Text="Option-gmp          : $(Option-gmp)" Importance="high"/>
+    <Message Text="Option-assembly     : $(Option-assembly)" Importance="high"/>
+    <Message Text="Option-endomorphism : $(Option-endomorphism)" Importance="high"/>
+    <Message Text="Option-config       : $(Option-config)" Importance="high"/>
+    <Message Text="Option-field64      : $(Option-field64)" Importance="high"/>
+    <Message Text="Option-scalar64     : $(Option-scalar64)" Importance="high"/>
+    <Message Text="Option-ecdh         : $(Option-ecdh)" Importance="high"/>
+    <Message Text="Option-recovery     : $(Option-recovery)" Importance="high"/>
+    <Message Text="Option-schnorr      : $(Option-schnorr)" Importance="high"/>
+  </Target>
+
+  <Target Name="LinkageInfo" BeforeTargets="PrepareForBuild">
+    <Message Text="Linkage-secp256k1   : $(Linkage-secp256k1)" Importance="high"/>
+    <!--<Message Text="Linkage-mpir        : $(Linkage-mpir)" Importance="high"/>-->
+  </Target>
+  
+  <Target Name="CustomInfo" BeforeTargets="AfterBuild">
+    <Message Condition="'$(DefaultLinkage)' == 'dynamic'" Text="*** SECP256K1 BENCH DOES NOT SUPPORT DYNAMIC LINKAGE ***" Importance="high"/>
+  </Target>  
+
+</Project>
+
+
+

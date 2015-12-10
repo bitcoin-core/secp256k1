@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions xmlns="clr-namespace:Microsoft.Build.Framework.XamlTypes;assembly=Microsoft.Build.Framework">
+  <Rule Name="secp256k1_bench-options-uiextension" PageTemplate="tool" DisplayName="Secp256k1 Bench Options" SwitchPrefix="/" Order="1">
+    <Rule.Categories>
+      <Category Name="gmp" DisplayName="gmp" />
+      <Category Name="assembly" DisplayName="assembly" />
+      <Category Name="endomorphism" DisplayName="endomorphism" />
+      <Category Name="config" DisplayName="config" />
+      <Category Name="field64" DisplayName="field64" />
+      <Category Name="scalar64" DisplayName="scalar64" />
+    </Rule.Categories>
+    <Rule.DataSource>
+      <DataSource Persistence="ProjectFile" ItemType="" />
+    </Rule.DataSource>
+    <EnumProperty Name="Option-gmp" DisplayName="Use GMP Bignum" Description="Use GMP/MPIR for big numbers, otherwise set endomorphism." Category="gmp">
+      <EnumValue Name="" DisplayName="No" />
+      <EnumValue Name="true" DisplayName="Yes" />
+    </EnumProperty>
+    <EnumProperty Name="Option-assembly" DisplayName="Assembler Optimizations" Description="Use x86_64 assembler optimizations, requires field64." Category="assembly">
+      <EnumValue Name="" DisplayName="No" />
+      <EnumValue Name="true" DisplayName="Yes" />
+    </EnumProperty>
+    <EnumProperty Name="Option-config" DisplayName="Include Configuration File" Description="Include 'libsecp256k1-config.h'" Category="config">
+      <EnumValue Name="" DisplayName="No" />
+      <EnumValue Name="true" DisplayName="Yes" />
+    </EnumProperty>
+    <EnumProperty Name="Option-endomorphism" DisplayName="Use Endomorphism" Description="Use secp256k1's efficiently computable endomorphism." Category="endomorphism">
+      <EnumValue Name="" DisplayName="No" />
+      <EnumValue Name="true" DisplayName="Yes" />
+    </EnumProperty>
+    <EnumProperty Name="Option-field64" DisplayName="Use field64" Description="Use field64, requires uint128_t or assembly option." Category="field64">
+      <EnumValue Name="" DisplayName="No" />
+      <EnumValue Name="true" DisplayName="Yes" />
+    </EnumProperty>
+    <EnumProperty Name="Option-scalar64" DisplayName="Use scalar64" Description="Use scalar64, requires uint128_t." Category="scalar64">
+      <EnumValue Name="" DisplayName="No" />
+      <EnumValue Name="true" DisplayName="Yes" />
+    </EnumProperty>
+  </Rule>
+</ProjectSchemaDefinitions>
