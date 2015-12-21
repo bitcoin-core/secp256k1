@@ -15,6 +15,10 @@ Features:
 * Derandomized DSA (via RFC6979 or with a caller provided function.)
 * Very efficient implementation.
 
+Code of Conduct
+----------------------
+See CONDUCT.md.
+
 Implementation details
 ----------------------
 
