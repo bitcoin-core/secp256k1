@@ -1,7 +1,7 @@
 /**********************************************************************
  * Copyright (c) 2015 Pieter Wuille, Andrew Poelstra                  *
  * Distributed under the MIT software license, see the accompanying   *
- * file COPYING or http://www.opensource.org/licenses/mit-license.php.*
+ * file LICENSE or http://www.opensource.org/licenses/mit-license.php.*
  **********************************************************************/
 
 #ifndef _SECP256K1_ECMULT_CONST_IMPL_
