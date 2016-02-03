@@ -12,7 +12,7 @@
 #include "ecmult_gen.h"
 #include "hash_impl.h"
 #ifdef USE_ECMULT_STATIC_PRECOMPUTATION
-#include "ecmult_static_context.h"
+#include <ecmult_static_context.h>
 #endif
 static void secp256k1_ecmult_gen_context_init(secp256k1_ecmult_gen_context *ctx) {
     ctx->prec = NULL;

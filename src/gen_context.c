@@ -33,15 +33,15 @@ int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
 
-    fp = fopen("src/ecmult_static_context.h","w");
+    fp = fopen("ecmult_static_context.h","w");
     if (fp == NULL) {
-        fprintf(stderr, "Could not open src/ecmult_static_context.h for writing!\n");
+        fprintf(stderr, "Could not open ecmult_static_context.h for writing!\n");
         return -1;
     }
     
     fprintf(fp, "#ifndef _SECP256K1_ECMULT_STATIC_CONTEXT_\n");
     fprintf(fp, "#define _SECP256K1_ECMULT_STATIC_CONTEXT_\n");
-    fprintf(fp, "#include \"group.h\"\n");
+    fprintf(fp, "/* user must include group.h before this file */\n");
     fprintf(fp, "#define SC SECP256K1_GE_STORAGE_CONST\n");
     fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_static_context[64][16] = {\n");
 
