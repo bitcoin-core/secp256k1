@@ -35,19 +35,21 @@ int secp256k1_schnorr_sign(const secp256k1_context* ctx, unsigned char *sig64, c
         noncefp = secp256k1_nonce_function_default;
     }
 
-    secp256k1_scalar_set_b32(&sec, seckey, NULL);
-    while (1) {
-        ret = noncefp(nonce32, msg32, seckey, secp256k1_schnorr_algo16, (void*)noncedata, count);
-        if (!ret) {
-            break;
-        }
-        secp256k1_scalar_set_b32(&non, nonce32, &overflow);
-        if (!secp256k1_scalar_is_zero(&non) && !overflow) {
-            if (secp256k1_schnorr_sig_sign(&ctx->ecmult_gen_ctx, sig64, &sec, &non, NULL, secp256k1_schnorr_msghash_sha256, msg32)) {
+    secp256k1_scalar_set_b32(&sec, seckey, &overflow);
+    if (!overflow && !secp256k1_scalar_is_zero(&sec)) {
+        while (1) {
+            ret = noncefp(nonce32, msg32, seckey, secp256k1_schnorr_algo16, (void*)noncedata, count);
+            if (!ret) {
                 break;
             }
+            secp256k1_scalar_set_b32(&non, nonce32, &overflow);
+            if (!overflow && !secp256k1_scalar_is_zero(&non)) {
+                if (secp256k1_schnorr_sig_sign(&ctx->ecmult_gen_ctx, sig64, &sec, &non, NULL, secp256k1_schnorr_msghash_sha256, msg32)) {
+                    break;
+                }
+            }
+            count++;
         }
-        count++;
     }
     if (!ret) {
         memset(sig64, 0, 64);
