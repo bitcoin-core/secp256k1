@@ -150,12 +150,10 @@ static int secp256k1_schnorr_sig_recover(const secp256k1_ecmult_context* ctx, co
     int overflow;
 
     hash(hh, sig64, msg32);
-    overflow = 0;
     secp256k1_scalar_set_b32(&h, hh, &overflow);
     if (overflow || secp256k1_scalar_is_zero(&h)) {
         return 0;
     }
-    overflow = 0;
     secp256k1_scalar_set_b32(&s, sig64 + 32, &overflow);
     if (overflow) {
         return 0;
