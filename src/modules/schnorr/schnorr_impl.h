@@ -16,89 +16,82 @@
 #include "ecmult.h"
 #include "ecmult_gen.h"
 
-/**
- * Custom Schnorr-based signature scheme. They support multiparty signing, public key
- * recovery and batch validation.
- *
- * Rationale for verifying R's y coordinate:
- * In order to support batch validation and public key recovery, the full R point must
- * be known to verifiers, rather than just its x coordinate. In order to not risk
- * being more strict in batch validation than normal validation, validators must be
- * required to reject signatures with incorrect y coordinate. This is only possible
- * by including a (relatively slow) field inverse, or a field square root. However,
- * batch validation offers potentially much higher benefits than this cost.
- *
- * Rationale for having an implicit y coordinate oddness:
- * If we commit to having the full R point known to verifiers, there are two mechanism.
- * Either include its oddness in the signature, or give it an implicit fixed value.
- * As the R y coordinate can be flipped by a simple negation of the nonce, we choose the
- * latter, as it comes with nearly zero impact on signing or validation performance, and
- * saves a byte in the signature.
- *
- * Signing:
- *   Inputs: 32-byte message m, 32-byte scalar key x (!=0), 32-byte scalar nonce k (!=0)
- *
- *   Compute point R = k * G. Reject nonce if R's y coordinate is odd (or negate nonce).
- *   Compute 32-byte r, the serialization of R's x coordinate.
- *   Compute scalar h = Hash(r || m). Reject nonce if h == 0 or h >= order.
- *   Compute scalar s = k - h * x.
- *   The signature is (r, s).
- *
- *
- * Verification:
- *   Inputs: 32-byte message m, public key point Q, signature: (32-byte r, scalar s)
- *
- *   Signature is invalid if s >= order.
- *   Signature is invalid if r >= p.
- *   Compute scalar h = Hash(r || m). Signature is invalid if h == 0 or h >= order.
- *   Option 1 (faster for single verification):
- *     Compute point R = h * Q + s * G. Signature is invalid if R is infinity or R's y coordinate is odd.
- *     Signature is valid if the serialization of R's x coordinate equals r.
- *   Option 2 (allows batch validation and pubkey recovery):
- *     Decompress x coordinate r into point R, with odd y coordinate. Fail if R is not on the curve.
- *     Signature is valid if R + h * Q + s * G == 0.
- */
+static void secp256k1_schnorr_ge_get_b32(unsigned char *b32, secp256k1_ge* p) {
+    secp256k1_fe_normalize(&p->x);
+    secp256k1_fe_get_b32(b32, &p->x);
+}
 
-static int secp256k1_schnorr_sig_sign(const secp256k1_ecmult_gen_context* ctx, unsigned char *sig64, const secp256k1_scalar *key, const secp256k1_scalar *nonce, const secp256k1_ge *pubnonce, secp256k1_schnorr_msghash hash, const unsigned char *msg32) {
-    secp256k1_gej Rj;
-    secp256k1_ge Ra;
+static int secp256k1_schnorr_ge_set_b32(secp256k1_ge* p, const unsigned char *b32) {
+    secp256k1_fe x;
+    if (!secp256k1_fe_set_b32(&x, b32)) {
+        return 0;
+    }
+    return secp256k1_ge_set_xo_var(p, &x, 0);
+}
+
+/** Computes {priv = +/- (scalar)b32; pub' = priv * G; pub = +-(pub' + pub_others} with pub'.y and pub.y even. */
+static int secp256k1_schnorr_nonces_set_b32(const secp256k1_ecmult_gen_context* ctx, secp256k1_scalar* priv, secp256k1_ge* pub, const unsigned char *b32, const secp256k1_ge* pub_others) {
+    int overflow = 0;
+    int flip = 0;
+    secp256k1_gej gej;
+
+    secp256k1_scalar_set_b32(priv, b32, &overflow);
+    if (overflow || secp256k1_scalar_is_zero(priv)) {
+        secp256k1_scalar_clear(priv);
+        return 0;
+    }
+    secp256k1_ecmult_gen(ctx, &gej, priv);
+    VERIFY_CHECK(!secp256k1_gej_is_infinity(&gej));
+    secp256k1_ge_set_gej(pub, &gej);
+    secp256k1_fe_normalize(&pub->y);
+    if (secp256k1_fe_is_odd(&pub->y)) {
+        /* our R's y coordinate is odd, which is not allowed (see rationale above).
+           Force it to be even by negating our nonce. */
+        flip++;
+        if (pub_others != NULL) {
+            secp256k1_gej_neg(&gej, &gej);
+        } else {
+            secp256k1_ge_neg(pub, pub);
+        }
+    }
+    if (pub_others != NULL) {
+        secp256k1_gej_add_ge(&gej, &gej, pub_others);
+        secp256k1_ge_set_gej(pub, &gej);
+        secp256k1_fe_normalize(&pub->y);
+        if (secp256k1_fe_is_odd(&pub->y)) {
+            /* The combined R's y coordinate odd, which is not allowed. Force it
+               to be even by by negating our nonce (and assuming everyone else
+               does the same). */
+            flip++;
+            secp256k1_ge_neg(pub, pub);
+        }
+    }
+    if (flip & 1) {
+        secp256k1_scalar_negate(priv, priv);
+    }
+    return 1;
+}
+
+/** Compute a Schnorr signature given our own nonce, and the sum of everyone's public nonces. */
+static int secp256k1_schnorr_sig_sign(unsigned char *sig64, const secp256k1_scalar *key, const secp256k1_scalar *nonce_mine, const secp256k1_ge *pubnonce_all, secp256k1_schnorr_msghash hash, const unsigned char *msg32) {
+    secp256k1_ge Ra = *pubnonce_all;
     unsigned char h32[32];
     secp256k1_scalar h, s;
     int overflow;
-    secp256k1_scalar n;
 
-    if (secp256k1_scalar_is_zero(key) || secp256k1_scalar_is_zero(nonce)) {
+    if (secp256k1_scalar_is_zero(key)) {
         return 0;
     }
-    n = *nonce;
-
-    secp256k1_ecmult_gen(ctx, &Rj, &n);
-    if (pubnonce != NULL) {
-        secp256k1_gej_add_ge(&Rj, &Rj, pubnonce);
-    }
-    secp256k1_ge_set_gej(&Ra, &Rj);
-    secp256k1_fe_normalize(&Ra.y);
-    if (secp256k1_fe_is_odd(&Ra.y)) {
-        /* R's y coordinate is odd, which is not allowed (see rationale above).
-           Force it to be even by negating the nonce. Note that this even works
-           for multiparty signing, as the R point is known to all participants,
-           which can all decide to flip the sign in unison, resulting in the
-           overall R point to be negated too. */
-        secp256k1_scalar_negate(&n, &n);
-    }
-    secp256k1_fe_normalize(&Ra.x);
-    secp256k1_fe_get_b32(sig64, &Ra.x);
+    secp256k1_schnorr_ge_get_b32(sig64, &Ra);
     hash(h32, sig64, msg32);
     overflow = 0;
     secp256k1_scalar_set_b32(&h, h32, &overflow);
     if (overflow || secp256k1_scalar_is_zero(&h)) {
-        secp256k1_scalar_clear(&n);
         return 0;
     }
     secp256k1_scalar_mul(&s, &h, key);
     secp256k1_scalar_negate(&s, &s);
-    secp256k1_scalar_add(&s, &s, &n);
-    secp256k1_scalar_clear(&n);
+    secp256k1_scalar_add(&s, &s, nonce_mine);
     secp256k1_scalar_get_b32(sig64 + 32, &s);
     return 1;
 }
@@ -144,7 +137,6 @@ static int secp256k1_schnorr_sig_verify(const secp256k1_ecmult_context* ctx, con
 static int secp256k1_schnorr_sig_recover(const secp256k1_ecmult_context* ctx, const unsigned char *sig64, secp256k1_ge *pubkey, secp256k1_schnorr_msghash hash, const unsigned char *msg32) {
     secp256k1_gej Qj, Rj;
     secp256k1_ge Ra;
-    secp256k1_fe Rx;
     secp256k1_scalar h, s;
     unsigned char hh[32];
     int overflow;
@@ -160,10 +152,7 @@ static int secp256k1_schnorr_sig_recover(const secp256k1_ecmult_context* ctx, co
     if (overflow) {
         return 0;
     }
-    if (!secp256k1_fe_set_b32(&Rx, sig64)) {
-        return 0;
-    }
-    if (!secp256k1_ge_set_xo_var(&Ra, &Rx, 0)) {
+    if (!secp256k1_schnorr_ge_set_b32(&Ra, sig64)) {
         return 0;
     }
     secp256k1_gej_set_ge(&Rj, &Ra);
@@ -186,11 +175,11 @@ static int secp256k1_schnorr_sig_combine(unsigned char *sig64, size_t n, const u
         int overflow;
         secp256k1_scalar_set_b32(&si, sig64ins[i] + 32, &overflow);
         if (overflow) {
-            return -1;
+            return 0;
         }
         if (i) {
             if (memcmp(sig64ins[i - 1], sig64ins[i], 32) != 0) {
-                return -1;
+                return 0;
             }
         }
         secp256k1_scalar_add(&s, &s, &si);
@@ -202,6 +191,68 @@ static int secp256k1_schnorr_sig_combine(unsigned char *sig64, size_t n, const u
     secp256k1_scalar_get_b32(sig64 + 32, &s);
     secp256k1_scalar_clear(&s);
     return 1;
+}
+
+static int secp256k1_multischnorr_compute_tweak(secp256k1_scalar* tweak, const secp256k1_ge* pubkey) {
+    secp256k1_ge ge = *pubkey;
+    unsigned char c[33];
+    unsigned char h[32];
+    size_t size = 33;
+    secp256k1_sha256_t sha;
+    int overflow = 0;
+
+    if (!secp256k1_eckey_pubkey_serialize(&ge, c, &size, SECP256K1_EC_COMPRESSED)) {
+        return 0;
+    }
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, c, size);
+    secp256k1_sha256_finalize(&sha, h);
+    secp256k1_scalar_set_b32(tweak, h, &overflow);
+    if (overflow || secp256k1_scalar_is_zero(tweak)) {
+        secp256k1_scalar_clear(tweak);
+        return 0;
+    }
+    return 1;
+}
+
+static int secp256k1_multischnorr_compute_tweaked_privkey(const secp256k1_context* ctx, secp256k1_scalar* key, unsigned char *sec32out, const unsigned char *sec32in) {
+    secp256k1_gej pubj;
+    secp256k1_ge pub;
+    secp256k1_scalar tweak;
+    int overflow = 0;
+    int ret;
+
+    secp256k1_scalar_set_b32(key, sec32in, &overflow);
+    ret = !overflow && !secp256k1_scalar_is_zero(key);
+    if (ret) {
+        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pubj, key);
+        secp256k1_ge_set_gej(&pub, &pubj);
+        ret = secp256k1_multischnorr_compute_tweak(&tweak, &pub);
+    }
+    if (ret) {
+        secp256k1_scalar_mul(key, key, &tweak);
+        secp256k1_scalar_get_b32(sec32out, key);
+    } else {
+        secp256k1_scalar_clear(key);
+        memset(sec32out, 0, 32);
+    }
+    return ret;
+}
+
+static int secp256k1_multischnorr_compute_tweaked_pubkey(const secp256k1_context* ctx, secp256k1_gej* pub_tweaked, const secp256k1_ge* pub) {
+    secp256k1_scalar tweak;
+    static const secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
+    int ret;
+
+    ret = secp256k1_multischnorr_compute_tweak(&tweak, pub);
+    if (ret) {
+        secp256k1_gej_set_ge(pub_tweaked, pub);
+        secp256k1_ecmult(&ctx->ecmult_ctx, pub_tweaked, pub_tweaked, &tweak, &zero);
+    }
+    if (!ret) {
+        secp256k1_gej_clear(pub_tweaked);
+    }
+    return ret;
 }
 
 #endif
