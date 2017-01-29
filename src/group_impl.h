@@ -214,8 +214,13 @@ static void secp256k1_ge_clear(secp256k1_ge *r) {
     secp256k1_fe_clear(&r->y);
 }
 
-static void __attribute__((optimize("O0"))) secp256k1_secure_clear(void *s, size_t n) {
-    (void) memset(s, 0, n);
+typedef void *(*memset_t)(void *, int, size_t);
+
+static volatile memset_t secure_memset = memset;
+
+static void secp256k1_secure_clear(void *s, size_t n) {
+    (void) secure_memset(s, 0, n);
+
 }
 
 static void secp256k1_int_clear(int *r) {
