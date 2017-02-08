@@ -70,7 +70,8 @@
   <PropertyGroup>
     <Option-ecdh>true</Option-ecdh>
     <Option-endomorphism>true</Option-endomorphism>
-    <Option-schnorr>true</Option-schnorr>
+    <Option-schnorr>
+    </Option-schnorr>
     <Option-recovery>true</Option-recovery>
   </PropertyGroup>
   <ItemGroup>
@@ -91,7 +92,7 @@
     <ClInclude Include="..\..\..\..\include\secp256k1.h" />
     <ClInclude Include="..\..\..\..\include\secp256k1_ecdh.h" />
     <ClInclude Include="..\..\..\..\include\secp256k1_recovery.h" />
-    <ClInclude Include="..\..\..\..\include\secp256k1_schnorr.h" />
+    <ClInclude Include="..\..\..\..\src\basic-config.h" />
     <ClInclude Include="..\..\..\..\src\ecdsa.h" />
     <ClInclude Include="..\..\..\..\src\ecdsa_impl.h" />
     <ClInclude Include="..\..\..\..\src\eckey.h" />
@@ -132,6 +133,8 @@
     <ClInclude Include="..\..\..\..\src\scalar_8x32.h" />
     <ClInclude Include="..\..\..\..\src\scalar_8x32_impl.h" />
     <ClInclude Include="..\..\..\..\src\scalar_impl.h" />
+    <ClInclude Include="..\..\..\..\src\scalar_low.h" />
+    <ClInclude Include="..\..\..\..\src\scalar_low_impl.h" />
     <ClInclude Include="..\..\..\..\src\util.h" />
     <ClInclude Include="..\..\resource.h" />
   </ItemGroup>

@@ -16,10 +16,10 @@
     <ClCompile Include="..\..\..\..\src\bench_ecdh.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\bench_schnorr_verify.c">
+    <ClCompile Include="..\..\..\..\src\gen_context.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\gen_context.c">
+    <ClCompile Include="..\..\..\..\src\bench_schnorr_verify.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

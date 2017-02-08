@@ -4,6 +4,9 @@
     <ClCompile Include="..\..\..\..\src\tests.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\tests_exhaustive.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">
