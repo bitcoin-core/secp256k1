@@ -12,6 +12,7 @@ void test_ecdh_api(void) {
     secp256k1_context *tctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
     secp256k1_pubkey point;
     unsigned char res[32];
+    unsigned char raw_res[33];
     unsigned char s_one[32] = { 0 };
     int32_t ecount = 0;
     s_one[31] = 1;
@@ -31,6 +32,14 @@ void test_ecdh_api(void) {
     CHECK(ecount == 3);
     CHECK(secp256k1_ecdh(tctx, res, &point, s_one) == 1);
     CHECK(ecount == 3);
+    CHECK(secp256k1_ecdh_raw(tctx, raw_res, &point, s_one) == 1);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_ecdh_raw(tctx, NULL, &point, s_one) == 0);
+    CHECK(ecount == 4);
+    CHECK(secp256k1_ecdh_raw(tctx, raw_res, NULL, s_one) == 0);
+    CHECK(ecount == 5);
+    CHECK(secp256k1_ecdh_raw(tctx, raw_res, &point, NULL) == 0);
+    CHECK(ecount == 6);
 
     /* Cleanup */
     secp256k1_context_destroy(tctx);
