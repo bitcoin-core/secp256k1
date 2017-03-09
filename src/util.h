@@ -11,6 +11,7 @@
 #include "libsecp256k1-config.h"
 #endif
 
+#include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -75,6 +76,17 @@ static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_
     }
     return ret;
 }
+
+/* Cleanses memory to prevent leaking sensitive info. Won't be optimized out. */
+#ifdef HAVE_EXPLICIT_BZERO
+#define SECP256K1_CLEANSE(v) explicit_bzero(&v, sizeof(v))
+#else
+static SECP256K1_INLINE void secp256k1_cleanse(void *r, size_t n) {
+    void *(*volatile const volatile_memset)(void *, int, size_t) = memset;
+    volatile_memset(r, 0, n);
+}
+#define SECP256K1_CLEANSE(v) secp256k1_cleanse(&(v), sizeof(v))
+#endif
 
 /* Macro for restrict, when available and not in a VERIFY build. */
 #if defined(SECP256K1_BUILD) && defined(VERIFY)

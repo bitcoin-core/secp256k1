@@ -154,6 +154,8 @@ AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto]
 
 AC_CHECK_TYPES([__int128])
 
+AC_CHECK_FUNCS([explicit_bzero])
+
 AC_MSG_CHECKING([for __builtin_expect])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[void myfunc() {__builtin_expect(0,0);}]])],
     [ AC_MSG_RESULT([yes]);AC_DEFINE(HAVE_BUILTIN_EXPECT,1,[Define this symbol if __builtin_expect is available]) ],
