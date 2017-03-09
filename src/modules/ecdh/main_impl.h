@@ -10,43 +10,54 @@
 #include "include/secp256k1_ecdh.h"
 #include "ecmult_const_impl.h"
 
-int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *result, const secp256k1_pubkey *point, const unsigned char *scalar) {
+static int secp256k1_ecdh_raw(const secp256k1_context* ctx, unsigned char *result, const secp256k1_pubkey *point, const unsigned char *scalar) {
     int ret = 0;
     int overflow = 0;
     secp256k1_gej res;
     secp256k1_ge pt;
     secp256k1_scalar s;
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(result != NULL);
-    ARG_CHECK(point != NULL);
-    ARG_CHECK(scalar != NULL);
+    VERIFY_CHECK(result != NULL);
+    VERIFY_CHECK(point != NULL);
+    VERIFY_CHECK(scalar != NULL);
 
     secp256k1_pubkey_load(ctx, &pt, point);
     secp256k1_scalar_set_b32(&s, scalar, &overflow);
     if (overflow || secp256k1_scalar_is_zero(&s)) {
         ret = 0;
     } else {
-        unsigned char compressed_pt[33];
-        secp256k1_sha256_t sha;
-
         secp256k1_ecmult_const(&res, &pt, &s);
         secp256k1_ge_set_gej(&pt, &res);
-        /* Compute a hash of the point in compressed form
+        /* Output the point in compressed form.
          * Note we cannot use secp256k1_eckey_pubkey_serialize here since it does not
          * expect its output to be secret and has a timing sidechannel. */
         secp256k1_fe_normalize(&pt.x);
         secp256k1_fe_normalize(&pt.y);
-        compressed_pt[0] = 0x02 | secp256k1_fe_is_odd(&pt.y);
-        secp256k1_fe_get_b32(&compressed_pt[1], &pt.x);
-
-        secp256k1_sha256_initialize(&sha);
-        secp256k1_sha256_write(&sha, compressed_pt, sizeof(compressed_pt));
-        secp256k1_sha256_finalize(&sha, result);
+        result[0] = 0x02 | secp256k1_fe_is_odd(&pt.y);
+        secp256k1_fe_get_b32(&result[1], &pt.x);
         ret = 1;
     }
 
     secp256k1_scalar_clear(&s);
     return ret;
+}
+
+int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *result, const secp256k1_pubkey *point, const unsigned char *scalar) {
+    unsigned char shared[33];
+    secp256k1_sha256_t sha;
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(result != NULL);
+    ARG_CHECK(point != NULL);
+    ARG_CHECK(scalar != NULL);
+
+    if (!secp256k1_ecdh_raw(ctx, shared, point, scalar)) {
+        return 0;
+    }
+
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, shared, sizeof(shared));
+    secp256k1_sha256_finalize(&sha, result);
+    return 1;
 }
 
 #endif
