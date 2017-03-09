@@ -47,7 +47,7 @@ int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *result, const se
         ret = 1;
     }
 
-    secp256k1_scalar_clear(&s);
+    SECP256K1_CLEANSE(s);
     return ret;
 }
 

@@ -155,9 +155,9 @@ int secp256k1_ecdsa_sign_recoverable(const secp256k1_context* ctx, secp256k1_ecd
             count++;
         }
         memset(nonce32, 0, 32);
-        secp256k1_scalar_clear(&msg);
-        secp256k1_scalar_clear(&non);
-        secp256k1_scalar_clear(&sec);
+        SECP256K1_CLEANSE(msg);
+        SECP256K1_CLEANSE(non);
+        SECP256K1_CLEANSE(sec);
     }
     if (ret) {
         secp256k1_ecdsa_recoverable_signature_save(signature, &r, &s, recid);

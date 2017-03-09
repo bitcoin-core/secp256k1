@@ -116,7 +116,7 @@ static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
     free(ctx->prec);
 #endif
-    secp256k1_scalar_clear(&ctx->blind);
+    SECP256K1_CLEANSE(ctx->blind);
     secp256k1_gej_clear(&ctx->initial);
     ctx->prec = NULL;
 }
@@ -152,7 +152,7 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     }
     bits = 0;
     secp256k1_ge_clear(&add);
-    secp256k1_scalar_clear(&gnb);
+    SECP256K1_CLEANSE(gnb);
 }
 
 /* Setup blinding values for secp256k1_ecmult_gen. */
@@ -203,7 +203,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     secp256k1_scalar_negate(&b, &b);
     ctx->blind = b;
     ctx->initial = gb;
-    secp256k1_scalar_clear(&b);
+    SECP256K1_CLEANSE(b);
     secp256k1_gej_clear(&gb);
 }
 

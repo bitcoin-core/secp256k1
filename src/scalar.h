@@ -23,9 +23,6 @@
 #error "Please select scalar implementation"
 #endif
 
-/** Clear a scalar to prevent the leak of sensitive data. */
-static void secp256k1_scalar_clear(secp256k1_scalar *r);
-
 /** Access bits from a scalar. All requested bits must belong to the same 32-bit limb. */
 static unsigned int secp256k1_scalar_get_bits(const secp256k1_scalar *a, unsigned int offset, unsigned int count);
 
