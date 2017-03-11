@@ -35,7 +35,6 @@ static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
 static void secp256k1_ecmult_gen_context_teardown(secp256k1_ecmult_gen_context* ctx);
 #endif
-static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context* ctx);
 static int secp256k1_ecmult_gen_context_is_built(const secp256k1_ecmult_gen_context* ctx);
 
 /** Multiply with the generator: R = a*G */

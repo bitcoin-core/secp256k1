@@ -118,12 +118,6 @@ static void secp256k1_ecmult_gen_context_teardown(secp256k1_ecmult_gen_context *
 }
 #endif
 
-static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx) {
-    SECP256K1_CLEANSE(ctx->blind);
-    SECP256K1_CLEANSE(ctx->initial);
-    ctx->prec = NULL;
-}
-
 static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp256k1_gej *r, const secp256k1_scalar *gn) {
     secp256k1_ge add;
     secp256k1_ge_storage adds;

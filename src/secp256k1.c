@@ -96,7 +96,7 @@ void secp256k1_context_destroy(secp256k1_context* ctx) {
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
         secp256k1_ecmult_gen_context_teardown(&ctx->ecmult_gen_ctx);
 #endif
-        secp256k1_ecmult_gen_context_clear(&ctx->ecmult_gen_ctx);
+        SECP256K1_CLEANSE(ctx->ecmult_gen_ctx);
 
         free(ctx);
     }

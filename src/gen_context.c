@@ -67,8 +67,8 @@ int main(int argc, char **argv) {
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
     secp256k1_ecmult_gen_context_teardown(&ctx);
 #endif
-    secp256k1_ecmult_gen_context_clear(&ctx);
-    
+    SECP256K1_CLEANSE(ctx);
+
     fprintf(fp, "#undef SC\n");
     fprintf(fp, "#endif\n");
     fclose(fp);
