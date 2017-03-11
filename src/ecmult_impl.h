@@ -217,11 +217,14 @@ static int secp256k1_ecmult_context_is_built(const secp256k1_ecmult_context *ctx
     return ctx->pre_g != NULL;
 }
 
-static void secp256k1_ecmult_context_clear(secp256k1_ecmult_context *ctx) {
+static void secp256k1_ecmult_context_teardown(secp256k1_ecmult_context *ctx) {
     free(ctx->pre_g);
 #ifdef USE_ENDOMORPHISM
     free(ctx->pre_g_128);
 #endif
+}
+
+static void secp256k1_ecmult_context_clear(secp256k1_ecmult_context *ctx) {
     secp256k1_ecmult_context_init(ctx);
 }
 
