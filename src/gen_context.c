@@ -64,6 +64,9 @@ int main(int argc, char **argv) {
         }
     }
     fprintf(fp,"};\n");
+#ifndef USE_ECMULT_STATIC_PRECOMPUTATION
+    secp256k1_ecmult_gen_context_teardown(&ctx);
+#endif
     secp256k1_ecmult_gen_context_clear(&ctx);
     
     fprintf(fp, "#undef SC\n");

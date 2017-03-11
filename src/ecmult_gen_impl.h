@@ -112,10 +112,13 @@ static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst
     }
 }
 
-static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx) {
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
+static void secp256k1_ecmult_gen_context_teardown(secp256k1_ecmult_gen_context *ctx) {
     free(ctx->prec);
+}
 #endif
+
+static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx) {
     SECP256K1_CLEANSE(ctx->blind);
     SECP256K1_CLEANSE(ctx->initial);
     ctx->prec = NULL;
