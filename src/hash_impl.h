@@ -186,7 +186,7 @@ static void secp256k1_hmac_sha256_initialize(secp256k1_hmac_sha256_t *hash, cons
         rkey[n] ^= 0x5c ^ 0x36;
     }
     secp256k1_sha256_write(&hash->inner, rkey, 64);
-    memset(rkey, 0, 64);
+    SECP256K1_CLEANSE(rkey);
 }
 
 static void secp256k1_hmac_sha256_write(secp256k1_hmac_sha256_t *hash, const unsigned char *data, size_t size) {
@@ -197,7 +197,7 @@ static void secp256k1_hmac_sha256_finalize(secp256k1_hmac_sha256_t *hash, unsign
     unsigned char temp[32];
     secp256k1_sha256_finalize(&hash->inner, temp);
     secp256k1_sha256_write(&hash->outer, temp, 32);
-    memset(temp, 0, 32);
+    SECP256K1_CLEANSE(temp);
     secp256k1_sha256_finalize(&hash->outer, out32);
 }
 
