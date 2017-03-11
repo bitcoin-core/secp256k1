@@ -147,7 +147,7 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
         secp256k1_ge_from_storage(&add, &adds);
         secp256k1_gej_add_ge(r, r, &add);
     }
-    bits = 0;
+    SECP256K1_CLEANSE(bits);
     SECP256K1_CLEANSE(add);
     SECP256K1_CLEANSE(gnb);
 }
