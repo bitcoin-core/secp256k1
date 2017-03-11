@@ -224,10 +224,6 @@ static void secp256k1_ecmult_context_teardown(secp256k1_ecmult_context *ctx) {
 #endif
 }
 
-static void secp256k1_ecmult_context_clear(secp256k1_ecmult_context *ctx) {
-    secp256k1_ecmult_context_init(ctx);
-}
-
 /** Convert a number to WNAF notation. The number becomes represented by sum(2^i * wnaf[i], i=0..bits),
  *  with the following guarantees:
  *  - each wnaf[i] is either 0, or an odd integer between -(1<<(w-1) - 1) and (1<<(w-1) - 1)
