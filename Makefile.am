@@ -8,6 +8,7 @@ else
 JNI_LIB =
 endif
 include_HEADERS = include/secp256k1.h
+include_HEADERS += include/secp256k1_sha256.h
 noinst_HEADERS =
 noinst_HEADERS += src/scalar.h
 noinst_HEADERS += src/scalar_4x64.h
@@ -44,7 +45,6 @@ noinst_HEADERS += src/java/org_bitcoin_Secp256k1Context.h
 noinst_HEADERS += src/util.h
 noinst_HEADERS += src/testrand.h
 noinst_HEADERS += src/testrand_impl.h
-noinst_HEADERS += src/hash.h
 noinst_HEADERS += src/hash_impl.h
 noinst_HEADERS += src/field.h
 noinst_HEADERS += src/field_impl.h

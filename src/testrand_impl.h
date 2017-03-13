@@ -11,7 +11,7 @@
 #include <string.h>
 
 #include "testrand.h"
-#include "hash.h"
+#include "include/secp256k1_sha256.h"
 
 static secp256k1_rfc6979_hmac_sha256_t secp256k1_test_rng;
 static uint32_t secp256k1_test_rng_precomputed[8];
