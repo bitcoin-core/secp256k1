@@ -37,6 +37,11 @@ public class NativeSecp256k1Util{
         System.out.println("PASS: " + message);
     }
 
+    public static void checkInvariant(boolean result) throws IllegalArgumentException {
+        if (!result) throw new IllegalArgumentException();
+    }
+
+
     public static class AssertFailException extends Exception {
       public AssertFailException(String message) {
         super( message );

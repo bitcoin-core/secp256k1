@@ -101,7 +101,7 @@ SECP256K1_API jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1e
  * Method:    secp256k1_ec_pubkey_parse
  * Signature: (Ljava/nio/ByteBuffer;JI)[[B
  */
-SECP256K1_API jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1parse
+SECP256K1_API jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1parse
   (JNIEnv *, jclass, jobject, jlong, jint);
 
 /*

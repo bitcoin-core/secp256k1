@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import java.math.BigInteger;
-import com.google.common.base.Preconditions;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import static org.bitcoin.NativeSecp256k1Util.*;
@@ -29,7 +28,7 @@ import static org.bitcoin.NativeSecp256k1Util.*;
 /**
  * <p>This class holds native methods to handle ECDSA verification.</p>
  *
- * <p>You can find an example library that can be used for this at https://github.com/bitcoin/secp256k1</p>
+ * <p>You can find an example library that can be used for this at https://github.com/bitcoin-core/secp256k1</p>
  *
  * <p>To build secp256k1 for use with bitcoinj, run
  * `./configure --enable-jni --enable-experimental --enable-module-ecdh`
@@ -276,13 +275,42 @@ public class NativeSecp256k1 {
     }
 
     /**
+     * libsecp256k1 checks if a pubkey is valid
+     * [[https://github.com/bitcoin-core/secp256k1/blob/0f9e69db555ea35b90f49fa48925c366261452ec/src/secp256k1.c#L150]]
+     * @param pubkey
+     * @return
+     */
+    public static boolean isValidPubKey(byte[] pubkey) {
+        if (!(pubkey.length == 33 || pubkey.length == 65)) {
+            return false;
+        }
+        final int expectedLen = pubkey.length;
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null || byteBuff.capacity() < pubkey.length) {
+            byteBuff = ByteBuffer.allocateDirect(pubkey.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(pubkey);
+
+        r.lock();
+        try {
+            return secp256k1_ec_pubkey_parse(byteBuff,Secp256k1Context.getContext(),expectedLen) == 1;
+        } finally {
+            r.unlock();
+        }
+    }
+
+
+    /**
      * libsecp256k1 PubKey Tweak-Add - Tweak pubkey by adding to it
      *
      * @param tweak some bytes to tweak with
      * @param pubkey 32-byte seckey
      */
     public static byte[] pubKeyTweakAdd(byte[] pubkey, byte[] tweak, boolean fCompressed) throws AssertFailException{
-        checkInvariant(pubkey.length == 33 || pubkey.length == 65);
+        checkInvariant((pubkey.length == 33 && fCompressed) || (pubkey.length == 65 && !fCompressed));
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
         if (byteBuff == null || byteBuff.capacity() < pubkey.length + tweak.length) {
@@ -321,7 +349,7 @@ public class NativeSecp256k1 {
      * @param pubkey 32-byte seckey
      */
     public static byte[] pubKeyTweakMul(byte[] pubkey, byte[] tweak, boolean fCompressed) throws AssertFailException{
-        checkInvariant(pubkey.length == 33 || pubkey.length == 65);
+        checkInvariant((pubkey.length == 33 && fCompressed) || (pubkey.length == 65 && !fCompressed));
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
         if (byteBuff == null || byteBuff.capacity() < pubkey.length + tweak.length) {
@@ -436,14 +464,9 @@ public class NativeSecp256k1 {
 
     private static native byte[][] secp256k1_ec_pubkey_create(ByteBuffer byteBuff, long context, boolean fCompressed);
 
-    private static native byte[][] secp256k1_ec_pubkey_parse(ByteBuffer byteBuff, long context, int inputLen);
+    private static native int secp256k1_ec_pubkey_parse(ByteBuffer byteBuff, long context, int inputLen);
 
     private static native byte[][] secp256k1_ecdh(ByteBuffer byteBuff, long context, int inputLen);
-
-
-    private static void checkInvariant(boolean result) throws IllegalArgumentException {
-        if (!result) throw new IllegalArgumentException();
-    }
 
 }
 
