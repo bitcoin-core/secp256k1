@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <time.h>
 
@@ -135,6 +136,7 @@ void random_scalar_order(secp256k1_scalar *num) {
 
 void run_context_tests(void) {
     secp256k1_pubkey pubkey;
+    secp256k1_pubkey zero_pubkey;
     secp256k1_ecdsa_signature sig;
     unsigned char ctmp[32];
     int32_t ecount;
@@ -148,6 +150,8 @@ void run_context_tests(void) {
     secp256k1_ge pub;
     secp256k1_scalar msg, key, nonce;
     secp256k1_scalar sigr, sigs;
+
+    memset(&zero_pubkey, 0, sizeof(zero_pubkey));
 
     ecount = 0;
     ecount2 = 10;
@@ -201,12 +205,20 @@ void run_context_tests(void) {
     CHECK(ecount == 2);
     CHECK(secp256k1_ec_pubkey_tweak_mul(sign, &pubkey, ctmp) == 0);
     CHECK(ecount2 == 13);
-    CHECK(secp256k1_ec_pubkey_tweak_mul(vrfy, &pubkey, ctmp) == 1);
+    CHECK(secp256k1_ec_pubkey_negate(vrfy, &pubkey) == 1);
     CHECK(ecount == 2);
-    CHECK(secp256k1_context_randomize(vrfy, ctmp) == 0);
+    CHECK(secp256k1_ec_pubkey_negate(sign, &pubkey) == 1);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_ec_pubkey_negate(sign, NULL) == 0);
+    CHECK(ecount2 == 14);
+    CHECK(secp256k1_ec_pubkey_negate(vrfy, &zero_pubkey) == 0);
     CHECK(ecount == 3);
+    CHECK(secp256k1_ec_pubkey_tweak_mul(vrfy, &pubkey, ctmp) == 1);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_context_randomize(vrfy, ctmp) == 0);
+    CHECK(ecount == 4);
     CHECK(secp256k1_context_randomize(sign, NULL) == 1);
-    CHECK(ecount2 == 13);
+    CHECK(ecount2 == 14);
     secp256k1_context_set_illegal_callback(vrfy, NULL, NULL);
     secp256k1_context_set_illegal_callback(sign, NULL, NULL);
 
@@ -3436,6 +3448,7 @@ void test_ecdsa_end_to_end(void) {
     unsigned char pubkeyc[65];
     size_t pubkeyclen = 65;
     secp256k1_pubkey pubkey;
+    secp256k1_pubkey pubkey_tmp;
     unsigned char seckey[300];
     size_t seckeylen = 300;
 
@@ -3456,6 +3469,13 @@ void test_ecdsa_end_to_end(void) {
     CHECK(secp256k1_ec_pubkey_serialize(ctx, pubkeyc, &pubkeyclen, &pubkey, secp256k1_rand_bits(1) == 1 ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED));
     memset(&pubkey, 0, sizeof(pubkey));
     CHECK(secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkeyc, pubkeyclen) == 1);
+
+    /* Verify negation changes the key and changes it back */
+    memcpy(&pubkey_tmp, &pubkey, sizeof(pubkey));
+    CHECK(secp256k1_ec_pubkey_negate(ctx, &pubkey_tmp) == 1);
+    CHECK(memcmp(&pubkey_tmp, &pubkey, sizeof(pubkey)) != 0);
+    CHECK(secp256k1_ec_pubkey_negate(ctx, &pubkey_tmp) == 1);
+    CHECK(memcmp(&pubkey_tmp, &pubkey, sizeof(pubkey)) == 0);
 
     /* Verify private key import and export. */
     CHECK(ec_privkey_export_der(ctx, seckey, &seckeylen, privkey, secp256k1_rand_bits(1) == 1));
