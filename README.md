@@ -59,3 +59,14 @@ libsecp256k1 is built using autotools:
     $ make
     $ ./tests
     $ sudo make install  # optional
+
+Bindings
+--------
+
+- Go: [toxeus/go-secp256k1](https://github.com/toxeus/go-secp256k1)
+- Haskell: [haskoin/secp256k1-haskell](https://github.com/haskoin/secp256k1-haskell)
+- JavaScript: [cryptocoinjs/secp256k1-node](https://github.com/cryptocoinjs/secp256k1-node)
+- PHP: [Bit-Wasp/secp256k1-php](https://github.com/Bit-Wasp/secp256k1-php)
+- Python: [ludbb/secp256k1-py](https://github.com/ludbb/secp256k1-py)
+- Ruby: [DavidEGrayson/secp256k1-rb](https://github.com/DavidEGrayson/secp256k1-rb) [GemHQ/secp256k1-rb](https://github.com/GemHQ/secp256k1-rb)
+- Rust: [dpc/bitcoin-secp256k1-rs](https://github.com/dpc/bitcoin-secp256k1-rs)
