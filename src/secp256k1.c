@@ -158,7 +158,7 @@ int secp256k1_ec_pubkey_parse(const secp256k1_context* ctx, secp256k1_pubkey* pu
         return 0;
     }
     secp256k1_pubkey_save(pubkey, &Q);
-    secp256k1_ge_clear(&Q);
+    SECP256K1_CLEANSE(Q);
     return 1;
 }
 
