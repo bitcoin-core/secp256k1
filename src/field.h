@@ -55,9 +55,6 @@ static void secp256k1_fe_set_int(secp256k1_fe *r, int a);
 /** Sets a field element equal to zero, initializing all fields. */
 static void secp256k1_fe_set_zero(secp256k1_fe *a);
 
-/** Clear a field element to prevent leaking sensitive information. */
-static void secp256k1_fe_clear(secp256k1_fe *a);
-
 /** Verify whether a field element is zero. Requires the input to be normalized. */
 static int secp256k1_fe_is_zero(const secp256k1_fe *a);
 

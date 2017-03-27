@@ -264,17 +264,6 @@ SECP256K1_INLINE static void secp256k1_fe_set_zero(secp256k1_fe *a) {
     }
 }
 
-SECP256K1_INLINE static void secp256k1_fe_clear(secp256k1_fe *a) {
-    int i;
-#ifdef VERIFY
-    a->magnitude = 0;
-    a->normalized = 0;
-#endif
-    for (i=0; i<5; i++) {
-        a->n[i] = 0;
-    }
-}
-
 static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
     int i;
 #ifdef VERIFY

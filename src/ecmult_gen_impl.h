@@ -190,7 +190,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     } while (retry); /* This branch true is cryptographically unreachable. Requires sha256_hmac output > Fp. */
     /* Randomize the projection to defend against multiplier sidechannels. */
     secp256k1_gej_rescale(&ctx->initial, &s);
-    secp256k1_fe_clear(&s);
+    SECP256K1_CLEANSE(s);
     do {
         secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
         secp256k1_scalar_set_b32(&b, nonce32, &retry);
