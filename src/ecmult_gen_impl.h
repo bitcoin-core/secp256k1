@@ -117,7 +117,7 @@ static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx
     free(ctx->prec);
 #endif
     SECP256K1_CLEANSE(ctx->blind);
-    secp256k1_gej_clear(&ctx->initial);
+    SECP256K1_CLEANSE(ctx->initial);
     ctx->prec = NULL;
 }
 
@@ -204,7 +204,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     ctx->blind = b;
     ctx->initial = gb;
     SECP256K1_CLEANSE(b);
-    secp256k1_gej_clear(&gb);
+    SECP256K1_CLEANSE(gb);
 }
 
 #endif

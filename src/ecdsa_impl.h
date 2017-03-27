@@ -298,7 +298,7 @@ static int secp256k1_ecdsa_sig_sign(const secp256k1_ecmult_gen_context *ctx, sec
     secp256k1_scalar_inverse(sigs, nonce);
     secp256k1_scalar_mul(sigs, sigs, &n);
     SECP256K1_CLEANSE(n);
-    secp256k1_gej_clear(&rp);
+    SECP256K1_CLEANSE(rp);
     SECP256K1_CLEANSE(r);
     if (secp256k1_scalar_is_zero(sigs)) {
         return 0;

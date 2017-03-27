@@ -123,9 +123,6 @@ static void secp256k1_gej_add_zinv_var(secp256k1_gej *r, const secp256k1_gej *a,
 static void secp256k1_ge_mul_lambda(secp256k1_ge *r, const secp256k1_ge *a);
 #endif
 
-/** Clear a secp256k1_gej to prevent leaking sensitive information. */
-static void secp256k1_gej_clear(secp256k1_gej *r);
-
 /** Convert a group element to the storage type. */
 static void secp256k1_ge_to_storage(secp256k1_ge_storage *r, const secp256k1_ge *a);
 
