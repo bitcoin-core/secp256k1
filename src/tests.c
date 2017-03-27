@@ -75,7 +75,7 @@ void random_field_element_magnitude(secp256k1_fe *fe) {
     if (n == 0) {
         return;
     }
-    secp256k1_fe_clear(&zero);
+    secp256k1_fe_set_zero(&zero);
     secp256k1_fe_negate(&zero, &zero, 0);
     secp256k1_fe_mul_int(&zero, n - 1);
     secp256k1_fe_add(fe, &zero);
