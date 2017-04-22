@@ -1,0 +1,94 @@
+#!/usr/bin/make -f
+
+#export DH_VERBOSE=1
+export DEB_HOST_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+export DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
+# FOR AUTOCONF 2.52 AND NEWER ONLY
+ifeq ($(DEB_BUILD_GNU_TYPE), $(DEB_HOST_GNU_TYPE))
+  confflags += --build $(DEB_HOST_GNU_TYPE)
+else
+  confflags += --build $(DEB_BUILD_GNU_TYPE) --host $(DEB_HOST_GNU_TYPE)
+endif
+
+confflags += --libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH)
+
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+	autoreconf -i
+	./configure $(confflags) --prefix=/usr
+	touch configure-stamp
+
+build: build-arch
+
+build-all: build-arch build-indep
+
+build-arch: configure-stamp build-arch-stamp
+build-arch-stamp:
+	dh_testdir
+	$(MAKE)
+ifeq ($(DEB_BUILD_GNU_TYPE), $(DEB_HOST_GNU_TYPE))
+	$(MAKE) check
+endif
+	touch build-arch-stamp
+
+build-indep: build-indep-stamp
+	dh_testdir
+	touch build-indep-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	[ ! -f Makefile ] || $(MAKE) distclean
+	rm -f build-arch-stamp build-indep-stamp configure-stamp
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs usr/lib -plibsecp256k10
+	dh_installdirs -plibsecp256k1-dev
+	$(MAKE) install DESTDIR=`pwd`/debian/tmp
+	dh_install --sourcedir=debian/tmp --list-missing
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+#	dh_testversion
+	dh_testdir
+	dh_testroot
+#	dh_installdebconf
+	dh_installdocs -p libsecp256k1-dev -A README.md COPYING
+	dh_installdocs -p libsecp256k10
+#	dh_installexamples
+	dh_installmenu
+#	dh_installemacsen
+#	dh_installpam
+#	dh_installinit
+	dh_installcron
+#	dh_installmanpages
+	dh_installinfo
+	dh_installmime
+#	dh_undocumented
+#	dh_installchangelogs -p libsecp256k1-dev ChangeLog
+#	dh_installchangelogs -p libsecp256k10 ChangeLog
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_makeshlibs -p libsecp256k10 -V 'libsecp256k10'
+	dh_installdeb
+#	dh_perl
+	dh_shlibdeps -L libsecp256k1 -l debian/libsecp256k1/usr/lib/$(DEB_HOST_MULTIARCH)/ -X /usr/lib/$(DEB_HOST_MULTIARCH)/secp256k1.h
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure

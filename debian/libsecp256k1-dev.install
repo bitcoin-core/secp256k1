@@ -1,0 +1,3 @@
+usr/include/secp256k1.h
+usr/lib/*/lib*.a
+usr/lib/*/lib*.so
