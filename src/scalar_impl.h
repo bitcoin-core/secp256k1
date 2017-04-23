@@ -69,18 +69,19 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
     /* First compute xN as x ^ (2^N - 1) for some values of N,
      * and uM as x ^ M for some values of M. */
     secp256k1_scalar x2, x3, x6, x8, x14, x28, x56, x112, x126;
-    secp256k1_scalar u2, u5;
+    secp256k1_scalar u2, u5, u9, u11, u13;
 
     secp256k1_scalar_sqr(&u2, x);
     secp256k1_scalar_mul(&x2, &u2,  x);
     secp256k1_scalar_mul(&u5, &u2, &x2);
     secp256k1_scalar_mul(&x3, &u5,  &u2);
+    secp256k1_scalar_mul(&u9, &x3, &u2);
+    secp256k1_scalar_mul(&u11, &u9, &u2);
+    secp256k1_scalar_mul(&u13, &u11, &u2);
 
-    secp256k1_scalar_sqr(&x6, &x3);
-    for (i = 0; i < 2; i++) {
-        secp256k1_scalar_sqr(&x6, &x6);
-    }
-    secp256k1_scalar_mul(&x6, &x6, &x3);
+    secp256k1_scalar_sqr(&x6, &u13);
+    secp256k1_scalar_sqr(&x6, &x6);
+    secp256k1_scalar_mul(&x6, &x6, &u11);
 
     secp256k1_scalar_sqr(&x8, &x6);
     secp256k1_scalar_sqr(&x8, &x8);
@@ -130,18 +131,14 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
         secp256k1_scalar_sqr(t, t);
     }
     secp256k1_scalar_mul(t, t, &u5); /* 101 */
-    for (i = 0; i < 2; i++) { /* 0 */
+    for (i = 0; i < 5; i++) { /* 0 */
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, x); /* 1 */
-    for (i = 0; i < 4; i++) { /* 0 */
+    secp256k1_scalar_mul(t, t, &u11); /* 1011 */
+    for (i = 0; i < 4; i++) {
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, &x3); /* 111 */
-    for (i = 0; i < 3; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x2); /* 11 */
+    secp256k1_scalar_mul(t, t, &u11); /* 1011 */
     for (i = 0; i < 4; i++) { /* 0 */
         secp256k1_scalar_sqr(t, t);
     }
@@ -150,26 +147,22 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
         secp256k1_scalar_sqr(t, t);
     }
     secp256k1_scalar_mul(t, t, &x3); /* 111 */
-    for (i = 0; i < 4; i++) { /* 00 */
+    for (i = 0; i < 6; i++) { /* 00 */
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, &x2); /* 11 */
+    secp256k1_scalar_mul(t, t, &u13); /* 1101 */
     for (i = 0; i < 4; i++) { /* 0 */
         secp256k1_scalar_sqr(t, t);
     }
     secp256k1_scalar_mul(t, t, &u5); /* 101 */
-    for (i = 0; i < 4; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x3); /* 111 */
     for (i = 0; i < 3; i++) {
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, &u5); /* 101 */
-    for (i = 0; i < 3; i++) { /* 00 */
+    secp256k1_scalar_mul(t, t, &x3); /* 111 */
+    for (i = 0; i < 5; i++) { /* 0 */
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, x); /* 1 */
+    secp256k1_scalar_mul(t, t, &u9); /* 1001 */
     for (i = 0; i < 6; i++) { /* 000 */
         secp256k1_scalar_sqr(t, t);
     }
@@ -186,50 +179,34 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
         secp256k1_scalar_sqr(t, t);
     }
     secp256k1_scalar_mul(t, t, &x8); /* 11111111 */
-    for (i = 0; i < 2; i++) { /* 0 */
+    for (i = 0; i < 5; i++) { /* 0 */
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, x); /* 1 */
-    for (i = 0; i < 3; i++) { /* 00 */
+    secp256k1_scalar_mul(t, t, &u9); /* 1001 */
+    for (i = 0; i < 6; i++) { /* 00 */
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, x); /* 1 */
-    for (i = 0; i < 3; i++) { /* 00 */
+    secp256k1_scalar_mul(t, t, &u11); /* 1011 */
+    for (i = 0; i < 4; i++) {
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, x); /* 1 */
-    for (i = 0; i < 4; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x3); /* 111 */
-    for (i = 0; i < 3; i++) {
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u5); /* 101 */
-    for (i = 0; i < 5; i++) { /* 000 */
+    secp256k1_scalar_mul(t, t, &u13); /* 1101 */
+    for (i = 0; i < 5; i++) {
         secp256k1_scalar_sqr(t, t);
     }
     secp256k1_scalar_mul(t, t, &x2); /* 11 */
-    for (i = 0; i < 4; i++) { /* 00 */
+    for (i = 0; i < 6; i++) { /* 00 */
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, &x2); /* 11 */
-    for (i = 0; i < 2; i++) { /* 0 */
+    secp256k1_scalar_mul(t, t, &u13); /* 1101 */
+    for (i = 0; i < 10; i++) { /* 000000 */
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, x); /* 1 */
-    for (i = 0; i < 8; i++) { /* 000000 */
+    secp256k1_scalar_mul(t, t, &u13); /* 1101 */
+    for (i = 0; i < 4; i++) {
         secp256k1_scalar_sqr(t, t);
     }
-    secp256k1_scalar_mul(t, t, &x2); /* 11 */
-    for (i = 0; i < 3; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x2); /* 11 */
-    for (i = 0; i < 3; i++) { /* 00 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, x); /* 1 */
+    secp256k1_scalar_mul(t, t, &u9); /* 1001 */
     for (i = 0; i < 6; i++) { /* 00000 */
         secp256k1_scalar_sqr(t, t);
     }
