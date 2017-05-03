@@ -4403,10 +4403,6 @@ void run_ecdsa_openssl(void) {
 # include "modules/ecdh/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_SCHNORR
-# include "modules/schnorr/tests_impl.h"
-#endif
-
 #ifdef ENABLE_MODULE_RECOVERY
 # include "modules/recovery/tests_impl.h"
 #endif
@@ -4522,11 +4518,6 @@ int main(int argc, char **argv) {
     run_ecdsa_edge_cases();
 #ifdef ENABLE_OPENSSL_TESTS
     run_ecdsa_openssl();
-#endif
-
-#ifdef ENABLE_MODULE_SCHNORR
-    /* Schnorr tests */
-    run_schnorr_tests();
 #endif
 
 #ifdef ENABLE_MODULE_RECOVERY
