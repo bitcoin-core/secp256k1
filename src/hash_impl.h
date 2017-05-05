@@ -7,7 +7,7 @@
 #ifndef _SECP256K1_HASH_IMPL_H_
 #define _SECP256K1_HASH_IMPL_H_
 
-#include "hash.h"
+#include "include/secp256k1_sha256.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -33,7 +33,7 @@
 #define BE32(p) ((((p) & 0xFF) << 24) | (((p) & 0xFF00) << 8) | (((p) & 0xFF0000) >> 8) | (((p) & 0xFF000000) >> 24))
 #endif
 
-static void secp256k1_sha256_initialize(secp256k1_sha256_t *hash) {
+void secp256k1_sha256_initialize(secp256k1_sha256_t *hash) {
     hash->s[0] = 0x6a09e667ul;
     hash->s[1] = 0xbb67ae85ul;
     hash->s[2] = 0x3c6ef372ul;
@@ -128,7 +128,7 @@ static void secp256k1_sha256_transform(uint32_t* s, const uint32_t* chunk) {
     s[7] += h;
 }
 
-static void secp256k1_sha256_write(secp256k1_sha256_t *hash, const unsigned char *data, size_t len) {
+void secp256k1_sha256_write(secp256k1_sha256_t *hash, const unsigned char *data, size_t len) {
     size_t bufsize = hash->bytes & 0x3F;
     hash->bytes += len;
     while (bufsize + len >= 64) {
@@ -145,7 +145,7 @@ static void secp256k1_sha256_write(secp256k1_sha256_t *hash, const unsigned char
     }
 }
 
-static void secp256k1_sha256_finalize(secp256k1_sha256_t *hash, unsigned char *out32) {
+void secp256k1_sha256_finalize(secp256k1_sha256_t *hash, unsigned char *out32) {
     static const unsigned char pad[64] = {0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     uint32_t sizedesc[2];
     uint32_t out[8];
@@ -161,7 +161,7 @@ static void secp256k1_sha256_finalize(secp256k1_sha256_t *hash, unsigned char *o
     memcpy(out32, (const unsigned char*)out, 32);
 }
 
-static void secp256k1_hmac_sha256_initialize(secp256k1_hmac_sha256_t *hash, const unsigned char *key, size_t keylen) {
+void secp256k1_hmac_sha256_initialize(secp256k1_hmac_sha256_t *hash, const unsigned char *key, size_t keylen) {
     int n;
     unsigned char rkey[64];
     if (keylen <= 64) {
@@ -189,11 +189,11 @@ static void secp256k1_hmac_sha256_initialize(secp256k1_hmac_sha256_t *hash, cons
     memset(rkey, 0, 64);
 }
 
-static void secp256k1_hmac_sha256_write(secp256k1_hmac_sha256_t *hash, const unsigned char *data, size_t size) {
+void secp256k1_hmac_sha256_write(secp256k1_hmac_sha256_t *hash, const unsigned char *data, size_t size) {
     secp256k1_sha256_write(&hash->inner, data, size);
 }
 
-static void secp256k1_hmac_sha256_finalize(secp256k1_hmac_sha256_t *hash, unsigned char *out32) {
+void secp256k1_hmac_sha256_finalize(secp256k1_hmac_sha256_t *hash, unsigned char *out32) {
     unsigned char temp[32];
     secp256k1_sha256_finalize(&hash->inner, temp);
     secp256k1_sha256_write(&hash->outer, temp, 32);
@@ -202,7 +202,7 @@ static void secp256k1_hmac_sha256_finalize(secp256k1_hmac_sha256_t *hash, unsign
 }
 
 
-static void secp256k1_rfc6979_hmac_sha256_initialize(secp256k1_rfc6979_hmac_sha256_t *rng, const unsigned char *key, size_t keylen) {
+void secp256k1_rfc6979_hmac_sha256_initialize(secp256k1_rfc6979_hmac_sha256_t *rng, const unsigned char *key, size_t keylen) {
     secp256k1_hmac_sha256_t hmac;
     static const unsigned char zero[1] = {0x00};
     static const unsigned char one[1] = {0x01};
@@ -232,7 +232,7 @@ static void secp256k1_rfc6979_hmac_sha256_initialize(secp256k1_rfc6979_hmac_sha2
     rng->retry = 0;
 }
 
-static void secp256k1_rfc6979_hmac_sha256_generate(secp256k1_rfc6979_hmac_sha256_t *rng, unsigned char *out, size_t outlen) {
+void secp256k1_rfc6979_hmac_sha256_generate(secp256k1_rfc6979_hmac_sha256_t *rng, unsigned char *out, size_t outlen) {
     /* RFC6979 3.2.h. */
     static const unsigned char zero[1] = {0x00};
     if (rng->retry) {
@@ -263,7 +263,7 @@ static void secp256k1_rfc6979_hmac_sha256_generate(secp256k1_rfc6979_hmac_sha256
     rng->retry = 1;
 }
 
-static void secp256k1_rfc6979_hmac_sha256_finalize(secp256k1_rfc6979_hmac_sha256_t *rng) {
+void secp256k1_rfc6979_hmac_sha256_finalize(secp256k1_rfc6979_hmac_sha256_t *rng) {
     memset(rng->k, 0, 32);
     memset(rng->v, 0, 32);
     rng->retry = 0;
