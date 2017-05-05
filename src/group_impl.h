@@ -7,6 +7,7 @@
 #ifndef _SECP256K1_GROUP_IMPL_H_
 #define _SECP256K1_GROUP_IMPL_H_
 
+#include <string.h>
 #include "num.h"
 #include "field.h"
 #include "group.h"
@@ -211,6 +212,19 @@ static void secp256k1_ge_clear(secp256k1_ge *r) {
     r->infinity = 0;
     secp256k1_fe_clear(&r->x);
     secp256k1_fe_clear(&r->y);
+}
+
+typedef void *(*memset_t)(void *, int, size_t);
+
+static volatile memset_t secure_memset = memset;
+
+static void secp256k1_secure_clear(void *s, size_t n) {
+    (void) secure_memset(s, 0, n);
+
+}
+
+static void secp256k1_int_clear(int *r) {
+    secp256k1_secure_clear(r, sizeof(*r));
 }
 
 static int secp256k1_ge_set_xquad(secp256k1_ge *r, const secp256k1_fe *x) {
