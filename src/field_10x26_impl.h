@@ -11,6 +11,21 @@
 #include "num.h"
 #include "field.h"
 
+static SECP256K1_INLINE void secp256k1_fe_cmov_limbs(uint32_t *r, const uint32_t *a, int len, int flag) {
+    int i;
+    uint32_t diff, rest, r_i;
+    static const uint32_t half = 0x55555555UL;
+    VERIFY_CHECK(flag == 0 || flag == 1);
+    rest = half << flag;
+    for (i=0; i<len; i++) {
+        r_i = r[i];
+        diff = r_i ^ a[i];
+        r_i ^= (diff & half);
+        r_i ^= (diff & rest);
+        r[i] = r_i;
+    }
+}
+
 #ifdef VERIFY
 static void secp256k1_fe_verify(const secp256k1_fe *a) {
     const uint32_t *d = a->n;
@@ -1092,19 +1107,7 @@ static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a) {
 }
 
 static SECP256K1_INLINE void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag) {
-    uint32_t mask0, mask1;
-    mask0 = flag + ~((uint32_t)0);
-    mask1 = ~mask0;
-    r->n[0] = (r->n[0] & mask0) | (a->n[0] & mask1);
-    r->n[1] = (r->n[1] & mask0) | (a->n[1] & mask1);
-    r->n[2] = (r->n[2] & mask0) | (a->n[2] & mask1);
-    r->n[3] = (r->n[3] & mask0) | (a->n[3] & mask1);
-    r->n[4] = (r->n[4] & mask0) | (a->n[4] & mask1);
-    r->n[5] = (r->n[5] & mask0) | (a->n[5] & mask1);
-    r->n[6] = (r->n[6] & mask0) | (a->n[6] & mask1);
-    r->n[7] = (r->n[7] & mask0) | (a->n[7] & mask1);
-    r->n[8] = (r->n[8] & mask0) | (a->n[8] & mask1);
-    r->n[9] = (r->n[9] & mask0) | (a->n[9] & mask1);
+    secp256k1_fe_cmov_limbs(r->n, a->n, 10, flag);
 #ifdef VERIFY
     if (a->magnitude > r->magnitude) {
         r->magnitude = a->magnitude;
@@ -1114,17 +1117,7 @@ static SECP256K1_INLINE void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_
 }
 
 static SECP256K1_INLINE void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, const secp256k1_fe_storage *a, int flag) {
-    uint32_t mask0, mask1;
-    mask0 = flag + ~((uint32_t)0);
-    mask1 = ~mask0;
-    r->n[0] = (r->n[0] & mask0) | (a->n[0] & mask1);
-    r->n[1] = (r->n[1] & mask0) | (a->n[1] & mask1);
-    r->n[2] = (r->n[2] & mask0) | (a->n[2] & mask1);
-    r->n[3] = (r->n[3] & mask0) | (a->n[3] & mask1);
-    r->n[4] = (r->n[4] & mask0) | (a->n[4] & mask1);
-    r->n[5] = (r->n[5] & mask0) | (a->n[5] & mask1);
-    r->n[6] = (r->n[6] & mask0) | (a->n[6] & mask1);
-    r->n[7] = (r->n[7] & mask0) | (a->n[7] & mask1);
+    secp256k1_fe_cmov_limbs(r->n, a->n, 8, flag);
 }
 
 static void secp256k1_fe_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a) {
