@@ -120,7 +120,7 @@ static int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge,
          * representation inside secp256k1_pubkey, as conversion is very fast.
          * Note that secp256k1_pubkey_save must use the same representation. */
         secp256k1_ge_storage s;
-        memcpy(&s, &pubkey->data[0], 64);
+        memcpy(&s, &pubkey->data[0], sizeof(s));
         secp256k1_ge_from_storage(ge, &s);
     } else {
         /* Otherwise, fall back to 32-byte big endian for X and Y. */
@@ -137,7 +137,7 @@ static void secp256k1_pubkey_save(secp256k1_pubkey* pubkey, secp256k1_ge* ge) {
     if (sizeof(secp256k1_ge_storage) == 64) {
         secp256k1_ge_storage s;
         secp256k1_ge_to_storage(&s, ge);
-        memcpy(&pubkey->data[0], &s, 64);
+        memcpy(&pubkey->data[0], &s, sizeof(s));
     } else {
         VERIFY_CHECK(!secp256k1_ge_is_infinity(ge));
         secp256k1_fe_normalize_var(&ge->x);
@@ -307,9 +307,14 @@ int secp256k1_ecdsa_verify(const secp256k1_context* ctx, const secp256k1_ecdsa_s
             secp256k1_ecdsa_sig_verify(&ctx->ecmult_ctx, &r, &s, &q, &m));
 }
 
+static SECP256K1_INLINE void buffer_append(unsigned char *buf, unsigned int *offset, const void *data, unsigned int len) {
+    memcpy(buf + *offset, data, len);
+    *offset += len;
+}
+
 static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
    unsigned char keydata[112];
-   int keylen = 64;
+   unsigned int offset = 0;
    secp256k1_rfc6979_hmac_sha256 rng;
    unsigned int i;
    /* We feed a byte array to the PRNG as input, consisting of:
@@ -320,17 +325,15 @@ static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *m
     *  different argument mixtures to emulate each other and result in the same
     *  nonces.
     */
-   memcpy(keydata, key32, 32);
-   memcpy(keydata + 32, msg32, 32);
+   buffer_append(keydata, &offset, key32, 32);
+   buffer_append(keydata, &offset, msg32, 32);
    if (data != NULL) {
-       memcpy(keydata + 64, data, 32);
-       keylen = 96;
+       buffer_append(keydata, &offset, data, 32);
    }
    if (algo16 != NULL) {
-       memcpy(keydata + keylen, algo16, 16);
-       keylen += 16;
+       buffer_append(keydata, &offset, algo16, 16);
    }
-   secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, keylen);
+   secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, offset);
    memset(keydata, 0, sizeof(keydata));
    for (i = 0; i <= counter; i++) {
        secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
