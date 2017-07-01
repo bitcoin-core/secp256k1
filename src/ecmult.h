@@ -25,7 +25,10 @@ static void secp256k1_ecmult_context_clone(secp256k1_ecmult_context *dst,
 static void secp256k1_ecmult_context_clear(secp256k1_ecmult_context *ctx);
 static int secp256k1_ecmult_context_is_built(const secp256k1_ecmult_context *ctx);
 
-/** Double multiply: R = na*A + ng*G */
+/** Double multiply: R = na*A + ng*G. ng can be NULL */
 static void secp256k1_ecmult(const secp256k1_ecmult_context *ctx, secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_scalar *na, const secp256k1_scalar *ng);
+
+/** Multi-multiply: R = na[0]*A[0] + na[1]*A[1] + ... + na[n-1]*A[n-1] + ng*G. ng can be NULL */
+static void secp256k1_ecmult_multi(const secp256k1_ecmult_context *ctx, secp256k1_gej *r, size_t n, const secp256k1_gej *a, const secp256k1_scalar *na, const secp256k1_scalar *ng);
 
 #endif
