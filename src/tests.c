@@ -2263,6 +2263,48 @@ void run_group_decompress(void) {
 
 /***** ECMULT TESTS *****/
 
+void ecmult_multi(void) {
+    static const size_t sizes[] = {1, 2, 3, 5, STRAUSS_WNAF_MAX_POINTS, STRAUSS_WNAF_MAX_POINTS + 1, 2 * STRAUSS_WNAF_MAX_POINTS, 100};
+    secp256k1_scalar g[100], gs;
+    secp256k1_ge a[100];
+    secp256k1_gej r_one[100], r_one_sum, r_multi;
+    secp256k1_scalar na[100];
+    secp256k1_gej aj[100];
+    size_t n;
+
+    for (n = 0; n < sizeof(sizes) / sizeof(sizes[0]); ++n) {
+        size_t size = sizes[n];
+        size_t i;
+
+        secp256k1_scalar_set_int(&gs, 0);
+        secp256k1_gej_set_infinity(&r_one_sum);
+
+        for (i = 0; i < size; ++i) {
+            random_scalar_order(&g[i]);
+            secp256k1_scalar_add(&gs, &gs, &g[i]);
+            random_scalar_order(&na[i]);
+            random_group_element_test(&a[i]);
+            random_group_element_jacobian_test(&aj[i], &a[i]);
+
+            secp256k1_ecmult(&ctx->ecmult_ctx, &r_one[i], &aj[i], &na[i], &g[i]);
+            secp256k1_gej_add_var(&r_one_sum, &r_one_sum, &r_one[i], NULL);
+        }
+
+        secp256k1_ecmult_multi(&ctx->ecmult_ctx, &r_multi, size, aj, na, &gs);
+
+        secp256k1_gej_neg(&r_multi, &r_multi);
+        secp256k1_gej_add_var(&r_multi, &r_multi, &r_one_sum, NULL);
+        CHECK(secp256k1_gej_is_infinity(&r_multi));
+    }
+}
+
+void run_ecmult_multi(void) {
+    int i;
+    for (i = 0; i < count; i++) {
+        ecmult_multi();
+    }
+}
+
 void run_ecmult_chain(void) {
     /* random starting point A (on the curve) */
     secp256k1_gej a = SECP256K1_GEJ_CONST(
@@ -4492,6 +4534,7 @@ int main(int argc, char **argv) {
     run_ecmult_constants();
     run_ecmult_gen_blind();
     run_ecmult_const_tests();
+    run_ecmult_multi();
     run_ec_combine();
 
     /* endomorphism tests */
