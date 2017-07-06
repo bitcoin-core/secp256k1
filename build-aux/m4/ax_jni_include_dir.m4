@@ -59,7 +59,7 @@ else
 	fi
 	AC_PATH_PROG([_ACJNI_JAVAC], [$JAVAC], [no])
 	if test "x$_ACJNI_JAVAC" = xno; then
-		AC_MSG_ERROR([cannot find JDK; try setting \$JAVAC or \$JAVA_HOME])
+		AC_MSG_WARN([cannot find JDK; try setting \$JAVAC or \$JAVA_HOME])
 	fi
 	_ACJNI_FOLLOW_SYMLINKS("$_ACJNI_JAVAC")
 	_JTOPDIR=`echo "$_ACJNI_FOLLOWED" | sed -e 's://*:/:g' -e 's:/[[^/]]*$::'`
