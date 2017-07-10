@@ -401,6 +401,9 @@ if test x"$use_jni" != x"no"; then
     have_jni_dependencies=no
   fi
   if test "x$have_jni_dependencies" = "xno"; then
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <jni.h>]])], [have_jni_dependencies=yes])
+  fi
+  if test "x$have_jni_dependencies" = "xno"; then
     if test x"$use_jni" = x"yes"; then
       AC_MSG_ERROR([jni support explicitly requested but headers/dependencies were not found. Enable ECDH and try again.])
     fi
