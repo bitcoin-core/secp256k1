@@ -81,8 +81,6 @@ static int secp256k1_der_read_len(const unsigned char **sigp, const unsigned cha
         return -1;
     }
     while (lenleft > 0) {
-        if ((ret >> ((sizeof(size_t) - 1) * 8)) != 0) {
-        }
         ret = (ret << 8) | **sigp;
         if (ret + lenleft > (size_t)(sigend - *sigp)) {
             /* Result exceeds the length of the passed array. */
