@@ -42,6 +42,19 @@ extern "C" {
  */
 typedef struct secp256k1_context_struct secp256k1_context;
 
+/** Opaque data structure that holds rewriteable "scratch space"
+ *
+ *  The purpose of this structure is to replace dynamic memory allocations,
+ *  because we target architectures where this may not be available. It is
+ *  essentially a resizable (within specified parameters) block of bytes,
+ *  which is initially created either by memory allocation or TODO as a pointer
+ *  into some fixed rewritable space.
+ *
+ *  Unlike the context object, this cannot safely be shared between threads
+ *  without additional synchronization logic.
+ */
+typedef struct secp256k1_scratch_space_struct secp256k1_scratch_space;
+
 /** Opaque data structure that holds a parsed and valid public key.
  *
  *  The exact representation of data inside is implementation defined and not
@@ -242,6 +255,28 @@ SECP256K1_API void secp256k1_context_set_error_callback(
     void (*fun)(const char* message, void* data),
     const void* data
 ) SECP256K1_ARG_NONNULL(1);
+
+/** Create a secp256k1 scratch space object.
+ *
+ *  Returns: a newly created scratch space.
+ *  Args: ctx:  an existing context object (cannot be NULL)
+ *  In:  init_size: initial amount of memory to allocate
+ *        max_size: maximum amount of memory to allocate
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT secp256k1_scratch_space* secp256k1_scratch_space_create(
+    const secp256k1_context* ctx,
+    size_t init_size,
+    size_t max_size
+) SECP256K1_ARG_NONNULL(1);
+
+/** Destroy a secp256k1 scratch space.
+ *
+ *  The pointer may not be used afterwards.
+ *  Args:   scratch: space to destroy
+ */
+SECP256K1_API void secp256k1_scratch_space_destroy(
+    secp256k1_scratch_space* scratch
+);
 
 /** Parse a variable-length public key into the pubkey object.
  *
