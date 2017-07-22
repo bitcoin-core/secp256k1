@@ -248,6 +248,41 @@ void run_context_tests(void) {
     secp256k1_context_destroy(NULL);
 }
 
+void run_scratch_tests(void) {
+    int32_t ecount = 0;
+    secp256k1_context *none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+    secp256k1_scratch_space *scratch;
+
+    /* Test public API */
+    secp256k1_context_set_illegal_callback(none, counting_illegal_callback_fn, &ecount);
+    scratch = secp256k1_scratch_space_create(none, 100, 10);
+    CHECK(scratch == NULL);
+    CHECK(ecount == 1);
+
+    scratch = secp256k1_scratch_space_create(none, 100, 100);
+    CHECK(scratch != NULL);
+    CHECK(ecount == 1);
+    secp256k1_scratch_space_destroy(scratch);
+
+    scratch = secp256k1_scratch_space_create(none, 100, 1000);
+    CHECK(scratch != NULL);
+    CHECK(ecount == 1);
+
+    /* Test internal API */
+    CHECK(secp256k1_scratch_max_allocation(scratch, 0) == 1000);
+    CHECK(secp256k1_scratch_max_allocation(scratch, 1) < 1000);
+    CHECK(secp256k1_scratch_resize(scratch, &ctx->error_callback, 50, 1) == 1);  /* no-op */
+    CHECK(secp256k1_scratch_resize(scratch, &ctx->error_callback, 200, 1) == 1);
+    CHECK(secp256k1_scratch_resize(scratch, &ctx->error_callback, 950, 1) == 1);
+    CHECK(secp256k1_scratch_resize(scratch, &ctx->error_callback, 1000, 1) == 0);
+    CHECK(secp256k1_scratch_resize(scratch, &ctx->error_callback, 2000, 1) == 0);
+    CHECK(secp256k1_scratch_max_allocation(scratch, 0) == 1000);
+
+    /* cleanup */
+    secp256k1_scratch_space_destroy(scratch);
+    secp256k1_context_destroy(none);
+}
+
 /***** HASH TESTS *****/
 
 void run_sha256_tests(void) {
@@ -4451,6 +4486,7 @@ int main(int argc, char **argv) {
 
     /* initialize */
     run_context_tests();
+    run_scratch_tests();
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
     if (secp256k1_rand_bits(1)) {
         secp256k1_rand256(run32);
