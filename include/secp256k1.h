@@ -61,7 +61,7 @@ typedef struct {
  *  however guaranteed to be 64 bytes in size, and can be safely copied/moved.
  *  If you need to convert to a format suitable for storage, transmission, or
  *  comparison, use the secp256k1_ecdsa_signature_serialize_* and
- *  secp256k1_ecdsa_signature_serialize_* functions.
+ *  secp256k1_ecdsa_signature_parse_* functions.
  */
 typedef struct {
     unsigned char data[64];
