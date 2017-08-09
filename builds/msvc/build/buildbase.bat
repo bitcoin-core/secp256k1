@@ -5,6 +5,7 @@ SET solution=%1
 SET version=%2
 SET log=build_%version%.log
 SET tools=Microsoft Visual Studio %version%.0\VC\vcvarsall.bat
+IF %version% == 15 SET tools=Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat
 SET environment="%programfiles(x86)%\%tools%"
 IF NOT EXIST %environment% SET environment="%programfiles%\%tools%"
 IF NOT EXIST %environment% GOTO no_tools
@@ -15,7 +16,7 @@ CALL %environment% x86 > nul
 ECHO Platform=x86
 
 ECHO Configuration=DynDebug
-msbuild /m /v:n /p:Configuration=DynDebug /p:Platform=Win32 %solution% > %log%
+msbuild /m /v:n /p:Configuration=DynDebug /p:Platform=Win32 %solution% >> %log%
 IF errorlevel 1 GOTO error
 ECHO Configuration=DynRelease
 msbuild /m /v:n /p:Configuration=DynRelease /p:Platform=Win32 %solution% >> %log%
@@ -37,7 +38,7 @@ CALL %environment% x86_amd64 > nul
 ECHO Platform=x64
 
 ECHO Configuration=DynDebug
-msbuild /m /v:n /p:Configuration=DynDebug /p:Platform=x64 %solution% > %log%
+msbuild /m /v:n /p:Configuration=DynDebug /p:Platform=x64 %solution% >> %log%
 IF errorlevel 1 GOTO error
 ECHO Configuration=DynRelease
 msbuild /m /v:n /p:Configuration=DynRelease /p:Platform=x64 %solution% >> %log%
