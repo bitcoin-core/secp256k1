@@ -42,11 +42,12 @@
 } while(0)
 
 
-/** Convert a number to WNAF notation. The number becomes represented by sum(2^{wi} * wnaf[i], i=0..return_val)
- *  with the following guarantees:
+/** Convert a number to WNAF notation.
+ *  The number becomes represented by sum(2^{wi} * wnaf[i], i=0..WNAF_SIZE(w)+1) - return_val.
+ *  It has the following guarantees:
  *  - each wnaf[i] an odd integer between -(1 << w) and (1 << w)
  *  - each wnaf[i] is nonzero
- *  - the number of words set is returned; this is always (WNAF_BITS + w - 1) / w
+ *  - the number of words set is always WNAF_SIZE(w) + 1
  *
  *  Adapted from `The Width-w NAF Method Provides Small Memory and Fast Elliptic Scalar
  *  Multiplications Secure against Side Channel Attacks`, Okeya and Tagaki. M. Joye (Ed.)
