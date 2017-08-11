@@ -7,7 +7,9 @@ noinst_LTLIBRARIES = $(JNI_LIB)
 else
 JNI_LIB =
 endif
-include_HEADERS = include/secp256k1.h
+include_HEADERS =
+include_HEADERS += include/secp256k1.h
+include_HEADERS += include/secp256k1_recovery.h
 noinst_HEADERS =
 noinst_HEADERS += src/scalar.h
 noinst_HEADERS += src/scalar_4x64.h
