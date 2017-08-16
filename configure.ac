@@ -135,9 +135,9 @@ AC_ARG_ENABLE(module_recovery,
     [enable_module_recovery=no])
 
 AC_ARG_ENABLE(jni,
-    AS_HELP_STRING([--enable-jni],[enable libsecp256k1_jni (default is auto)]),
+    AS_HELP_STRING([--enable-jni],[enable libsecp256k1_jni (default is no)]),
     [use_jni=$enableval],
-    [use_jni=auto])
+    [use_jni=no])
 
 AC_ARG_WITH([field], [AS_HELP_STRING([--with-field=64bit|32bit|auto],
 [Specify Field Implementation. Default is auto])],[req_field=$withval], [req_field=auto])
