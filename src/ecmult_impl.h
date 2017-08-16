@@ -44,8 +44,6 @@
 /** The number of entries a table with precomputed multiples needs to have. */
 #define ECMULT_TABLE_SIZE(w) (1 << ((w)-2))
 
-#define MAXBUCKETBITS 12
-
 /** Fill a table 'prej' with precomputed odd multiples of a. Prej will contain
  *  the values [1*a,3*a,...,(2*n-1)*a], so it space for n values. zr[0] will
  *  contain prej[0].z / a.z. The other zr[i] values = prej[i].z / prej[i-1].z.
@@ -544,17 +542,15 @@ struct secp256k1_ecmult_point_state_pippenger {
     size_t input_pos;
 };
 
-static int secp256k1_ecmult_multi_pippenger(struct secp256k1_ecmult_point_state_pippenger *state, secp256k1_gej *r, secp256k1_scalar *sc, secp256k1_ge *pt, size_t num) {
+static int secp256k1_ecmult_multi_pippenger(secp256k1_gej *buckets, int bucketbits, struct secp256k1_ecmult_point_state_pippenger *state, secp256k1_gej *r, secp256k1_scalar *sc, secp256k1_ge *pt, size_t num) {
     int bits = 256;
     size_t np;
     size_t no = 0;
     int i;
     int j;
     secp256k1_gej running_sum;
-    secp256k1_gej buckets_pos[1<<MAXBUCKETBITS];
     int n;
     int num_groups;
-    int bucketbits = 8;
     int nreadbits;
     for (np = 0; np < num; ++np) {
         if (secp256k1_scalar_is_zero(&sc[np]) || secp256k1_ge_is_infinity(&pt[np])) {
@@ -572,7 +568,7 @@ static int secp256k1_ecmult_multi_pippenger(struct secp256k1_ecmult_point_state_
     }
     for (i = num_groups - 1; i >= 0; i--) {
         for(j = 0; j < 1<<bucketbits; j++) {
-            secp256k1_gej_set_infinity(&buckets_pos[j]);
+            secp256k1_gej_set_infinity(&buckets[j]);
         }
         for(j = 0; j < bucketbits; j++) {
             secp256k1_gej_double_var(r, r, NULL);
@@ -587,42 +583,99 @@ static int secp256k1_ecmult_multi_pippenger(struct secp256k1_ecmult_point_state_
             /* most significant bits are at the end and therefore retrieved first*/
             n = secp256k1_scalar_get_bits_var(&sc[state[np].input_pos], bucketbits*i, nreadbits);
             if (n > 0) {
-                secp256k1_gej_add_ge_var(&buckets_pos[n], &buckets_pos[n], &pt[state[np].input_pos], NULL);
+                secp256k1_gej_add_ge_var(&buckets[n], &buckets[n], &pt[state[np].input_pos], NULL);
             }
         }
         secp256k1_gej_set_infinity(&running_sum);
         for(j = (1 << bucketbits) - 1; j >= 1; j--) {
-            secp256k1_gej_add_var(&running_sum, &running_sum, &buckets_pos[j], NULL);
+            secp256k1_gej_add_var(&running_sum, &running_sum, &buckets[j], NULL);
             secp256k1_gej_add_var(r, r, &running_sum, NULL);
         }
     }
     return 1;
 }
 
+
+static int secp256k1_ecmult_multi_pippenger_bucketbits(size_t n) {
+#ifdef USE_ENDOMORPHISM
+    if (n < 3) {
+        return 1;
+    } else if (n < 8) {
+        return 2;
+    } else if (n < 21) {
+        return 3;
+    } else if (n < 55) {
+        return 4;
+    } else if (n < 133) {
+        return 5;
+    } else if (n < 310) {
+        return 6;
+    } else if (n < 606) {
+        return 7;
+    } else if (n < 2301) {
+        return 8;
+    } else if (n < 2803) {
+        return 9;
+    } else if (n < 9208) {
+        return 10;
+    } else if (n < 16976) {
+        return 11;
+    } else {
+        return 12;
+    }
+#else
+    if (n < 5) {
+        return 1;
+    } else if (n < 16) {
+        return 2;
+    } else if (n < 42) {
+        return 3;
+    } else if (n < 110) {
+        return 4;
+    } else if (n < 254) {
+        return 5;
+    } else if (n < 619) {
+        return 6;
+    } else if (n < 1354) {
+        return 7;
+    } else if (n < 3741) {
+        return 8;
+    } else if (n < 7030) {
+        return 9;
+    } else if (n < 18590) {
+        return 10;
+    } else if (n < 36501) {
+        return 11;
+    } else {
+        return 12;
+    }
+#endif
+}
+
 static int secp256k1_ecmult_multi_split_pippenger(const secp256k1_ecmult_context *ctx, secp256k1_scratch *scratch, const secp256k1_callback* error_callback, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
     const size_t entry_size = sizeof(secp256k1_ge) + sizeof(secp256k1_scalar) + sizeof(size_t);
-    const size_t max_entries = secp256k1_scratch_max_allocation(scratch) / entry_size;
     /* Use 2(n+1) with the endomorphism, n+1 without, when calculating batch sizes.
      * The reason for +1 is that Bos-Coster requires we add the G scalar to the list of
      * other scalars. */
 #ifdef USE_ENDOMORPHISM
-    const size_t n_batches = (2*n + max_entries + 1) / max_entries;
-    size_t entries_per_batch = (2*n + n_batches + 1) / n_batches;
+    size_t entries_per_batch = 2*n + 2;
 #else
-    const size_t n_batches = (n + max_entries) / max_entries;
-    size_t entries_per_batch = (n + n_batches) / n_batches;
+    size_t entries_per_batch = n + 1;
 #endif
 
     secp256k1_gej tmp;
     secp256k1_ge *pt;
     secp256k1_scalar *sc;
+    secp256k1_gej *buckets;
     struct secp256k1_ecmult_point_state_pippenger *state_space;
     size_t idx = 0;
     size_t point_idx = 0;
 
     /* Attempt to allocate sufficient space for Bos-Coster */
-    while (!secp256k1_scratch_resize(scratch, error_callback, entries_per_batch * entry_size)) {
+    int bucketbits = secp256k1_ecmult_multi_pippenger_bucketbits(entries_per_batch);
+    while (!secp256k1_scratch_resize(scratch, error_callback, (1<<bucketbits) * sizeof(secp256k1_gej) + entries_per_batch * entry_size)) {
         entries_per_batch /= 2;
+        bucketbits = secp256k1_ecmult_multi_pippenger_bucketbits(entries_per_batch);
         if (entries_per_batch < 2) {
             return 0;
         }
@@ -631,6 +684,7 @@ static int secp256k1_ecmult_multi_split_pippenger(const secp256k1_ecmult_context
     pt = (secp256k1_ge *) secp256k1_scratch_alloc(scratch, entries_per_batch * sizeof(*pt));
     sc = (secp256k1_scalar *) secp256k1_scratch_alloc(scratch, entries_per_batch * sizeof(*sc));
     state_space = (struct secp256k1_ecmult_point_state_pippenger *) secp256k1_scratch_alloc(scratch, entries_per_batch * sizeof(*state_space));
+    buckets = (secp256k1_gej *) secp256k1_scratch_alloc(scratch, (1<<bucketbits) * sizeof(*buckets));
 
     VERIFY_CHECK(pt != NULL);
     VERIFY_CHECK(sc != NULL);
@@ -658,13 +712,13 @@ static int secp256k1_ecmult_multi_split_pippenger(const secp256k1_ecmult_context
 #else
         if (idx >= entries_per_batch) {
 #endif
-            secp256k1_ecmult_multi_pippenger(state_space, &tmp, sc, pt, idx);
+            secp256k1_ecmult_multi_pippenger(buckets, bucketbits, state_space, &tmp, sc, pt, idx);
             secp256k1_gej_add_var(r, r, &tmp, NULL);
             idx = 0;
         }
         point_idx++;
     }
-    secp256k1_ecmult_multi_pippenger(state_space, &tmp, sc, pt, idx);
+    secp256k1_ecmult_multi_pippenger(buckets, secp256k1_ecmult_multi_pippenger_bucketbits(idx), state_space, &tmp, sc, pt, idx);
     secp256k1_gej_add_var(r, r, &tmp, NULL);
     return 1;
 }
