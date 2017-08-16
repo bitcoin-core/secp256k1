@@ -11,7 +11,7 @@
 #include "util.h"
 #include "bench.h"
 
-#define N_SIGNATURES	30
+#define N_SIGNATURES	4096
 
 typedef struct {
     secp256k1_context *ctx;
@@ -27,7 +27,7 @@ typedef struct {
 void bench_aggsig(void* arg) {
     size_t i;
     bench_aggsig_t *data = (bench_aggsig_t*) arg;
-    for (i = 0; i < 2000; i++) {
+    for (i = 0; i < 200; i++) {
         CHECK(secp256k1_aggsig_verify(data->ctx, data->scratch, data->sig, data->msg, data->pubkeys, N_SIGNATURES));
     }
 }
