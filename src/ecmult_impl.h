@@ -624,56 +624,52 @@ static int secp256k1_ecmult_multi_pippenger(secp256k1_gej *buckets, int bucketbi
 
 static int secp256k1_ecmult_multi_pippenger_bucketbits(size_t n) {
 #ifdef USE_ENDOMORPHISM
-    if (n < 3) {
+    if (n < 8) {
         return 1;
-    } else if (n < 8) {
-        return 2;
     } else if (n < 21) {
-        return 3;
+        return 2;
     } else if (n < 55) {
+        return 3;
+    } else if (n < 134) {
         return 4;
-    } else if (n < 133) {
-        return 5;
     } else if (n < 310) {
-        return 6;
+        return 5;
     } else if (n < 606) {
-        return 7;
+        return 6;
     } else if (n < 2301) {
+        return 7;
+    } else if (n < 2802) {
         return 8;
-    } else if (n < 2803) {
+    } else if (n < 9215) {
         return 9;
-    } else if (n < 9208) {
+    } else if (n < 16989) {
         return 10;
-    } else if (n < 16976) {
-        return 11;
     } else {
-        return 12;
+        return 11;
     }
 #else
-    if (n < 5) {
+    if (n < 16) {
         return 1;
-    } else if (n < 16) {
-        return 2;
     } else if (n < 42) {
-        return 3;
+        return 2;
     } else if (n < 110) {
-        return 4;
+        return 3;
     } else if (n < 254) {
-        return 5;
+        return 4;
     } else if (n < 619) {
+        return 5;
+    } else if (n < 1353) {
         return 6;
-    } else if (n < 1354) {
+    } else if (n < 3740) {
         return 7;
-    } else if (n < 3741) {
+    } else if (n < 7035) {
         return 8;
-    } else if (n < 7030) {
+    } else if (n < 18607) {
         return 9;
-    } else if (n < 18590) {
+    } else if (n < 36642) {
         return 10;
-    } else if (n < 36501) {
-        return 11;
     } else {
-        return 12;
+        return 11;
     }
 #endif
 }
