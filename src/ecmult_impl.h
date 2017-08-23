@@ -692,7 +692,6 @@ SECP256K1_INLINE static void secp256k1_ecmult_endo_split(secp256k1_scalar *s1, s
 #endif
 
 static int secp256k1_ecmult_multi_split_pippenger(const secp256k1_ecmult_context *ctx, secp256k1_scratch *scratch, const secp256k1_callback* error_callback, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
-    const size_t entry_size = sizeof(secp256k1_ge) + sizeof(secp256k1_scalar) + sizeof(struct secp256k1_ecmult_point_state_pippenger) + 256*sizeof(int);
     /* Use 2(n+1) with the endomorphism, n+1 without, when calculating batch sizes.
      * The reason for +1 is that Bos-Coster requires we add the G scalar to the list of
      * other scalars. */
@@ -712,8 +711,9 @@ static int secp256k1_ecmult_multi_split_pippenger(const secp256k1_ecmult_context
     size_t i;
 
     /* Attempt to allocate sufficient space for Bos-Coster */
+    const size_t entry_size = sizeof(secp256k1_ge) + sizeof(secp256k1_scalar) + sizeof(struct secp256k1_ecmult_point_state_pippenger) + 256*sizeof(int);
     int bucketbits = secp256k1_ecmult_multi_pippenger_bucketbits(entries_per_batch);
-    while (!secp256k1_scratch_resize(scratch, error_callback, (1<<bucketbits) * sizeof(secp256k1_gej) + (entries_per_batch + 1) * entry_size, 4 + (entries_per_batch + 1))) {
+    while (!secp256k1_scratch_resize(scratch, error_callback, (1<<bucketbits) * sizeof(secp256k1_gej) + (entries_per_batch + 2) * entry_size, 4 + (entries_per_batch + 2))) {
         entries_per_batch /= 2;
         bucketbits = secp256k1_ecmult_multi_pippenger_bucketbits(entries_per_batch);
         if (entries_per_batch < 2) {
@@ -721,19 +721,20 @@ static int secp256k1_ecmult_multi_split_pippenger(const secp256k1_ecmult_context
         }
     }
     secp256k1_scratch_reset(scratch);
-    pt = (secp256k1_ge *) secp256k1_scratch_alloc(scratch, entries_per_batch * sizeof(*pt));
-    sc = (secp256k1_scalar *) secp256k1_scratch_alloc(scratch, entries_per_batch * sizeof(*sc));
-    state_space = (struct secp256k1_ecmult_point_state_pippenger *) secp256k1_scratch_alloc(scratch, (entries_per_batch + 1) * sizeof(*state_space));
-    for(i=0; i<entries_per_batch + 1; i++) {
-        state_space[i].wnaf_na = (int *) secp256k1_scratch_alloc(scratch, 256 * sizeof(int));
-    }
-
-    buckets = (secp256k1_gej *) secp256k1_scratch_alloc(scratch, (1<<bucketbits) * sizeof(*buckets));
-
+    pt = (secp256k1_ge *) secp256k1_scratch_alloc(scratch, (entries_per_batch + 2)* sizeof(*pt));
+    sc = (secp256k1_scalar *) secp256k1_scratch_alloc(scratch, (entries_per_batch + 2) * sizeof(*sc));
+    state_space = (struct secp256k1_ecmult_point_state_pippenger *) secp256k1_scratch_alloc(scratch, (entries_per_batch + 2) * sizeof(*state_space));
+    VERIFY_CHECK(ctx != NULL);
     VERIFY_CHECK(pt != NULL);
     VERIFY_CHECK(sc != NULL);
-    VERIFY_CHECK(ctx != NULL);
     VERIFY_CHECK(state_space != NULL);
+    for(i=0; i<entries_per_batch + 2; i++) {
+        state_space[i].wnaf_na = (int *) secp256k1_scratch_alloc(scratch, 256 * sizeof(int));
+        VERIFY_CHECK(state_space[i].wnaf_na != NULL);
+    }
+    buckets = (secp256k1_gej *) secp256k1_scratch_alloc(scratch, (1<<bucketbits) * sizeof(*buckets));
+    VERIFY_CHECK(buckets != NULL);
+
 
     sc[0] = *inp_g_sc;
     pt[0] = secp256k1_ge_const_g;
@@ -960,8 +961,8 @@ static int secp256k1_ecmult_multi_split_pippenger_bin(const secp256k1_ecmult_con
 
 static int secp256k1_ecmult_multi(const secp256k1_ecmult_context *ctx, secp256k1_scratch *scratch, const secp256k1_callback* error_callback, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
     /* return secp256k1_ecmult_multi_split_strauss_wnaf(ctx, scratch, error_callback, r, inp_g_sc, cb, cbdata, n); */
-    /*return secp256k1_ecmult_multi_split_pippenger(ctx, scratch, error_callback, r, inp_g_sc, cb, cbdata, n);*/
-    return secp256k1_ecmult_multi_split_pippenger_bin(ctx, scratch, error_callback, r, inp_g_sc, cb, cbdata, n);
+    return secp256k1_ecmult_multi_split_pippenger(ctx, scratch, error_callback, r, inp_g_sc, cb, cbdata, n);
+    /*return secp256k1_ecmult_multi_split_pippenger_bin(ctx, scratch, error_callback, r, inp_g_sc, cb, cbdata, n);*/
 }
 
 #endif
