@@ -5,8 +5,8 @@
  **********************************************************************/
 
 
-#ifndef _SECP256K1_ECDSA_IMPL_H_
-#define _SECP256K1_ECDSA_IMPL_H_
+#ifndef SECP256K1_ECDSA_IMPL_H
+#define SECP256K1_ECDSA_IMPL_H
 
 #include "scalar.h"
 #include "field.h"
@@ -310,4 +310,4 @@ static int secp256k1_ecdsa_sig_sign(const secp256k1_ecmult_gen_context *ctx, sec
     return 1;
 }
 
-#endif
+#endif /* SECP256K1_ECDSA_IMPL_H */
