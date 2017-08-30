@@ -711,11 +711,12 @@ static int secp256k1_ecmult_multi_split_pippenger(const secp256k1_ecmult_context
     size_t i;
 
     /* Attempt to allocate sufficient space for Bos-Coster */
-    const size_t entry_size = sizeof(secp256k1_ge) + sizeof(secp256k1_scalar) + sizeof(struct secp256k1_ecmult_point_state_pippenger) + 256*sizeof(int);
     int bucketbits = secp256k1_ecmult_multi_pippenger_bucketbits(entries_per_batch);
+    size_t entry_size = sizeof(secp256k1_ge) + sizeof(secp256k1_scalar) + sizeof(struct secp256k1_ecmult_point_state_pippenger) + (WNAF_SIZE(bucketbits+1)+1)*sizeof(int);
     while (!secp256k1_scratch_resize(scratch, error_callback, (1<<bucketbits) * sizeof(secp256k1_gej) + (entries_per_batch + 2) * entry_size, 4 + (entries_per_batch + 2))) {
         entries_per_batch /= 2;
         bucketbits = secp256k1_ecmult_multi_pippenger_bucketbits(entries_per_batch);
+        entry_size = sizeof(secp256k1_ge) + sizeof(secp256k1_scalar) + sizeof(struct secp256k1_ecmult_point_state_pippenger) + (WNAF_SIZE(bucketbits+1)+1)*sizeof(int);
         if (entries_per_batch < 2) {
             return 0;
         }
@@ -729,12 +730,11 @@ static int secp256k1_ecmult_multi_split_pippenger(const secp256k1_ecmult_context
     VERIFY_CHECK(sc != NULL);
     VERIFY_CHECK(state_space != NULL);
     for(i=0; i<entries_per_batch + 2; i++) {
-        state_space[i].wnaf_na = (int *) secp256k1_scratch_alloc(scratch, 256 * sizeof(int));
+        state_space[i].wnaf_na = (int *) secp256k1_scratch_alloc(scratch, (WNAF_SIZE(bucketbits+1)+1) * sizeof(int));
         VERIFY_CHECK(state_space[i].wnaf_na != NULL);
     }
     buckets = (secp256k1_gej *) secp256k1_scratch_alloc(scratch, (1<<bucketbits) * sizeof(*buckets));
     VERIFY_CHECK(buckets != NULL);
-
 
     sc[0] = *inp_g_sc;
     pt[0] = secp256k1_ge_const_g;
