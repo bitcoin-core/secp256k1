@@ -15,7 +15,7 @@ void test_aggsig_api(void) {
     secp256k1_context *sign = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
     secp256k1_context *vrfy = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
     secp256k1_context *both = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-    secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(none, 1024, 8192);
+    secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(none, 1024, 819200);
     unsigned char seckeys[5][32];
     secp256k1_pubkey pubkeys[5];
     secp256k1_aggsig_partial_signature partials[5];
@@ -153,7 +153,7 @@ void test_aggsig_onesigner(void) {
     size_t i;
     size_t n_signers[] = { 1, 2, N_KEYS / 5, N_KEYS - 1, N_KEYS };
     const size_t n_n_signers = sizeof(n_signers) / sizeof(n_signers[0]);
-    secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(ctx, 1024, 8192);
+    secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(ctx, 1024, 819200);
 
     unsigned char msg[32];
 
