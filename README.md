@@ -22,7 +22,7 @@ Implementation details
   * No runtime heap allocation.
   * Extensive testing infrastructure.
   * Structured to facilitate review and analysis.
-  * Intended to be portable to any system with a C89 compiler and uint64_t support.
+  * Intended to be portable to any system with a C89 compiler and uint128_t support.
   * Expose only higher level interfaces to minimize the API surface and improve application security. ("Be difficult to use insecurely.")
 * Field operations
   * Optimized implementation of arithmetic modulo the curve's field size (2^256 - 0x1000003D1).
