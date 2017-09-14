@@ -32,7 +32,12 @@ static void secp256k1_ecmult(const secp256k1_ecmult_context *ctx, secp256k1_gej 
 
 typedef int (secp256k1_ecmult_multi_callback)(secp256k1_scalar *sc, secp256k1_ge *pt, size_t idx, void *data);
 
-/** Multi-multiply: R = inp_g_sc * G + sum_i ni * Ai. */
-static int secp256k1_ecmult_multi(const secp256k1_ecmult_context *ctx, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n);
+/**
+ * Multi-multiply: R = inp_g_sc * G + sum_i ni * Ai.
+ * Returns: 1 on success (including when inp_g_sc is NULL and n is 0)
+ *          0 if there is not enough scratch space for a single point or
+ *          callback returns 0
+ */
+static int secp256k1_ecmult_multi_var(const secp256k1_ecmult_context *ctx, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n);
 
 #endif /* SECP256K1_ECMULT_H */

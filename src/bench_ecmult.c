@@ -63,7 +63,7 @@ static void bench_ecmult(void* arg) {
     size_t iter;
 
     for (iter = 0; iter < iters; ++iter) {
-        secp256k1_ecmult_multi(&data->ctx->ecmult_ctx, data->scratch, &data->output[iter], data->includes_g ? &data->scalars[data->offset1] : NULL, bench_callback, arg, count - includes_g);
+        secp256k1_ecmult_multi_var(&data->ctx->ecmult_ctx, data->scratch, &data->output[iter], data->includes_g ? &data->scalars[data->offset1] : NULL, bench_callback, arg, count - includes_g);
         data->offset1 = (data->offset1 + count) % POINTS;
         data->offset2 = (data->offset2 + count - 1) % POINTS;
     }
