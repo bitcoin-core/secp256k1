@@ -55,7 +55,7 @@ Usage
 Algorithm
 ---------
 
-The implementation uses trial-and-increment to convert the hash into
+The implementation uses trial-and-increment [3] to convert the hash into
 point on the secp256k1 curve which serves as multiset. The curve's 
 group operations are then used to add and remove multisets. 
 Associativity and Commutativity then follow.
