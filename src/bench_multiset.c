@@ -17,24 +17,24 @@ void bench_multiset(void* arg) {
     static int it=0;
     unsigned n,m;
     unsigned char result[32];
-    secp256k1_roller roller;
+    secp256k1_multiset multiset;
 
     UNUSED(arg);
-    secp256k1_multiset_create_roller(ctx, &roller, (unsigned char*)"", 0);
+    secp256k1_multiset_create(ctx, &multiset, (unsigned char*)"", 0);
 
     for (m=0; m < 100000; m++)
     {
         unsigned char buf[32*3];
-        secp256k1_roller x;
+        secp256k1_multiset x;
 
         for(n = 0; n < sizeof(buf); n++)
             buf[n] = it++;
 
-        secp256k1_multiset_create_roller(ctx, &x, buf, sizeof(buf));
-        secp256k1_multiset_add_roller(ctx, &roller, &x);
+        secp256k1_multiset_create(ctx, &x, buf, sizeof(buf));
+        secp256k1_multiset_add(ctx, &multiset, &x);
     }
 
-    secp256k1_multiset_finalize_roller(ctx, result, &roller);
+    secp256k1_multiset_finalize(ctx, result, &multiset);
 }
 
 void bench_multiset_setup(void* arg) {
