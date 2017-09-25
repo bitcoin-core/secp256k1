@@ -20,7 +20,7 @@ void bench_multiset(void* arg) {
     secp256k1_multiset multiset;
 
     UNUSED(arg);
-    secp256k1_multiset_create(ctx, &multiset, (unsigned char*)"", 0);
+    secp256k1_multiset_init(ctx, &multiset);
 
     for (m=0; m < 100000; m++)
     {
@@ -30,8 +30,8 @@ void bench_multiset(void* arg) {
         for(n = 0; n < sizeof(buf); n++)
             buf[n] = it++;
 
-        secp256k1_multiset_create(ctx, &x, buf, sizeof(buf));
-        secp256k1_multiset_add(ctx, &multiset, &x);
+        secp256k1_multiset_add(ctx, &x, buf, sizeof(buf));
+
     }
 
     secp256k1_multiset_finalize(ctx, result, &multiset);
