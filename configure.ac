@@ -85,9 +85,9 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
     ])
 
 AC_ARG_ENABLE(benchmark,
-    AS_HELP_STRING([--enable-benchmark],[compile benchmark (default is no)]),
+    AS_HELP_STRING([--enable-benchmark],[compile benchmark (default is yes)]),
     [use_benchmark=$enableval],
-    [use_benchmark=no])
+    [use_benchmark=yes])
 
 AC_ARG_ENABLE(coverage,
     AS_HELP_STRING([--enable-coverage],[enable compiler flags to support kcov coverage analysis]),
