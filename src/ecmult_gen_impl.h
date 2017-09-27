@@ -161,7 +161,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     secp256k1_gej gb;
     secp256k1_fe s;
     unsigned char nonce32[32];
-    secp256k1_rfc6979_hmac_sha256_t rng;
+    secp256k1_rfc6979_hmac_sha256 rng;
     int retry;
     unsigned char keydata[64] = {0};
     if (seed32 == NULL) {
