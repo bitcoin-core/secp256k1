@@ -28,6 +28,7 @@ typedef struct {
     secp256k1_ge* pubkeys;
     secp256k1_scalar* seckeys;
     secp256k1_gej* expected_output;
+    secp256k1_ecmult_multi_func ecmult_multi;
 
     /* Changes per test */
     size_t count;
@@ -63,7 +64,7 @@ static void bench_ecmult(void* arg) {
     size_t iter;
 
     for (iter = 0; iter < iters; ++iter) {
-        secp256k1_ecmult_multi_var(&data->ctx->ecmult_ctx, data->scratch, &data->output[iter], data->includes_g ? &data->scalars[data->offset1] : NULL, bench_callback, arg, count - includes_g);
+        data->ecmult_multi(&data->ctx->ecmult_ctx, data->scratch, &data->output[iter], data->includes_g ? &data->scalars[data->offset1] : NULL, bench_callback, arg, count - includes_g);
         data->offset1 = (data->offset1 + count) % POINTS;
         data->offset2 = (data->offset2 + count - 1) % POINTS;
     }
@@ -136,10 +137,24 @@ int main(int argc, char **argv) {
     bench_data data;
     int i, p;
     secp256k1_gej* pubkeys_gej;
+    size_t scratch_size;
+
+    if (argc > 1) {
+        if(have_flag(argc, argv, "pippenger_wnaf")) {
+            printf("Using pippenger_wnaf:\n");
+            data.ecmult_multi = secp256k1_ecmult_pippenger_batch_single;
+        } else if(have_flag(argc, argv, "strauss_wnaf")) {
+            printf("Using strauss_wnaf:\n");
+            data.ecmult_multi = secp256k1_ecmult_strauss_batch_single;
+        }
+    } else {
+        data.ecmult_multi = secp256k1_ecmult_multi_var;
+    }
 
     /* Allocate stuff */
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-    data.scratch = secp256k1_scratch_space_create(data.ctx, POINTS * 1024, POINTS * 5 * 1024);
+    scratch_size = secp256k1_strauss_scratch_size(POINTS) + STRAUSS_SCRATCH_OBJECTS*16;
+    data.scratch = secp256k1_scratch_space_create(data.ctx, scratch_size, scratch_size);
     data.scalars = malloc(sizeof(secp256k1_scalar) * POINTS);
     data.seckeys = malloc(sizeof(secp256k1_scalar) * POINTS);
     data.pubkeys = malloc(sizeof(secp256k1_ge) * POINTS);
