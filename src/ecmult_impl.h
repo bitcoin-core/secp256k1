@@ -8,6 +8,7 @@
 #define SECP256K1_ECMULT_IMPL_H
 
 #include <string.h>
+#include <stdint.h>
 
 #include "group.h"
 #include "scalar.h"
@@ -55,11 +56,19 @@
 #define PIPPENGER_SCRATCH_OBJECTS 6
 #define STRAUSS_SCRATCH_OBJECTS 6
 
+#define PIPPENGER_MAX_BUCKET_WINDOW 12
+
 /* Minimum number of points for which pippenger_wnaf is faster than strauss wnaf */
 #ifdef USE_ENDOMORPHISM
     #define ECMULT_PIPPENGER_THRESHOLD 96
 #else
     #define ECMULT_PIPPENGER_THRESHOLD 156
+#endif
+
+#ifdef USE_ENDOMORPHISM
+    #define ECMULT_MAX_POINTS_PER_BATCH 5000000
+#else
+    #define ECMULT_MAX_POINTS_PER_BATCH 10000000
 #endif
 
 /** Fill a table 'prej' with precomputed odd multiples of a. Prej will contain
@@ -545,6 +554,10 @@ static int secp256k1_ecmult_strauss_batch_single(const secp256k1_ecmult_context 
     return secp256k1_ecmult_strauss_batch(actx, scratch, r, inp_g_sc, cb, cbdata, n, 0);
 }
 
+static size_t secp256k1_strauss_max_points(secp256k1_scratch *scratch) {
+    return secp256k1_scratch_max_allocation(scratch, STRAUSS_SCRATCH_OBJECTS) / secp256k1_strauss_scratch_size(1);
+}
+
 /** Convert a number to WNAF notation.
  *  The number becomes represented by sum(2^{wi} * wnaf[i], i=0..WNAF_SIZE(w)+1) - return_val.
  *  It has the following guarantees:
@@ -724,7 +737,7 @@ static int secp256k1_pippenger_bucket_window(size_t n) {
     } else if (n <= 28600) {
         return 11;
     } else {
-        return 12;
+        return PIPPENGER_MAX_BUCKET_WINDOW;
     }
 #else
     if (n <= 2) {
@@ -750,10 +763,47 @@ static int secp256k1_pippenger_bucket_window(size_t n) {
     } else if (n <= 35000) {
         return 11;
     } else {
-        return 12;
+        return PIPPENGER_MAX_BUCKET_WINDOW;
     }
 #endif
 }
+
+/**
+ * Returns the maximum optimal number of points for a bucket_window.
+ */
+static size_t secp256k1_pippenger_bucket_window_inv(int bucket_window) {
+    switch(bucket_window) {
+#ifdef USE_ENDOMORPHISM
+        case 1: return 4;
+        case 2: return 8;
+        case 3: return 40;
+        case 4: return 117;
+        case 5: return 280;
+        case 6: return 480;
+        case 7: return 2560;
+        case 8: return 2560;
+        case 9: return 9200;
+        case 10: return 17400;
+        case 11: return 28600;
+        case PIPPENGER_MAX_BUCKET_WINDOW: return SIZE_MAX;
+#else
+        case 1: return 2;
+        case 2: return 9;
+        case 3: return 42;
+        case 4: return 100;
+        case 5: return 280;
+        case 6: return 610;
+        case 7: return 1920;
+        case 8: return 3400;
+        case 9: return 10240;
+        case 10: return 19000;
+        case 11: return 35000;
+        case PIPPENGER_MAX_BUCKET_WINDOW: return SIZE_MAX;
+#endif
+    }
+    return 0;
+}
+
 
 #ifdef USE_ENDOMORPHISM
 SECP256K1_INLINE static void secp256k1_ecmult_endo_split(secp256k1_scalar *s1, secp256k1_scalar *s2, secp256k1_ge *p1, secp256k1_ge *p2) {
@@ -865,11 +915,53 @@ static int secp256k1_ecmult_pippenger_batch_single(const secp256k1_ecmult_contex
     return secp256k1_ecmult_pippenger_batch(actx, scratch, r, inp_g_sc, cb, cbdata, n, 0);
 }
 
-#define MAX_BATCH_SIZE 1024
+/**
+ * Returns the maximum number of points in addition to G that can be used with
+ * a given scratch space. The function ensures that fewer points may also be
+ * used.
+ */
+static size_t secp256k1_pippenger_max_points(secp256k1_scratch *scratch) {
+    size_t max_alloc = secp256k1_scratch_max_allocation(scratch, PIPPENGER_SCRATCH_OBJECTS);
+    int bucket_window;
+    size_t res = 0;
+
+    for (bucket_window = 1; bucket_window <= PIPPENGER_MAX_BUCKET_WINDOW; bucket_window++) {
+        size_t n_points;
+        size_t max_points = secp256k1_pippenger_bucket_window_inv(bucket_window);
+        size_t space_for_points;
+        size_t space_overhead;
+        size_t entry_size = sizeof(secp256k1_ge) + sizeof(secp256k1_scalar) + sizeof(struct secp256k1_pippenger_point_state) + (WNAF_SIZE(bucket_window+1)+1)*sizeof(int);
+
+#ifdef USE_ENDOMORPHISM
+        entry_size = 2*entry_size;
+#endif
+        space_overhead = ((1<<bucket_window) * sizeof(secp256k1_gej) + entry_size + sizeof(struct secp256k1_pippenger_state));
+        if (space_overhead > max_alloc) {
+            break;
+        }
+        space_for_points = max_alloc - space_overhead;
+
+        n_points = space_for_points/entry_size;
+        n_points = n_points > max_points ? max_points : n_points;
+        if (n_points > res) {
+            res = n_points;
+        }
+        if (n_points < max_points) {
+            /* A larger bucket_window may support even more points. But if we
+             * would choose that then the caller couldn't safely use any number
+             * smaller than what this function returns */
+            break;
+        }
+    }
+    return res;
+}
+
 typedef int (*secp256k1_ecmult_multi_func)(const secp256k1_ecmult_context*, secp256k1_scratch*, secp256k1_gej*, const secp256k1_scalar*, secp256k1_ecmult_multi_callback cb, void*, size_t);
 static int secp256k1_ecmult_multi_var(const secp256k1_ecmult_context *ctx, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
     size_t i;
 
+    int (*f)(const secp256k1_ecmult_context*, secp256k1_scratch*, secp256k1_gej*, const secp256k1_scalar*, secp256k1_ecmult_multi_callback cb, void*, size_t, size_t);
+    size_t max_points;
     size_t n_batches;
     size_t n_batch_points;
 
@@ -883,25 +975,36 @@ static int secp256k1_ecmult_multi_var(const secp256k1_ecmult_context *ctx, secp2
         return 1;
     }
 
-    if(n <= ECMULT_PIPPENGER_THRESHOLD) {
-        if(!secp256k1_ecmult_strauss_batch(ctx, scratch, r, inp_g_sc, cb, cbdata, n, 0)) {
+    max_points = secp256k1_pippenger_max_points(scratch);
+    if (max_points == 0) {
+        return 0;
+    } else if (max_points > ECMULT_MAX_POINTS_PER_BATCH) {
+        max_points = ECMULT_MAX_POINTS_PER_BATCH;
+    }
+    n_batches = (n+max_points-1)/max_points;
+    n_batch_points = (n+n_batches-1)/n_batches;
+
+    if (n_batch_points >= ECMULT_PIPPENGER_THRESHOLD) {
+        f = secp256k1_ecmult_pippenger_batch;
+    } else {
+        max_points = secp256k1_strauss_max_points(scratch);
+        if (max_points == 0) {
             return 0;
         }
-    } else {
-        n_batches = (n+MAX_BATCH_SIZE-1)/MAX_BATCH_SIZE;
+        n_batches = (n+max_points-1)/max_points;
         n_batch_points = (n+n_batches-1)/n_batches;
-        for(i = 0; i < n_batches; i++) {
-            size_t nbp = n < n_batch_points ? n : n_batch_points;
-            size_t offset = n_batch_points*i;
-            secp256k1_gej tmp;
-            if(!secp256k1_ecmult_pippenger_batch(ctx, scratch, &tmp, i == 0 ? inp_g_sc : NULL, cb, cbdata, nbp, offset)) {
-                return 0;
-            }
-            secp256k1_gej_add_var(r, r, &tmp, NULL);
-            n -= nbp;
-        }
+        f = secp256k1_ecmult_strauss_batch;
     }
-
+    for(i = 0; i < n_batches; i++) {
+        size_t nbp = n < n_batch_points ? n : n_batch_points;
+        size_t offset = n_batch_points*i;
+        secp256k1_gej tmp;
+        if (!f(ctx, scratch, &tmp, i == 0 ? inp_g_sc : NULL, cb, cbdata, nbp, offset)) {
+            return 0;
+        }
+        secp256k1_gej_add_var(r, r, &tmp, NULL);
+        n -= nbp;
+    }
     return 1;
 }
 

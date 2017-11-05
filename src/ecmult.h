@@ -34,6 +34,10 @@ typedef int (secp256k1_ecmult_multi_callback)(secp256k1_scalar *sc, secp256k1_ge
 
 /**
  * Multi-multiply: R = inp_g_sc * G + sum_i ni * Ai.
+ * Chooses the right algorithm for a given number of points and scratch space
+ * size. Resets and overwrites the given scratch space. If the points do not
+ * fit in the scratch space the algorithm is repeatedly run with batches of
+ * points.
  * Returns: 1 on success (including when inp_g_sc is NULL and n is 0)
  *          0 if there is not enough scratch space for a single point or
  *          callback returns 0
