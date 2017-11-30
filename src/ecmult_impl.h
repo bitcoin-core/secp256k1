@@ -654,13 +654,9 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
 
     for (i = n_wnaf - 1; i >= 0; i--) {
         secp256k1_gej running_sum;
-        secp256k1_gej walking_sum;
 
         for(j = 0; j < ECMULT_TABLE_SIZE(bucket_window+2); j++) {
             secp256k1_gej_set_infinity(&buckets[j]);
-        }
-        for(j = 0; j < bucket_window+1; j++) {
-            secp256k1_gej_double_var(r, r, NULL);
         }
 
         for (np = 0; np < no; ++np) {
@@ -688,24 +684,28 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
                 secp256k1_gej_add_ge_var(&buckets[idx], &buckets[idx], &tmp, NULL);
             }
         }
-        secp256k1_gej_set_infinity(&running_sum);
-        secp256k1_gej_set_infinity(&walking_sum);
-        /* Compute walking_sum as bucket[0] + 3*bucket[1] + 5*bucket[2] + ...
-         * by first setting
-         * running_sum = bucket[0] +   bucket[1] +   bucket[2] + ...
-         * walking_sum = bucket[0] + 2*bucket[1] + 3*bucket[2] + ...
-         * and then computing
-         * walking_sum = 2*walking_sum - running_sum
-         */
-        for(j = ECMULT_TABLE_SIZE(bucket_window+2) - 1; j >= 0; j--) {
-            secp256k1_gej_add_var(&running_sum, &running_sum, &buckets[j], NULL);
-            secp256k1_gej_add_var(&walking_sum, &walking_sum, &running_sum, NULL);
+
+        for(j = 0; j < bucket_window; j++) {
+            secp256k1_gej_double_var(r, r, NULL);
         }
 
-        secp256k1_gej_double_var(&walking_sum, &walking_sum, NULL);
-        secp256k1_gej_neg(&running_sum, &running_sum);
-        secp256k1_gej_add_var(&walking_sum, &walking_sum, &running_sum, NULL);
-        secp256k1_gej_add_var(r, r, &walking_sum, NULL);
+        secp256k1_gej_set_infinity(&running_sum);
+        /* Accumulate the sum: bucket[0] + 3*bucket[1] + 5*bucket[2] + 7*bucket[3] + ...
+         *                   = bucket[0] +   bucket[1] +   bucket[2] +   bucket[3] + ...
+         *                   +         2 *  (bucket[1] + 2*bucket[2] + 3*bucket[3] + ...)
+         * using an intermediate running sum:
+         * running_sum = bucket[0] +   bucket[1] +   bucket[2] + ...
+         *
+         * The doubling is done implicitly by deferring the final window doubling (of 'r').
+         */
+        for(j = ECMULT_TABLE_SIZE(bucket_window+2) - 1; j > 0; j--) {
+            secp256k1_gej_add_var(&running_sum, &running_sum, &buckets[j], NULL);
+            secp256k1_gej_add_var(r, r, &running_sum, NULL);
+        }
+
+        secp256k1_gej_add_var(&running_sum, &running_sum, &buckets[0], NULL);
+        secp256k1_gej_double_var(r, r, NULL);
+        secp256k1_gej_add_var(r, r, &running_sum, NULL);
     }
     return 1;
 }
