@@ -60,9 +60,9 @@
 
 /* Minimum number of points for which pippenger_wnaf is faster than strauss wnaf */
 #ifdef USE_ENDOMORPHISM
-    #define ECMULT_PIPPENGER_THRESHOLD 96
+    #define ECMULT_PIPPENGER_THRESHOLD 88
 #else
-    #define ECMULT_PIPPENGER_THRESHOLD 156
+    #define ECMULT_PIPPENGER_THRESHOLD 160
 #endif
 
 #ifdef USE_ENDOMORPHISM
@@ -716,51 +716,51 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
  */
 static int secp256k1_pippenger_bucket_window(size_t n) {
 #ifdef USE_ENDOMORPHISM
-    if (n <= 4) {
+    if (n <= 1) {
         return 1;
-    } else if (n <= 8) {
+    } else if (n <= 4) {
         return 2;
-    } else if (n <= 40) {
+    } else if (n <= 20) {
         return 3;
-    } else if (n <= 117) {
+    } else if (n <= 57) {
         return 4;
-    } else if (n <= 280) {
+    } else if (n <= 136) {
         return 5;
-    } else if (n <= 480) {
+    } else if (n <= 235) {
         return 6;
-    } else if (n <= 2560) {
+    } else if (n <= 1260) {
         return 7;
-    } else if (n <= 9200) {
+    } else if (n <= 4420) {
         return 9;
-    } else if (n <= 17400) {
+    } else if (n <= 7880) {
         return 10;
-    } else if (n <= 28600) {
+    } else if (n <= 16050) {
         return 11;
     } else {
         return PIPPENGER_MAX_BUCKET_WINDOW;
     }
 #else
-    if (n <= 2) {
+    if (n <= 1) {
         return 1;
-    } else if (n <= 9) {
+    } else if (n <= 11) {
         return 2;
-    } else if (n <= 42) {
+    } else if (n <= 45) {
         return 3;
     } else if (n <= 100) {
         return 4;
-    } else if (n <= 280) {
+    } else if (n <= 275) {
         return 5;
-    } else if (n <= 610) {
+    } else if (n <= 625) {
         return 6;
-    } else if (n <= 1920) {
+    } else if (n <= 1850) {
         return 7;
     } else if (n <= 3400) {
         return 8;
-    } else if (n <= 10240) {
+    } else if (n <= 9630) {
         return 9;
-    } else if (n <= 19000) {
+    } else if (n <= 17900) {
         return 10;
-    } else if (n <= 35000) {
+    } else if (n <= 32800) {
         return 11;
     } else {
         return PIPPENGER_MAX_BUCKET_WINDOW;
@@ -774,30 +774,30 @@ static int secp256k1_pippenger_bucket_window(size_t n) {
 static size_t secp256k1_pippenger_bucket_window_inv(int bucket_window) {
     switch(bucket_window) {
 #ifdef USE_ENDOMORPHISM
-        case 1: return 4;
-        case 2: return 8;
-        case 3: return 40;
-        case 4: return 117;
-        case 5: return 280;
-        case 6: return 480;
-        case 7: return 2560;
-        case 8: return 2560;
-        case 9: return 9200;
-        case 10: return 17400;
-        case 11: return 28600;
+        case 1: return 1;
+        case 2: return 4;
+        case 3: return 20;
+        case 4: return 57;
+        case 5: return 136;
+        case 6: return 235;
+        case 7: return 1260;
+        case 8: return 1260;
+        case 9: return 4420;
+        case 10: return 7880;
+        case 11: return 16050;
         case PIPPENGER_MAX_BUCKET_WINDOW: return SIZE_MAX;
 #else
-        case 1: return 2;
-        case 2: return 9;
-        case 3: return 42;
+        case 1: return 1;
+        case 2: return 11;
+        case 3: return 45;
         case 4: return 100;
-        case 5: return 280;
-        case 6: return 610;
-        case 7: return 1920;
+        case 5: return 275;
+        case 6: return 625;
+        case 7: return 1850;
         case 8: return 3400;
-        case 9: return 10240;
-        case 10: return 19000;
-        case 11: return 35000;
+        case 9: return 9630;
+        case 10: return 17900;
+        case 11: return 32800;
         case PIPPENGER_MAX_BUCKET_WINDOW: return SIZE_MAX;
 #endif
     }
