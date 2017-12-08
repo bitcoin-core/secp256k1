@@ -324,21 +324,6 @@ void bench_num_jacobi(void* arg) {
 }
 #endif
 
-int have_flag(int argc, char** argv, char *flag) {
-    char** argm = argv + argc;
-    argv++;
-    if (argv == argm) {
-        return 1;
-    }
-    while (argv != NULL && argv != argm) {
-        if (strcmp(*argv, flag) == 0) {
-            return 1;
-        }
-        argv++;
-    }
-    return 0;
-}
-
 int main(int argc, char **argv) {
     bench_inv data;
     if (have_flag(argc, argv, "scalar") || have_flag(argc, argv, "add")) run_benchmark("scalar_add", bench_scalar_add, bench_setup, NULL, &data, 10, 2000000);
