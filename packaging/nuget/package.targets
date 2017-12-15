@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+#################################################################
+#   GENERATED SOURCE CODE, DO NOT EDIT EXCEPT EXPERIMENTALLY    #
+#################################################################
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- user interface -->
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)package.xml" />
+  </ItemGroup>
+
+  <!-- general -->
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Linkage-secp256k1)' == 'static' Or '$(Linkage-secp256k1)' == 'ltcg'">
+    <ClCompile>
+      <PreprocessorDefinitions>SECP256K1_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <!-- static libraries -->
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'Win32' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'static' And $(Configuration.IndexOf('Release')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x86-v120-mt-s-0_1_0_16.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'Win32' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'static' And $(Configuration.IndexOf('Debug')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x86-v120-mt-sgd-0_1_0_16.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'x64' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'static' And $(Configuration.IndexOf('Release')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x64-v120-mt-s-0_1_0_16.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'x64' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'static' And $(Configuration.IndexOf('Debug')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x64-v120-mt-sgd-0_1_0_16.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- static ltcg libraries -->
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'Win32' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'ltcg' And $(Configuration.IndexOf('Release')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x86-v120-mt-s-0_1_0_16.ltcg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'Win32' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'ltcg' And $(Configuration.IndexOf('Debug')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x86-v120-mt-sgd-0_1_0_16.ltcg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'x64' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'ltcg' And $(Configuration.IndexOf('Release')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x64-v120-mt-s-0_1_0_16.ltcg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'x64' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'ltcg' And $(Configuration.IndexOf('Debug')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x64-v120-mt-sgd-0_1_0_16.ltcg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  
+  <!-- dynamic import libraries -->
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'Win32' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'dynamic' And $(Configuration.IndexOf('Release')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x86-v120-mt-0_1_0_16.imp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'Win32' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'dynamic' And $(Configuration.IndexOf('Debug')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x86-v120-mt-gd-0_1_0_16.imp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'x64' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'dynamic' And $(Configuration.IndexOf('Release')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x64-v120-mt-0_1_0_16.imp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)' == 'x64' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'dynamic' And $(Configuration.IndexOf('Debug')) != -1">
+    <Link>
+      <AdditionalDependencies>secp256k1-x64-v120-mt-gd-0_1_0_16.imp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- dynamic libraries with debug symbols -->
+  <Target Name="secp256k1_AfterBuild" AfterTargets="AfterBuild" />
+  <Target Name="secp256k1_AfterBuild_Win32_v120_Dynamic_Release"
+          Condition="'$(Platform)' == 'Win32' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'dynamic' And $(Configuration.IndexOf('Release')) != -1"
+          AfterTargets="secp256k1_AfterBuild">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin\secp256k1-x86-v120-mt-0_1_0_16.dll" DestinationFiles="$(TargetDir)secp256k1.dll" SkipUnchangedFiles="true" />
+    <!--<Copy SourceFiles="$(MSBuildThisFileDirectory)bin\secp256k1-x86-v120-mt-0_1_0_16.pdb" DestinationFiles="$(TargetDir)secp256k1.pdb" SkipUnchangedFiles="true" />-->
+  </Target>
+  <Target Name="secp256k1_AfterBuild_Win32_v120_Dynamic_Debug"
+          Condition="'$(Platform)' == 'Win32' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'dynamic' And $(Configuration.IndexOf('Debug')) != -1"
+          AfterTargets="secp256k1_AfterBuild">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin\secp256k1-x86-v120-mt-gd-0_1_0_16.dll" DestinationFiles="$(TargetDir)secp256k1.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin\secp256k1-x86-v120-mt-gd-0_1_0_16.pdb" DestinationFiles="$(TargetDir)secp256k1.pdb" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="secp256k1_AfterBuild_x64_v120_Dynamic_Release"
+          Condition="'$(Platform)' == 'x64' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'dynamic' And $(Configuration.IndexOf('Release')) != -1"
+          AfterTargets="secp256k1_AfterBuild">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin\secp256k1-x64-v120-mt-0_1_0_16.dll" DestinationFiles="$(TargetDir)secp256k1.dll" SkipUnchangedFiles="true" />
+    <!--<Copy SourceFiles="$(MSBuildThisFileDirectory)bin\secp256k1-x64-v120-mt-0_1_0_16.pdb" DestinationFiles="$(TargetDir)secp256k1.pdb" SkipUnchangedFiles="true" />-->
+  </Target>
+  <Target Name="secp256k1_AfterBuild_x64_v120_Dynamic_Debug"
+          Condition="'$(Platform)' == 'x64' And ('$(PlatformToolset)' == 'v120' Or '$(PlatformToolset)' == 'CTP_Nov2013') And '$(Linkage-secp256k1)' == 'dynamic' And $(Configuration.IndexOf('Debug')) != -1"
+          AfterTargets="secp256k1_AfterBuild">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin\secp256k1-x64-v120-mt-gd-0_1_0_16.dll" DestinationFiles="$(TargetDir)secp256k1.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin\secp256k1-x64-v120-mt-gd-0_1_0_16.pdb" DestinationFiles="$(TargetDir)secp256k1.pdb" SkipUnchangedFiles="true" />
+  </Target>
+
+<!--
+#################################################################
+#   GENERATED SOURCE CODE, DO NOT EDIT EXCEPT EXPERIMENTALLY    #
+#################################################################
+-->
+</Project>
