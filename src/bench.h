@@ -10,7 +10,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "sys/time.h"
+
+#ifndef _MSC_VER
+#include <sys/time.h>
+#else
+#include <windows.h>
+
+// TODO: implement gettimeofday for windows builds.
+static double gettimeofday(struct timeval* tv, void* unused) {
+    return 0.0;
+}
+#endif
 
 static double gettimedouble(void) {
     struct timeval tv;
