@@ -15,7 +15,7 @@ typedef struct {
     unsigned char sig[64];
 } bench_recover;
 
-void bench_recover(void* arg) {
+void bench_recover_run(void* arg) {
     int i;
     bench_recover *data = (bench_recover*)arg;
     secp256k1_pubkey pubkey;
@@ -53,7 +53,7 @@ int main(void) {
 
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
 
-    run_benchmark("ecdsa_recover", bench_recover, bench_recover_setup, NULL, &data, 10, 20000);
+    run_benchmark("ecdsa_recover", bench_recover_run, bench_recover_setup, NULL, &data, 10, 20000);
 
     secp256k1_context_destroy(data.ctx);
     return 0;
