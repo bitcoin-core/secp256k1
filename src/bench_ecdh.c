@@ -36,7 +36,7 @@ static void bench_ecdh_setup(void* arg) {
     CHECK(secp256k1_ec_pubkey_parse(data->ctx, &data->point, point, sizeof(point)) == 1);
 }
 
-static void bench_ecdh(void* arg) {
+static void bench_ecdh_run(void* arg) {
     int i;
     unsigned char res[32];
     bench_ecdh *data = (bench_ecdh*)arg;
@@ -49,6 +49,6 @@ static void bench_ecdh(void* arg) {
 int main(void) {
     bench_ecdh data;
 
-    run_benchmark("ecdh", bench_ecdh, bench_ecdh_setup, NULL, &data, 10, 20000);
+    run_benchmark("ecdh", bench_ecdh_run, bench_ecdh_setup, NULL, &data, 10, 20000);
     return 0;
 }
