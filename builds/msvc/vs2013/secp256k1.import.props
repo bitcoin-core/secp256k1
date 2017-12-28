@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup Label="Globals">
+    <_PropertySheetDisplayName>secp256k1 Import Settings</_PropertySheetDisplayName>
+  </PropertyGroup>
+
+  <!-- User Interface -->
+  
+  <ItemGroup Label="BuildOptionsExtension">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)secp256k1.import.xml" />
+  </ItemGroup>
+
+  <!-- Linkage -->
+  
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\..\secp256k1\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>inline=__inline;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies Condition="'$(Linkage-secp256k1)' != ''">secp256k1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories Condition="$(Configuration.IndexOf('Debug')) != -1">$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\$(PlatformToolset)\$(Linkage-secp256k1)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="$(Configuration.IndexOf('Release')) != -1">$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Release\$(PlatformToolset)\$(Linkage-secp256k1)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- Copy -->
+
+  <Target Name="Linkage-secp256k1-dynamic" AfterTargets="AfterBuild" Condition="'$(Linkage-secp256k1)' == 'dynamic'">
+    <Copy Condition="$(Configuration.IndexOf('Debug')) != -1"
+          SourceFiles="$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\$(PlatformToolset)\dynamic\secp256k1.dll"
+          DestinationFiles="$(TargetDir)secp256k1.dll"
+          SkipUnchangedFiles="true" />
+    <Copy Condition="$(Configuration.IndexOf('Debug')) != -1"
+          SourceFiles="$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Debug\$(PlatformToolset)\dynamic\secp256k1.pdb"
+          DestinationFiles="$(TargetDir)secp256k1.pdb"
+          SkipUnchangedFiles="true" />
+    <Copy Condition="$(Configuration.IndexOf('Release')) != -1"
+          SourceFiles="$(ProjectDir)..\..\..\..\..\secp256k1\bin\$(PlatformName)\Release\$(PlatformToolset)\dynamic\secp256k1.dll"
+          DestinationFiles="$(TargetDir)secp256k1.dll"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Messages -->
+
+  <Target Name="secp256k1-info" BeforeTargets="AfterBuild" Condition="'$(Linkage-secp256k1)' == 'dynamic'">
+    <Message Text="Copying secp256k1.dll -&gt; $(TargetDir)secp256k1.dll" Importance="high"/>
+    <Message Text="Copying secp256k1.pdb -&gt; $(TargetDir)secp256k1.pdb" Importance="high" Condition="$(Configuration.IndexOf('Debug')) != -1" />
+  </Target>
+
+</Project>

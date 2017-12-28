@@ -1,0 +1,149 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{148600EA-561B-4C78-A80A-2EB5046D0420}</ProjectGuid>
+    <ProjectName>secp256k1</ProjectName>
+    <PlatformToolset>v120</PlatformToolset>
+    <NuGetPackageImportStamp>4a417148</NuGetPackageImportStamp>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugDLL|Win32">
+      <Configuration>DebugDLL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDLL|Win32">
+      <Configuration>ReleaseDLL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugDLL|x64">
+      <Configuration>DebugDLL</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDLL|x64">
+      <Configuration>ReleaseDLL</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLTCG|Win32">
+      <Configuration>DebugLTCG</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLTCG|Win32">
+      <Configuration>ReleaseLTCG</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLTCG|x64">
+      <Configuration>DebugLTCG</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLTCG|x64">
+      <Configuration>ReleaseLTCG</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLIB|Win32">
+      <Configuration>DebugLIB</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLIB|Win32">
+      <Configuration>ReleaseLIB</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLIB|x64">
+      <Configuration>DebugLIB</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLIB|x64">
+      <Configuration>ReleaseLIB</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType Condition="$(Configuration.IndexOf('DLL')) == -1">StaticLibrary</ConfigurationType>
+    <ConfigurationType Condition="$(Configuration.IndexOf('DLL')) != -1">DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(ProjectDir)..\..\properties\$(Configuration).props" />
+    <Import Project="$(ProjectDir)..\..\properties\Output.props" />
+    <Import Project="$(ProjectDir)$(ProjectName).props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <Option-ecdh>true</Option-ecdh>
+    <Option-endomorphism>true</Option-endomorphism>
+    <Option-schnorr>
+    </Option-schnorr>
+    <Option-recovery>true</Option-recovery>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\packaging\nuget\gmp\package.bat" />
+    <None Include="..\..\..\..\packaging\nuget\gmp\package.config" />
+    <None Include="..\..\..\..\packaging\nuget\package.bat" />
+    <None Include="..\..\..\..\packaging\nuget\package.config" />
+    <None Include="..\..\..\..\packaging\nuget\package.gsl" />
+    <None Include="..\..\..\..\packaging\nuget\package.nuspec" />
+    <None Include="..\..\..\..\packaging\nuget\package.targets" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="..\..\..\..\packaging\nuget\package.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\contrib\lax_der_parsing.h" />
+    <ClInclude Include="..\..\..\..\contrib\lax_der_privatekey_parsing.h" />
+    <ClInclude Include="..\..\..\..\include\secp256k1.h" />
+    <ClInclude Include="..\..\..\..\include\secp256k1_ecdh.h" />
+    <ClInclude Include="..\..\..\..\include\secp256k1_recovery.h" />
+    <ClInclude Include="..\..\..\..\src\basic-config.h" />
+    <ClInclude Include="..\..\..\..\src\ecdsa.h" />
+    <ClInclude Include="..\..\..\..\src\ecdsa_impl.h" />
+    <ClInclude Include="..\..\..\..\src\eckey.h" />
+    <ClInclude Include="..\..\..\..\src\eckey_impl.h" />
+    <ClInclude Include="..\..\..\..\src\ecmult.h" />
+    <ClInclude Include="..\..\..\..\src\ecmult_const.h" />
+    <ClInclude Include="..\..\..\..\src\ecmult_const_impl.h" />
+    <ClInclude Include="..\..\..\..\src\ecmult_gen.h" />
+    <ClInclude Include="..\..\..\..\src\ecmult_gen_impl.h" />
+    <ClInclude Include="..\..\..\..\src\ecmult_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field.h" />
+    <ClInclude Include="..\..\..\..\src\field_10x26.h" />
+    <ClInclude Include="..\..\..\..\src\field_10x26_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field_5x52.h" />
+    <ClInclude Include="..\..\..\..\src\field_5x52_asm_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field_5x52_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field_5x52_int128_impl.h" />
+    <ClInclude Include="..\..\..\..\src\field_impl.h" />
+    <ClInclude Include="..\..\..\..\src\group.h" />
+    <ClInclude Include="..\..\..\..\src\group_impl.h" />
+    <ClInclude Include="..\..\..\..\src\hash.h" />
+    <ClInclude Include="..\..\..\..\src\hash_impl.h" />
+    <ClInclude Include="..\..\..\..\src\modules\ecdh\main_impl.h" />
+    <ClInclude Include="..\..\..\..\src\modules\ecdh\tests_impl.h" />
+    <ClInclude Include="..\..\..\..\src\modules\recovery\main_impl.h" />
+    <ClInclude Include="..\..\..\..\src\modules\recovery\tests_impl.h" />
+    <ClInclude Include="..\..\..\..\src\num.h" />
+    <ClInclude Include="..\..\..\..\src\num_gmp.h" />
+    <ClInclude Include="..\..\..\..\src\num_gmp_impl.h" />
+    <ClInclude Include="..\..\..\..\src\num_impl.h" />
+    <ClInclude Include="..\..\..\..\src\scalar.h" />
+    <ClInclude Include="..\..\..\..\src\scalar_4x64.h" />
+    <ClInclude Include="..\..\..\..\src\scalar_4x64_impl.h" />
+    <ClInclude Include="..\..\..\..\src\scalar_8x32.h" />
+    <ClInclude Include="..\..\..\..\src\scalar_8x32_impl.h" />
+    <ClInclude Include="..\..\..\..\src\scalar_impl.h" />
+    <ClInclude Include="..\..\..\..\src\scalar_low.h" />
+    <ClInclude Include="..\..\..\..\src\scalar_low_impl.h" />
+    <ClInclude Include="..\..\..\..\src\scratch.h" />
+    <ClInclude Include="..\..\..\..\src\scratch_impl.h" />
+    <ClInclude Include="..\..\..\..\src\util.h" />
+    <ClInclude Include="..\..\resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\contrib\lax_der_parsing.c" />
+    <ClCompile Include="..\..\..\..\contrib\lax_der_privatekey_parsing.c" />
+    <ClCompile Include="..\..\..\..\src\secp256k1.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\resource.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionSettings" />
+</Project>

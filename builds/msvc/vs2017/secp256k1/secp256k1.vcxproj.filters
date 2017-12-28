@@ -1,0 +1,225 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="..\..\..\..\packaging\nuget\package.gsl">
+      <Filter>packaging</Filter>
+    </None>
+    <None Include="..\..\..\..\packaging\nuget\package.nuspec">
+      <Filter>packaging</Filter>
+    </None>
+    <None Include="..\..\..\..\packaging\nuget\package.targets">
+      <Filter>packaging</Filter>
+    </None>
+    <None Include="..\..\..\..\packaging\nuget\package.bat">
+      <Filter>packaging</Filter>
+    </None>
+    <None Include="..\..\..\..\packaging\nuget\package.config">
+      <Filter>packaging</Filter>
+    </None>
+    <None Include="..\..\..\..\packaging\nuget\gmp\package.config">
+      <Filter>packaging\gmp</Filter>
+    </None>
+    <None Include="..\..\..\..\packaging\nuget\gmp\package.bat">
+      <Filter>packaging\gmp</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="resource">
+      <UniqueIdentifier>{db47c290-c7de-4be7-965c-e1a3ea4d1c4f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="packaging">
+      <UniqueIdentifier>{e5a62c5e-f95f-468f-b4e8-6fee7a22e95a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{956a166d-0217-4059-a21e-68688b469749}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{3ceb7cd8-56aa-4a31-ac69-208c7e32d14c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\include">
+      <UniqueIdentifier>{eb92c8e6-1d10-4886-9776-9a7d731fae6c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="contrib">
+      <UniqueIdentifier>{382d195a-473e-4a93-bfa0-273c1cf45fa0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="packaging\gmp">
+      <UniqueIdentifier>{f53d593f-7ced-481b-bdf6-b61b7e4ddce1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\modules">
+      <UniqueIdentifier>{7110bef9-eaea-4eb7-b627-8d308fc96696}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\modules\recovery">
+      <UniqueIdentifier>{725fe173-3fa3-4e5a-84e9-848be2549f68}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\modules\ecdh">
+      <UniqueIdentifier>{2e005bbf-94fb-4114-8453-222dd6850262}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\include\secp256k1.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\resource.h">
+      <Filter>resource</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\secp256k1_ecdh.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\secp256k1_recovery.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\contrib\lax_der_privatekey_parsing.h">
+      <Filter>contrib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\contrib\lax_der_parsing.h">
+      <Filter>contrib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\modules\ecdh\main_impl.h">
+      <Filter>src\modules\ecdh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\modules\ecdh\tests_impl.h">
+      <Filter>src\modules\ecdh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\modules\recovery\tests_impl.h">
+      <Filter>src\modules\recovery</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\modules\recovery\main_impl.h">
+      <Filter>src\modules\recovery</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\field.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\field_5x52.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\field_5x52_asm_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\field_5x52_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\field_5x52_int128_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\field_10x26.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\field_10x26_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\field_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\group.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\group_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\hash.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\hash_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\num.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\num_gmp.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\num_gmp_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\num_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\scalar.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\scalar_4x64.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\scalar_4x64_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\scalar_8x32.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\scalar_8x32_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\scalar_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\scalar_low.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\scalar_low_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\util.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\basic-config.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\ecdsa.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\ecdsa_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\eckey.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\eckey_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\ecmult.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\ecmult_const.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\ecmult_const_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\ecmult_gen.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\ecmult_gen_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\ecmult_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\scratch_impl.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\scratch.h">
+      <Filter>src\include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="..\..\..\..\packaging\nuget\package.xml">
+      <Filter>packaging</Filter>
+    </Xml>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\secp256k1.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\contrib\lax_der_privatekey_parsing.c">
+      <Filter>contrib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\contrib\lax_der_parsing.c">
+      <Filter>contrib</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\resource.rc">
+      <Filter>resource</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

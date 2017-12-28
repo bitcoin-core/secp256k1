@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ConfigurationType>Application</ConfigurationType>
+    <ProjectGuid>{9F8CD353-5F8B-46D7-9DA3-17A06CCA634F}</ProjectGuid>
+    <ProjectName>secp256k1_tests</ProjectName>
+    <PlatformToolset>v120</PlatformToolset>
+    <NuGetPackageImportStamp>ae87ffba</NuGetPackageImportStamp>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugDEXE|Win32">
+      <Configuration>DebugDEXE</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDEXE|Win32">
+      <Configuration>ReleaseDEXE</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugDEXE|x64">
+      <Configuration>DebugDEXE</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDEXE|x64">
+      <Configuration>ReleaseDEXE</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLEXE|Win32">
+      <Configuration>DebugLEXE</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLEXE|Win32">
+      <Configuration>ReleaseLEXE</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLEXE|x64">
+      <Configuration>DebugLEXE</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLEXE|x64">
+      <Configuration>ReleaseLEXE</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugSEXE|Win32">
+      <Configuration>DebugSEXE</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseSEXE|Win32">
+      <Configuration>ReleaseSEXE</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugSEXE|x64">
+      <Configuration>DebugSEXE</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseSEXE|x64">
+      <Configuration>ReleaseSEXE</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(ProjectDir)..\..\properties\$(Configuration).props" />
+    <Import Project="$(ProjectDir)..\..\properties\Output.props" />
+    <Import Project="$(ProjectDir)$(ProjectName).props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <Option-endomorphism>true</Option-endomorphism>
+  </PropertyGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\tests.c" />
+    <ClCompile Include="..\..\..\..\src\tests_exhaustive.c">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\src\testrand.h" />
+    <ClInclude Include="..\..\..\..\src\testrand_impl.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ItemGroup>
+    <ProjectReference Include="..\secp256k1\secp256k1.vcxproj">
+      <Project>{148600EA-561B-4C78-A80A-2EB5046D0420}</Project>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
