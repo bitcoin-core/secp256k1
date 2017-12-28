@@ -6,9 +6,9 @@
 -->
 <package xmlns="http://schemas.microsoft.com/packaging/2013/01/nuspec.xsd">
     <metadata minClientVersion="2.5">
-        <id>secp256k1_vc120</id>
+        <id>secp256k1-vc120</id>
         <version>0.1.0.16</version>
-        <title>secp256k1_vc120</title>
+        <title>secp256k1-vc120</title>
         <authors>Pieter Wuille and secp256k1 contributors</authors>
         <owners>Eric Voskuil</owners>
         <licenseUrl>https://github.com/bitcoin-core/secp256k1/blob/master/COPYING</licenseUrl>
@@ -31,7 +31,7 @@
 
         <!-- targets -->
       
-        <file src="package.targets" target="build\native\secp256k1_vc120.targets" />
+        <file src="package.targets" target="build\native\secp256k1-vc120.targets" />
         <file src="package.xml" target="build\native\package.xml" />
         
         <!-- docs -->
