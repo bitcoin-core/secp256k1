@@ -104,22 +104,20 @@ void test_aggsig_api(void) {
     CHECK(secp256k1_aggsig_partial_sign(both, aggctx, &partials[4], msg, seckeys[4], 4));
     CHECK(ecount == 12);
 
-    CHECK(secp256k1_aggsig_combine_signatures(none, aggctx, sig, partials, 5));
-    CHECK(!secp256k1_aggsig_combine_signatures(none, aggctx, sig, partials, 4)); /* wrong sig count, not API error (should it be?)  */
-    CHECK(!secp256k1_aggsig_combine_signatures(none, aggctx, sig, partials, 0));
+    CHECK(secp256k1_aggsig_combine_signatures(none, aggctx, sig, partials));
     CHECK(ecount == 12);
-    CHECK(!secp256k1_aggsig_combine_signatures(none, NULL, sig, partials, 5));
+    CHECK(!secp256k1_aggsig_combine_signatures(none, NULL, sig, partials));
     CHECK(ecount == 13);
-    CHECK(!secp256k1_aggsig_combine_signatures(none, aggctx, NULL, partials, 5));
+    CHECK(!secp256k1_aggsig_combine_signatures(none, aggctx, NULL, partials));
     CHECK(ecount == 14);
-    CHECK(!secp256k1_aggsig_combine_signatures(none, aggctx, sig, NULL, 5));
+    CHECK(!secp256k1_aggsig_combine_signatures(none, aggctx, sig, NULL));
     CHECK(ecount == 15);
 
     memset(sig, 0, sizeof(sig));
     CHECK(!secp256k1_aggsig_verify(none, scratch, sig, msg, pubkeys, 5));
     CHECK(ecount == 16);
     CHECK(!secp256k1_aggsig_verify(vrfy, scratch, sig, msg, pubkeys, 5));
-    CHECK(secp256k1_aggsig_combine_signatures(none, aggctx, sig, partials, 5));
+    CHECK(secp256k1_aggsig_combine_signatures(none, aggctx, sig, partials));
     CHECK(!secp256k1_aggsig_verify(vrfy, scratch, sig, msg, pubkeys, 4));
     CHECK(!secp256k1_aggsig_verify(vrfy, scratch, sig, msg, pubkeys, 0));
     CHECK(secp256k1_aggsig_verify(vrfy, scratch, sig, msg, pubkeys, 5));
@@ -183,7 +181,7 @@ void test_aggsig_onesigner(void) {
         for (j = 0; j < n_signers[i]; j++) {
             CHECK(secp256k1_aggsig_partial_sign(ctx, aggctx, &partials[j], msg, seckeys[j], j));
         }
-        CHECK(secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, partials, n_signers[i]));
+        CHECK(secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, partials));
         CHECK(secp256k1_aggsig_verify(ctx, scratch, sig, msg, pubkeys, n_signers[i]));
         /* Make sure verification with 0 pubkeys fails without Bad Things happenings */
         CHECK(!secp256k1_aggsig_verify(ctx, scratch, sig, msg, pubkeys, 0));
@@ -215,21 +213,20 @@ void test_aggsig_state_machine(void) {
 
     aggctx = secp256k1_aggsig_context_create(ctx, &pubkey, 1, seed);
     CHECK(!secp256k1_aggsig_partial_sign(ctx, aggctx, &partial, msg, seckey, 0));
-    CHECK(!secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial, 1));
+    CHECK(!secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial));
 
     CHECK(secp256k1_aggsig_generate_nonce(ctx, aggctx, 0));
     CHECK(!secp256k1_aggsig_generate_nonce(ctx, aggctx, 0));
-    CHECK(!secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial, 1));
+    CHECK(!secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial));
 
     CHECK(secp256k1_aggsig_partial_sign(ctx, aggctx, &partial, msg, seckey, 0));
     CHECK(!secp256k1_aggsig_generate_nonce(ctx, aggctx, 0));
     CHECK(!secp256k1_aggsig_partial_sign(ctx, aggctx, &partial, msg, seckey, 0));
 
-    CHECK(secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial, 1));
+    CHECK(secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial));
     CHECK(!secp256k1_aggsig_generate_nonce(ctx, aggctx, 0));
     CHECK(!secp256k1_aggsig_partial_sign(ctx, aggctx, &partial, msg, seckey, 0));
-    CHECK(secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial, 1));
-
+    CHECK(secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial));
     secp256k1_aggsig_context_destroy(aggctx);
 }
 

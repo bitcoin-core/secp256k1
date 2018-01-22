@@ -109,14 +109,12 @@ SECP256K1_API int secp256k1_aggsig_partial_sign(
  *        aggctx: an aggsig context object (cannot be NULL)
  *  Out:     sig64: the completed signature (cannot be NULL)
  *  In:    partial: an array of partial signatures to aggregate (cannot be NULL)
- *          n_sigs: the number of partial signatures provided
  */
 SECP256K1_API int secp256k1_aggsig_combine_signatures(
     const secp256k1_context* ctx,
     secp256k1_aggsig_context* aggctx,
     unsigned char *sig64,
-    const secp256k1_aggsig_partial_signature *partial,
-    size_t n_sigs
+    const secp256k1_aggsig_partial_signature *partial
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_WARN_UNUSED_RESULT;
 
 

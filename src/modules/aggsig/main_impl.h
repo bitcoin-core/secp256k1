@@ -180,7 +180,7 @@ int secp256k1_aggsig_partial_sign(const secp256k1_context* ctx, secp256k1_aggsig
     return 1;
 }
 
-int secp256k1_aggsig_combine_signatures(const secp256k1_context* ctx, secp256k1_aggsig_context* aggctx, unsigned char *sig64, const secp256k1_aggsig_partial_signature *partial, size_t n_sigs) {
+int secp256k1_aggsig_combine_signatures(const secp256k1_context* ctx, secp256k1_aggsig_context* aggctx, unsigned char *sig64, const secp256k1_aggsig_partial_signature *partial) {
     size_t i;
     secp256k1_scalar s;
     secp256k1_ge final;
@@ -191,10 +191,6 @@ int secp256k1_aggsig_combine_signatures(const secp256k1_context* ctx, secp256k1_
     ARG_CHECK(partial != NULL);
     (void) ctx;
 
-    if (n_sigs != aggctx->n_sigs) {
-        return 0;
-    }
-
     for (i = 0; i < aggctx->n_sigs; i++) {
         if (aggctx->progress[i] != NONCE_PROGRESS_SIGNED) {
             return 0;
@@ -202,7 +198,7 @@ int secp256k1_aggsig_combine_signatures(const secp256k1_context* ctx, secp256k1_
     }
 
     secp256k1_scalar_set_int(&s, 0);
-    for (i = 0; i < n_sigs; i++) {
+    for (i = 0; i < aggctx->n_sigs; i++) {
         secp256k1_scalar tmp;
         int overflow;
         secp256k1_scalar_set_b32(&tmp, partial[i].data, &overflow);

@@ -41,7 +41,7 @@ void bench_aggsig_setup(void* arg) {
     for (i = 0; i < N_SIGNATURES; i++) {
         CHECK(secp256k1_aggsig_partial_sign(data->ctx, data->aggctx, &data->partials[i], data->msg, data->seckeys[i], i));
     }
-    CHECK(secp256k1_aggsig_combine_signatures(data->ctx, data->aggctx, data->sig, data->partials, N_SIGNATURES));
+    CHECK(secp256k1_aggsig_combine_signatures(data->ctx, data->aggctx, data->sig, data->partials));
 }
 
 int main(void) {
