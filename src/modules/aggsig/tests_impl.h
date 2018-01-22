@@ -195,9 +195,48 @@ void test_aggsig_onesigner(void) {
 }
 #undef N_KEYS
 
+void test_aggsig_state_machine(void) {
+    secp256k1_pubkey pubkey;
+    unsigned char seckey[32];
+    secp256k1_aggsig_partial_signature partial;
+    secp256k1_scalar tmp_s;
+    unsigned char msg[32];
+    unsigned char seed[32];
+    unsigned char sig[64];
+    secp256k1_aggsig_context *aggctx;
+
+    random_scalar_order_test(&tmp_s);
+    secp256k1_scalar_get_b32(msg, &tmp_s);
+    random_scalar_order_test(&tmp_s);
+    secp256k1_scalar_get_b32(seckey, &tmp_s);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, seckey) == 1);
+    random_scalar_order_test(&tmp_s);
+    secp256k1_scalar_get_b32(seed, &tmp_s);
+
+    aggctx = secp256k1_aggsig_context_create(ctx, &pubkey, 1, seed);
+    CHECK(!secp256k1_aggsig_partial_sign(ctx, aggctx, &partial, msg, seckey, 0));
+    CHECK(!secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial, 1));
+
+    CHECK(secp256k1_aggsig_generate_nonce(ctx, aggctx, 0));
+    CHECK(!secp256k1_aggsig_generate_nonce(ctx, aggctx, 0));
+    CHECK(!secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial, 1));
+
+    CHECK(secp256k1_aggsig_partial_sign(ctx, aggctx, &partial, msg, seckey, 0));
+    CHECK(!secp256k1_aggsig_generate_nonce(ctx, aggctx, 0));
+    CHECK(!secp256k1_aggsig_partial_sign(ctx, aggctx, &partial, msg, seckey, 0));
+
+    CHECK(secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial, 1));
+    CHECK(!secp256k1_aggsig_generate_nonce(ctx, aggctx, 0));
+    CHECK(!secp256k1_aggsig_partial_sign(ctx, aggctx, &partial, msg, seckey, 0));
+    CHECK(secp256k1_aggsig_combine_signatures(ctx, aggctx, sig, &partial, 1));
+
+    secp256k1_aggsig_context_destroy(aggctx);
+}
+
 void run_aggsig_tests(void) {
     test_aggsig_api();
     test_aggsig_onesigner();
+    test_aggsig_state_machine();
 }
 
 #endif

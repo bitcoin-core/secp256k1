@@ -195,6 +195,12 @@ int secp256k1_aggsig_combine_signatures(const secp256k1_context* ctx, secp256k1_
         return 0;
     }
 
+    for (i = 0; i < aggctx->n_sigs; i++) {
+        if (aggctx->progress[i] != NONCE_PROGRESS_SIGNED) {
+            return 0;
+        }
+    }
+
     secp256k1_scalar_set_int(&s, 0);
     for (i = 0; i < n_sigs; i++) {
         secp256k1_scalar tmp;
