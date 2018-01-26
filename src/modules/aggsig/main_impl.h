@@ -71,12 +71,12 @@ static int secp256k1_compute_sighash(secp256k1_scalar *r, const unsigned char *p
     return !overflow;
 }
 
-secp256k1_aggsig_context* secp256k1_aggsig_context_create(const secp256k1_context *ctx, const secp256k1_pubkey *pubkeys, size_t n_pubkeys, const unsigned char *seed) {
+secp256k1_aggsig_context* secp256k1_aggsig_context_create(const secp256k1_context *ctx, const secp256k1_pubkey *pubkeys, size_t n_pubkeys, const unsigned char *secseed32) {
     secp256k1_aggsig_context* aggctx;
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(pubkeys != NULL);
-    ARG_CHECK(seed != NULL);
+    ARG_CHECK(secseed32 != NULL);
 
     aggctx = (secp256k1_aggsig_context*)checked_malloc(&ctx->error_callback, sizeof(*aggctx));
     aggctx->progress = (enum nonce_progress*)checked_malloc(&ctx->error_callback, n_pubkeys * sizeof(*aggctx->progress));
@@ -86,7 +86,7 @@ secp256k1_aggsig_context* secp256k1_aggsig_context_create(const secp256k1_contex
     secp256k1_gej_set_infinity(&aggctx->pubnonce_sum);
     memcpy(aggctx->pubkeys, pubkeys, n_pubkeys * sizeof(*aggctx->pubkeys));
     memset(aggctx->progress, 0, n_pubkeys * sizeof(*aggctx->progress));
-    secp256k1_rfc6979_hmac_sha256_initialize(&aggctx->rng, seed, 32);
+    secp256k1_rfc6979_hmac_sha256_initialize(&aggctx->rng, secseed32, 32);
 
     return aggctx;
 }

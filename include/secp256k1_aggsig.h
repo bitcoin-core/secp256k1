@@ -49,13 +49,14 @@ typedef struct {
  *  Args: ctx:  an existing context object (cannot be NULL)
  *  In:     pubkeys: public keys for each signature (cannot be NULL)
  *        n_pubkeys: number of public keys/signatures to aggregate
- *             seed: a 32-byte seed to use for the nonce-generating RNG (cannot be NULL)
+ *        secseed32: 32 fresh random bytes to seed the nonce-generating RNG.
+ *                   Must remain secret (cannot be NULL)
  */
 SECP256K1_API secp256k1_aggsig_context* secp256k1_aggsig_context_create(
     const secp256k1_context *ctx,
     const secp256k1_pubkey *pubkeys,
     size_t n_pubkeys,
-    const unsigned char *seed
+    const unsigned char *secseed32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(4) SECP256K1_WARN_UNUSED_RESULT;
 
 
