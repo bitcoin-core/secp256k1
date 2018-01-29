@@ -119,6 +119,20 @@ exhaustive_tests_LDFLAGS = -static
 TESTS += exhaustive_tests
 endif
 
+if ENABLE_MODULE_AGGSIG
+noinst_PROGRAMS += example_aggsig
+example_aggsig_SOURCES = examples/aggsig.c
+example_aggsig_CPPFLAGS = -DSECP256K1_BUILD -I$(top_srcdir)/include $(SECP_INCLUDES)
+if !ENABLE_COVERAGE
+example_aggsig_CPPFLAGS += -DVERIFY
+endif
+example_aggsig_LDADD = libsecp256k1.la $(SECP_LIBS)
+example_aggsig_LDFLAGS = -static
+if USE_TESTS
+TESTS += example_aggsig
+endif
+endif
+
 JAVAROOT=src/java
 JAVAORG=org/bitcoin
 JAVA_GUAVA=$(srcdir)/$(JAVAROOT)/guava/guava-18.0.jar
