@@ -956,6 +956,20 @@ static size_t secp256k1_pippenger_max_points(secp256k1_scratch *scratch) {
     return res;
 }
 
+/**
+ * Returns the scratch size required to run ecmult_multi_var with a given number
+ * of points and without batching. The result includes space for base point G
+ * and alignment.
+ */
+static size_t secp256k1_ecmult_multi_scratch_size(size_t n_points) {
+    if (n_points >= ECMULT_PIPPENGER_THRESHOLD) {
+        int bucket_window = secp256k1_pippenger_bucket_window(n_points);
+        return secp256k1_pippenger_scratch_size(n_points, bucket_window) + PIPPENGER_SCRATCH_OBJECTS*ALIGNMENT;
+    } else {
+        return secp256k1_strauss_scratch_size(n_points) + STRAUSS_SCRATCH_OBJECTS*ALIGNMENT;
+    }
+}
+
 typedef int (*secp256k1_ecmult_multi_func)(const secp256k1_ecmult_context*, secp256k1_scratch*, secp256k1_gej*, const secp256k1_scalar*, secp256k1_ecmult_multi_callback cb, void*, size_t);
 static int secp256k1_ecmult_multi_var(const secp256k1_ecmult_context *ctx, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
     size_t i;

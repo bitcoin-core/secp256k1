@@ -239,6 +239,10 @@ static int secp256k1_aggsig_verify_callback(secp256k1_scalar *sc, secp256k1_ge *
     return 1;
 }
 
+size_t secp256k1_aggsig_verify_scratch_size(size_t n_pubkeys) {
+    return secp256k1_ecmult_multi_scratch_size(n_pubkeys);
+}
+
 int secp256k1_aggsig_verify(const secp256k1_context* ctx, secp256k1_scratch_space *scratch, const unsigned char *sig64, const unsigned char *msg32, const secp256k1_pubkey *pubkeys, size_t n_pubkeys) {
     secp256k1_scalar g_sc;
     secp256k1_gej pk_sum;

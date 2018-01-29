@@ -7,6 +7,12 @@
 #ifndef _SECP256K1_SCRATCH_
 #define _SECP256K1_SCRATCH_
 
+/* Using 16 bytes alignment because common architectures never have alignment
+ * requirements above 8 for any of the types we care about. In addition we
+ * leave some room because currently we don't care about a few bytes.
+ * TODO: Determine this at configure time. */
+#define ALIGNMENT 16
+
 /* The typedef is used internally; the struct name is used in the public API
  * (where it is exposed as a different typedef) */
 typedef struct secp256k1_scratch_space_struct {

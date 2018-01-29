@@ -9,12 +9,6 @@
 
 #include "scratch.h"
 
-/* Using 16 bytes alignment because common architectures never have alignment
- * requirements above 8 for any of the types we care about. In addition we
- * leave some room because currently we don't care about a few bytes.
- * TODO: Determine this at configure time. */
-#define ALIGNMENT 16
-
 static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* error_callback, size_t init_size, size_t max_size) {
     secp256k1_scratch* ret = (secp256k1_scratch*)checked_malloc(error_callback, sizeof(*ret));
     if (ret != NULL) {

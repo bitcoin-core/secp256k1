@@ -118,16 +118,27 @@ SECP256K1_API int secp256k1_aggsig_combine_signatures(
     const secp256k1_aggsig_partial_signature *partial
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_WARN_UNUSED_RESULT;
 
+/** Computes optimal scratch space size for verification
+ *
+ *  Returns: scratch space size
+ *  In:      n_pubkeys: number of pubkeys in involved in the aggsig
+ */
+SECP256K1_API size_t secp256k1_aggsig_verify_scratch_size(
+    size_t n_pubkeys
+);
 
 /** Verify an aggregate signature
  *
  *  Returns: 1 if the signature is valid, 0 if not
  *  Args:    ctx: an existing context object (cannot be NULL)
- *       scratch: a scratch space (cannot be NULL)
+ *       scratch: a scratch space (cannot be NULL),
+ *                must have max_size at least secp256k1_aggsig_verify_scratch_size(1),
+ *                if max_size is smaller than secp256k1_aggsig_verify_scratch_size(n_pubkeys)
+ *                then aggsig_verify takes more time to complete
  *  In:    sig64: the signature to verify (cannot be NULL)
  *         msg32: the message that should be signed (cannot be NULL)
  *       pubkeys: array of public keys (cannot be NULL)
- *        n_keys: the number of public keys
+ *        n_pubkeys: the number of public keys
  */
 SECP256K1_API int secp256k1_aggsig_verify(
     const secp256k1_context* ctx,
