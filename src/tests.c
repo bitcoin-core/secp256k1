@@ -4929,7 +4929,9 @@ int main(int argc, char **argv) {
             seed16[6] ^= t >> 48;
             seed16[7] ^= t >> 56;
         }
-        fclose(frand);
+        if (frand) {
+            fclose(frand);
+        }
     }
     secp256k1_rand_seed(seed16);
 
