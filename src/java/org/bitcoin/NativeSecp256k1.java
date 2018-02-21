@@ -357,6 +357,43 @@ public class NativeSecp256k1 {
     }
 
     /**
+     * libsecp256k1 Parse - Parse a variable-length pub key and serialize it in an uncompressed form
+     *
+     * @param pubkey ECDSA Public key, 33 or 65 bytes
+     */
+    public static byte[] parse(byte[] pubkey) throws AssertFailException{
+        Preconditions.checkArgument(pubkey.length == 33 || pubkey.length == 65);
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null || byteBuff.capacity() < pubkey.length) {
+            byteBuff = ByteBuffer.allocateDirect(pubkey.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(pubkey);
+
+        byte[][] retByteArray;
+        r.lock();
+        try {
+            retByteArray = secp256k1_ec_pubkey_parse(byteBuff, Secp256k1Context.getContext(), pubkey.length);
+        } finally {
+            r.unlock();
+        }
+
+        byte[] pubArr = retByteArray[0];
+
+        int pubLen = (byte) new BigInteger(new byte[] { retByteArray[1][0] }).intValue() & 0xFF;
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        assertEquals(pubArr.length, pubLen, "Got bad pubkey length.");
+
+        assertEquals(retVal, 1, "Failed return value check.");
+
+        return pubArr;
+    }
+
+    /**
      * libsecp256k1 create ECDH secret - constant time ECDH calculation
      *
      * @param seckey byte array of secret key used in exponentiaion
