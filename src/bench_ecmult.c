@@ -139,6 +139,7 @@ int main(int argc, char **argv) {
     secp256k1_gej* pubkeys_gej;
     size_t scratch_size;
 
+    data.ecmult_multi = secp256k1_ecmult_multi_var;
     if (argc > 1) {
         if(have_flag(argc, argv, "pippenger_wnaf")) {
             printf("Using pippenger_wnaf:\n");
@@ -146,9 +147,11 @@ int main(int argc, char **argv) {
         } else if(have_flag(argc, argv, "strauss_wnaf")) {
             printf("Using strauss_wnaf:\n");
             data.ecmult_multi = secp256k1_ecmult_strauss_batch_single;
+        } else {
+            fprintf(stderr, "%s: unrecognized argument '%s'.\n", argv[0], argv[1]);
+            fprintf(stderr, "Use 'pippenger_wnaf', 'strauss_wnaf' or no argument to benchmark a combined algorithm.\n");
+            return 1;
         }
-    } else {
-        data.ecmult_multi = secp256k1_ecmult_multi_var;
     }
 
     /* Allocate stuff */
