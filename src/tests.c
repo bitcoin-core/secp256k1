@@ -3022,8 +3022,7 @@ void test_fixed_wnaf(const secp256k1_scalar *number, int w) {
     for (i = WNAF_SIZE(w)-1; i >= 0; --i) {
         secp256k1_scalar t;
         int v = wnaf[i];
-        CHECK(v != 0); /* check nonzero */
-        CHECK(v & 1);  /* check parity */
+        CHECK(v == 0 || v & 1);  /* check parity */
         CHECK(v > -(1 << w)); /* check range above */
         CHECK(v < (1 << w));  /* check range below */
 
