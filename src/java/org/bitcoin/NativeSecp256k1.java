@@ -79,13 +79,11 @@ public class NativeSecp256k1 {
      * libsecp256k1 Create an ECDSA signature.
      *
      * @param data Message hash, 32 bytes
-     * @param key Secret key, 32 bytes
-     *
-     * Return values
-     * @param sig byte array of signature
+     * @param seckey ECDSA Secret key, 32 bytes
+     * @return sig byte array of signature
      */
-    public static byte[] sign(byte[] data, byte[] sec) throws AssertFailException{
-        Preconditions.checkArgument(data.length == 32 && sec.length <= 32);
+    public static byte[] sign(byte[] data, byte[] seckey) throws AssertFailException{
+        Preconditions.checkArgument(data.length == 32 && seckey.length <= 32);
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
         if (byteBuff == null || byteBuff.capacity() < 32 + 32) {
@@ -95,7 +93,7 @@ public class NativeSecp256k1 {
         }
         byteBuff.rewind();
         byteBuff.put(data);
-        byteBuff.put(sec);
+        byteBuff.put(seckey);
 
         byte[][] retByteArray;
 
@@ -116,9 +114,10 @@ public class NativeSecp256k1 {
     }
 
     /**
-     * libsecp256k1 Seckey Verify - returns 1 if valid, 0 if invalid
+     * libsecp256k1 Seckey Verify - Verifies an ECDSA secret key
      *
      * @param seckey ECDSA Secret key, 32 bytes
+     * @return true if valid, false if invalid
      */
     public static boolean secKeyVerify(byte[] seckey) {
         Preconditions.checkArgument(seckey.length == 32);
@@ -145,9 +144,7 @@ public class NativeSecp256k1 {
      * libsecp256k1 Compute Pubkey - computes public key from secret key
      *
      * @param seckey ECDSA Secret key, 32 bytes
-     *
-     * Return values
-     * @param pubkey ECDSA Public key, 33 or 65 bytes
+     * @return pubkey ECDSA Public key, 33 or 65 bytes
      */
     //TODO add a 'compressed' arg
     public static byte[] computePubkey(byte[] seckey) throws AssertFailException{
@@ -201,22 +198,22 @@ public class NativeSecp256k1 {
     }
 
     /**
-     * libsecp256k1 PrivKey Tweak-Mul - Tweak privkey by multiplying to it
+     * libsecp256k1 PrivKey Tweak-Mul - Tweak seckey by multiplying to it
      *
+     * @param seckey ECDSA Secret key, 32 bytes
      * @param tweak some bytes to tweak with
-     * @param seckey 32-byte seckey
      */
-    public static byte[] privKeyTweakMul(byte[] privkey, byte[] tweak) throws AssertFailException{
-        Preconditions.checkArgument(privkey.length == 32);
+    public static byte[] privKeyTweakMul(byte[] seckey, byte[] tweak) throws AssertFailException{
+        Preconditions.checkArgument(seckey.length == 32);
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
-        if (byteBuff == null || byteBuff.capacity() < privkey.length + tweak.length) {
-            byteBuff = ByteBuffer.allocateDirect(privkey.length + tweak.length);
+        if (byteBuff == null || byteBuff.capacity() < seckey.length + tweak.length) {
+            byteBuff = ByteBuffer.allocateDirect(seckey.length + tweak.length);
             byteBuff.order(ByteOrder.nativeOrder());
             nativeECDSABuffer.set(byteBuff);
         }
         byteBuff.rewind();
-        byteBuff.put(privkey);
+        byteBuff.put(seckey);
         byteBuff.put(tweak);
 
         byte[][] retByteArray;
@@ -240,22 +237,22 @@ public class NativeSecp256k1 {
     }
 
     /**
-     * libsecp256k1 PrivKey Tweak-Add - Tweak privkey by adding to it
+     * libsecp256k1 PrivKey Tweak-Add - Tweak seckey by adding to it
      *
+     * @param seckey ECDSA Secret key, 32 bytes
      * @param tweak some bytes to tweak with
-     * @param seckey 32-byte seckey
      */
-    public static byte[] privKeyTweakAdd(byte[] privkey, byte[] tweak) throws AssertFailException{
-        Preconditions.checkArgument(privkey.length == 32);
+    public static byte[] privKeyTweakAdd(byte[] seckey, byte[] tweak) throws AssertFailException{
+        Preconditions.checkArgument(seckey.length == 32);
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
-        if (byteBuff == null || byteBuff.capacity() < privkey.length + tweak.length) {
-            byteBuff = ByteBuffer.allocateDirect(privkey.length + tweak.length);
+        if (byteBuff == null || byteBuff.capacity() < seckey.length + tweak.length) {
+            byteBuff = ByteBuffer.allocateDirect(seckey.length + tweak.length);
             byteBuff.order(ByteOrder.nativeOrder());
             nativeECDSABuffer.set(byteBuff);
         }
         byteBuff.rewind();
-        byteBuff.put(privkey);
+        byteBuff.put(seckey);
         byteBuff.put(tweak);
 
         byte[][] retByteArray;
@@ -281,8 +278,8 @@ public class NativeSecp256k1 {
     /**
      * libsecp256k1 PubKey Tweak-Add - Tweak pubkey by adding to it
      *
+     * @param pubkey ECDSA Public key, 33 or 65 bytes
      * @param tweak some bytes to tweak with
-     * @param pubkey 32-byte seckey
      */
     public static byte[] pubKeyTweakAdd(byte[] pubkey, byte[] tweak) throws AssertFailException{
         Preconditions.checkArgument(pubkey.length == 33 || pubkey.length == 65);
@@ -320,8 +317,8 @@ public class NativeSecp256k1 {
     /**
      * libsecp256k1 PubKey Tweak-Mul - Tweak pubkey by multiplying to it
      *
+     * @param pubkey ECDSA Public key, 33 or 65 bytes
      * @param tweak some bytes to tweak with
-     * @param pubkey 32-byte seckey
      */
     public static byte[] pubKeyTweakMul(byte[] pubkey, byte[] tweak) throws AssertFailException{
         Preconditions.checkArgument(pubkey.length == 33 || pubkey.length == 65);
