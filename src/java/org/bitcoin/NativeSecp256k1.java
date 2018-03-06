@@ -357,11 +357,11 @@ public class NativeSecp256k1 {
     }
 
     /**
-     * libsecp256k1 Parse - Parse a variable-length pub key and serialize it in an uncompressed form
+     * libsecp256k1 Decompress - Parse and decompress a variable-length pub key
      *
      * @param pubkey ECDSA Public key, 33 or 65 bytes
      */
-    public static byte[] parse(byte[] pubkey) throws AssertFailException{
+    public static byte[] decompress(byte[] pubkey) throws AssertFailException{
         Preconditions.checkArgument(pubkey.length == 33 || pubkey.length == 65);
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
