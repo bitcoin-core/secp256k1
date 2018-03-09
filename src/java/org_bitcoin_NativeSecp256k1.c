@@ -112,6 +112,50 @@ SECP256K1_API jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1e
   return retArray;
 }
 
+SECP256K1_API jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ecdsa_1sign_1recoverable
+  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l)
+{
+  secp256k1_context *ctx = (secp256k1_context*)(uintptr_t)ctx_l;
+  unsigned char* data = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
+  unsigned char* secKey = (unsigned char*) (data + 32);
+
+  jobjectArray retArray;
+  jbyteArray sigArray, intsByteArray;
+  unsigned char intsarray[2];
+
+  secp256k1_ecdsa_recoverable_signature sig[65];
+
+  int ret = secp256k1_ecdsa_sign_recoverable(ctx, sig, data, secKey, NULL, NULL );
+
+  unsigned char outputSer[65];
+  size_t outputLen = 65;
+  int recid = 0;
+
+  if( ret ) {
+    int ret2 = secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx,outputSer, &recid, sig ); (void)ret2;
+  }
+  outputSer[64] = recid;
+
+  intsarray[0] = outputLen;
+  intsarray[1] = ret;
+
+  retArray = (*env)->NewObjectArray(env, 2,
+    (*env)->FindClass(env, "[B"),
+    (*env)->NewByteArray(env, 1));
+
+  sigArray = (*env)->NewByteArray(env, outputLen);
+  (*env)->SetByteArrayRegion(env, sigArray, 0, outputLen, (jbyte*)outputSer);
+  (*env)->SetObjectArrayElement(env, retArray, 0, sigArray);
+
+  intsByteArray = (*env)->NewByteArray(env, 2);
+  (*env)->SetByteArrayRegion(env, intsByteArray, 0, 2, (jbyte*)intsarray);
+  (*env)->SetObjectArrayElement(env, retArray, 1, intsByteArray);
+
+  (void)classObject;
+
+  return retArray;
+}
+
 SECP256K1_API jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1seckey_1verify
   (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l)
 {

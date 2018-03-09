@@ -116,6 +116,46 @@ public class NativeSecp256k1 {
     }
 
     /**
+     * libsecp256k1 Create a recoverable ECDSA signature.
+     *
+     * @param data Message hash, 32 bytes
+     * @param sec Secret key, at most 32 bytes
+     *
+     * Return values
+     * @return byte array of signature in compact form (64 bytes + recovery id)
+     */
+    public static byte[] signRecoverable(byte[] data, byte[] sec) throws AssertFailException{
+        Preconditions.checkArgument(data.length == 32 && sec.length <= 32);
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null || byteBuff.capacity() < 32 + 32) {
+            byteBuff = ByteBuffer.allocateDirect(32 + 32);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(data);
+        byteBuff.put(sec);
+
+        byte[][] retByteArray;
+
+        r.lock();
+        try {
+          retByteArray = secp256k1_ecdsa_sign_recoverable(byteBuff, Secp256k1Context.getContext());
+        } finally {
+          r.unlock();
+        }
+
+        byte[] sigArr = retByteArray[0];
+        int sigLen = new BigInteger(new byte[] { retByteArray[1][0] }).intValue();
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        assertEquals(sigArr.length, sigLen, "Got bad signature length.");
+
+        return retVal == 0 ? new byte[0] : sigArr;
+    }
+
+    /**
      * libsecp256k1 Seckey Verify - returns 1 if valid, 0 if invalid
      *
      * @param seckey ECDSA Secret key, 32 bytes
@@ -434,6 +474,8 @@ public class NativeSecp256k1 {
     private static native int secp256k1_ecdsa_verify(ByteBuffer byteBuff, long context, int sigLen, int pubLen);
 
     private static native byte[][] secp256k1_ecdsa_sign(ByteBuffer byteBuff, long context);
+
+    private static native byte[][] secp256k1_ecdsa_sign_recoverable(ByteBuffer byteBuff, long context);
 
     private static native int secp256k1_ec_seckey_verify(ByteBuffer byteBuff, long context);
 
