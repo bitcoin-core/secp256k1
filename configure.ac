@@ -441,18 +441,6 @@ if test x"$use_external_asm" = x"yes"; then
   AC_DEFINE(USE_EXTERNAL_ASM, 1, [Define this symbol if an external (non-inline) assembly implementation is used])
 fi
 
-AC_MSG_NOTICE([Using static precomputation: $set_precomp])
-AC_MSG_NOTICE([Using assembly optimizations: $set_asm])
-AC_MSG_NOTICE([Using field implementation: $set_field])
-AC_MSG_NOTICE([Using bignum implementation: $set_bignum])
-AC_MSG_NOTICE([Using scalar implementation: $set_scalar])
-AC_MSG_NOTICE([Using endomorphism optimizations: $use_endomorphism])
-AC_MSG_NOTICE([Building benchmarks: $use_benchmark])
-AC_MSG_NOTICE([Building for coverage analysis: $enable_coverage])
-AC_MSG_NOTICE([Building ECDH module: $enable_module_ecdh])
-AC_MSG_NOTICE([Building ECDSA pubkey recovery module: $enable_module_recovery])
-AC_MSG_NOTICE([Using jni: $use_jni])
-
 if test x"$enable_experimental" = x"yes"; then
   AC_MSG_NOTICE([******])
   AC_MSG_NOTICE([WARNING: experimental build])
@@ -492,3 +480,24 @@ unset PKG_CONFIG_PATH
 PKG_CONFIG_PATH="$PKGCONFIG_PATH_TEMP"
 
 AC_OUTPUT
+
+echo
+echo "Build Options:"
+echo "  with endomorphism   = $use_endomorphism"
+echo "  with ecmult precomp = $set_precomp"
+echo "  with jni            = $use_jni"
+echo "  with benchmarks     = $use_benchmark"
+echo "  with coverage       = $enable_coverage"
+echo "  module ecdh         = $enable_module_ecdh"
+echo "  module recovery     = $enable_module_recovery"
+echo
+echo "  asm                 = $set_asm"
+echo "  bignum              = $set_bignum"
+echo "  field               = $set_field"
+echo "  scalar              = $set_scalar"
+echo
+echo "  CC                  = $CC"
+echo "  CFLAGS              = $CFLAGS"
+echo "  CPPFLAGS            = $CPPFLAGS"
+echo "  LDFLAGS             = $LDFLAGS"
+echo
