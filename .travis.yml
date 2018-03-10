@@ -30,6 +30,7 @@ env:
     - EXTRAFLAGS=CPPFLAGS=-DDETERMINISTIC
     - EXTRAFLAGS=CFLAGS=-O0
     - BUILD=check-java JNI=yes ECDH=yes EXPERIMENTAL=yes
+    - BUILD=check-java JNI=yes ECDH=yes EXPERIMENTAL=yes RECOVERY=yes
 matrix:
   fast_finish: true
   include:

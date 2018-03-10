@@ -226,10 +226,6 @@ public class NativeSecp256k1Test {
         testSignPos();
         testSignNeg();
 
-        //Test signRecoverable() success/fail
-        testSignRecoverablePos();
-        testSignRecoverableNeg();
-
         //Test privKeyTweakAdd() 1
         testPrivKeyTweakAdd_1();
 

@@ -125,6 +125,7 @@ JAVA_GUAVA=$(srcdir)/$(JAVAROOT)/guava/guava-18.0.jar
 CLASSPATH_ENV=CLASSPATH=$(JAVA_GUAVA)
 JAVA_FILES= \
   $(JAVAROOT)/$(JAVAORG)/NativeSecp256k1.java \
+  $(JAVAROOT)/$(JAVAORG)/NativeSecp256k1RecoveryTest.java \
   $(JAVAROOT)/$(JAVAORG)/NativeSecp256k1Test.java \
   $(JAVAROOT)/$(JAVAORG)/NativeSecp256k1Util.java \
   $(JAVAROOT)/$(JAVAORG)/Secp256k1Context.java
@@ -145,6 +146,9 @@ if USE_TESTS
 
 check-java: libsecp256k1.la $(JAVA_GUAVA) .stamp-java
 	$(AM_V_at)java -Djava.library.path="./:./src:./src/.libs:.libs/" -cp "$(JAVA_GUAVA):$(JAVAROOT)" $(JAVAORG)/NativeSecp256k1Test
+if ENABLE_MODULE_RECOVERY
+	$(AM_V_at)java -Djava.library.path="./:./src:./src/.libs:.libs/" -cp "$(JAVA_GUAVA):$(JAVAROOT)" $(JAVAORG)/NativeSecp256k1RecoveryTest
+endif
 
 endif
 endif
