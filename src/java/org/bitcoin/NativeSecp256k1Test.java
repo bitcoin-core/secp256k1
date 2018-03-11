@@ -1,6 +1,7 @@
 package org.bitcoin;
 
 import javax.xml.bind.DatatypeConverter;
+
 import static org.bitcoin.NativeSecp256k1Util.*;
 
 /**
@@ -13,12 +14,11 @@ public class NativeSecp256k1Test {
       * This tests verify() for a valid signature
       */
     public static void testVerifyPos() throws AssertFailException{
-        boolean result = false;
         byte[] data = DatatypeConverter.parseHexBinary("CF80CD8AED482D5D1527D7DC72FCEFF84E6326592848447D2DC0B0E87DFC9A90"); //sha256hash of "testing"
         byte[] sig = DatatypeConverter.parseHexBinary("3044022079BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F817980220294F14E883B3F525B5367756C2A11EF6CF84B730B36C17CB0C56F0AAB2C98589");
         byte[] pub = DatatypeConverter.parseHexBinary("040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40");
 
-        result = NativeSecp256k1.verify( data, sig, pub);
+        boolean result = NativeSecp256k1.verify( data, sig, pub);
         assertEquals( result, true , "testVerifyPos");
     }
 
@@ -26,12 +26,11 @@ public class NativeSecp256k1Test {
       * This tests verify() for a non-valid signature
       */
     public static void testVerifyNeg() throws AssertFailException{
-        boolean result = false;
         byte[] data = DatatypeConverter.parseHexBinary("CF80CD8AED482D5D1527D7DC72FCEFF84E6326592848447D2DC0B0E87DFC9A91"); //sha256hash of "testing"
         byte[] sig = DatatypeConverter.parseHexBinary("3044022079BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F817980220294F14E883B3F525B5367756C2A11EF6CF84B730B36C17CB0C56F0AAB2C98589");
         byte[] pub = DatatypeConverter.parseHexBinary("040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40");
 
-        result = NativeSecp256k1.verify( data, sig, pub);
+        boolean result = NativeSecp256k1.verify( data, sig, pub);
         assertEquals( result, false , "testVerifyNeg");
     }
 
@@ -39,10 +38,9 @@ public class NativeSecp256k1Test {
       * This tests secret key verify() for a valid secretkey
       */
     public static void testSecKeyVerifyPos() throws AssertFailException{
-        boolean result = false;
         byte[] sec = DatatypeConverter.parseHexBinary("67E56582298859DDAE725F972992A07C6C4FB9F62A8FFF58CE3CA926A1063530");
 
-        result = NativeSecp256k1.secKeyVerify( sec );
+        boolean result = NativeSecp256k1.secKeyVerify( sec );
         assertEquals( result, true , "testSecKeyVerifyPos");
     }
 
@@ -50,10 +48,9 @@ public class NativeSecp256k1Test {
       * This tests secret key verify() for a invalid secretkey
       */
     public static void testSecKeyVerifyNeg() throws AssertFailException{
-        boolean result = false;
         byte[] sec = DatatypeConverter.parseHexBinary("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
 
-        result = NativeSecp256k1.secKeyVerify( sec );
+        boolean result = NativeSecp256k1.secKeyVerify( sec );
         assertEquals( result, false , "testSecKeyVerifyNeg");
     }
 
@@ -161,8 +158,44 @@ public class NativeSecp256k1Test {
         assertEquals( result, true, "testRandomize");
     }
 
-    public static void testCreateECDHSecret() throws AssertFailException{
+    /**
+     * Tests that we can decompress valid public keys
+     * @throws AssertFailException
+     */
+    public static void testDecompressPubKey() throws AssertFailException {
+        byte[] compressedPubKey = DatatypeConverter.parseHexBinary("0315EAB529E7D5EB637214EA8EC8ECE5DCD45610E8F4B7CC76A35A6FC27F5DD981");
 
+        byte[] result1 = NativeSecp256k1.decompress(compressedPubKey);
+        byte[] result2 = NativeSecp256k1.decompress(result1); // this is a no-op
+        String resultString1 = DatatypeConverter.printHexBinary(result1);
+        String resultString2 = DatatypeConverter.printHexBinary(result2);
+        assertEquals(resultString1, "0415EAB529E7D5EB637214EA8EC8ECE5DCD45610E8F4B7CC76A35A6FC27F5DD9817551BE3DF159C83045D9DFAC030A1A31DC9104082DB7719C098E87C1C4A36C19", "testDecompressPubKey (compressed)");
+        assertEquals(resultString2, "0415EAB529E7D5EB637214EA8EC8ECE5DCD45610E8F4B7CC76A35A6FC27F5DD9817551BE3DF159C83045D9DFAC030A1A31DC9104082DB7719C098E87C1C4A36C19", "testDecompressPubKey (uncompressed)");
+    }
+
+    /**
+     * Tests that we can check validity of public keys
+     * @throws AssertFailException
+     */
+    public static void testIsValidPubKeyPos() throws AssertFailException {
+        byte[] pubkey = DatatypeConverter.parseHexBinary("0456b3817434935db42afda0165de529b938cf67c7510168a51b9297b1ca7e4d91ea59c64516373dd2fe6acc79bb762718bc2659fa68d343bdb12d5ef7b9ed002b");
+        byte[] compressedPubKey = DatatypeConverter.parseHexBinary("03de961a47a519c5c0fc8e744d1f657f9ea6b9a921d2a3bceb8743e1885f752676");
+
+        boolean result1 = NativeSecp256k1.isValidPubKey(pubkey);
+        boolean result2 = NativeSecp256k1.isValidPubKey(compressedPubKey);
+        assertEquals(result1, true, "testIsValidPubKeyPos (uncompressed)");
+        assertEquals(result2, true, "testIsValidPubKeyPos (compressed)");
+    }
+
+    public static void testIsValidPubKeyNeg() throws AssertFailException {
+        //do we have test vectors some where to test this more thoroughly?
+        byte[] pubkey = DatatypeConverter.parseHexBinary("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
+
+        boolean result1 = NativeSecp256k1.isValidPubKey(pubkey);
+        assertEquals(result1, false, "testIsValidPubKeyNeg");
+    }
+
+    public static void testCreateECDHSecret() throws AssertFailException{
         byte[] sec = DatatypeConverter.parseHexBinary("67E56582298859DDAE725F972992A07C6C4FB9F62A8FFF58CE3CA926A1063530");
         byte[] pub = DatatypeConverter.parseHexBinary("040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40");
 
@@ -204,6 +237,11 @@ public class NativeSecp256k1Test {
 
         //Test privKeyTweakMul() 4
         testPrivKeyTweakMul_2();
+
+        // Test parsing public keys
+        testDecompressPubKey();
+        testIsValidPubKeyPos();
+        testIsValidPubKeyNeg();
 
         //Test randomize()
         testRandomize();

@@ -388,6 +388,38 @@ public class NativeSecp256k1 {
     }
 
     /**
+     * libsecp256k1 IsValidPubKey - Checks if a pubkey is valid
+     *
+     * @param pubkey ECDSA Public key, 33 or 65 bytes
+     */
+    public static boolean isValidPubKey(byte[] pubkey) {
+        if (!(pubkey.length == 33 || pubkey.length == 65)) {
+            return false;
+        }
+
+        ByteBuffer byteBuff = nativeECDSABuffer.get();
+        if (byteBuff == null || byteBuff.capacity() < pubkey.length) {
+            byteBuff = ByteBuffer.allocateDirect(pubkey.length);
+            byteBuff.order(ByteOrder.nativeOrder());
+            nativeECDSABuffer.set(byteBuff);
+        }
+        byteBuff.rewind();
+        byteBuff.put(pubkey);
+
+        byte[][] retByteArray;
+        r.lock();
+        try {
+            retByteArray = secp256k1_ec_pubkey_parse(byteBuff, Secp256k1Context.getContext(), pubkey.length);
+        } finally {
+            r.unlock();
+        }
+
+        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
+
+        return retVal == 1;
+    }
+
+    /**
      * libsecp256k1 create ECDH secret - constant time ECDH calculation
      *
      * @param seckey byte array of secret key used in exponentiaion
