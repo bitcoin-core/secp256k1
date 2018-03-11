@@ -60,7 +60,7 @@ public class NativeSecp256k1Test {
     public static void testPubKeyCreatePos() throws AssertFailException{
         byte[] sec = DatatypeConverter.parseHexBinary("67E56582298859DDAE725F972992A07C6C4FB9F62A8FFF58CE3CA926A1063530");
 
-        byte[] resultArr = NativeSecp256k1.computePubkey( sec);
+        byte[] resultArr = NativeSecp256k1.computePubkey(sec, false);
         String pubkeyString = DatatypeConverter.printHexBinary(resultArr);
         assertEquals( pubkeyString , "04C591A8FF19AC9C4E4E5793673B83123437E975285E7B442F4EE2654DFFCA5E2D2103ED494718C697AC9AEBCFD19612E224DB46661011863ED2FC54E71861E2A6" , "testPubKeyCreatePos");
     }
@@ -71,7 +71,7 @@ public class NativeSecp256k1Test {
     public static void testPubKeyCreateNeg() throws AssertFailException{
        byte[] sec = DatatypeConverter.parseHexBinary("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
 
-       byte[] resultArr = NativeSecp256k1.computePubkey( sec);
+       byte[] resultArr = NativeSecp256k1.computePubkey(sec, false);
        String pubkeyString = DatatypeConverter.printHexBinary(resultArr);
        assertEquals( pubkeyString, "" , "testPubKeyCreateNeg");
     }
@@ -104,49 +104,55 @@ public class NativeSecp256k1Test {
     /**
       * This tests private key tweak-add
       */
-    public static void testPrivKeyTweakAdd_1() throws AssertFailException {
+    public static void testPrivKeyTweakAdd() throws AssertFailException {
         byte[] sec = DatatypeConverter.parseHexBinary("67E56582298859DDAE725F972992A07C6C4FB9F62A8FFF58CE3CA926A1063530");
         byte[] data = DatatypeConverter.parseHexBinary("3982F19BEF1615BCCFBB05E321C10E1D4CBA3DF0E841C2E41EEB6016347653C3"); //sha256hash of "tweak"
 
         byte[] resultArr = NativeSecp256k1.privKeyTweakAdd( sec , data );
-        String sigString = DatatypeConverter.printHexBinary(resultArr);
-        assertEquals( sigString , "A168571E189E6F9A7E2D657A4B53AE99B909F7E712D1C23CED28093CD57C88F3" , "testPrivKeyAdd_1");
+        String seckeyString = DatatypeConverter.printHexBinary(resultArr);
+        assertEquals( seckeyString , "A168571E189E6F9A7E2D657A4B53AE99B909F7E712D1C23CED28093CD57C88F3" , "testPrivKeyTweakAdd");
     }
 
     /**
       * This tests private key tweak-mul
       */
-    public static void testPrivKeyTweakMul_1() throws AssertFailException {
+    public static void testPrivKeyTweakMul() throws AssertFailException {
         byte[] sec = DatatypeConverter.parseHexBinary("67E56582298859DDAE725F972992A07C6C4FB9F62A8FFF58CE3CA926A1063530");
         byte[] data = DatatypeConverter.parseHexBinary("3982F19BEF1615BCCFBB05E321C10E1D4CBA3DF0E841C2E41EEB6016347653C3"); //sha256hash of "tweak"
 
         byte[] resultArr = NativeSecp256k1.privKeyTweakMul( sec , data );
-        String sigString = DatatypeConverter.printHexBinary(resultArr);
-        assertEquals( sigString , "97F8184235F101550F3C71C927507651BD3F1CDB4A5A33B8986ACF0DEE20FFFC" , "testPrivKeyMul_1");
+        String seckeyString = DatatypeConverter.printHexBinary(resultArr);
+        assertEquals( seckeyString , "97F8184235F101550F3C71C927507651BD3F1CDB4A5A33B8986ACF0DEE20FFFC" , "testPrivKeyTweakMul");
     }
 
     /**
-      * This tests private key tweak-add uncompressed
+      * This tests public key tweak-add
       */
-    public static void testPrivKeyTweakAdd_2() throws AssertFailException {
+    public static void testPubKeyTweakAdd() throws AssertFailException {
         byte[] pub = DatatypeConverter.parseHexBinary("040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40");
         byte[] data = DatatypeConverter.parseHexBinary("3982F19BEF1615BCCFBB05E321C10E1D4CBA3DF0E841C2E41EEB6016347653C3"); //sha256hash of "tweak"
 
-        byte[] resultArr = NativeSecp256k1.pubKeyTweakAdd( pub , data );
-        String sigString = DatatypeConverter.printHexBinary(resultArr);
-        assertEquals( sigString , "0411C6790F4B663CCE607BAAE08C43557EDC1A4D11D88DFCB3D841D0C6A941AF525A268E2A863C148555C48FB5FBA368E88718A46E205FABC3DBA2CCFFAB0796EF" , "testPrivKeyAdd_2");
+        byte[] resultArr = NativeSecp256k1.pubKeyTweakAdd( pub , data, false);
+        String pubkeyString = DatatypeConverter.printHexBinary(resultArr);
+        byte[] resultArrCompressed = NativeSecp256k1.pubKeyTweakAdd( pub , data, true);
+        String pubkeyStringCompressed = DatatypeConverter.printHexBinary(resultArrCompressed);
+        assertEquals(pubkeyString , "0411C6790F4B663CCE607BAAE08C43557EDC1A4D11D88DFCB3D841D0C6A941AF525A268E2A863C148555C48FB5FBA368E88718A46E205FABC3DBA2CCFFAB0796EF" , "testPubKeyTweakAdd");
+        assertEquals(pubkeyStringCompressed , "0311C6790F4B663CCE607BAAE08C43557EDC1A4D11D88DFCB3D841D0C6A941AF52" , "testPubKeyTweakAdd (compressed)");
     }
 
     /**
-      * This tests private key tweak-mul uncompressed
+      * This tests public key tweak-mul
       */
-    public static void testPrivKeyTweakMul_2() throws AssertFailException {
+    public static void testPubKeyTweakMul() throws AssertFailException {
         byte[] pub = DatatypeConverter.parseHexBinary("040A629506E1B65CD9D2E0BA9C75DF9C4FED0DB16DC9625ED14397F0AFC836FAE595DC53F8B0EFE61E703075BD9B143BAC75EC0E19F82A2208CAEB32BE53414C40");
         byte[] data = DatatypeConverter.parseHexBinary("3982F19BEF1615BCCFBB05E321C10E1D4CBA3DF0E841C2E41EEB6016347653C3"); //sha256hash of "tweak"
 
-        byte[] resultArr = NativeSecp256k1.pubKeyTweakMul( pub , data );
-        String sigString = DatatypeConverter.printHexBinary(resultArr);
-        assertEquals( sigString , "04E0FE6FE55EBCA626B98A807F6CAF654139E14E5E3698F01A9A658E21DC1D2791EC060D4F412A794D5370F672BC94B722640B5F76914151CFCA6E712CA48CC589" , "testPrivKeyMul_2");
+        byte[] resultArr = NativeSecp256k1.pubKeyTweakMul( pub , data, false);
+        String pubkeyString = DatatypeConverter.printHexBinary(resultArr);
+        byte[] resultArrCompressed = NativeSecp256k1.pubKeyTweakMul( pub , data, true);
+        String pubkeyStringCompressed = DatatypeConverter.printHexBinary(resultArrCompressed);
+        assertEquals(pubkeyString , "04E0FE6FE55EBCA626B98A807F6CAF654139E14E5E3698F01A9A658E21DC1D2791EC060D4F412A794D5370F672BC94B722640B5F76914151CFCA6E712CA48CC589" , "testPubKeyTweakMul");
+        assertEquals(pubkeyStringCompressed , "03E0FE6FE55EBCA626B98A807F6CAF654139E14E5E3698F01A9A658E21DC1D2791" , "testPubKeyTweakMul (compressed)");
     }
 
     /**
@@ -170,7 +176,7 @@ public class NativeSecp256k1Test {
         String resultString1 = DatatypeConverter.printHexBinary(result1);
         String resultString2 = DatatypeConverter.printHexBinary(result2);
         assertEquals(resultString1, "0415EAB529E7D5EB637214EA8EC8ECE5DCD45610E8F4B7CC76A35A6FC27F5DD9817551BE3DF159C83045D9DFAC030A1A31DC9104082DB7719C098E87C1C4A36C19", "testDecompressPubKey (compressed)");
-        assertEquals(resultString2, "0415EAB529E7D5EB637214EA8EC8ECE5DCD45610E8F4B7CC76A35A6FC27F5DD9817551BE3DF159C83045D9DFAC030A1A31DC9104082DB7719C098E87C1C4A36C19", "testDecompressPubKey (uncompressed)");
+        assertEquals(resultString2, "0415EAB529E7D5EB637214EA8EC8ECE5DCD45610E8F4B7CC76A35A6FC27F5DD9817551BE3DF159C83045D9DFAC030A1A31DC9104082DB7719C098E87C1C4A36C19", "testDecompressPubKey (no-op)");
     }
 
     /**
@@ -183,7 +189,7 @@ public class NativeSecp256k1Test {
 
         boolean result1 = NativeSecp256k1.isValidPubKey(pubkey);
         boolean result2 = NativeSecp256k1.isValidPubKey(compressedPubKey);
-        assertEquals(result1, true, "testIsValidPubKeyPos (uncompressed)");
+        assertEquals(result1, true, "testIsValidPubKeyPos");
         assertEquals(result2, true, "testIsValidPubKeyPos (compressed)");
     }
 
@@ -226,17 +232,17 @@ public class NativeSecp256k1Test {
         testSignPos();
         testSignNeg();
 
-        //Test privKeyTweakAdd() 1
-        testPrivKeyTweakAdd_1();
+        //Test privKeyTweakAdd()
+        testPrivKeyTweakAdd();
 
-        //Test privKeyTweakMul() 2
-        testPrivKeyTweakMul_1();
+        //Test privKeyTweakMul()
+        testPrivKeyTweakMul();
 
-        //Test privKeyTweakAdd() 3
-        testPrivKeyTweakAdd_2();
+        //Test privKeyTweakAdd()
+        testPubKeyTweakAdd();
 
-        //Test privKeyTweakMul() 4
-        testPrivKeyTweakMul_2();
+        //Test privKeyTweakMul()
+        testPubKeyTweakMul();
 
         // Test parsing public keys
         testDecompressPubKey();
