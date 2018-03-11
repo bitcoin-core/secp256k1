@@ -50,7 +50,7 @@ public class NativeSecp256k1 {
      * @param signature The signature
      * @param pub The public key which did the signing
      */
-    public static boolean verify(byte[] data, byte[] signature, byte[] pub) throws AssertFailException{
+    public static boolean verify(byte[] data, byte[] signature, byte[] pub) {
         checkArgument(data.length == 32 && signature.length <= 520 && pub.length <= 520);
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
@@ -463,7 +463,7 @@ public class NativeSecp256k1 {
      * @param seed 32-byte random seed
      */
     public static synchronized boolean randomize(byte[] seed) throws AssertFailException{
-        checkArgument(seed.length == 32 || seed == null);
+        checkArgument(seed.length == 32);
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
         if (byteBuff == null || byteBuff.capacity() < seed.length) {
