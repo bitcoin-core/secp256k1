@@ -563,15 +563,11 @@ static size_t secp256k1_strauss_max_points(secp256k1_scratch *scratch) {
  *  It has the following guarantees:
  *  - each wnaf[i] is either 0 or an odd integer between -(1 << w) and (1 << w)
  *  - the number of words set is always WNAF_SIZE(w)
- *  - the returned skew is 0 without endomorphism, or 0 or 1 with endomorphism
+ *  - the returned skew is 0 or 1
  */
 static int secp256k1_wnaf_fixed(int *wnaf, const secp256k1_scalar *s, int w) {
-    int sign = 0;
     int skew = 0;
     int pos = 1;
-#ifndef USE_ENDOMORPHISM
-    secp256k1_scalar neg_s;
-#endif
     const secp256k1_scalar *work = s;
 
     if (secp256k1_scalar_is_zero(s)) {
@@ -583,16 +579,10 @@ static int secp256k1_wnaf_fixed(int *wnaf, const secp256k1_scalar *s, int w) {
     }
 
     if (secp256k1_scalar_is_even(s)) {
-#ifdef USE_ENDOMORPHISM
         skew = 1;
-#else
-        secp256k1_scalar_negate(&neg_s, s);
-        work = &neg_s;
-        sign = -1;
-#endif
     }
 
-    wnaf[0] = (secp256k1_scalar_get_bits_var(work, 0, w) + skew + sign) ^ sign;
+    wnaf[0] = secp256k1_scalar_get_bits_var(work, 0, w) + skew;
 
     while (pos * w < WNAF_BITS) {
         int now = w;
@@ -602,10 +592,10 @@ static int secp256k1_wnaf_fixed(int *wnaf, const secp256k1_scalar *s, int w) {
         }
         val = secp256k1_scalar_get_bits_var(work, pos * w, now);
         if ((val & 1) == 0) {
-            wnaf[pos - 1] -= ((1 << w) + sign) ^ sign;
-            wnaf[pos] = (val + 1 + sign) ^ sign;
+            wnaf[pos - 1] -= (1 << w);
+            wnaf[pos] = (val + 1);
         } else {
-            wnaf[pos] = (val + sign) ^ sign;
+            wnaf[pos] = val;
         }
         /* Set a coefficient to zero if it is 1 or -1 and the proceeding digit
          * is strictly negative or strictly positive respectively. Only change
@@ -678,7 +668,6 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
             secp256k1_ge tmp;
             int idx;
 
-#ifdef USE_ENDOMORPHISM
             if (i == 0) {
                 /* correct for wnaf skew */
                 int skew = point_state.skew_na;
@@ -687,7 +676,6 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
                     secp256k1_gej_add_ge_var(&buckets[0], &buckets[0], &tmp, NULL);
                 }
             }
-#endif
             if (n > 0) {
                 idx = (n - 1)/2;
                 secp256k1_gej_add_ge_var(&buckets[idx], &buckets[idx], &pt[point_state.input_pos], NULL);
