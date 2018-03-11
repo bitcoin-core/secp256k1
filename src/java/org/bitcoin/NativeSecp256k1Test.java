@@ -238,10 +238,10 @@ public class NativeSecp256k1Test {
         //Test privKeyTweakMul()
         testPrivKeyTweakMul();
 
-        //Test privKeyTweakAdd()
+        //Test testPubKeyTweakAdd()
         testPubKeyTweakAdd();
 
-        //Test privKeyTweakMul()
+        //Test testPubKeyTweakMul()
         testPubKeyTweakMul();
 
         // Test parsing public keys
