@@ -47,7 +47,8 @@
 #else
     #define WNAF_BITS 256
 #endif
-#define WNAF_SIZE(w) ((WNAF_BITS + (w) - 1) / (w))
+#define WNAF_SIZE_BITS(bits, w) (((bits) + (w) - 1) / (w))
+#define WNAF_SIZE(w) WNAF_SIZE_BITS(WNAF_BITS, w)
 
 /** The number of entries a table with precomputed multiples needs to have. */
 #define ECMULT_TABLE_SIZE(w) (1 << ((w)-2))
