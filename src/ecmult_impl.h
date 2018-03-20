@@ -525,10 +525,9 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_ecmult_context *ctx, s
         return 1;
     }
 
-    if (!secp256k1_scratch_resize(scratch, secp256k1_strauss_scratch_size(n_points), STRAUSS_SCRATCH_OBJECTS)) {
+    if (!secp256k1_scratch_allocate_frame(scratch, secp256k1_strauss_scratch_size(n_points), STRAUSS_SCRATCH_OBJECTS)) {
         return 0;
     }
-    secp256k1_scratch_reset(scratch);
     points = (secp256k1_gej*)secp256k1_scratch_alloc(scratch, n_points * sizeof(secp256k1_gej));
     scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(scratch, n_points * sizeof(secp256k1_scalar));
     state.prej = (secp256k1_gej*)secp256k1_scratch_alloc(scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_gej));
@@ -543,10 +542,14 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_ecmult_context *ctx, s
 
     for (i = 0; i < n_points; i++) {
         secp256k1_ge point;
-        if (!cb(&scalars[i], &point, i+cb_offset, cbdata)) return 0;
+        if (!cb(&scalars[i], &point, i+cb_offset, cbdata)) {
+            secp256k1_scratch_deallocate_frame(scratch);
+            return 0;
+        }
         secp256k1_gej_set_ge(&points[i], &point);
     }
     secp256k1_ecmult_strauss_wnaf(ctx, &state, r, n_points, points, scalars, inp_g_sc);
+    secp256k1_scratch_deallocate_frame(scratch);
     return 1;
 }
 
@@ -873,10 +876,9 @@ static int secp256k1_ecmult_pippenger_batch(const secp256k1_ecmult_context *ctx,
     }
 
     bucket_window = secp256k1_pippenger_bucket_window(n_points);
-    if (!secp256k1_scratch_resize(scratch, secp256k1_pippenger_scratch_size(n_points, bucket_window), PIPPENGER_SCRATCH_OBJECTS)) {
+    if (!secp256k1_scratch_allocate_frame(scratch, secp256k1_pippenger_scratch_size(n_points, bucket_window), PIPPENGER_SCRATCH_OBJECTS)) {
         return 0;
     }
-    secp256k1_scratch_reset(scratch);
     points = (secp256k1_ge *) secp256k1_scratch_alloc(scratch, entries * sizeof(*points));
     scalars = (secp256k1_scalar *) secp256k1_scratch_alloc(scratch, entries * sizeof(*scalars));
     state_space = (struct secp256k1_pippenger_state *) secp256k1_scratch_alloc(scratch, sizeof(*state_space));
@@ -896,6 +898,7 @@ static int secp256k1_ecmult_pippenger_batch(const secp256k1_ecmult_context *ctx,
 
     while (point_idx < n_points) {
         if (!cb(&scalars[idx], &points[idx], point_idx + cb_offset, cbdata)) {
+            secp256k1_scratch_deallocate_frame(scratch);
             return 0;
         }
         idx++;
@@ -919,6 +922,7 @@ static int secp256k1_ecmult_pippenger_batch(const secp256k1_ecmult_context *ctx,
     for(i = 0; i < 1<<bucket_window; i++) {
         secp256k1_gej_clear(&buckets[i]);
     }
+    secp256k1_scratch_deallocate_frame(scratch);
     return 1;
 }
 
