@@ -567,7 +567,9 @@ static size_t secp256k1_strauss_max_points(secp256k1_scratch *scratch) {
  */
 static int secp256k1_wnaf_fixed(int *wnaf, const secp256k1_scalar *s, int w) {
     int skew = 0;
-    int pos = 1;
+    int pos;
+    int max_pos;
+    int last_w;
     const secp256k1_scalar *work = s;
 
     if (secp256k1_scalar_is_zero(s)) {
@@ -582,14 +584,24 @@ static int secp256k1_wnaf_fixed(int *wnaf, const secp256k1_scalar *s, int w) {
     }
 
     wnaf[0] = secp256k1_scalar_get_bits_var(work, 0, w) + skew;
+    /* Compute last window size. Relevant when window size doesn't divide the
+     * number of bits in the scalar */
+    last_w = WNAF_BITS - (WNAF_SIZE(w) - 1) * w;
 
-    while (pos * w < WNAF_BITS) {
-        int now = w;
-        int val;
-        if (now + pos * w > WNAF_BITS) {
-            now = WNAF_BITS - pos * w;
+    /* Store the position of the first nonzero word in max_pos to allow
+     * skipping leading zeros when calculating the wnaf. */
+    for (pos = WNAF_SIZE(w) - 1; pos > 0; pos--) {
+        int val = secp256k1_scalar_get_bits_var(work, pos * w, pos == WNAF_SIZE(w)-1 ? last_w : w);
+        if(val != 0) {
+            break;
         }
-        val = secp256k1_scalar_get_bits_var(work, pos * w, now);
+        wnaf[pos] = 0;
+    }
+    max_pos = pos;
+    pos = 1;
+
+    while (pos <= max_pos) {
+        int val = secp256k1_scalar_get_bits_var(work, pos * w, pos == WNAF_SIZE(w)-1 ? last_w : w);
         if ((val & 1) == 0) {
             wnaf[pos - 1] -= (1 << w);
             wnaf[pos] = (val + 1);
@@ -611,7 +623,6 @@ static int secp256k1_wnaf_fixed(int *wnaf, const secp256k1_scalar *s, int w) {
         }
         ++pos;
     }
-    VERIFY_CHECK(pos == WNAF_SIZE(w));
 
     return skew;
 }
