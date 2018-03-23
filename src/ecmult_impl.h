@@ -571,9 +571,8 @@ static int secp256k1_wnaf_fixed(int *wnaf, const secp256k1_scalar *s, int w) {
     const secp256k1_scalar *work = s;
 
     if (secp256k1_scalar_is_zero(s)) {
-        while (pos * w < WNAF_BITS) {
+        for (pos = 0; pos < WNAF_SIZE(w); pos++) {
             wnaf[pos] = 0;
-            ++pos;
         }
         return 0;
     }
