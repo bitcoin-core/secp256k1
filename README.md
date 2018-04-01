@@ -52,6 +52,10 @@ Implementation details
 Build steps
 -----------
 
+libsecp256k1 depends on the following libraries:
+
+- GNU Libtool
+
 libsecp256k1 is built using autotools:
 
     $ ./autogen.sh
