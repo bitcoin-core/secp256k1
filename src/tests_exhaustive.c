@@ -196,7 +196,7 @@ static int ecmult_multi_callback(secp256k1_scalar *sc, secp256k1_ge *pt, size_t 
 
 void test_exhaustive_ecmult_multi(const secp256k1_context *ctx, const secp256k1_ge *group, int order) {
     int i, j, k, x, y;
-    secp256k1_scratch *scratch = secp256k1_scratch_create(&ctx->error_callback, 1024, 4096);
+    secp256k1_scratch *scratch = secp256k1_scratch_create(&ctx->error_callback, 4096);
     for (i = 0; i < order; i++) {
         for (j = 0; j < order; j++) {
             for (k = 0; k < order; k++) {

@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
     /* Allocate stuff */
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
     scratch_size = secp256k1_strauss_scratch_size(POINTS) + STRAUSS_SCRATCH_OBJECTS*16;
-    data.scratch = secp256k1_scratch_space_create(data.ctx, scratch_size, scratch_size);
+    data.scratch = secp256k1_scratch_space_create(data.ctx, scratch_size);
     data.scalars = malloc(sizeof(secp256k1_scalar) * POINTS);
     data.seckeys = malloc(sizeof(secp256k1_scalar) * POINTS);
     data.pubkeys = malloc(sizeof(secp256k1_ge) * POINTS);
