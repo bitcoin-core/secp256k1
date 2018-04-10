@@ -2725,6 +2725,11 @@ void test_ecmult_multi(secp256k1_scratch *scratch, secp256k1_ecmult_multi_func e
     }
 
     /* Sanity check that zero scalars don't cause problems */
+    for (ncount = 0; ncount < 20; ncount++) {
+        random_scalar_order(&sc[ncount]);
+        random_group_element_test(&pt[ncount]);
+    }
+
     secp256k1_scalar_clear(&sc[0]);
     CHECK(ecmult_multi(&ctx->ecmult_ctx, scratch, &r, &szero, ecmult_multi_callback, &data, 20));
     secp256k1_scalar_clear(&sc[1]);
