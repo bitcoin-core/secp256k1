@@ -4194,13 +4194,13 @@ int test_ecdsa_der_parse(const unsigned char *sig, size_t siglen, int certainly_
     int ret = 0;
 
     secp256k1_ecdsa_signature sig_der;
-    unsigned char roundtrip_der[2048];
+    unsigned char roundtrip_der[2048] = {0};
     unsigned char compact_der[64];
     size_t len_der = 2048;
     int parsed_der = 0, valid_der = 0, roundtrips_der = 0;
 
     secp256k1_ecdsa_signature sig_der_lax;
-    unsigned char roundtrip_der_lax[2048];
+    unsigned char roundtrip_der_lax[2048] = {0};
     unsigned char compact_der_lax[64];
     size_t len_der_lax = 2048;
     int parsed_der_lax = 0, valid_der_lax = 0, roundtrips_der_lax = 0;
