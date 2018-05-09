@@ -729,9 +729,7 @@ SECP256K1_INLINE static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r,
 
 #ifdef WORDS_BIGENDIAN
 #define LE32(p) ((((p) & 0xFF) << 24) | (((p) & 0xFF00) << 8) | (((p) & 0xFF0000) >> 8) | (((p) & 0xFF000000) >> 24))
-#define BE32(p) (p)
 #else
-#define BE32(p) ((((p) & 0xFF) << 24) | (((p) & 0xFF00) << 8) | (((p) & 0xFF0000) >> 8) | (((p) & 0xFF000000) >> 24))
 #define LE32(p) (p)
 #endif
 
@@ -790,22 +788,22 @@ static void secp256k1_scalar_chacha20(secp256k1_scalar *r1, secp256k1_scalar *r2
         x14 += 0;
         x15 += over_count;
 
-        r1->d[7] = LE32(x0);
-        r1->d[6] = LE32(x1);
-        r1->d[5] = LE32(x2);
-        r1->d[4] = LE32(x3);
-        r1->d[3] = LE32(x4);
-        r1->d[2] = LE32(x5);
-        r1->d[1] = LE32(x6);
-        r1->d[0] = LE32(x7);
-        r2->d[7] = LE32(x8);
-        r2->d[6] = LE32(x9);
-        r2->d[5] = LE32(x10);
-        r2->d[4] = LE32(x11);
-        r2->d[3] = LE32(x12);
-        r2->d[2] = LE32(x13);
-        r2->d[1] = LE32(x14);
-        r2->d[0] = LE32(x15);
+        r1->d[7] = x0;
+        r1->d[6] = x1;
+        r1->d[5] = x2;
+        r1->d[4] = x3;
+        r1->d[3] = x4;
+        r1->d[2] = x5;
+        r1->d[1] = x6;
+        r1->d[0] = x7;
+        r2->d[7] = x8;
+        r2->d[6] = x9;
+        r2->d[5] = x10;
+        r2->d[4] = x11;
+        r2->d[3] = x12;
+        r2->d[2] = x13;
+        r2->d[1] = x14;
+        r2->d[0] = x15;
 
         over1 = secp256k1_scalar_check_overflow(r1);
         over2 = secp256k1_scalar_check_overflow(r2);
@@ -815,7 +813,6 @@ static void secp256k1_scalar_chacha20(secp256k1_scalar *r1, secp256k1_scalar *r2
 
 #undef ROTL32
 #undef QUARTERROUND
-#undef BE32
 #undef LE32
 
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */
