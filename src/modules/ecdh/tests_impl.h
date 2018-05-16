@@ -7,14 +7,16 @@
 #ifndef SECP256K1_MODULE_ECDH_TESTS_H
 #define SECP256K1_MODULE_ECDH_TESTS_H
 
-int ecdh_hash_function_test_fail(unsigned char *output, const unsigned char *x, const unsigned char *y) {
+int ecdh_hash_function_test_fail(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
     (void)output;
     (void)x;
     (void)y;
+    (void)data;
     return 0;
 }
 
-int ecdh_hash_function_custom(unsigned char *output, const unsigned char *x, const unsigned char *y) {
+int ecdh_hash_function_custom(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
+    (void)data;
     /* Save x and y as uncompressed public key */
     output[0] = 0x04;
     memcpy(output + 1, x, 32);
@@ -36,15 +38,15 @@ void test_ecdh_api(void) {
     CHECK(secp256k1_ec_pubkey_create(tctx, &point, s_one) == 1);
 
     /* Check all NULLs are detected */
-    CHECK(secp256k1_ecdh(tctx, res, &point, s_one, NULL) == 1);
+    CHECK(secp256k1_ecdh(tctx, res, &point, s_one, NULL, NULL) == 1);
     CHECK(ecount == 0);
-    CHECK(secp256k1_ecdh(tctx, NULL, &point, s_one, NULL) == 0);
+    CHECK(secp256k1_ecdh(tctx, NULL, &point, s_one, NULL, NULL) == 0);
     CHECK(ecount == 1);
-    CHECK(secp256k1_ecdh(tctx, res, NULL, s_one, NULL) == 0);
+    CHECK(secp256k1_ecdh(tctx, res, NULL, s_one, NULL, NULL) == 0);
     CHECK(ecount == 2);
-    CHECK(secp256k1_ecdh(tctx, res, &point, NULL, NULL) == 0);
+    CHECK(secp256k1_ecdh(tctx, res, &point, NULL, NULL, NULL) == 0);
     CHECK(ecount == 3);
-    CHECK(secp256k1_ecdh(tctx, res, &point, s_one, NULL) == 1);
+    CHECK(secp256k1_ecdh(tctx, res, &point, s_one, NULL, NULL) == 1);
     CHECK(ecount == 3);
 
     /* Cleanup */
@@ -74,14 +76,14 @@ void test_ecdh_generator_basepoint(void) {
         CHECK(secp256k1_ec_pubkey_create(ctx, &point[1], s_b32) == 1);
 
         /* compute using ECDH function with custom hash function */
-        CHECK(secp256k1_ecdh(ctx, output_ecdh, &point[0], s_b32, ecdh_hash_function_custom) == 1);
+        CHECK(secp256k1_ecdh(ctx, output_ecdh, &point[0], s_b32, ecdh_hash_function_custom, NULL) == 1);
         /* compute "explicitly" */
         CHECK(secp256k1_ec_pubkey_serialize(ctx, point_ser, &point_ser_len, &point[1], SECP256K1_EC_UNCOMPRESSED) == 1);
         /* compare */
         CHECK(memcmp(output_ecdh, point_ser, 65) == 0);
 
         /* compute using ECDH function with default hash function */
-        CHECK(secp256k1_ecdh(ctx, output_ecdh, &point[0], s_b32, NULL) == 1);
+        CHECK(secp256k1_ecdh(ctx, output_ecdh, &point[0], s_b32, NULL, NULL) == 1);
         /* compute "explicitly" */
         CHECK(secp256k1_ec_pubkey_serialize(ctx, point_ser, &point_ser_len, &point[1], SECP256K1_EC_COMPRESSED) == 1);
         secp256k1_sha256_initialize(&sha);
@@ -111,14 +113,14 @@ void test_bad_scalar(void) {
     CHECK(secp256k1_ec_pubkey_create(ctx, &point, s_rand) == 1);
 
     /* Try to multiply it by bad values */
-    CHECK(secp256k1_ecdh(ctx, output, &point, s_zero, NULL) == 0);
-    CHECK(secp256k1_ecdh(ctx, output, &point, s_overflow, NULL) == 0);
+    CHECK(secp256k1_ecdh(ctx, output, &point, s_zero, NULL, NULL) == 0);
+    CHECK(secp256k1_ecdh(ctx, output, &point, s_overflow, NULL, NULL) == 0);
     /* ...and a good one */
     s_overflow[31] -= 1;
-    CHECK(secp256k1_ecdh(ctx, output, &point, s_overflow, NULL) == 1);
+    CHECK(secp256k1_ecdh(ctx, output, &point, s_overflow, NULL, NULL) == 1);
 
     /* Hash function failure results in ecdh failure */
-    CHECK(secp256k1_ecdh(ctx, output, &point, s_overflow, ecdh_hash_function_test_fail) == 0);
+    CHECK(secp256k1_ecdh(ctx, output, &point, s_overflow, ecdh_hash_function_test_fail, NULL) == 0);
 }
 
 void run_ecdh_tests(void) {

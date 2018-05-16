@@ -354,6 +354,7 @@ SECP256K1_API jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1e
       nonce_res,
       &pubkey,
       secdata,
+      NULL,
       NULL
     );
   }
