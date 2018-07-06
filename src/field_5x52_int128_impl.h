@@ -35,7 +35,8 @@ SECP256K1_INLINE static void secp256k1_fe_mul_inner(uint64_t *r, const uint64_t 
     VERIFY_CHECK(a != b);
 
     /*  [... a b c] is a shorthand for ... + a<<104 + b<<52 + c<<0 mod n.
-     *  px is a shorthand for sum(a[i]*b[x-i], i=0..x).
+     *  for 0 <= x <= 4, px is a shorthand for sum(a[i]*b[x-i], i=0..x).
+     *  for 4 <= x <= 8, px is a shorthand for sum(a[i]*b[x-i], i=(x-4)..4)
      *  Note that [x 0 0 0 0 0] = [x*R].
      */
 
