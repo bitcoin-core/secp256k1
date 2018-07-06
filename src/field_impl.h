@@ -12,6 +12,7 @@
 #endif
 
 #include "util.h"
+#include "num.h"
 
 #if defined(USE_FIELD_10X26)
 #include "field_10x26_impl.h"

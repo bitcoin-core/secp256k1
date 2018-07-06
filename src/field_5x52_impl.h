@@ -12,7 +12,6 @@
 #endif
 
 #include "util.h"
-#include "num.h"
 #include "field.h"
 
 #if defined(USE_ASM_X86_64)
