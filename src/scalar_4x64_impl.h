@@ -946,4 +946,39 @@ SECP256K1_INLINE static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r,
     secp256k1_scalar_cadd_bit(r, 0, (l[(shift - 1) >> 6] >> ((shift - 1) & 0x3f)) & 1);
 }
 
+SECP256K1_INLINE static void secp256k1_scalar_signed_recoding(uint32_t r[9], const secp256k1_scalar *a, int bits) {
+    uint64_t a0 = a->d[0], a1 = a->d[1], a2 = a->d[2], a3 = a->d[3], a4;
+    uint64_t mask = (a0 & 1ULL) - 1ULL;
+    uint128_t c;
+
+    VERIFY_CHECK(256 < bits && bits <= 288);
+
+    c  = (uint128_t)a0 + (SECP256K1_N_0 & mask);
+    a0 = (uint64_t)c; c >>= 64;
+    c += (uint128_t)a1 + (SECP256K1_N_1 & mask);
+    a1 = (uint64_t)c; c >>= 64;
+    c += (uint128_t)a2 + (SECP256K1_N_2 & mask);
+    a2 = (uint64_t)c; c >>= 64;
+    c += (uint128_t)a3 + (SECP256K1_N_3 & mask);
+    a3 = (uint64_t)c; c >>= 64;
+    a4 = (uint64_t)c;
+    VERIFY_CHECK(a0 & 1ULL);
+    VERIFY_CHECK(a4 < 2ULL);
+
+    a0 = (a0 >> 1) | (a1 << 63);
+    a1 = (a1 >> 1) | (a2 << 63);
+    a2 = (a2 >> 1) | (a3 << 63);
+    a3 = (a3 >> 1) | (a4 << 63);
+
+    r[0] = (uint32_t)a0;
+    r[1] = (uint32_t)(a0 >> 32);
+    r[2] = (uint32_t)a1;
+    r[3] = (uint32_t)(a1 >> 32);
+    r[4] = (uint32_t)a2;
+    r[5] = (uint32_t)(a2 >> 32);
+    r[6] = (uint32_t)a3;
+    r[7] = (uint32_t)(a3 >> 32);
+    r[8] = 1UL << (bits - 257);
+}
+
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */

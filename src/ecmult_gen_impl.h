@@ -20,16 +20,70 @@ static void secp256k1_ecmult_gen_context_init(secp256k1_ecmult_gen_context *ctx)
 
 static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context *ctx, const secp256k1_callback* cb) {
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
+#if USE_COMB
+    secp256k1_ge prec[COMB_POINTS_TOTAL + COMB_OFFSET];
+    secp256k1_gej u, sum;
+    int block, index, spacing, stride, tooth;
+#else
     secp256k1_ge prec[1024];
     secp256k1_gej gj;
     secp256k1_gej nums_gej;
     int i, j;
+#endif
 #endif
 
     if (ctx->prec != NULL) {
         return;
     }
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
+#if USE_COMB
+    ctx->prec = (secp256k1_ge_storage (*)[COMB_BLOCKS][COMB_POINTS])checked_malloc(cb, sizeof(*ctx->prec));
+
+    /* get the generator */
+    secp256k1_gej_set_ge(&u, &secp256k1_ge_const_g);
+
+    /* compute prec. */
+    {
+        secp256k1_gej ds[COMB_TEETH];
+        secp256k1_gej vs[COMB_POINTS_TOTAL + COMB_OFFSET];
+        int vs_pos = 0;
+
+        for (block = 0; block < COMB_BLOCKS; ++block) {
+            secp256k1_gej_set_infinity(&sum);
+            for (tooth = 0; tooth < COMB_TEETH; ++tooth) {
+                secp256k1_gej_add_var(&sum, &sum, &u, NULL);
+                secp256k1_gej_double(&u, &u);
+                ds[tooth] = u;
+                for (spacing = 1; spacing < COMB_SPACING; ++spacing) {
+                    secp256k1_gej_double(&u, &u);
+                }
+            }
+            secp256k1_gej_neg(&vs[vs_pos++], &sum);
+            for (tooth = 0; tooth < (COMB_TEETH - 1); ++tooth) {
+                stride = 1 << tooth;
+                for (index = 0; index < stride; ++index, ++vs_pos) {
+                    secp256k1_gej_add_var(&vs[vs_pos], &vs[vs_pos - stride], &ds[tooth], NULL);
+                }
+            }
+        }
+        VERIFY_CHECK(vs_pos == COMB_POINTS_TOTAL);
+#if COMB_OFFSET
+        vs[COMB_POINTS_TOTAL] = ds[COMB_TEETH - 1];
+#endif
+        secp256k1_ge_set_all_gej_var(prec, vs, COMB_POINTS_TOTAL + COMB_OFFSET, cb);
+    }
+
+    for (block = 0; block < COMB_BLOCKS; ++block) {
+        for (index = 0; index < COMB_POINTS; ++index) {
+            secp256k1_ge_to_storage(&(*ctx->prec)[block][index], &prec[block * COMB_POINTS + index]);
+        }
+    }
+
+#if COMB_OFFSET
+    ctx->offset = prec[COMB_POINTS_TOTAL];
+#endif
+
+#else
     ctx->prec = (secp256k1_ge_storage (*)[64][16])checked_malloc(cb, sizeof(*ctx->prec));
 
     /* get the generator */
@@ -84,6 +138,7 @@ static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context *ctx
             secp256k1_ge_to_storage(&(*ctx->prec)[j][i], &prec[j*16 + i]);
         }
     }
+#endif
 #else
     (void)cb;
     ctx->prec = (secp256k1_ge_storage (*)[64][16])secp256k1_ecmult_static_context;
@@ -101,7 +156,14 @@ static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst
         dst->prec = NULL;
     } else {
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
+#if USE_COMB
+        dst->prec = (secp256k1_ge_storage (*)[COMB_BLOCKS][COMB_POINTS])checked_malloc(cb, sizeof(*dst->prec));
+#if COMB_OFFSET
+        dst->offset = src->offset;
+#endif
+#else
         dst->prec = (secp256k1_ge_storage (*)[64][16])checked_malloc(cb, sizeof(*dst->prec));
+#endif
         memcpy(dst->prec, src->prec, sizeof(*dst->prec));
 #else
         (void)cb;
@@ -115,6 +177,11 @@ static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst
 static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx) {
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
     free(ctx->prec);
+#if USE_COMB
+#if COMB_OFFSET
+    secp256k1_ge_clear(&ctx->offset);
+#endif
+#endif
 #endif
     secp256k1_scalar_clear(&ctx->blind);
     secp256k1_gej_clear(&ctx->initial);
@@ -126,6 +193,69 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     secp256k1_ge_storage adds;
     secp256k1_scalar gnb;
     int bits;
+
+#if USE_COMB
+
+    int abs, bit_pos, block, comb_off, index, sign;
+#if !COMB_GROUPED
+    int bit, tooth;
+#endif
+    uint32_t recoded[9];
+    secp256k1_fe neg;
+
+    memset(&adds, 0, sizeof(adds));
+    *r = ctx->initial;
+
+    /* Blind scalar/point multiplication by computing (n-b)G + bG instead of nG. */
+    secp256k1_scalar_add(&gnb, gn, &ctx->blind);
+    secp256k1_scalar_signed_recoding(recoded, &gnb, COMB_BITS + COMB_OFFSET);
+
+    comb_off = COMB_SPACING - 1;
+    for (;;) {
+        bit_pos = comb_off;
+        for (block = 0; block < COMB_BLOCKS; ++block) {
+#if COMB_GROUPED
+            bits = (recoded[bit_pos >> 5] >> (bit_pos & 0x1F)) & ((1 << COMB_TEETH) - 1);
+            bit_pos += COMB_SPACING * COMB_TEETH;
+#else
+            bits = 0;
+            for (tooth = 0; tooth < COMB_TEETH; ++tooth) {
+                bit = (recoded[bit_pos >> 5] >> (bit_pos & 0x1F)) & 1;
+                bits |= bit << tooth;
+                bit_pos += COMB_SPACING;
+            }
+#endif
+
+            sign = (bits >> (COMB_TEETH - 1)) & 1;
+            abs = (bits ^ -sign) & COMB_MASK;
+
+            VERIFY_CHECK(sign == 0 || sign == 1);
+            VERIFY_CHECK(0 <= abs && abs < COMB_POINTS);
+
+            for (index = 0; index < COMB_POINTS; ++index) {
+                secp256k1_ge_storage_cmov(&adds, &(*ctx->prec)[block][index], index == abs);
+            }
+
+            secp256k1_ge_from_storage(&add, &adds);
+            secp256k1_fe_negate(&neg, &add.y, 1);
+            secp256k1_fe_cmov(&add.y, &neg, sign);
+
+            secp256k1_gej_add_ge(r, r, &add);
+        }
+
+        if (--comb_off < 0) {
+            break;
+        }
+
+        secp256k1_gej_double(r, r);
+    }
+
+    secp256k1_fe_clear(&neg);
+    memset(recoded, 0, sizeof(recoded));
+    abs = 0;
+    sign = 0;
+
+#else
     int i, j;
     memset(&adds, 0, sizeof(adds));
     *r = ctx->initial;
@@ -150,13 +280,18 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
         secp256k1_ge_from_storage(&add, &adds);
         secp256k1_gej_add_ge(r, r, &add);
     }
+#endif
     bits = 0;
     secp256k1_ge_clear(&add);
+    memset(&adds, 0, sizeof(adds));
     secp256k1_scalar_clear(&gnb);
 }
 
 /* Setup blinding values for secp256k1_ecmult_gen. */
 static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const unsigned char *seed32) {
+#if USE_COMB
+    int spacing;
+#endif
     secp256k1_scalar b;
     secp256k1_gej gb;
     secp256k1_fe s;
@@ -169,6 +304,14 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
         secp256k1_gej_set_ge(&ctx->initial, &secp256k1_ge_const_g);
         secp256k1_gej_neg(&ctx->initial, &ctx->initial);
         secp256k1_scalar_set_int(&ctx->blind, 1);
+#if USE_COMB
+        for (spacing = 1; spacing < COMB_SPACING; ++spacing) {
+            secp256k1_scalar_add(&ctx->blind, &ctx->blind, &ctx->blind);
+        }
+#if COMB_OFFSET
+        secp256k1_gej_add_ge(&ctx->initial, &ctx->initial, &ctx->offset);
+#endif
+#endif
     }
     /* The prior blinding value (if not reset) is chained forward by including it in the hash. */
     secp256k1_scalar_get_b32(nonce32, &ctx->blind);
@@ -203,6 +346,14 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     secp256k1_scalar_negate(&b, &b);
     ctx->blind = b;
     ctx->initial = gb;
+#if USE_COMB
+    for (spacing = 1; spacing < COMB_SPACING; ++spacing) {
+        secp256k1_scalar_add(&ctx->blind, &ctx->blind, &ctx->blind);
+    }
+#if COMB_OFFSET
+    secp256k1_gej_add_ge(&ctx->initial, &ctx->initial, &ctx->offset);
+#endif
+#endif
     secp256k1_scalar_clear(&b);
     secp256k1_gej_clear(&gb);
 }

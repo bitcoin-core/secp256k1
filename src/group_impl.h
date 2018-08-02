@@ -304,7 +304,7 @@ static int secp256k1_ge_is_valid_var(const secp256k1_ge *a) {
     return secp256k1_fe_equal_var(&y2, &x3);
 }
 
-static void secp256k1_gej_double_var(secp256k1_gej *r, const secp256k1_gej *a, secp256k1_fe *rzr) {
+static void secp256k1_gej_double(secp256k1_gej *r, const secp256k1_gej *a) {
     /* Operations: 3 mul, 4 sqr, 0 normalize, 12 mul_int/add/negate.
      *
      * Note that there is an implementation described at
@@ -324,19 +324,6 @@ static void secp256k1_gej_double_var(secp256k1_gej *r, const secp256k1_gej *a, s
      *  point will be gibberish (z = 0 but infinity = 0).
      */
     r->infinity = a->infinity;
-    if (r->infinity) {
-        if (rzr != NULL) {
-            secp256k1_fe_set_int(rzr, 1);
-        }
-        return;
-    }
-
-    if (rzr != NULL) {
-        *rzr = a->y;
-        secp256k1_fe_normalize_weak(rzr);
-        secp256k1_fe_mul_int(rzr, 2);
-    }
-
     secp256k1_fe_mul(&r->z, &a->z, &a->y);
     secp256k1_fe_mul_int(&r->z, 2);       /* Z' = 2*Y*Z (2) */
     secp256k1_fe_sqr(&t1, &a->x);
@@ -357,6 +344,22 @@ static void secp256k1_gej_double_var(secp256k1_gej *r, const secp256k1_gej *a, s
     secp256k1_fe_mul(&r->y, &t1, &t3);    /* Y' = 36*X^3*Y^2 - 27*X^6 (1) */
     secp256k1_fe_negate(&t2, &t4, 2);     /* T2 = -8*Y^4 (3) */
     secp256k1_fe_add(&r->y, &t2);         /* Y' = 36*X^3*Y^2 - 27*X^6 - 8*Y^4 (4) */
+}
+
+static SECP256K1_INLINE void secp256k1_gej_double_var(secp256k1_gej *r, const secp256k1_gej *a, secp256k1_fe *rzr) {
+    if (a->infinity) {
+        r->infinity = 1;
+        if (rzr != NULL) {
+            secp256k1_fe_set_int(rzr, 1);
+        }
+        return;
+    }
+    if (rzr != NULL) {
+        *rzr = a->y;
+        secp256k1_fe_normalize_weak(rzr);
+        secp256k1_fe_mul_int(rzr, 2);
+    }
+    secp256k1_gej_double(r, a);
 }
 
 static SECP256K1_INLINE void secp256k1_gej_double_nonzero(secp256k1_gej *r, const secp256k1_gej *a, secp256k1_fe *rzr) {
