@@ -10,9 +10,7 @@
 #include "scalar.h"
 #include "group.h"
 
-#if !defined(USE_ECMULT_STATIC_PRECOMPUTATION) && !defined(USE_BASIC_CONFIG)
 #define USE_COMB 1
-#endif
 
 #ifdef USE_COMB
 

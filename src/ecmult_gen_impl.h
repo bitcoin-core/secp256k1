@@ -151,7 +151,14 @@ static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context *ctx
 #endif
 #else
     (void)prealloc;
+#if USE_COMB
+    ctx->prec = (secp256k1_ge_storage (*)[COMB_BLOCKS][COMB_POINTS])secp256k1_ecmult_gen_ctx_prec;
+#if COMB_OFFSET
+    secp256k1_ge_from_storage(&ctx->offset, &secp256k1_ecmult_gen_ctx_offset);
+#endif
+#else
     ctx->prec = (secp256k1_ge_storage (*)[ECMULT_GEN_PREC_N][ECMULT_GEN_PREC_G])secp256k1_ecmult_static_context;
+#endif
 #endif
     secp256k1_ecmult_gen_blind(ctx, NULL);
 }
@@ -167,6 +174,9 @@ static void secp256k1_ecmult_gen_context_finalize_memcpy(secp256k1_ecmult_gen_co
         /* We cast to void* first to suppress a -Wcast-align warning. */
         dst->prec = (secp256k1_ge_storage (*)[COMB_BLOCKS][COMB_POINTS])(void*)((unsigned char*)dst + ((unsigned char*)src->prec - (unsigned char*)src));
     }
+#if COMB_OFFSET
+    dst->offset = src->offset;
+#endif
 #else
     if (src->prec != NULL) {
         dst->prec = (secp256k1_ge_storage (*)[ECMULT_GEN_PREC_N][ECMULT_GEN_PREC_G])(void*)((unsigned char*)dst + ((unsigned char*)src->prec - (unsigned char*)src));
