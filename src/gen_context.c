@@ -29,6 +29,18 @@ int main(int argc, char **argv) {
     int inner;
     int outer;
     FILE* fp;
+    const char *SC_FORMAT = "    SC(%uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu)";
+
+#if USE_COMB
+    const int blocks = COMB_BLOCKS;
+    const int points = COMB_POINTS;
+#if COMB_OFFSET
+    secp256k1_ge_storage offset;
+#endif
+#else
+    const int blocks = 64;
+    const int points = 16;
+#endif
 
     (void)argc;
     (void)argv;
@@ -43,21 +55,32 @@ int main(int argc, char **argv) {
     fprintf(fp, "#define _SECP256K1_ECMULT_STATIC_CONTEXT_\n");
     fprintf(fp, "#include \"src/group.h\"\n");
     fprintf(fp, "#define SC SECP256K1_GE_STORAGE_CONST\n");
-    fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_static_context[64][16] = {\n");
 
     secp256k1_ecmult_gen_context_init(&ctx);
     secp256k1_ecmult_gen_context_build(&ctx, &default_error_callback);
-    for(outer = 0; outer != 64; outer++) {
+
+#if USE_COMB
+#if COMB_OFFSET
+    secp256k1_ge_to_storage(&offset, &ctx.offset);
+    fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_gen_ctx_offset =\n");
+    fprintf(fp, SC_FORMAT, SECP256K1_GE_STORAGE_CONST_GET(offset));
+    fprintf(fp, ";\n");
+#endif
+#endif
+
+    fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_gen_ctx_prec[%i][%i] = {\n",
+        blocks, points);
+    for(outer = 0; outer != blocks; outer++) {
         fprintf(fp,"{\n");
-        for(inner = 0; inner != 16; inner++) {
-            fprintf(fp,"    SC(%uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu)", SECP256K1_GE_STORAGE_CONST_GET((*ctx.prec)[outer][inner]));
-            if (inner != 15) {
+        for(inner = 0; inner != points; inner++) {
+            fprintf(fp, SC_FORMAT, SECP256K1_GE_STORAGE_CONST_GET((*ctx.prec)[outer][inner]));
+            if (inner != (points - 1)) {
                 fprintf(fp,",\n");
             } else {
                 fprintf(fp,"\n");
             }
         }
-        if (outer != 63) {
+        if (outer != (blocks - 1)) {
             fprintf(fp,"},\n");
         } else {
             fprintf(fp,"}\n");

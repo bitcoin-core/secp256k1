@@ -141,7 +141,14 @@ static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context *ctx
 #endif
 #else
     (void)cb;
-    ctx->prec = (secp256k1_ge_storage (*)[64][16])secp256k1_ecmult_static_context;
+#if USE_COMB
+    ctx->prec = (secp256k1_ge_storage (*)[COMB_BLOCKS][COMB_POINTS])secp256k1_ecmult_gen_ctx_prec;
+#if COMB_OFFSET
+    secp256k1_ge_from_storage(&ctx->offset, &secp256k1_ecmult_gen_ctx_offset);
+#endif
+#else
+    ctx->prec = (secp256k1_ge_storage (*)[64][16])secp256k1_ecmult_gen_ctx_prec;
+#endif
 #endif
     secp256k1_ecmult_gen_blind(ctx, NULL);
 }
@@ -158,9 +165,6 @@ static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
 #if USE_COMB
         dst->prec = (secp256k1_ge_storage (*)[COMB_BLOCKS][COMB_POINTS])checked_malloc(cb, sizeof(*dst->prec));
-#if COMB_OFFSET
-        dst->offset = src->offset;
-#endif
 #else
         dst->prec = (secp256k1_ge_storage (*)[64][16])checked_malloc(cb, sizeof(*dst->prec));
 #endif
@@ -168,6 +172,12 @@ static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst
 #else
         (void)cb;
         dst->prec = src->prec;
+#endif
+
+#if USE_COMB
+#if COMB_OFFSET
+        dst->offset = src->offset;
+#endif
 #endif
         dst->initial = src->initial;
         dst->blind = src->blind;
@@ -177,10 +187,10 @@ static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst
 static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx) {
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
     free(ctx->prec);
+#endif
 #if USE_COMB
 #if COMB_OFFSET
     secp256k1_ge_clear(&ctx->offset);
-#endif
 #endif
 #endif
     secp256k1_scalar_clear(&ctx->blind);
