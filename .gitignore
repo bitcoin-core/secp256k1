@@ -30,7 +30,6 @@ libtool
 *.lo
 *.o
 *~
-src/libsecp256k1-config.h
 src/libsecp256k1-config.h.in
 src/ecmult_static_context.h
 build-aux/config.guess
