@@ -178,6 +178,8 @@ static void secp256k1_ge_globalz_set_table_gej(size_t len, secp256k1_ge *r, secp
         /* The z of the final point gives us the "global Z" for the table. */
         r[i].x = a[i].x;
         r[i].y = a[i].y;
+        /* Ensure all y values are in weak normal form for fast negation of points */
+        secp256k1_fe_normalize_weak(&r[i].y);
         *globalz = a[i].z;
         r[i].infinity = 0;
         zs = zr[i];
