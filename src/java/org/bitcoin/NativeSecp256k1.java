@@ -395,30 +395,12 @@ public class NativeSecp256k1 {
      * @param pubkey ECDSA Public key, 33 or 65 bytes
      */
     public static boolean isValidPubKey(byte[] pubkey) {
-        if (!(pubkey.length == 33 || pubkey.length == 65)) {
+        try {
+            decompress(pubkey);
+            return true;
+        } catch (Throwable e) {
             return false;
         }
-
-        ByteBuffer byteBuff = nativeECDSABuffer.get();
-        if (byteBuff == null || byteBuff.capacity() < pubkey.length) {
-            byteBuff = ByteBuffer.allocateDirect(pubkey.length);
-            byteBuff.order(ByteOrder.nativeOrder());
-            nativeECDSABuffer.set(byteBuff);
-        }
-        byteBuff.rewind();
-        byteBuff.put(pubkey);
-
-        byte[][] retByteArray;
-        r.lock();
-        try {
-            retByteArray = secp256k1_ec_pubkey_decompress(byteBuff, Secp256k1Context.getContext(), pubkey.length);
-        } finally {
-            r.unlock();
-        }
-
-        int retVal = new BigInteger(new byte[] { retByteArray[1][1] }).intValue();
-
-        return retVal == 1;
     }
 
     /**
