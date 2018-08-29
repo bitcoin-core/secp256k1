@@ -462,7 +462,7 @@ public class NativeSecp256k1 {
      *
      * @param seed 32-byte random seed
      */
-    public static synchronized boolean randomize(byte[] seed) throws AssertFailException{
+    public static synchronized boolean randomize(byte[] seed) {
         checkArgument(seed.length == 32);
 
         ByteBuffer byteBuff = nativeECDSABuffer.get();
