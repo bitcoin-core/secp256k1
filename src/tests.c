@@ -959,6 +959,63 @@ void scalar_test(void) {
         CHECK(secp256k1_scalar_eq(&r1, &v0));
     }
 
+    {
+        /* Test pow. */
+        unsigned char bin[32];
+        secp256k1_scalar r1, r2;
+        int overflow = 0;
+
+        static const unsigned char input1[32] = {
+            0x7c, 0x0f, 0x1b, 0x62, 0xf5, 0x80, 0x2f, 0x44, 0x97, 0x2b, 0x81, 0xa5, 0x4c, 0x3f, 0x89, 0x4f, 0x92, 0x1d, 0x73, 0xaf, 0x7f, 0x51, 0xe2, 0xed, 0x0c, 0xae, 0xa7, 0x63, 0x6a, 0x63, 0xf7, 0x67
+        }; /* ^2 = */
+        static const unsigned char output1[32] = {
+            0x8a, 0xe2, 0x7c, 0x53, 0xbb, 0x01, 0x34, 0xb5, 0x5f, 0x62, 0xa8, 0x39, 0x74, 0x7a, 0x5f, 0x85, 0x77, 0xe7, 0x12, 0x77, 0x1b, 0xed, 0x9d, 0x3e, 0x71, 0x37, 0xa0, 0x97, 0xca, 0x19, 0x10, 0x0f
+        };
+
+        /* input1^ */
+        static const unsigned char input2[32] = {
+            0xa8, 0x97, 0x37, 0xa0, 0x5e, 0x93, 0x9f, 0x84, 0xf9, 0x4b, 0x28, 0xef, 0x79, 0x89, 0x66, 0xbf, 0x65, 0x30, 0xf7, 0xc7, 0xaa, 0x34, 0x6d, 0x13, 0x1d, 0x8e, 0x3f, 0x6a, 0xb0, 0xe8, 0x3a, 0x42
+        }; /* = */
+        static const unsigned char output2[32] = {
+            0x7b, 0xda, 0xc4, 0x00, 0xc0, 0x17, 0xa8, 0x46, 0xff, 0x0b, 0x7d, 0x33, 0xd4, 0x8c, 0x7e, 0x10, 0xb9, 0x00, 0x5a, 0x13, 0x04, 0xb8, 0x6b, 0x39, 0xd8, 0x90, 0x5d, 0xa4, 0x99, 0xd4, 0xe2, 0x66
+        };
+
+        /* 2^10 = 1024 = 0x0400 */
+        secp256k1_scalar_set_int(&r1, 2);
+        secp256k1_scalar_set_int(&r2, 10);
+        secp256k1_scalar_set_int(&s1, 1024);
+        secp256k1_scalar_pow(&r1, &r1, &r2);
+        CHECK(secp256k1_scalar_eq(&r1, &s1));
+
+        /*                                           3130292827262524 */
+        /* 1024^4 = 1099511627776 = 0x010000000000 = 0000000000010000 */
+        memset(bin, 0, 32);
+        bin[26] = 1;
+        secp256k1_scalar_set_b32(&s1, bin, &overflow);
+        secp256k1_scalar_set_int(&r2, 4);
+        secp256k1_scalar_pow(&r1, &r1, &r2);
+        CHECK(overflow == 0);
+        CHECK(secp256k1_scalar_eq(&r1, &s1));
+
+        /* input1 ^ 2 = output1 */
+        secp256k1_scalar_set_b32(&s1, output1, &overflow);
+        CHECK(overflow == 0);
+        secp256k1_scalar_set_b32(&r1, input1, &overflow);
+        CHECK(overflow == 0);
+        secp256k1_scalar_set_int(&r2, 2);
+        secp256k1_scalar_pow(&r1, &r1, &r2);
+        CHECK(secp256k1_scalar_eq(&r1, &s1));
+
+        /* input1 ^ input2 = output2 */
+        secp256k1_scalar_set_b32(&s1, output2, &overflow);
+        CHECK(overflow == 0);
+        secp256k1_scalar_set_b32(&r1, input1, NULL);
+        secp256k1_scalar_set_b32(&r2, input2, &overflow);
+        CHECK(overflow == 0);
+        secp256k1_scalar_pow(&r1, &r1, &r2);
+        CHECK(secp256k1_scalar_eq(&r1, &s1));
+    }
+
 }
 
 void run_scalar_tests(void) {
