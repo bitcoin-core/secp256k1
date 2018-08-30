@@ -3,7 +3,7 @@
 
 Name:           secp256k1
 Version:        0.0.0
-Release:        0.%{checkout}%{?dist}
+Release:        0.1.%{checkout}%{?dist}
 Summary:        Optimized C library for EC operations on curve secp256k1
 Group:          Development/Libraries
 License:        MIT
@@ -64,11 +64,14 @@ find %{buildroot}%{_libdir} -name *.so* -exec chmod 755 {} \;
 %{_libdir}/libsecp256k1.la
 
 %files devel
-%{_includedir}/secp256k1.h
+%{_includedir}/secp256k1*.h
 %{_libdir}/pkgconfig/libsecp256k1.pc
 %{_libdir}/libsecp256k1.so
 %{_libdir}/libsecp256k1.a
 
 %changelog
+* Thu Aug 30 2018 Suvayu Ali <fatkasuvayu+linux@gmail.com> - 0.0.0-0.1.20180531.git.1e6f1f5a
+- All header files were not being packaged
+
 * Thu Aug 02 2018 Suvayu Ali <fatkasuvayu+linux@gmail.com> - 0.0.0-0.20180531.git.1e6f1f5a
 - Unreleased version
