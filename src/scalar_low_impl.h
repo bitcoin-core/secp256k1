@@ -89,6 +89,19 @@ static void secp256k1_scalar_mul(secp256k1_scalar *r, const secp256k1_scalar *a,
     *r = (*a * *b) % EXHAUSTIVE_TEST_ORDER;
 }
 
+static void secp256k1_scalar_pow(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    secp256k1_scalar base = *a;
+    secp256k1_scalar exp = *b;
+    *r = 1;
+    while (exp > 0) {
+        if (exp & 1) {
+            *r *= base;
+        }
+        base *= base;
+        exp >>= 1;
+    }
+}
+
 static int secp256k1_scalar_shr_int(secp256k1_scalar *r, int n) {
     int ret;
     VERIFY_CHECK(n > 0);
