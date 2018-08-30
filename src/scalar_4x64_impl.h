@@ -946,4 +946,33 @@ SECP256K1_INLINE static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r,
     secp256k1_scalar_cadd_bit(r, 0, (l[(shift - 1) >> 6] >> ((shift - 1) & 0x3f)) & 1);
 }
 
+static void secp256k1_scalar_pow(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    uint64_t l[8], pmask;
+    int i, pidx;
+    secp256k1_scalar base;
+
+    memcpy(base.d, a->d, sizeof(base.d));
+    secp256k1_scalar_set_int(r, 1);
+    pmask = 1;
+    pidx = 4;
+    i = 256;
+    while (pidx > 0 && b->d[--pidx] == 0) i -= 64;
+    pidx = 0;
+    for (;;) {
+        if (b->d[pidx] & pmask) {
+            secp256k1_scalar_mul_512(l, r, &base);
+            secp256k1_scalar_reduce_512(r, l);
+        }
+        if (!(--i)) break;
+        secp256k1_scalar_mul_512(l, &base, &base);
+        secp256k1_scalar_reduce_512(&base, l);
+        if (pmask == (1ULL << 63)) {
+            pmask = 1;
+            pidx++;
+        } else {
+            pmask <<= 1;
+        }
+    }
+}
+
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */

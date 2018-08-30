@@ -50,6 +50,9 @@ static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int
 /** Multiply two scalars (modulo the group order). */
 static void secp256k1_scalar_mul(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b);
 
+/** Calculate a^b modulo the group order. */
+static void secp256k1_scalar_pow(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b);
+
 /** Shift a scalar right by some amount strictly between 0 and 16, returning
  *  the low bits that were shifted off */
 static int secp256k1_scalar_shr_int(secp256k1_scalar *r, int n);
