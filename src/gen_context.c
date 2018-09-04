@@ -5,6 +5,7 @@
  **********************************************************************/
 
 #define USE_BASIC_CONFIG 1
+#undef USE_ECMULT_STATIC_PRECOMPUTATION
 
 #include "basic-config.h"
 #include "include/secp256k1.h"
@@ -38,7 +39,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Could not open src/ecmult_static_context.h for writing!\n");
         return -1;
     }
-    
+
     fprintf(fp, "#ifndef _SECP256K1_ECMULT_STATIC_CONTEXT_\n");
     fprintf(fp, "#define _SECP256K1_ECMULT_STATIC_CONTEXT_\n");
     fprintf(fp, "#include \"src/group.h\"\n");
@@ -65,10 +66,10 @@ int main(int argc, char **argv) {
     }
     fprintf(fp,"};\n");
     secp256k1_ecmult_gen_context_clear(&ctx);
-    
+
     fprintf(fp, "#undef SC\n");
     fprintf(fp, "#endif\n");
     fclose(fp);
-    
+
     return 0;
 }
