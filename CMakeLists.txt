@@ -13,7 +13,7 @@ if (CMAKE_CROSSCOMPILING)
 endif()
 
 if (APPLE AND NOT BIGNUM_NO)
-  find_program("brew" brew)
+  find_program(brew "brew")
   if (NOT brew STREQUAL "")
     # These Homebrew packages may be keg-only, meaning that they won't be found
     # in expected paths because they may conflict with system files. Ask
@@ -29,7 +29,7 @@ if (APPLE AND NOT BIGNUM_NO)
       set(GMP_LIBS "-L${gmp_prefix}/lib -lgmp")
     endif()
   else()
-    find_program("port" port)
+    find_program(port "port")
     # if homebrew isn't installed and macports is, add the macports default paths
     # as a last resort.
     if (NOT port STREQUAL "")
@@ -101,7 +101,16 @@ if (COVERAGE)
   set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} --coverage")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
 else()
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+  check_c_compiler_flag("-O3" OPTIMIZE_O3)
+  if (OPTIMIZE_O3)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+  else()
+    # MSVC
+    check_c_compiler_flag("/Ox" OPTIMIZE_OX)
+    if (OPTIMIZE_OX)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Ox")
+    endif()
+  endif()
 endif()
 
 set(PRECOMP ${ECMULT_STATIC_PRECOMPUTATION})
@@ -110,7 +119,7 @@ if (NOT ASM_ARM)
   check_c_source_compiles("\
   #include <stdint.h> \n\
   uint64_t a = 11, tmp; \n\
-  int main(void) {__asm__ __volatile__(\"movq 0x100000000,%1; mulq %%rsi\" : \"+a\"(a) : \"S\"(tmp) : \"cc\", \"%rdx\");return 0;}" ASM_64BIT)
+  int main(void) {__asm__ __volatile__(\"movq $0x100000000,%1; mulq %%rsi\" : \"+a\"(a) : \"S\"(tmp) : \"cc\", \"%rdx\");return 0;}" ASM_64BIT)
   if (ASM_64BIT)
     set(ASM_x86_64 ON)
   elseif(ASM_x86_64)
@@ -163,9 +172,7 @@ if (ASM_x86_64)
   # Define this symbol to enable x86_64 assembly optimizations
   add_compile_definitions(USE_ASM_X86_64=1)
 else()
-  if(ASM_ARM)
-    set(USE_EXTERNAL_ASM ON)
-  endif()
+  set(USE_EXTERNAL_ASM ${ASM_ARM})
   # no asm
 endif()
 
