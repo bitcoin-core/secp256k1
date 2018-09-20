@@ -167,24 +167,6 @@ static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a
     }
 }
 
-static void secp256k1_ge_set_table_gej_var(secp256k1_ge *r, const secp256k1_gej *a, const secp256k1_fe *zr, size_t len) {
-    size_t i = len - 1;
-    secp256k1_fe zi;
-
-    if (len > 0) {
-        /* Compute the inverse of the last z coordinate, and use it to compute the last affine output. */
-        secp256k1_fe_inv(&zi, &a[i].z);
-        secp256k1_ge_set_gej_zinv(&r[i], &a[i], &zi);
-
-        /* Work out way backwards, using the z-ratios to scale the x/y values. */
-        while (i > 0) {
-            secp256k1_fe_mul(&zi, &zi, &zr[i]);
-            i--;
-            secp256k1_ge_set_gej_zinv(&r[i], &a[i], &zi);
-        }
-    }
-}
-
 static void secp256k1_ge_globalz_set_table_gej(size_t len, secp256k1_ge *r, secp256k1_fe *globalz, const secp256k1_gej *a, const secp256k1_fe *zr) {
     size_t i = len - 1;
     secp256k1_fe zs;
