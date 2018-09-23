@@ -76,6 +76,11 @@ typedef struct {
      */
     secp256k1_ge_storage (*prec)[COMB_BLOCKS][COMB_POINTS];
 #if COMB_OFFSET
+    /* Signed recoding of a 256-bit scalar must be at least 257 bits, with the top bit always 1. We
+     * support a 256-bit comb over a 257-bit recoding by pre-adding an 'offset' value to the context's
+     * 'initial' value, to account for the high 1 bit. Note that the 'offset' is calculated to allow
+     * for the (COMB_SPACING - 1) doublings in the _ecmult_gen ladder.
+     */
     secp256k1_ge offset;
 #endif
 #else
