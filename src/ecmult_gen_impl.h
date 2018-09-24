@@ -224,13 +224,14 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
         bit_pos = comb_off;
         for (block = 0; block < COMB_BLOCKS; ++block) {
 #if COMB_GROUPED
-            bits = (recoded[bit_pos >> 5] >> (bit_pos & 0x1F)) & ((1 << COMB_TEETH) - 1);
-            bit_pos += COMB_SPACING * COMB_TEETH;
+            bits = recoded[bit_pos >> 5] >> (bit_pos & 0x1F);
+            bit_pos += COMB_TEETH;
 #else
             bits = 0;
             for (tooth = 0; tooth < COMB_TEETH; ++tooth) {
-                bit = (recoded[bit_pos >> 5] >> (bit_pos & 0x1F)) & 1;
-                bits |= bit << tooth;
+                bit = recoded[bit_pos >> 5] >> (bit_pos & 0x1F);
+                bits &= ~(1 << tooth);
+                bits ^= bit << tooth;
                 bit_pos += COMB_SPACING;
             }
 #endif
