@@ -49,6 +49,16 @@
 
 #endif
 
+#if !(1 <= COMB_BLOCKS && COMB_BLOCKS <= 256)
+#  error "COMB_BLOCKS must be in the range [1, 256]"
+#endif
+#if !(1 <= COMB_TEETH && COMB_TEETH <= 8)
+#  error "COMB_TEETH must be in the range [1, 8]"
+#endif
+#if !(1 <= COMB_SPACING && COMB_SPACING <= 256)
+#  error "COMB_SPACING must be in the range [1, 256]"
+#endif
+
 /* The remaining COMB_* parameters are derived values, don't modify these. */
 #define COMB_BITS (COMB_BLOCKS * COMB_TEETH * COMB_SPACING)
 #define COMB_GROUPED ((COMB_SPACING == 1) && ((32 % COMB_TEETH) == 0))
@@ -56,6 +66,10 @@
 #define COMB_POINTS (1 << (COMB_TEETH - 1))
 #define COMB_POINTS_TOTAL (COMB_BLOCKS * COMB_POINTS)
 #define COMB_MASK (COMB_POINTS - 1)
+
+#if !(256 <= COMB_BITS && COMB_BITS <= 288)
+#  error "COMB_BITS must be in the range [256, 288]"
+#endif
 
 #else
 
