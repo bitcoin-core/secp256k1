@@ -9,7 +9,16 @@ if (EXHAUSTIVE_TESTS)
   add_executable(exhaustive_test tests_exhaustive.c)
 endif()
 
-if (PRECOMP)
+if (NOT COVERAGE)
+  if (TESTS)
+    target_compile_definitions(test PRIVATE VERIFY)
+  endif()
+  if (EXHAUSTIVE_TESTS)
+    target_compile_definitions(exhaustive_test PRIVATE VERIFY)
+  endif()
+endif()
+
+if (ECMULT_STATIC_PRECOMPUTATION)
   add_executable(precomputation gen_context.c)
   # alternatives considered:
   # add_file_dependencies, add_dependencies, add_custom_command

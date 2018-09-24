@@ -5,7 +5,6 @@
  **********************************************************************/
 
 #define USE_BASIC_CONFIG 1
-#undef USE_ECMULT_STATIC_PRECOMPUTATION
 
 #include "basic-config.h"
 #include "include/secp256k1.h"
