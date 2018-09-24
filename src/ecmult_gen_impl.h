@@ -54,8 +54,10 @@ static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context *ctx
                 secp256k1_gej_add_var(&sum, &sum, &u, NULL);
                 secp256k1_gej_double(&u, &u);
                 ds[tooth] = u;
-                for (spacing = 1; spacing < COMB_SPACING; ++spacing) {
-                    secp256k1_gej_double(&u, &u);
+                if (block + tooth != COMB_BLOCKS + COMB_TEETH - 2) {
+                    for (spacing = 1; spacing < COMB_SPACING; ++spacing) {
+                        secp256k1_gej_double(&u, &u);
+                    }
                 }
             }
             secp256k1_gej_neg(&vs[vs_pos++], &sum);
