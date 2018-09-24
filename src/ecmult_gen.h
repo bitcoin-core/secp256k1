@@ -37,6 +37,7 @@
 #  endif
 
 #  define COMB_SPACING 1
+#  define COMB_NEGATION 1
 
 #else
 
