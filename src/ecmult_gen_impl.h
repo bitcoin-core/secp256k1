@@ -61,7 +61,7 @@ static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context *ctx
                 }
             }
             secp256k1_gej_neg(&vs[vs_pos++], &sum);
-            for (tooth = 0; tooth < (COMB_TEETH - 1); ++tooth) {
+            for (tooth = 0; tooth < (COMB_TEETH - COMB_NEGATION); ++tooth) {
                 stride = 1 << tooth;
                 for (index = 0; index < stride; ++index, ++vs_pos) {
                     secp256k1_gej_add_var(&vs[vs_pos], &vs[vs_pos - stride], &ds[tooth], NULL);
@@ -208,12 +208,15 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
 
 #if USE_COMB
 
-    int abs, bit_pos, block, comb_off, index, sign;
+#if COMB_NEGATION
+    secp256k1_fe neg;
+    int sign;
+#endif
+    int abs, bit_pos, block, comb_off, index;
 #if !COMB_GROUPED
     int bit, tooth;
 #endif
     uint32_t recoded[9];
-    secp256k1_fe neg;
 
     memset(&adds, 0, sizeof(adds));
     *r = ctx->initial;
@@ -239,10 +242,14 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
             }
 #endif
 
+#if COMB_NEGATION
             sign = (bits >> (COMB_TEETH - 1)) & 1;
-            abs = (bits ^ -sign) & COMB_MASK;
-
             VERIFY_CHECK(sign == 0 || sign == 1);
+
+            bits ^= -sign;
+#endif
+
+            abs = bits & COMB_MASK;
             VERIFY_CHECK(0 <= abs && abs < COMB_POINTS);
 
             for (index = 0; index < COMB_POINTS; ++index) {
@@ -250,8 +257,10 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
             }
 
             secp256k1_ge_from_storage(&add, &adds);
+#if COMB_NEGATION
             secp256k1_fe_negate(&neg, &add.y, 1);
             secp256k1_fe_cmov(&add.y, &neg, sign);
+#endif
 
             secp256k1_gej_add_ge(r, r, &add);
         }
@@ -263,10 +272,12 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
         secp256k1_gej_double(r, r);
     }
 
+#if COMB_NEGATION
     secp256k1_fe_clear(&neg);
+    sign = 0;
+#endif
     memset(recoded, 0, sizeof(recoded));
     abs = 0;
-    sign = 0;
 
 #else
     int i, j;

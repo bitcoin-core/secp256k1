@@ -41,11 +41,14 @@
 #else
 
   /* COMB_BLOCKS, COMB_TEETH, COMB_SPACING must all be positive and the product of the three (COMB_BITS)
-   * must evaluate to a value in the range [256, 288]. The resulting memory usage for precomputation
-   * will be COMB_POINTS_TOTAL * sizeof(secp256k1_ge_storage). */
+   * must evaluate to a value in the range [256, 288]. The COMB_NEGATION boolean controls whether the
+   * comb will use negations so that only negative multiples need be precomputed. The resulting memory
+   * usage for precomputation will be COMB_POINTS_TOTAL * sizeof(secp256k1_ge_storage).
+   */
   #define COMB_BLOCKS 4
   #define COMB_TEETH 5
   #define COMB_SPACING 13
+  #define COMB_NEGATION 1
 
 #endif
 
@@ -58,12 +61,15 @@
 #if !(1 <= COMB_SPACING && COMB_SPACING <= 256)
 #  error "COMB_SPACING must be in the range [1, 256]"
 #endif
+#if !(0 <= COMB_NEGATION && COMB_NEGATION <= 1)
+#  error "COMB_NEGATION must be in the range [0, 1]"
+#endif
 
 /* The remaining COMB_* parameters are derived values, don't modify these. */
 #define COMB_BITS (COMB_BLOCKS * COMB_TEETH * COMB_SPACING)
 #define COMB_GROUPED ((COMB_SPACING == 1) && ((32 % COMB_TEETH) == 0))
 #define COMB_OFFSET (COMB_BITS == 256)
-#define COMB_POINTS (1 << (COMB_TEETH - 1))
+#define COMB_POINTS (1 << (COMB_TEETH - COMB_NEGATION))
 #define COMB_POINTS_TOTAL (COMB_BLOCKS * COMB_POINTS)
 #define COMB_MASK (COMB_POINTS - 1)
 
