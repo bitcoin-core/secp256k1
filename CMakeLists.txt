@@ -99,7 +99,7 @@ else()
 endif()
 
 include(CheckCSourceCompiles)
-check_c_source_compiles("int main() {__builtin_expect(0,0);return 0;}" BUILTIN_EXPECT)
+check_c_source_compiles("int main(void) {__builtin_expect(0,0);return 0;}" BUILTIN_EXPECT)
 
 if (COVERAGE)
   # Define this symbol to compile out all VERIFY code
@@ -156,7 +156,7 @@ if (NOT BIGNUM_NO)
   # No need to append CMAKE_C_FLAGS to CMAKE_REQUIRED_FLAGS
   check_c_source_compiles("\
   #include <gmp.h>\n\
-  mpz_t integ; int main() {return 0;}" GMP)
+  mpz_t integ; int main(void) {return 0;}" GMP)
   set(CMAKE_REQUIRED_FLAGS "")
   if (GMP)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${GMP_C_FLAGS}")
@@ -178,7 +178,7 @@ if (NOT OPENSSL_TESTS_NO)
   #include <openssl/ec.h>\n\
   #include <openssl/ecdsa.h>\n\
   #include <openssl/obj_mac.h>\n\
-  int main() {\n\
+  int main(void) {\n\
   EC_KEY *eckey = EC_KEY_new_by_curve_name(NID_secp256k1);\n\
   ECDSA_sign(0, NULL, 0, NULL, NULL, eckey);\n\
   ECDSA_verify(0, NULL, 0, NULL, 0, eckey);\n\
