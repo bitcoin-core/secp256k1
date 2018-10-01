@@ -183,6 +183,7 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
     }
 
     /* Map `pj` back to our curve by multiplying its z-coordinate by `d.z`. */
+    zr = pj.z; /* save pj.z so we can use it to extract (d.z)^-1 from zi */
     secp256k1_fe_mul(&pj.z, &pj.z, &d.z);
     /* Directly set `pre[n - 1]` to `pj`, saving the inverted z-coordinate so
      * that we can combine it with the saved z-ratios to compute the other zs
@@ -193,7 +194,7 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
     secp256k1_ge_to_storage(&pre[n - 1], &p_ge);
 
     /* Compute the actual x-coordinate of D, which will be needed below. */
-    secp256k1_fe_inv_var(&d.z, &d.z);
+    secp256k1_fe_mul(&d.z, &zi, &zr);  /* d.z = 1/d.z */
     secp256k1_fe_sqr(&dx_over_dz_squared, &d.z);
     secp256k1_fe_mul(&dx_over_dz_squared, &dx_over_dz_squared, &d.x);
 
