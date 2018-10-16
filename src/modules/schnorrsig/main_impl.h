@@ -61,7 +61,7 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, secp256k1_schnorrsig
     secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pkj, &x);
     secp256k1_ge_set_gej(&pk, &pkj);
 
-    if (!noncefp(buf, msg32, seckey, NULL, (void*)ndata, 0)) {
+    if (!noncefp(ctx, buf, msg32, seckey, NULL, (void*)ndata, 0)) {
         return 0;
     }
     secp256k1_scalar_set_b32(&k, buf, NULL);

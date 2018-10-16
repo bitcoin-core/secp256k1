@@ -611,7 +611,8 @@ void test_schnorrsig_bip_vectors(secp256k1_scratch_space *scratch) {
 }
 
 /* Nonce function that returns constant 0 */
-static int nonce_function_failing(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+static int nonce_function_failing(const secp256k1_context *context, unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+    (void) context;
     (void) msg32;
     (void) key32;
     (void) algo16;
@@ -622,7 +623,8 @@ static int nonce_function_failing(unsigned char *nonce32, const unsigned char *m
 }
 
 /* Nonce function that sets nonce to 0 */
-static int nonce_function_0(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+static int nonce_function_0(const secp256k1_context *context, unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+    (void) context;
     (void) msg32;
     (void) key32;
     (void) algo16;

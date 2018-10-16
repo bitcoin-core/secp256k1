@@ -83,6 +83,7 @@ typedef struct {
 /** A pointer to a function to deterministically generate a nonce.
  *
  * Returns: 1 if a nonce was successfully generated. 0 will cause signing to fail.
+ * Args:    ctx:       an existing context object
  * Out:     nonce32:   pointer to a 32-byte array to be filled by the function.
  * In:      msg32:     the 32-byte message hash being verified (will not be NULL)
  *          key32:     pointer to a 32-byte secret key (will not be NULL)
@@ -97,6 +98,7 @@ typedef struct {
  * the message, the algorithm, the key and the attempt.
  */
 typedef int (*secp256k1_nonce_function)(
+    const secp256k1_context *ctx,
     unsigned char *nonce32,
     const unsigned char *msg32,
     const unsigned char *key32,

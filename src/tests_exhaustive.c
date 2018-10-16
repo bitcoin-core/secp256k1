@@ -69,11 +69,12 @@ void random_fe(secp256k1_fe *x) {
 }
 /** END stolen from tests.c */
 
-int secp256k1_nonce_function_smallint(unsigned char *nonce32, const unsigned char *msg32,
+int secp256k1_nonce_function_smallint(const secp256k1_context *ctx, unsigned char *nonce32, const unsigned char *msg32,
                                       const unsigned char *key32, const unsigned char *algo16,
                                       void *data, unsigned int attempt) {
     secp256k1_scalar s;
     int *idata = data;
+    (void)ctx;
     (void)msg32;
     (void)key32;
     (void)algo16;
