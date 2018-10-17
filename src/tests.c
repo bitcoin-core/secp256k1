@@ -2113,6 +2113,22 @@ void test_ge(void) {
         free(zr);
     }
 
+    /* Test batch gej -> ge conversion with many infinities. */
+    for (i = 0; i < 4 * runs + 1; i++) {
+        random_group_element_test(&ge[i]);
+        /* randomly set half the points to infinitiy */
+        if(secp256k1_fe_is_odd(&ge[i].x)) {
+            secp256k1_ge_set_infinity(&ge[i]);
+        }
+        secp256k1_gej_set_ge(&gej[i], &ge[i]);
+    }
+    /* batch invert */
+    secp256k1_ge_set_all_gej_var(ge, gej, 4 * runs + 1);
+    /* check result */
+    for (i = 0; i < 4 * runs + 1; i++) {
+        ge_equals_gej(&ge[i], &gej[i]);
+    }
+
     free(ge);
     free(gej);
     free(zinv);
