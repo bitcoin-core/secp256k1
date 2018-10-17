@@ -42,7 +42,7 @@ static void bench_ecdh(void* arg) {
     bench_ecdh_data *data = (bench_ecdh_data*)arg;
 
     for (i = 0; i < 20000; i++) {
-        CHECK(secp256k1_ecdh(data->ctx, res, &data->point, data->scalar) == 1);
+        CHECK(secp256k1_ecdh(data->ctx, res, &data->point, data->scalar, NULL, NULL) == 1);
     }
 }
 
