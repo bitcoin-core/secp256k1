@@ -7,13 +7,8 @@
 #ifndef _SECP256K1_SCRATCH_IMPL_H_
 #define _SECP256K1_SCRATCH_IMPL_H_
 
+#include "util.h"
 #include "scratch.h"
-
-/* Using 16 bytes alignment because common architectures never have alignment
- * requirements above 8 for any of the types we care about. In addition we
- * leave some room because currently we don't care about a few bytes.
- * TODO: Determine this at configure time. */
-#define ALIGNMENT 16
 
 static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* error_callback, size_t max_size) {
     secp256k1_scratch* ret = (secp256k1_scratch*)checked_malloc(error_callback, sizeof(*ret));
@@ -71,7 +66,7 @@ static void secp256k1_scratch_deallocate_frame(secp256k1_scratch* scratch) {
 static void *secp256k1_scratch_alloc(secp256k1_scratch* scratch, size_t size) {
     void *ret;
     size_t frame = scratch->frame - 1;
-    size = ((size + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT;
+    size = ROUND_TO_ALIGN(size);
 
     if (scratch->frame == 0 || size + scratch->offset[frame] > scratch->frame_size[frame]) {
         return NULL;
