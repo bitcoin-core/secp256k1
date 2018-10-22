@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "util.h"
 #include "group.h"
 #include "scalar.h"
 #include "ecmult.h"
@@ -310,6 +311,13 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
     } \
 } while(0)
 
+static const size_t SECP256K1_ECMULT_CONTEXT_PREALLOCATED_SIZE =
+    ROUND_TO_ALIGN(sizeof((*((secp256k1_ecmult_context*) NULL)->pre_g)[0]) * ECMULT_TABLE_SIZE(WINDOW_G))
+#ifdef USE_ENDOMORPHISM
+    + ROUND_TO_ALIGN(sizeof((*((secp256k1_ecmult_context*) NULL)->pre_g_128)[0]) * ECMULT_TABLE_SIZE(WINDOW_G))
+#endif
+    ;
+
 static void secp256k1_ecmult_context_init(secp256k1_ecmult_context *ctx) {
     ctx->pre_g = NULL;
 #ifdef USE_ENDOMORPHISM
@@ -442,7 +450,7 @@ static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, 
     CHECK(carry == 0);
     while (bit < 256) {
         CHECK(secp256k1_scalar_get_bits(&s, bit++, 1) == 0);
-    } 
+    }
 #endif
     return last_set_bit + 1;
 }
