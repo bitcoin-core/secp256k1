@@ -229,10 +229,6 @@ void run_context_tests(void) {
     secp256k1_context_set_illegal_callback(vrfy, NULL, NULL);
     secp256k1_context_set_illegal_callback(sign, NULL, NULL);
 
-    /* This shouldn't leak memory, due to already-set tests. */
-    secp256k1_ecmult_gen_context_build(&sign->ecmult_gen_ctx, NULL);
-    secp256k1_ecmult_context_build(&vrfy->ecmult_ctx, NULL);
-
     /* obtain a working nonce */
     do {
         random_scalar_order_test(&nonce);

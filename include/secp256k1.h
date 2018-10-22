@@ -188,6 +188,9 @@ SECP256K1_API extern const secp256k1_context *secp256k1_context_no_precomp;
 
 /** Create a secp256k1 context object.
  *
+ *  This function uses malloc to allocate memory. It is guaranteed that malloc is
+ *  called at most once for every call of this function.
+ *
  *  Returns: a newly created context object.
  *  In:      flags: which parts of the context to initialize.
  *
@@ -198,6 +201,9 @@ SECP256K1_API secp256k1_context* secp256k1_context_create(
 ) SECP256K1_WARN_UNUSED_RESULT;
 
 /** Copies a secp256k1 context object.
+ *
+ *  This function uses malloc to allocate memory. It is guaranteed that malloc is
+ *  called at most once for every call of this function.
  *
  *  Returns: a newly created context object.
  *  Args:    ctx: an existing context to copy (cannot be NULL)
