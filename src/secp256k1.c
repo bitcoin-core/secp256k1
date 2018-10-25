@@ -84,6 +84,7 @@ size_t secp256k1_context_preallocated_size(unsigned int flags) {
 
 size_t secp256k1_context_preallocated_clone_size(const secp256k1_context* ctx) {
     size_t ret = ROUND_TO_ALIGN(sizeof(secp256k1_context));
+    VERIFY_CHECK(ctx != NULL);
     if (secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx)) {
         ret += SECP256K1_ECMULT_GEN_CONTEXT_PREALLOCATED_SIZE;
     }
@@ -95,9 +96,12 @@ size_t secp256k1_context_preallocated_clone_size(const secp256k1_context* ctx) {
 
 secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigned int flags) {
     void* const base = prealloc;
-    size_t prealloc_size = secp256k1_context_preallocated_size(flags);
-    secp256k1_context* ret = (secp256k1_context*)manual_alloc(&prealloc, sizeof(secp256k1_context), base, prealloc_size);
+    size_t prealloc_size;
+    secp256k1_context* ret;
 
+    VERIFY_CHECK(prealloc != NULL);
+    prealloc_size = secp256k1_context_preallocated_size(flags);
+    ret = (secp256k1_context*)manual_alloc(&prealloc, sizeof(secp256k1_context), base, prealloc_size);
     ret->illegal_callback = default_illegal_callback;
     ret->error_callback = default_error_callback;
 
@@ -132,8 +136,13 @@ secp256k1_context* secp256k1_context_create(unsigned int flags) {
 }
 
 secp256k1_context* secp256k1_context_preallocated_clone(const secp256k1_context* ctx, void* prealloc) {
-    size_t prealloc_size = secp256k1_context_preallocated_clone_size(ctx);
-    secp256k1_context* ret = (secp256k1_context*)prealloc;
+    size_t prealloc_size;
+    secp256k1_context* ret;
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(prealloc != NULL);
+
+    prealloc_size = secp256k1_context_preallocated_clone_size(ctx);
+    ret = (secp256k1_context*)prealloc;
     memcpy(ret, ctx, prealloc_size);
     secp256k1_ecmult_gen_context_finalize_memcpy(&ret->ecmult_gen_ctx, &ctx->ecmult_gen_ctx);
     secp256k1_ecmult_context_finalize_memcpy(&ret->ecmult_ctx, &ctx->ecmult_ctx);
@@ -141,8 +150,12 @@ secp256k1_context* secp256k1_context_preallocated_clone(const secp256k1_context*
 }
 
 secp256k1_context* secp256k1_context_clone(const secp256k1_context* ctx) {
-    size_t prealloc_size = secp256k1_context_preallocated_clone_size(ctx);
-    secp256k1_context* ret = (secp256k1_context*)checked_malloc(&ctx->error_callback, prealloc_size);
+    secp256k1_context* ret;
+    size_t prealloc_size;
+
+    VERIFY_CHECK(ctx != NULL);
+    prealloc_size = secp256k1_context_preallocated_clone_size(ctx);
+    ret = (secp256k1_context*)checked_malloc(&ctx->error_callback, prealloc_size);
     ret = secp256k1_context_preallocated_clone(ctx, ret);
     return ret;
 }
