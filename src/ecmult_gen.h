@@ -26,6 +26,9 @@ typedef struct {
     secp256k1_ge_storage (*prec)[64][16]; /* prec[j][i] = 16^j * i * G + U_i */
     secp256k1_scalar blind;
     secp256k1_gej initial;
+#ifndef USE_ECMULT_STATIC_PRECOMPUTATION
+    secp256k1_fe iso;
+#endif
 } secp256k1_ecmult_gen_context;
 
 static void secp256k1_ecmult_gen_context_init(secp256k1_ecmult_gen_context* ctx);

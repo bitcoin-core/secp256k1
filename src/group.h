@@ -144,4 +144,10 @@ static void secp256k1_ge_storage_cmov(secp256k1_ge_storage *r, const secp256k1_g
 /** Rescale a jacobian point by b which must be non-zero. Constant-time. */
 static void secp256k1_gej_rescale(secp256k1_gej *r, const secp256k1_fe *b);
 
+/** Map an affine point to an isomorphism. iso2, iso3 must be non-zero. Constant-time. */
+static void secp256k1_ge_to_iso(secp256k1_ge *r, const secp256k1_fe *iso2, const secp256k1_fe *iso3);
+
+/** Map a jacobian point to an isomorphism. iso2, iso3 must be non-zero. Constant-time. */
+static void secp256k1_gej_to_iso(secp256k1_gej *r, const secp256k1_fe *iso2, const secp256k1_fe *iso3);
+
 #endif /* SECP256K1_GROUP_H */

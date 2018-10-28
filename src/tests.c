@@ -3204,6 +3204,10 @@ void test_ecmult_gen_blind(void) {
 }
 
 void test_ecmult_gen_blind_reset(void) {
+    /* Calling ecmult_gen_blind without a seed value no longer resets the blinding */
+#if 1
+    secp256k1_ecmult_gen_blind(&ctx->ecmult_gen_ctx, 0);
+#else
     /* Test ecmult_gen() blinding reset and confirm that the blinding is consistent. */
     secp256k1_scalar b;
     secp256k1_gej initial;
@@ -3213,6 +3217,7 @@ void test_ecmult_gen_blind_reset(void) {
     secp256k1_ecmult_gen_blind(&ctx->ecmult_gen_ctx, 0);
     CHECK(secp256k1_scalar_eq(&b, &ctx->ecmult_gen_ctx.blind));
     CHECK(gej_xyz_equals_gej(&initial, &ctx->ecmult_gen_ctx.initial));
+#endif
 }
 
 void run_ecmult_gen_blind(void) {
