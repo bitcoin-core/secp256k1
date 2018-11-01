@@ -2352,15 +2352,11 @@ void test_ec_commit(void) {
     secp256k1_pubkey commitment;
     unsigned char data[32];
 
-    /* Create random keypair */
+    /* Create random keypair and data */
     secp256k1_rand256(seckey);
     CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, seckey));
-    /* Create random data */
-    {
-        secp256k1_scalar d;
-        random_scalar_order_test(&d);
-        secp256k1_scalar_get_b32(data, &d);
-    }
+    secp256k1_rand256_test(data);
+
     /* Commit to data and verify */
     CHECK(secp256k1_ec_commit(ctx, &commitment, &pubkey, data, 32));
     CHECK(secp256k1_ec_commit_verify(ctx, &commitment, &pubkey, data, 32));
@@ -4105,6 +4101,42 @@ void run_eckey_edge_case_test(void) {
     secp256k1_context_set_illegal_callback(ctx, NULL, NULL);
 }
 
+void test_nonce_function_bipschnorr_s2c(void) {
+    unsigned char nonce32[32];
+    unsigned char msg32[32];
+    unsigned char key32[32];
+    unsigned char algo16[16];
+    unsigned char data32[32];
+    secp256k1_s2c_commit_context s2c_ctx;
+    secp256k1_s2c_commit_context s2c_ctx_2;
+    secp256k1_pubkey pubnonce;
+    secp256k1_pubkey original_nonce;
+    int32_t ecount = 0;
+
+    secp256k1_context_set_illegal_callback(ctx, counting_illegal_callback_fn, &ecount);
+    secp256k1_rand256(msg32);
+    secp256k1_rand256(key32);
+    secp256k1_rand256(data32);
+    memset(algo16, 23, sizeof(algo16));
+
+    CHECK(secp256k1_s2c_commit_context_create(ctx, &s2c_ctx, data32) == 1);
+    CHECK(secp256k1_nonce_function_bipschnorr(ctx, nonce32, msg32, key32, algo16, &s2c_ctx, 0) == 1);
+    CHECK(secp256k1_s2c_commit_get_original_nonce(ctx, &original_nonce, &s2c_ctx) == 1);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pubnonce, nonce32) == 1);
+    CHECK(secp256k1_ec_commit_verify(ctx, &pubnonce, &original_nonce, data32, 32) == 1);
+
+    CHECK(ecount == 0);
+    CHECK(secp256k1_nonce_function_bipschnorr(ctx, nonce32, msg32, key32, algo16, &s2c_ctx_2, 0) == 0);
+    CHECK(ecount == 1);
+}
+
+void run_nonce_function_bipschnorr_tests(void) {
+    int i;
+    for (i = 0; i < count * 8; i++) {
+        test_nonce_function_bipschnorr_s2c();
+    }
+}
+
 void random_sign(secp256k1_scalar *sigr, secp256k1_scalar *sigs, const secp256k1_scalar *key, const secp256k1_scalar *msg, int *recid) {
     secp256k1_scalar nonce;
     do {
@@ -5279,6 +5311,8 @@ int main(int argc, char **argv) {
     /* ecdh tests */
     run_ecdh_tests();
 #endif
+
+    run_nonce_function_bipschnorr_tests();
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
     /* Schnorrsig tests */

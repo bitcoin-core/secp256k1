@@ -80,6 +80,30 @@ typedef struct {
     unsigned char data[64];
 } secp256k1_ecdsa_signature;
 
+/** Data structure that holds a sign-to-contract ("s2c") context. Sign-to-contract
+ *  allows a signer to commit to some data as part of a signature. If the nonce
+ *  function supports sign-to-contract, after creating it with
+ *  secp256k1_s2c_commit_context_create the context can be given to a signing
+ *  algorithm via the nonce data argument.
+ *
+ *  This structure is not opaque, but it is strongly discouraged to read or write to
+ *  it directly. Use the secp256k1_s2c_commit_* instead to access a sign-to-contract
+ *  context.
+ *
+ *  The exact representation of data inside is implementation defined and not
+ *  guaranteed to be portable between different platforms or versions. It is however
+ *  guaranteed to be 136 bytes in size, and can be safely copied/moved.
+ */
+typedef struct {
+    /* magic is set during initialization. It allows functions casting to
+     * s2c_commit_contexts from a void pointer to check if they actually got an
+     * s2c_commit_context and if it has been initialized. */
+    unsigned char magic[8];
+    unsigned char data[32];
+    unsigned char data_hash[32];
+    secp256k1_pubkey original_pubnonce;
+} secp256k1_s2c_commit_context;
+
 /** A pointer to a function to deterministically generate a nonce.
  *
  * Returns: 1 if a nonce was successfully generated. 0 will cause signing to fail.
@@ -470,6 +494,36 @@ SECP256K1_API int secp256k1_ecdsa_signature_normalize(
     secp256k1_ecdsa_signature *sigout,
     const secp256k1_ecdsa_signature *sigin
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(3);
+
+/** Creates a sign-to-contract context.
+ *
+ *  Returns: 1 if the context was created successfully, 0 otherwise
+ *  Args:    ctx: a secp256k1 context object
+ *  Out: s2c_ctx: pointer to an s2c context to initialize (cannot be NULL)
+ *  In:   data32: the 32-byte data to commit to (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_s2c_commit_context_create(
+    secp256k1_context *ctx,
+    secp256k1_s2c_commit_context *s2c_ctx,
+    const unsigned char *data32
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
+/** Gets the original nonce of a sign-to-contract commitment from an s2c_ctx after
+ *  signing. The original nonce is the signature nonce minus the s2c commitment
+ *  tweak. Together with the committed data this is the opening of the commitment.
+ *
+ *  Returns: 1 if getting the original nonce was successful, 0 otherwise
+ *  Args:           ctx: a secp256k1 context object
+ *  Out: original_nonce: pointer to a pubkey object where the original nonce will be
+ *                       placed  (cannot be NULL)
+ *  In:         s2c_ctx: pointer to an s2c context to get the original nonce from
+ *                       after signing. (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_s2c_commit_get_original_nonce(
+    secp256k1_context *ctx,
+    secp256k1_pubkey *original_nonce,
+    const secp256k1_s2c_commit_context *s2c_ctx
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
 /** An implementation of RFC6979 (using HMAC-SHA256) as nonce generation function.
  * If a data pointer is passed, it is assumed to be a pointer to 32 bytes of
