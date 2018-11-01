@@ -322,27 +322,6 @@ static SECP256K1_INLINE void buffer_append(unsigned char *buf, unsigned int *off
     *offset += len;
 }
 
-/* This nonce function is described in BIP-schnorr
- * (https://github.com/sipa/bips/blob/bip-schnorr/bip-schnorr.mediawiki) */
-static int secp256k1_nonce_function_bipschnorr(const secp256k1_context *ctx, unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
-    secp256k1_sha256 sha;
-    (void) data;
-    (void) counter;
-    VERIFY_CHECK(counter == 0);
-
-    /* Hash x||msg as per the spec */
-    secp256k1_sha256_initialize(&sha);
-    secp256k1_sha256_write(&sha, key32, 32);
-    secp256k1_sha256_write(&sha, msg32, 32);
-    /* Hash in algorithm, which is not in the spec, but may be critical to
-     * users depending on it to avoid nonce reuse across algorithms. */
-    if (algo16 != NULL) {
-        secp256k1_sha256_write(&sha, algo16, 16);
-    }
-    secp256k1_sha256_finalize(&sha, nonce32);
-    return 1;
-}
-
 static int nonce_function_rfc6979(const secp256k1_context *ctx, unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
    unsigned char keydata[112];
    unsigned int offset = 0;
@@ -705,6 +684,81 @@ int secp256k1_ec_commit_verify(const secp256k1_context* ctx, const secp256k1_pub
     secp256k1_ge_neg(&p, &p);
     secp256k1_gej_add_ge(&pj, &pj, &p);
     return secp256k1_gej_is_infinity(&pj);
+}
+
+int secp256k1_s2c_commit_context_create(secp256k1_context *ctx, secp256k1_s2c_commit_context *s2c_ctx, const unsigned char *data32) {
+    secp256k1_sha256 sha;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(s2c_ctx != NULL);
+    ARG_CHECK(data32 != NULL);
+
+    memcpy(s2c_ctx->data, data32, 32);
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, data32, 32);
+    secp256k1_sha256_finalize(&sha, s2c_ctx->data_hash);
+    return 1;
+}
+
+int secp256k1_s2c_commit_get_original_nonce(secp256k1_context *ctx, secp256k1_pubkey *original_nonce, const secp256k1_s2c_commit_context *s2c_ctx) {
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(original_nonce != NULL);
+    ARG_CHECK(s2c_ctx != NULL);
+
+    memcpy(original_nonce, &s2c_ctx->original_pubnonce, sizeof(secp256k1_pubkey));
+    return 1;
+}
+
+/* This function computes a nonce as defined in BIP-schnorr *without* s2c-tweaking
+ * the nonce. If data is provided, it is however hashed into the nonce and the
+ * "untweaked" public nonce (`nonce32*G`) is stored in the sign-to-contract context.
+ */
+static int secp256k1_nonce_function_bipschnorr_no_s2c_tweak(const secp256k1_context *ctx, unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+    secp256k1_sha256 sha;
+
+    VERIFY_CHECK(counter == 0);
+    (void) counter;
+
+    /* Hash x||msg as per the spec */
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, key32, 32);
+    secp256k1_sha256_write(&sha, msg32, 32);
+    /* Hash in algorithm, which is not in the spec, but may be critical to
+     * users depending on it to avoid nonce reuse across algorithms. */
+    if (algo16 != NULL) {
+        secp256k1_sha256_write(&sha, algo16, 16);
+    }
+    if (data == NULL) {
+        secp256k1_sha256_finalize(&sha, nonce32);
+    } else {
+        /* Prepare for a sign-to-contract commitment if data is provided */
+        secp256k1_s2c_commit_context *s2c_ctx = (secp256k1_s2c_commit_context *)data;
+        secp256k1_sha256_write(&sha, s2c_ctx->data_hash, 32);
+        secp256k1_sha256_finalize(&sha, nonce32);
+
+        if (!secp256k1_ec_pubkey_create(ctx, &s2c_ctx->original_pubnonce, nonce32)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* This nonce function (without sign-to-contract) is described in BIP-schnorr
+ * (https://github.com/sipa/bips/blob/bip-schnorr/bip-schnorr.mediawiki). If data !=
+ * NULL the returned nonce commits to the provided data using "sign-to-contract"
+ * commitments.
+ */
+static int secp256k1_nonce_function_bipschnorr(const secp256k1_context *ctx, unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+    if (!secp256k1_nonce_function_bipschnorr_no_s2c_tweak(ctx, nonce32, msg32, key32, algo16, data, counter)) {
+        return 0;
+    }
+    if (data != NULL) {
+        /* Create a sign-to-contract commitment by setting nonce32 <- nonce32 +
+         * hash(nonce32*G, s2c_ctx->data) */
+        secp256k1_s2c_commit_context *s2c_ctx = (secp256k1_s2c_commit_context *)data;
+        return secp256k1_ec_commit_seckey(ctx, nonce32, &s2c_ctx->original_pubnonce, s2c_ctx->data, 32);
+    }
+    return 1;
 }
 
 #ifdef ENABLE_MODULE_ECDH
