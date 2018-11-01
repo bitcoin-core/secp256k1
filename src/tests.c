@@ -2339,6 +2339,110 @@ void run_ec_combine(void) {
     }
 }
 
+int test_ec_commit_seckey(unsigned char *seckey, secp256k1_pubkey *commitment) {
+    /* Return if seckey is the discrete log of commitment */
+    secp256k1_pubkey pubkey_tmp;
+    return secp256k1_ec_pubkey_create(ctx, &pubkey_tmp, seckey) == 1
+           && memcmp(&pubkey_tmp, commitment, sizeof(pubkey_tmp)) == 0;
+}
+
+void test_ec_commit(void) {
+    unsigned char seckey[32];
+    secp256k1_pubkey pubkey;
+    secp256k1_pubkey commitment;
+    unsigned char data[32];
+
+    /* Create random keypair */
+    secp256k1_rand256(seckey);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, seckey));
+    /* Create random data */
+    {
+        secp256k1_scalar d;
+        random_scalar_order_test(&d);
+        secp256k1_scalar_get_b32(data, &d);
+    }
+    /* Commit to data and verify */
+    CHECK(secp256k1_ec_commit(ctx, &commitment, &pubkey, data, 32));
+    CHECK(secp256k1_ec_commit_verify(ctx, &commitment, &pubkey, data, 32));
+    CHECK(secp256k1_ec_commit_seckey(ctx, seckey, &pubkey, data, 32));
+    CHECK(test_ec_commit_seckey(seckey, &commitment) == 1);
+
+    /* Check that verification fails with different data */
+    CHECK(secp256k1_ec_commit_verify(ctx, &commitment, &pubkey, data, 31) == 0);
+}
+
+void test_ec_commit_api(void) {
+    unsigned char seckey[32];
+    secp256k1_pubkey pubkey;
+    secp256k1_pubkey commitment;
+    unsigned char data[32];
+    int32_t ecount;
+
+    memset(data, 23, sizeof(data));
+    secp256k1_context_set_illegal_callback(ctx, counting_illegal_callback_fn, &ecount);
+
+    /* Create random keypair */
+    secp256k1_rand256(seckey);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, seckey));
+
+    ecount = 0;
+    CHECK(secp256k1_ec_commit(ctx, NULL, &pubkey, data, 1) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_ec_commit(ctx, &commitment, NULL, data, 1) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_ec_commit(ctx, &commitment, &pubkey, NULL, 1) == 0);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_ec_commit(ctx, &commitment, &pubkey, data, 1) == 1);
+    /* The same pubkey can be both input and output of the function */
+    {
+        secp256k1_pubkey pubkey_tmp = pubkey;
+        CHECK(secp256k1_ec_commit(ctx, &pubkey_tmp, &pubkey_tmp, data, 1) == 1);
+        CHECK(memcmp(commitment.data, pubkey_tmp.data, sizeof(commitment.data)) == 0);
+    }
+
+    ecount = 0;
+    CHECK(secp256k1_ec_commit_seckey(ctx, NULL, &pubkey, data, 1) == 0);
+    CHECK(ecount == 1);
+    /* If the pubkey is not provided it will be computed from seckey */
+    CHECK(secp256k1_ec_commit_seckey(ctx, seckey, NULL, data, 1) == 1);
+    CHECK(test_ec_commit_seckey(seckey, &commitment) == 1);
+    /* pubkey is not provided but seckey overflows */
+    {
+        unsigned char overflowed_seckey[32];
+        memset(overflowed_seckey, 0xFF, sizeof(overflowed_seckey));
+        CHECK(secp256k1_ec_commit_seckey(ctx, overflowed_seckey, NULL, data, 1) == 0);
+    }
+    CHECK(secp256k1_ec_commit_seckey(ctx, seckey, &pubkey, NULL, 1) == 0);
+    CHECK(ecount == 2);
+
+    ecount = 0;
+    CHECK(secp256k1_ec_commit_verify(ctx, &commitment, &pubkey, data, 1) == 1);
+    CHECK(secp256k1_ec_commit_verify(ctx, NULL, &pubkey, data, 1) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_ec_commit_verify(ctx, &commitment, NULL, data, 1) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_ec_commit_verify(ctx, &commitment, &pubkey, NULL, 1) == 0);
+    CHECK(ecount == 3);
+
+    /* Commitment to 0-len data should fail */
+    CHECK(secp256k1_ec_commit(ctx, &commitment, &pubkey, data, 0) == 0);
+    CHECK(secp256k1_ec_commit_verify(ctx, &commitment, &pubkey, data, 0) == 0);
+    CHECK(memcmp(&pubkey.data, &commitment.data, sizeof(pubkey.data)) == 0);
+    {
+        unsigned char seckey_tmp[32];
+        memcpy(seckey_tmp, seckey, 32);
+        CHECK(secp256k1_ec_commit_seckey(ctx, seckey_tmp, &pubkey, data, 0) == 0);
+    }
+}
+
+void run_ec_commit(void) {
+    int i;
+    for (i = 0; i < count * 8; i++) {
+         test_ec_commit();
+    }
+    test_ec_commit_api();
+}
+
 void test_group_decompress(const secp256k1_fe* x) {
     /* The input itself, normalized. */
     secp256k1_fe fex = *x;
@@ -5158,6 +5262,7 @@ int main(int argc, char **argv) {
     run_ecmult_const_tests();
     run_ecmult_multi_tests();
     run_ec_combine();
+    run_ec_commit();
 
     /* endomorphism tests */
 #ifdef USE_ENDOMORPHISM
