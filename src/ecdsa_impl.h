@@ -66,7 +66,7 @@ static int secp256k1_der_read_len(const unsigned char **sigp, const unsigned cha
         return -1;
     }
     /* X.690-207 8.1.3.5 long form length octets */
-    lenleft = b1 & 0x7F;
+    lenleft = b1 & 0x7F; /* lenleft is at least 1 */
     if (lenleft > sigend - *sigp) {
         return -1;
     }
@@ -82,12 +82,12 @@ static int secp256k1_der_read_len(const unsigned char **sigp, const unsigned cha
     }
     while (lenleft > 0) {
         ret = (ret << 8) | **sigp;
-        if (ret + lenleft > (size_t)(sigend - *sigp)) {
-            /* Result exceeds the length of the passed array. */
-            return -1;
-        }
         (*sigp)++;
         lenleft--;
+    }
+    if (ret > (size_t)(sigend - *sigp)) {
+        /* Result exceeds the length of the passed array. */
+        return -1;
     }
     if (ret < 128) {
         /* Not the shortest possible length encoding. */
