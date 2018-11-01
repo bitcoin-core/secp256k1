@@ -705,6 +705,89 @@ int secp256k1_ec_pubkey_combine(const secp256k1_context* ctx, secp256k1_pubkey *
     return 1;
 }
 
+/* Compute an ec commitment tweak as hash(pubkey, data). */
+static int secp256k1_ec_commit_tweak(const secp256k1_context *ctx, unsigned char *tweak32, const secp256k1_pubkey *pubkey, const unsigned char *data, size_t data_size) {
+    secp256k1_ge p;
+    unsigned char rbuf[33];
+    size_t rbuf_size = sizeof(rbuf);
+    secp256k1_sha256 sha;
+
+    if (data_size == 0) {
+        /* That's probably not what the caller wanted */
+        return 0;
+    }
+    if(!secp256k1_pubkey_load(ctx, &p, pubkey)) {
+        return 0;
+    }
+    secp256k1_eckey_pubkey_serialize(&p, rbuf, &rbuf_size, 1);
+
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, rbuf, rbuf_size);
+    secp256k1_sha256_write(&sha, data, data_size);
+    secp256k1_sha256_finalize(&sha, tweak32);
+    return 1;
+}
+
+/* Compute an ec commitment as pubkey + hash(pubkey, data)*G. */
+static int secp256k1_ec_commit(const secp256k1_context* ctx, secp256k1_pubkey *commitment, const secp256k1_pubkey *pubkey, const unsigned char *data, size_t data_size) {
+    unsigned char tweak[32];
+
+    *commitment = *pubkey;
+    if (!secp256k1_ec_commit_tweak(ctx, tweak, commitment, data, data_size)) {
+        return 0;
+    }
+    return secp256k1_ec_pubkey_tweak_add(ctx, commitment, tweak);
+}
+
+/* Compute the seckey of an ec commitment from the original secret key of the pubkey as seckey +
+ * hash(pubkey, data). */
+static int secp256k1_ec_commit_seckey(const secp256k1_context* ctx, unsigned char *seckey, const secp256k1_pubkey *pubkey, const unsigned char *data, size_t data_size) {
+    unsigned char tweak[32];
+    secp256k1_pubkey pubkey_tmp;
+
+    if (pubkey == NULL) {
+        /* Compute pubkey from seckey if not provided */
+        int overflow;
+        secp256k1_scalar x;
+        secp256k1_gej pj;
+        secp256k1_ge p;
+
+        secp256k1_scalar_set_b32(&x, seckey, &overflow);
+        if (overflow != 0) {
+            return 0;
+        }
+        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pj, &x);
+        secp256k1_ge_set_gej(&p, &pj);
+        secp256k1_pubkey_save(&pubkey_tmp, &p);
+        pubkey = &pubkey_tmp;
+    }
+
+    if (!secp256k1_ec_commit_tweak(ctx, tweak, pubkey, data, data_size)) {
+        return 0;
+    }
+    return secp256k1_ec_privkey_tweak_add(ctx, seckey, tweak);
+}
+
+/* Verify an ec commitment as pubkey + hash(pubkey, data)*G ?= commitment. */
+static int secp256k1_ec_commit_verify(const secp256k1_context* ctx, const secp256k1_pubkey *commitment, const secp256k1_pubkey *pubkey, const unsigned char *data, size_t data_size) {
+    secp256k1_gej pj;
+    secp256k1_ge p;
+    secp256k1_pubkey commitment_tmp;
+
+    if (!secp256k1_ec_commit(ctx, &commitment_tmp, pubkey, data, data_size)) {
+        return 0;
+    }
+
+    /* Return commitment == commitment_tmp */
+    secp256k1_gej_set_infinity(&pj);
+    secp256k1_pubkey_load(ctx, &p, &commitment_tmp);
+    secp256k1_gej_add_ge_var(&pj, &pj, &p, NULL);
+    secp256k1_pubkey_load(ctx, &p, commitment);
+    secp256k1_ge_neg(&p, &p);
+    secp256k1_gej_add_ge_var(&pj, &pj, &p, NULL);
+    return secp256k1_gej_is_infinity(&pj);
+}
+
 #ifdef ENABLE_MODULE_ECDH
 # include "modules/ecdh/main_impl.h"
 #endif
