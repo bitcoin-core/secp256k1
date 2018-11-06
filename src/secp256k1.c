@@ -56,6 +56,14 @@ struct secp256k1_context_struct {
     secp256k1_callback error_callback;
 };
 
+static const secp256k1_context secp256k1_context_no_precomp_ = {
+    { 0 },
+    { 0 },
+    { default_illegal_callback_fn, 0 },
+    { default_error_callback_fn, 0 }
+};
+const secp256k1_context *secp256k1_context_no_precomp = &secp256k1_context_no_precomp_;
+
 secp256k1_context* secp256k1_context_create(unsigned int flags) {
     secp256k1_context* ret = (secp256k1_context*)checked_malloc(&default_error_callback, sizeof(secp256k1_context));
     ret->illegal_callback = default_illegal_callback;
@@ -91,6 +99,7 @@ secp256k1_context* secp256k1_context_clone(const secp256k1_context* ctx) {
 }
 
 void secp256k1_context_destroy(secp256k1_context* ctx) {
+    CHECK(ctx != secp256k1_context_no_precomp);
     if (ctx != NULL) {
         secp256k1_ecmult_context_clear(&ctx->ecmult_ctx);
         secp256k1_ecmult_gen_context_clear(&ctx->ecmult_gen_ctx);
@@ -100,6 +109,7 @@ void secp256k1_context_destroy(secp256k1_context* ctx) {
 }
 
 void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
+    CHECK(ctx != secp256k1_context_no_precomp);
     if (fun == NULL) {
         fun = default_illegal_callback_fn;
     }
@@ -108,6 +118,7 @@ void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(
 }
 
 void secp256k1_context_set_error_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
+    CHECK(ctx != secp256k1_context_no_precomp);
     if (fun == NULL) {
         fun = default_error_callback_fn;
     }
@@ -559,6 +570,7 @@ int secp256k1_ec_pubkey_tweak_mul(const secp256k1_context* ctx, secp256k1_pubkey
 
 int secp256k1_context_randomize(secp256k1_context* ctx, const unsigned char *seed32) {
     VERIFY_CHECK(ctx != NULL);
+    CHECK(ctx != secp256k1_context_no_precomp);
     ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
     secp256k1_ecmult_gen_blind(&ctx->ecmult_gen_ctx, seed32);
     return 1;
