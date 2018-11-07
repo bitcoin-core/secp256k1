@@ -157,12 +157,8 @@ static int secp256k1_ecdsa_sig_parse(secp256k1_scalar *rr, secp256k1_scalar *rs,
     if (secp256k1_der_read_len(&rlen, &sig, sigend) == 0) {
         return 0;
     }
-    if (sig + rlen > sigend) {
-        /* Tuple exceeds bounds */
-        return 0;
-    }
-    if (sig + rlen != sigend) {
-        /* Garbage after tuple. */
+    if (rlen != (size_t)(sigend - sig)) {
+        /* Tuple exceeds bounds or garage after tuple. */
         return 0;
     }
 
