@@ -128,8 +128,11 @@ static int secp256k1_der_parse_integer(secp256k1_scalar *r, const unsigned char 
         /* Negative. */
         overflow = 1;
     }
-    while (rlen > 0 && **sig == 0) {
-        /* Skip leading zero bytes */
+    /* There is at most one leading zero byte:
+     * if there were two leading zero bytes, we would have failed and returned 0
+     * because of excessive 0x00 padding already. */
+    if (rlen > 0 && **sig == 0) {
+        /* Skip leading zero byte */
         rlen--;
         (*sig)++;
     }
