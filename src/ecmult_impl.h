@@ -139,8 +139,7 @@ static void secp256k1_ecmult_odd_multiples_table_globalz_windowa(secp256k1_ge *p
 
 static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp256k1_ge_storage *pre, const secp256k1_gej *a) {
     secp256k1_gej d;
-    secp256k1_ge a_ge, d_ge, p_ge;
-    secp256k1_ge last_ge;
+    secp256k1_ge d_ge, p_ge;
     secp256k1_gej pj;
     secp256k1_fe zi;
     secp256k1_fe zr;
@@ -162,51 +161,48 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
     d_ge.y = d.y;
     d_ge.infinity = 0;
 
-    secp256k1_ge_set_gej_zinv(&a_ge, a, &d.z);
-    pj.x = a_ge.x;
-    pj.y = a_ge.y;
+    secp256k1_ge_set_gej_zinv(&p_ge, a, &d.z);
+    pj.x = p_ge.x;
+    pj.y = p_ge.y;
     pj.z = a->z;
     pj.infinity = 0;
 
-    zr = d.z;
-    secp256k1_fe_normalize_var(&zr);
-    secp256k1_fe_to_storage(&pre[0].x, &zr);
-    secp256k1_fe_normalize_var(&pj.y);
-    secp256k1_fe_to_storage(&pre[0].y, &pj.y);
-
-    for (i = 1; i < n; i++) {
+    for (i = 0; i < (n - 1); i++) {
+        secp256k1_fe_normalize_var(&pj.y);
+        secp256k1_fe_to_storage(&pre[i].y, &pj.y);
         secp256k1_gej_add_ge_var(&pj, &pj, &d_ge, &zr);
         secp256k1_fe_normalize_var(&zr);
         secp256k1_fe_to_storage(&pre[i].x, &zr);
-        secp256k1_fe_normalize_var(&pj.y);
-        secp256k1_fe_to_storage(&pre[i].y, &pj.y);
     }
 
-    /* Map `pj` back to our curve by multiplying its z-coordinate by `d.z`. */
-    zr = pj.z; /* save pj.z so we can use it to extract (d.z)^-1 from zi */
-    secp256k1_fe_mul(&pj.z, &pj.z, &d.z);
+    /* Invert d.z in the same batch, preserving pj.z so we can extract 1/d.z */
+    secp256k1_fe_mul(&zi, &pj.z, &d.z);
+    secp256k1_fe_inv_var(&zi, &zi);
+
     /* Directly set `pre[n - 1]` to `pj`, saving the inverted z-coordinate so
      * that we can combine it with the saved z-ratios to compute the other zs
      * without any more inversions. */
-    secp256k1_fe_inv_var(&zi, &pj.z);
     secp256k1_ge_set_gej_zinv(&p_ge, &pj, &zi);
-    secp256k1_ge_from_storage(&last_ge, &pre[n - 1]);
     secp256k1_ge_to_storage(&pre[n - 1], &p_ge);
 
     /* Compute the actual x-coordinate of D, which will be needed below. */
-    secp256k1_fe_mul(&d.z, &zi, &zr);  /* d.z = 1/d.z */
+    secp256k1_fe_mul(&d.z, &zi, &pj.z);  /* d.z = 1/d.z */
     secp256k1_fe_sqr(&dx_over_dz_squared, &d.z);
     secp256k1_fe_mul(&dx_over_dz_squared, &dx_over_dz_squared, &d.x);
 
     i = n - 1;
     while (i > 0) {
         secp256k1_fe zi2, zi3;
+        const secp256k1_fe *rzr;
         i--;
+
+        secp256k1_ge_from_storage(&p_ge, &pre[i]);
+
         /* For the remaining points, we extract the z-ratio from the stored
          * x-coordinate, compute its z^-1 from that, and compute the full
-         * point from that. The z-ratio for the next iteration is stored in
-         * the x-coordinate at the end of the loop. */
-        secp256k1_fe_mul(&zi, &zi, &last_ge.x);
+         * point from that. */
+        rzr = &p_ge.x;
+        secp256k1_fe_mul(&zi, &zi, rzr);
         secp256k1_fe_sqr(&zi2, &zi);
         secp256k1_fe_mul(&zi3, &zi2, &zi);
         /* To compute the actual x-coordinate, we use the stored z ratio and
@@ -217,7 +213,7 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
          * multiplying by each z-ratio in turn.
          *
          * Denoting the z-ratio as `rzr` (though the actual variable binding
-         * is `last_ge.x`), we observe that it equal to `h` from the inside
+         * is `p_ge.x`), we observe that it equal to `h` from the inside
          * of the above `gej_add_ge_var` call. This satisfies
          *
          *    rzr = d_x * z^2 - x
@@ -230,12 +226,11 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
          *     x = d_x - rzr / z^2
          *       = d_x - rzr * zi2
          */
-        secp256k1_fe_mul(&p_ge.x, &last_ge.x, &zi2);
+        secp256k1_fe_mul(&p_ge.x, rzr, &zi2);
         secp256k1_fe_negate(&p_ge.x, &p_ge.x, 1);
         secp256k1_fe_add(&p_ge.x, &dx_over_dz_squared);
         /* y is stored_y/z^3, as we expect */
-        secp256k1_ge_from_storage(&last_ge, &pre[i]);
-        secp256k1_fe_mul(&p_ge.y, &last_ge.y, &zi3);
+        secp256k1_fe_mul(&p_ge.y, &p_ge.y, &zi3);
         /* Store */
         secp256k1_ge_to_storage(&pre[i], &p_ge);
     }
