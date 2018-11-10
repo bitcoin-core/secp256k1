@@ -190,6 +190,26 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
     secp256k1_fe_sqr(&dx_over_dz_squared, &d.z);
     secp256k1_fe_mul(&dx_over_dz_squared, &dx_over_dz_squared, &d.x);
 
+    /* Going into the second loop, we have set `pre[n-1]` to its final affine
+     * form, but still need to set `pre[i]` for `i` in 0 through `n-2`. We
+     * have `zi = (p.z * d.z)^-1`, where
+     *
+     *     `p.z` is the z-coordinate of the point on the isomorphic curve
+     *           which was ultimately assigned to `pre[n-1]`.
+     *     `d.z` is the multiplier that must be applied to all z-coordinates
+     *           to move from our isomorphic curve back to secp256k1; so the
+     *           product `p.z * d.z` is the z-coordinate of the secp256k1
+     *           point assigned to `pre[n-1]`.
+     *
+     * All subsequent inverse-z-coordinates can be obtained by multiplying this
+     * factor by successive z-ratios, which is much more efficient than directly
+     * computing each one.
+     *
+     * Importantly, these inverse-zs will be coordinates of points on secp256k1,
+     * while our other stored values come from computations on the isomorphic
+     * curve. So in the below loop, we will take care not to actually use `zi`
+     * or any derived values until we're back on secp256k1.
+     */
     i = n - 1;
     while (i > 0) {
         secp256k1_fe zi2, zi3;
@@ -198,7 +218,7 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
 
         secp256k1_ge_from_storage(&p_ge, &pre[i]);
 
-        /* For the remaining points, we extract the z-ratio from the stored
+        /* For each remaining point, we extract the z-ratio from the stored
          * x-coordinate, compute its z^-1 from that, and compute the full
          * point from that. */
         rzr = &p_ge.x;
@@ -212,19 +232,31 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
          * computed iteratively starting from the overall Z inverse then
          * multiplying by each z-ratio in turn.
          *
-         * Denoting the z-ratio as `rzr` (though the actual variable binding
-         * is `p_ge.x`), we observe that it equal to `h` from the inside
-         * of the above `gej_add_ge_var` call. This satisfies
+         * Denoting the z-ratio as `rzr`, we observe that it is equal to `h`
+         * from the inside of the above `gej_add_ge_var` call. This satisfies
          *
-         *    rzr = d_x * z^2 - x
+         *    rzr = d_x * z^2 - x * d_z^2
          *
-         * where `d_x` is the x coordinate of `D` and `(x, z)` are Jacobian
-         * coordinates of our desired point.
+         * where (`d_x`, `d_z`) are Jacobian coordinates of `D` and `(x, z)`
+         * are Jacobian coordinates of our desired point -- except both are on
+         * the isomorphic curve that we were using when we called `gej_add_ge_var`.
+         * To get back to secp256k1, we must multiply both `z`s by `d_z`, or
+         * equivalently divide both `x`s by `d_z^2`. Our equation then becomes
          *
-         * Rearranging and dividing by `z^2` to convert to affine, we get
+         *    rzr = d_x * z^2 / d_z^2 - x
          *
-         *     x = d_x - rzr / z^2
-         *       = d_x - rzr * zi2
+         * (The left-hand-side, being a ratio of z-coordinates, is unaffected
+         * by the isomorphism.)
+         *
+         * Rearranging to solve for `x`, we have
+         *
+         *     x = d_x * z^2 / d_z^2 - rzr
+         *
+         * But what we actually want is the affine coordinate `X = x/z^2`,
+         * which will satisfy
+         *
+         *     X = d_x / d_z^2 - rzr / z^2
+         *       = dx_over_dz_squared - rzr * zi2
          */
         secp256k1_fe_mul(&p_ge.x, rzr, &zi2);
         secp256k1_fe_negate(&p_ge.x, &p_ge.x, 1);
