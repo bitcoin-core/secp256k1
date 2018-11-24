@@ -6,22 +6,24 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 include(CheckCCompilerFlag)
 
-if (CMAKE_C_FLAGS STREQUAL "")
+if ("${CMAKE_C_FLAGS}" STREQUAL "")
   check_c_compiler_flag("-g" DEBUG_OPTION)
   if (DEBUG_OPTION)
     set(CMAKE_C_FLAGS "-g")
   endif()
 endif()
 
+set(LINKER_FLAGS "")
+
 if (APPLE AND NOT (BIGNUM_NO AND OPENSSL_TESTS_NO))
   find_program(brew "brew")
-  if (brew STREQUAL "")
+  if ("${brew}" STREQUAL "")
     find_program(port "port")
     # if homebrew isn't installed and macports is, add the macports default paths
     # as a last resort.
-    if (NOT port STREQUAL "")
+    if (NOT "${port}" STREQUAL "")
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -isystem /opt/local/include")
-      set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -L/opt/local/lib")
+      set(LINKER_FLAGS "-L/opt/local/lib")
     endif()
   else()
     # These Homebrew packages may be keg-only, meaning that they won't be found
@@ -29,14 +31,14 @@ if (APPLE AND NOT (BIGNUM_NO AND OPENSSL_TESTS_NO))
     # Homebrew where each one is located, then adjust paths accordingly.
     if (NOT OPENSSL_TESTS_NO)
       execute_process(COMMAND ${brew} --prefix openssl OUTPUT_VARIABLE openssl_prefix OUTPUT_STRIP_TRAILING_WHITESPACE)
-      if (NOT openssl_prefix STREQUAL "")
+      if (NOT "${openssl_prefix}" STREQUAL "")
         set(OPENSSL_C_FLAGS "-I${openssl_prefix}/include")
         set(OPENSSL_LIBS "-L${openssl_prefix}/lib -lcrypto")
       endif()
     endif()
     if (NOT BIGNUM_NO)
       execute_process(COMMAND ${brew} --prefix gmp OUTPUT_VARIABLE gmp_prefix OUTPUT_STRIP_TRAILING_WHITESPACE)
-      if (NOT gmp_prefix STREQUAL "")
+      if (NOT "${gmp_prefix}" STREQUAL "")
         set(GMP_C_FLAGS "-I${gmp_prefix}/include")
         set(GMP_LIBS "-L${gmp_prefix}/lib -lgmp")
       endif()
@@ -92,7 +94,7 @@ option(ASM_NO "don't use any assembly optimization (default is auto)" OFF)
 
 include(CheckTypeSize)
 check_type_size("__int128" INT128)
-if (INT128 STREQUAL "")
+if ("${INT128}" STREQUAL "")
   set(INT128 OFF)
 else()
   set(INT128 ON)
@@ -105,7 +107,7 @@ if (COVERAGE)
   # Define this symbol to compile out all VERIFY code
   add_compile_definitions(COVERAGE=1)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 --coverage")
-  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} --coverage")
+  set(LINKER_FLAGS "${LINKER_FLAGS} --coverage")
 else()
   check_c_compiler_flag("-O3" OPTIMIZE_O3)
   if (OPTIMIZE_O3)
@@ -152,7 +154,10 @@ if (NOT SCALAR_32BIT)
 endif()
 
 if (NOT BIGNUM_NO)
-  set(CMAKE_REQUIRED_FLAGS "${GMP_C_FLAGS} ${GMP_LIBS} ${CMAKE_MODULE_LINKER_FLAGS}")
+  if ("${GMP_LIBS}" STREQUAL "")
+    set(GMP_LIBS "-lgmp")
+  endif()
+  set(CMAKE_REQUIRED_FLAGS "${GMP_C_FLAGS} ${GMP_LIBS} ${LINKER_FLAGS}")
   # No need to append CMAKE_C_FLAGS to CMAKE_REQUIRED_FLAGS
   check_c_source_compiles("\
   #include <gmp.h>\n\
@@ -160,7 +165,7 @@ if (NOT BIGNUM_NO)
   set(CMAKE_REQUIRED_FLAGS "")
   if (GMP)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${GMP_C_FLAGS}")
-    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${GMP_LIBS}")
+    set(LINKER_FLAGS "${LINKER_FLAGS} ${GMP_LIBS}")
     set(BIGNUM_GMP ON)
   elseif(BIGNUM_GMP)
       message(FATAL_ERROR "gmp bignum explicitly requested but libgmp not available.")
@@ -172,7 +177,10 @@ if (NOT OPENSSL_TESTS_NO)
   if (NOT TESTS AND OPENSSL_TESTS)
     message(FATAL_ERROR "OpenSSL tests requested but tests are not enabled.")
   endif()
-  set(CMAKE_REQUIRED_FLAGS "${OPENSSL_C_FLAGS} ${OPENSSL_LIBS} ${CMAKE_MODULE_LINKER_FLAGS}")
+  if ("${OPENSSL_LIBS}" STREQUAL "")
+    set(OPENSSL_LIBS "-lcrypto")
+  endif()
+  set(CMAKE_REQUIRED_FLAGS "${OPENSSL_C_FLAGS} ${OPENSSL_LIBS} ${LINKER_FLAGS}")
   # No need to append CMAKE_C_FLAGS to CMAKE_REQUIRED_FLAGS
   check_c_source_compiles("\
   #include <openssl/ec.h>\n\
@@ -194,7 +202,7 @@ if (NOT OPENSSL_TESTS_NO)
     # Define this symbol if libcrypto is installed
     add_compile_definitions(HAVE_LIBCRYPTO=1)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPENSSL_C_FLAGS}")
-    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${OPENSSL_LIBS}")
+    set(LINKER_FLAGS "${LINKER_FLAGS} ${OPENSSL_LIBS}")
   elseif(OPENSSL_TESTS)
       message(FATAL_ERROR "openssl tests explicitly requested but openssl not available.")
   # else BIGNUM_NO
@@ -320,7 +328,10 @@ endif()
 
 # Use -DBUILD_SHARED_LIBS=ON to generate SHARED library
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LINKER_FLAGS}")
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
 add_subdirectory(src)
 
