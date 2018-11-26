@@ -137,24 +137,135 @@ static void secp256k1_ecmult_odd_multiples_table_globalz_windowa(secp256k1_ge *p
     secp256k1_ge_globalz_set_table_gej(ECMULT_TABLE_SIZE(WINDOW_A), pre, globalz, prej, zr);
 }
 
-static void secp256k1_ecmult_odd_multiples_table_storage_var(int n, secp256k1_ge_storage *pre, const secp256k1_gej *a, const secp256k1_callback *cb) {
-    secp256k1_gej *prej = (secp256k1_gej*)checked_malloc(cb, sizeof(secp256k1_gej) * n);
-    secp256k1_ge *prea = (secp256k1_ge*)checked_malloc(cb, sizeof(secp256k1_ge) * n);
-    secp256k1_fe *zr = (secp256k1_fe*)checked_malloc(cb, sizeof(secp256k1_fe) * n);
+static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp256k1_ge_storage *pre, const secp256k1_gej *a) {
+    secp256k1_gej d;
+    secp256k1_ge d_ge, p_ge;
+    secp256k1_gej pj;
+    secp256k1_fe zi;
+    secp256k1_fe zr;
+    secp256k1_fe dx_over_dz_squared;
     int i;
 
-    /* Compute the odd multiples in Jacobian form. */
-    secp256k1_ecmult_odd_multiples_table(n, prej, zr, a);
-    /* Convert them in batch to affine coordinates. */
-    secp256k1_ge_set_table_gej_var(prea, prej, zr, n);
-    /* Convert them to compact storage form. */
-    for (i = 0; i < n; i++) {
-        secp256k1_ge_to_storage(&pre[i], &prea[i]);
+    VERIFY_CHECK(!a->infinity);
+
+    secp256k1_gej_double_var(&d, a, NULL);
+
+    /* First, we perform all the additions in an isomorphic curve obtained by multiplying
+     * all `z` coordinates by 1/`d.z`. In these coordinates `d` is affine so we can use
+     * `secp256k1_gej_add_ge_var` to perform the additions. For each addition, we store
+     * the resulting y-coordinate and the z-ratio, since we only have enough memory to
+     * store two field elements. These are sufficient to efficiently undo the isomorphism
+     * and recompute all the `x`s.
+     */
+    d_ge.x = d.x;
+    d_ge.y = d.y;
+    d_ge.infinity = 0;
+
+    secp256k1_ge_set_gej_zinv(&p_ge, a, &d.z);
+    pj.x = p_ge.x;
+    pj.y = p_ge.y;
+    pj.z = a->z;
+    pj.infinity = 0;
+
+    for (i = 0; i < (n - 1); i++) {
+        secp256k1_fe_normalize_var(&pj.y);
+        secp256k1_fe_to_storage(&pre[i].y, &pj.y);
+        secp256k1_gej_add_ge_var(&pj, &pj, &d_ge, &zr);
+        secp256k1_fe_normalize_var(&zr);
+        secp256k1_fe_to_storage(&pre[i].x, &zr);
     }
 
-    free(prea);
-    free(prej);
-    free(zr);
+    /* Invert d.z in the same batch, preserving pj.z so we can extract 1/d.z */
+    secp256k1_fe_mul(&zi, &pj.z, &d.z);
+    secp256k1_fe_inv_var(&zi, &zi);
+
+    /* Directly set `pre[n - 1]` to `pj`, saving the inverted z-coordinate so
+     * that we can combine it with the saved z-ratios to compute the other zs
+     * without any more inversions. */
+    secp256k1_ge_set_gej_zinv(&p_ge, &pj, &zi);
+    secp256k1_ge_to_storage(&pre[n - 1], &p_ge);
+
+    /* Compute the actual x-coordinate of D, which will be needed below. */
+    secp256k1_fe_mul(&d.z, &zi, &pj.z);  /* d.z = 1/d.z */
+    secp256k1_fe_sqr(&dx_over_dz_squared, &d.z);
+    secp256k1_fe_mul(&dx_over_dz_squared, &dx_over_dz_squared, &d.x);
+
+    /* Going into the second loop, we have set `pre[n-1]` to its final affine
+     * form, but still need to set `pre[i]` for `i` in 0 through `n-2`. We
+     * have `zi = (p.z * d.z)^-1`, where
+     *
+     *     `p.z` is the z-coordinate of the point on the isomorphic curve
+     *           which was ultimately assigned to `pre[n-1]`.
+     *     `d.z` is the multiplier that must be applied to all z-coordinates
+     *           to move from our isomorphic curve back to secp256k1; so the
+     *           product `p.z * d.z` is the z-coordinate of the secp256k1
+     *           point assigned to `pre[n-1]`.
+     *
+     * All subsequent inverse-z-coordinates can be obtained by multiplying this
+     * factor by successive z-ratios, which is much more efficient than directly
+     * computing each one.
+     *
+     * Importantly, these inverse-zs will be coordinates of points on secp256k1,
+     * while our other stored values come from computations on the isomorphic
+     * curve. So in the below loop, we will take care not to actually use `zi`
+     * or any derived values until we're back on secp256k1.
+     */
+    i = n - 1;
+    while (i > 0) {
+        secp256k1_fe zi2, zi3;
+        const secp256k1_fe *rzr;
+        i--;
+
+        secp256k1_ge_from_storage(&p_ge, &pre[i]);
+
+        /* For each remaining point, we extract the z-ratio from the stored
+         * x-coordinate, compute its z^-1 from that, and compute the full
+         * point from that. */
+        rzr = &p_ge.x;
+        secp256k1_fe_mul(&zi, &zi, rzr);
+        secp256k1_fe_sqr(&zi2, &zi);
+        secp256k1_fe_mul(&zi3, &zi2, &zi);
+        /* To compute the actual x-coordinate, we use the stored z ratio and
+         * y-coordinate, which we obtained from `secp256k1_gej_add_ge_var`
+         * in the loop above, as well as the inverse of the square of its
+         * z-coordinate. We store the latter in the `zi2` variable, which is
+         * computed iteratively starting from the overall Z inverse then
+         * multiplying by each z-ratio in turn.
+         *
+         * Denoting the z-ratio as `rzr`, we observe that it is equal to `h`
+         * from the inside of the above `gej_add_ge_var` call. This satisfies
+         *
+         *    rzr = d_x * z^2 - x * d_z^2
+         *
+         * where (`d_x`, `d_z`) are Jacobian coordinates of `D` and `(x, z)`
+         * are Jacobian coordinates of our desired point -- except both are on
+         * the isomorphic curve that we were using when we called `gej_add_ge_var`.
+         * To get back to secp256k1, we must multiply both `z`s by `d_z`, or
+         * equivalently divide both `x`s by `d_z^2`. Our equation then becomes
+         *
+         *    rzr = d_x * z^2 / d_z^2 - x
+         *
+         * (The left-hand-side, being a ratio of z-coordinates, is unaffected
+         * by the isomorphism.)
+         *
+         * Rearranging to solve for `x`, we have
+         *
+         *     x = d_x * z^2 / d_z^2 - rzr
+         *
+         * But what we actually want is the affine coordinate `X = x/z^2`,
+         * which will satisfy
+         *
+         *     X = d_x / d_z^2 - rzr / z^2
+         *       = dx_over_dz_squared - rzr * zi2
+         */
+        secp256k1_fe_mul(&p_ge.x, rzr, &zi2);
+        secp256k1_fe_negate(&p_ge.x, &p_ge.x, 1);
+        secp256k1_fe_add(&p_ge.x, &dx_over_dz_squared);
+        /* y is stored_y/z^3, as we expect */
+        secp256k1_fe_mul(&p_ge.y, &p_ge.y, &zi3);
+        /* Store */
+        secp256k1_ge_to_storage(&pre[i], &p_ge);
+    }
 }
 
 /** The following two macro retrieves a particular odd multiple from a table
@@ -202,7 +313,7 @@ static void secp256k1_ecmult_context_build(secp256k1_ecmult_context *ctx, const 
     ctx->pre_g = (secp256k1_ge_storage (*)[])checked_malloc(cb, sizeof((*ctx->pre_g)[0]) * ECMULT_TABLE_SIZE(WINDOW_G));
 
     /* precompute the tables with odd multiples */
-    secp256k1_ecmult_odd_multiples_table_storage_var(ECMULT_TABLE_SIZE(WINDOW_G), *ctx->pre_g, &gj, cb);
+    secp256k1_ecmult_odd_multiples_table_storage_var(ECMULT_TABLE_SIZE(WINDOW_G), *ctx->pre_g, &gj);
 
 #ifdef USE_ENDOMORPHISM
     {
@@ -216,7 +327,7 @@ static void secp256k1_ecmult_context_build(secp256k1_ecmult_context *ctx, const 
         for (i = 0; i < 128; i++) {
             secp256k1_gej_double_var(&g_128j, &g_128j, NULL);
         }
-        secp256k1_ecmult_odd_multiples_table_storage_var(ECMULT_TABLE_SIZE(WINDOW_G), *ctx->pre_g_128, &g_128j, cb);
+        secp256k1_ecmult_odd_multiples_table_storage_var(ECMULT_TABLE_SIZE(WINDOW_G), *ctx->pre_g_128, &g_128j);
     }
 #endif
 }

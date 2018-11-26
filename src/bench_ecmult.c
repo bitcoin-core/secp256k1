@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
             secp256k1_scalar_add(&data.seckeys[i], &data.seckeys[i - 1], &data.seckeys[i - 1]);
         }
     }
-    secp256k1_ge_set_all_gej_var(data.pubkeys, pubkeys_gej, POINTS, &data.ctx->error_callback);
+    secp256k1_ge_set_all_gej_var(data.pubkeys, pubkeys_gej, POINTS);
     free(pubkeys_gej);
 
     for (i = 1; i <= 8; ++i) {
