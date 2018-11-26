@@ -2,6 +2,8 @@ libsecp256k1
 ============
 
 [![Build Status](https://travis-ci.org/bitcoin-core/secp256k1.svg?branch=master)](https://travis-ci.org/bitcoin-core/secp256k1)
+[![Code Quality: Cpp](https://img.shields.io/lgtm/grade/cpp/g/bitcoin-core/secp256k1.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/bitcoin-core/secp256k1/context:cpp)
+[![Total Alerts](https://img.shields.io/lgtm/alerts/g/bitcoin-core/secp256k1.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/bitcoin-core/secp256k1/alerts)
 
 Optimized C library for EC operations on curve secp256k1.
 
