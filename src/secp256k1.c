@@ -5,6 +5,7 @@
  **********************************************************************/
 
 #include "include/secp256k1.h"
+#include "include/secp256k1_preallocated.h"
 
 #include "util.h"
 #include "num_impl.h"
