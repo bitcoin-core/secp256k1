@@ -36,7 +36,7 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
 } while(0)
 #endif
 
-#ifdef HAVE_BUILTIN_EXPECT
+#if SECP256K1_GNUC_PREREQ(3, 0)
 #define EXPECT(x,c) __builtin_expect((x),(c))
 #else
 #define EXPECT(x,c) (x)
