@@ -1084,6 +1084,33 @@ static size_t secp256k1_pippenger_max_points(secp256k1_scratch *scratch) {
     return res;
 }
 
+/* Computes ecmult_multi by simply multiplying and adding each point. Does not
+ * require a scratch space */
+static int secp256k1_ecmult_multi_simple_var(const secp256k1_ecmult_context *ctx, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points) {
+    size_t point_idx;
+    secp256k1_scalar szero;
+    secp256k1_gej tmpj;
+
+    secp256k1_scalar_set_int(&szero, 0);
+    secp256k1_gej_set_infinity(r);
+    secp256k1_gej_set_infinity(&tmpj);
+    /* r = inp_g_sc*G */
+    secp256k1_ecmult(ctx, r, &tmpj, &szero, inp_g_sc);
+    for (point_idx = 0; point_idx < n_points; point_idx++) {
+        secp256k1_ge point;
+        secp256k1_gej pointj;
+        secp256k1_scalar scalar;
+        if (!cb(&scalar, &point, point_idx, cbdata)) {
+            return 0;
+        }
+        /* r += scalar*point */
+        secp256k1_gej_set_ge(&pointj, &point);
+        secp256k1_ecmult(ctx, &tmpj, &pointj, &scalar, NULL);
+        secp256k1_gej_add_var(r, r, &tmpj, NULL);
+    }
+    return 1;
+}
+
 typedef int (*secp256k1_ecmult_multi_func)(const secp256k1_ecmult_context*, secp256k1_scratch*, secp256k1_gej*, const secp256k1_scalar*, secp256k1_ecmult_multi_callback cb, void*, size_t);
 static int secp256k1_ecmult_multi_var(const secp256k1_ecmult_context *ctx, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
     size_t i;
@@ -1101,6 +1128,9 @@ static int secp256k1_ecmult_multi_var(const secp256k1_ecmult_context *ctx, secp2
         secp256k1_scalar_set_int(&szero, 0);
         secp256k1_ecmult(ctx, r, r, &szero, inp_g_sc);
         return 1;
+    }
+    if (scratch == NULL) {
+        return secp256k1_ecmult_multi_simple_var(ctx, r, inp_g_sc, cb, cbdata, n);
     }
 
     max_points = secp256k1_pippenger_max_points(scratch);
