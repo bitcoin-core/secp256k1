@@ -124,7 +124,7 @@ SECP256K1_API jint JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1secke
 }
 
 SECP256K1_API jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1ec_1pubkey_1create
-  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jlong ctx_l)
+  (JNIEnv* env, jclass classObject, jobject byteBufferObject, jboolean compressed, jlong ctx_l)
 {
   secp256k1_context *ctx = (secp256k1_context*)(uintptr_t)ctx_l;
   const unsigned char* secKey = (unsigned char*) (*env)->GetDirectBufferAddress(env, byteBufferObject);
@@ -136,12 +136,13 @@ SECP256K1_API jobjectArray JNICALL Java_org_bitcoin_NativeSecp256k1_secp256k1_1e
   unsigned char intsarray[2];
 
   int ret = secp256k1_ec_pubkey_create(ctx, &pubkey, secKey);
+  unsigned int flags = compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED;
 
   unsigned char outputSer[65];
   size_t outputLen = 65;
 
   if( ret ) {
-    int ret2 = secp256k1_ec_pubkey_serialize(ctx,outputSer, &outputLen, &pubkey,SECP256K1_EC_UNCOMPRESSED );(void)ret2;
+    int ret2 = secp256k1_ec_pubkey_serialize(ctx,outputSer, &outputLen, &pubkey, flags);(void)ret2;
   }
 
   intsarray[0] = outputLen;
