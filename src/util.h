@@ -88,16 +88,16 @@ static SECP256K1_INLINE void *checked_realloc(const secp256k1_callback* cb, void
 #if defined(SECP256K1_BUILD) && defined(VERIFY)
 # define SECP256K1_RESTRICT
 #else
-# if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
-#  if SECP256K1_GNUC_PREREQ(3,0)
-#   define SECP256K1_RESTRICT __restrict__
-#  elif (defined(_MSC_VER) && _MSC_VER >= 1400)
+# if (defined(_MSC_VER) && _MSC_VER >= 1400)
 #   define SECP256K1_RESTRICT __restrict
-#  else
-#   define SECP256K1_RESTRICT
-#  endif
 # else
-#  define SECP256K1_RESTRICT restrict
+/* As both clang and GCC have known miscompilation bugs related to restrict, disable it for now.
+ * TODO: re-evaluate when this bugs are fixed, and enable restrict in known good compilers.
+ * See:
+ * - https://gcc.gnu.org/bugzilla/show_bug.cgi?id=87609
+ * - https://bugs.llvm.org/show_bug.cgi?id=39282
+ */
+#  define SECP256K1_RESTRICT
 # endif
 #endif
 
