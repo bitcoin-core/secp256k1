@@ -13,7 +13,6 @@ gen_context
 *.a
 !.gitignore
 
-Makefile
 configure
 .libs/
 Makefile.in
