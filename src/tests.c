@@ -218,8 +218,12 @@ void run_context_tests(void) {
     CHECK(ecount == 3);
     CHECK(secp256k1_ec_pubkey_tweak_mul(vrfy, &pubkey, ctmp) == 1);
     CHECK(ecount == 3);
-    CHECK(secp256k1_context_randomize(vrfy, ctmp) == 0);
-    CHECK(ecount == 4);
+    CHECK(secp256k1_context_randomize(vrfy, ctmp) == 1);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_context_randomize(vrfy, NULL) == 1);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_context_randomize(sign, ctmp) == 1);
+    CHECK(ecount2 == 14);
     CHECK(secp256k1_context_randomize(sign, NULL) == 1);
     CHECK(ecount2 == 14);
     secp256k1_context_set_illegal_callback(vrfy, NULL, NULL);
