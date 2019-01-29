@@ -25,13 +25,17 @@ void test_schnorrsig_api(secp256k1_scratch_space *scratch) {
     unsigned char sk2[32];
     unsigned char sk3[32];
     unsigned char msg[32];
+    unsigned char data32[32];
     unsigned char sig64[64];
     secp256k1_pubkey pk[3];
     secp256k1_schnorrsig sig;
+    secp256k1_s2c_commit_context s2c_ctx;
+    secp256k1_pubkey s2c_original_nonce;
     const secp256k1_schnorrsig *sigptr = &sig;
     const unsigned char *msgptr = msg;
     const secp256k1_pubkey *pkptr = &pk[0];
     int nonce_is_negated;
+    unsigned char ones[32];
 
     /** setup **/
     secp256k1_context *none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
@@ -39,6 +43,7 @@ void test_schnorrsig_api(secp256k1_scratch_space *scratch) {
     secp256k1_context *vrfy = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
     secp256k1_context *both = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
     int ecount;
+    memset(ones, 0xff, 32);
 
     secp256k1_context_set_error_callback(none, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_error_callback(sign, counting_illegal_callback_fn, &ecount);
@@ -86,6 +91,29 @@ void test_schnorrsig_api(secp256k1_scratch_space *scratch) {
     CHECK(secp256k1_schnorrsig_parse(none, NULL, sig64) == 0);
     CHECK(ecount == 3);
     CHECK(secp256k1_schnorrsig_parse(none, &sig, NULL) == 0);
+    CHECK(ecount == 4);
+
+    /* Create sign-to-contract commitment to data32 for testing verify_s2c_commit */
+    secp256k1_rand256(data32);
+    CHECK(secp256k1_s2c_commit_context_create(ctx, &s2c_ctx, data32) == 1);
+    CHECK(secp256k1_schnorrsig_sign(sign, &sig, &nonce_is_negated, msg, sk1, NULL, &s2c_ctx) == 1);
+    CHECK(secp256k1_s2c_commit_get_original_nonce(ctx, &s2c_original_nonce, &s2c_ctx) == 1);
+    ecount = 0;
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(none, &sig, data32, &s2c_original_nonce, nonce_is_negated) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig, data32, &s2c_original_nonce, nonce_is_negated) == 1);
+    CHECK(ecount == 1);
+    {
+        /* Overflowing x-coordinate in signature */
+        secp256k1_schnorrsig sig_tmp = sig;
+        memcpy(&sig_tmp.data[0], ones, 32);
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig_tmp, data32, &s2c_original_nonce, nonce_is_negated) == 0);
+    }
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, NULL, data32, &s2c_original_nonce, nonce_is_negated) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig, NULL, &s2c_original_nonce, nonce_is_negated) == 0);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig, data32, NULL, nonce_is_negated) == 0);
     CHECK(ecount == 4);
 
     ecount = 0;
@@ -713,7 +741,49 @@ void test_schnorrsig_sign_verify(secp256k1_scratch_space *scratch) {
 }
 #undef N_SIGS
 
+void test_schnorrsig_s2c_commit_verify(void) {
+    secp256k1_s2c_commit_context s2c_ctx;
+    unsigned char data32[32];
+    secp256k1_schnorrsig sig;
+    int nonce_is_negated;
+    unsigned char msg[32];
+    unsigned char sk[32];
+    secp256k1_pubkey pk;
+    secp256k1_pubkey s2c_original_nonce;
+
+    secp256k1_rand256(data32);
+    secp256k1_rand256(msg);
+    secp256k1_rand256(sk);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pk, sk) == 1);
+
+    /* Create and verify correct commitment */
+    CHECK(secp256k1_s2c_commit_context_create(ctx, &s2c_ctx, data32) == 1);
+    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, &nonce_is_negated, msg, sk, NULL, &s2c_ctx) == 1);
+    CHECK(secp256k1_schnorrsig_verify(ctx, &sig, msg, &pk));
+
+    CHECK(secp256k1_s2c_commit_get_original_nonce(ctx, &s2c_original_nonce, &s2c_ctx) == 1);
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(ctx, &sig, data32, &s2c_original_nonce, nonce_is_negated) == 1);
+    /* verify_s2c_commit fails if nonce_is_negated is wrong */
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(ctx, &sig, data32, &s2c_original_nonce, !nonce_is_negated) == 0);
+
+    {
+        /* verify_s2c_commit fails if given data does not match committed data */
+        unsigned char data32_tmp[32];
+        memcpy(data32_tmp, data32, sizeof(data32_tmp));
+        data32_tmp[31] ^= 1;
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(ctx, &sig, data32_tmp, &s2c_original_nonce, nonce_is_negated) == 0);
+    }
+    {
+        /* verify_s2c_commit fails if signature does not commit to data */
+        secp256k1_schnorrsig sig_tmp;
+        sig_tmp = sig;
+        secp256k1_rand256(&sig_tmp.data[0]);
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(ctx, &sig_tmp, data32, &s2c_original_nonce, nonce_is_negated) == 0);
+    }
+}
+
 void run_schnorrsig_tests(void) {
+    int i;
     secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(ctx, 1024 * 1024);
 
     test_schnorrsig_serialize();
@@ -721,7 +791,11 @@ void run_schnorrsig_tests(void) {
     test_schnorrsig_bip_vectors(scratch);
     test_schnorrsig_sign();
     test_schnorrsig_sign_verify(scratch);
-
+    for (i = 0; i < count; i++) {
+        /* Run multiple times to increase probability that the nonce is negated in
+         * a test. */
+        test_schnorrsig_s2c_commit_verify();
+    }
     secp256k1_scratch_space_destroy(scratch);
 }
 
