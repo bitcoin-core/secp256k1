@@ -26,6 +26,8 @@ void test_schnorrsig_api(secp256k1_scratch_space *scratch) {
     unsigned char sk3[32];
     unsigned char msg[32];
     unsigned char data32[32];
+    unsigned char rand32[32];
+    unsigned char rand_commitment32[32];
     unsigned char sig64[64];
     secp256k1_pubkey pk[3];
     secp256k1_schnorrsig sig;
@@ -115,6 +117,39 @@ void test_schnorrsig_api(secp256k1_scratch_space *scratch) {
     CHECK(ecount == 3);
     CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig, data32, NULL, nonce_is_negated) == 0);
     CHECK(ecount == 4);
+
+    secp256k1_rand256(rand32);
+    ecount = 0;
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_host_commit(none, rand_commitment32, rand32) == 1);
+    CHECK(ecount == 0);
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_host_commit(none, NULL, rand32) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_host_commit(none, rand_commitment32, NULL) == 0);
+    CHECK(ecount == 2);
+
+    ecount = 0;
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_commit(sign, &s2c_ctx, msg, sk1, rand_commitment32) == 1);
+    CHECK(ecount == 0);
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_commit(none, &s2c_ctx, msg, sk1, rand_commitment32) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_commit(sign, NULL, msg, sk1, rand_commitment32) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_commit(sign, &s2c_ctx, NULL, sk1, rand_commitment32) == 0);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_commit(sign, &s2c_ctx, msg, NULL, rand_commitment32) == 0);
+    CHECK(ecount == 4);
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_commit(sign, &s2c_ctx, msg, sk1, NULL) == 0);
+    CHECK(ecount == 5);
+
+    ecount = 0;
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_setrand(none, &s2c_ctx, rand32) == 1);
+    CHECK(ecount == 0);
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_setrand(none, NULL, rand32) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_setrand(none, &s2c_ctx, NULL) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_schnorrsig_sign(sign, &sig, &nonce_is_negated, msg, sk1, NULL, &s2c_ctx) == 1);
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig, rand32, &s2c_ctx.original_pubnonce, nonce_is_negated) == 1);
 
     ecount = 0;
     CHECK(secp256k1_schnorrsig_verify(none, &sig, msg, &pk[0]) == 0);
@@ -780,6 +815,38 @@ void test_schnorrsig_s2c_commit_verify(void) {
     }
 }
 
+void test_schnorrsig_anti_nonce_sidechannel(void) {
+    unsigned char msg32[32];
+    unsigned char key32[32];
+    unsigned char algo16[16];
+    unsigned char rand32[32];
+    unsigned char rand_commitment32[32];
+    secp256k1_s2c_commit_context s2c_ctx;
+    secp256k1_pubkey s2c_original_nonce;
+    secp256k1_schnorrsig sig;
+    int nonce_is_negated;
+
+    secp256k1_rand256(msg32);
+    secp256k1_rand256(key32);
+    secp256k1_rand256(rand32);
+    memset(algo16, 23, sizeof(algo16));
+
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_host_commit(ctx, rand_commitment32, rand32) == 1);
+
+    /* Host sends rand_commitment32 to client. */
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_commit(ctx, &s2c_ctx, msg32, key32, rand_commitment32) == 1);
+
+    /* Client sends s2c original nonce. Host replies with rand32. */
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_setrand(ctx, &s2c_ctx, rand32) == 1);
+    /* Providing wrong data results in an error. */
+    CHECK(secp256k1_schnorrsig_anti_nonce_sidechan_client_setrand(ctx, &s2c_ctx, rand_commitment32) == 0);
+    CHECK(secp256k1_s2c_commit_get_original_nonce(ctx, &s2c_original_nonce, &s2c_ctx) == 1);
+    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, &nonce_is_negated, msg32, key32, NULL, &s2c_ctx) == 1);
+
+    /* Client sends signature to host. */
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(ctx, &sig, rand32, &s2c_original_nonce, nonce_is_negated) == 1);
+}
+
 void run_schnorrsig_tests(void) {
     int i;
     secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(ctx, 1024 * 1024);
@@ -794,6 +861,8 @@ void run_schnorrsig_tests(void) {
          * a test. */
         test_schnorrsig_s2c_commit_verify();
     }
+    test_schnorrsig_anti_nonce_sidechannel();
+
     secp256k1_scratch_space_destroy(scratch);
 }
 

@@ -52,6 +52,50 @@ int secp256k1_schnorrsig_verify_s2c_commit(const secp256k1_context* ctx, const s
     return secp256k1_ec_commit_verify(ctx, &pubnonce, original_nonce, data32, 32);
 }
 
+int secp256k1_schnorrsig_anti_nonce_sidechan_host_commit(secp256k1_context *ctx, unsigned char *rand_commitment32, const unsigned char *rand32) {
+    secp256k1_sha256 sha;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(rand_commitment32 != NULL);
+    ARG_CHECK(rand32 != NULL);
+
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, rand32, 32);
+    secp256k1_sha256_finalize(&sha, rand_commitment32);
+
+    return 1;
+}
+
+int secp256k1_schnorrsig_anti_nonce_sidechan_client_commit(secp256k1_context *ctx, secp256k1_s2c_commit_context *s2c_ctx, const unsigned char *msg32, const unsigned char *seckey32, const unsigned char *rand_commitment32) {
+    unsigned char nonce32[32];
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(s2c_ctx != NULL);
+    ARG_CHECK(msg32 != NULL);
+    ARG_CHECK(seckey32 != NULL);
+    ARG_CHECK(rand_commitment32 != NULL);
+
+    memcpy(s2c_ctx->data_hash, rand_commitment32, 32);
+    return secp256k1_nonce_function_bipschnorr_no_s2c_tweak(ctx, nonce32, msg32, seckey32, NULL, s2c_ctx, 0);
+}
+
+int secp256k1_schnorrsig_anti_nonce_sidechan_client_setrand(secp256k1_context *ctx, secp256k1_s2c_commit_context *s2c_ctx, const unsigned char *rand32) {
+    secp256k1_sha256 sha;
+    unsigned char rand_hash[32];
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(s2c_ctx != NULL);
+    ARG_CHECK(rand32 != NULL);
+
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, rand32, 32);
+    secp256k1_sha256_finalize(&sha, rand_hash);
+    if (memcmp(rand_hash, s2c_ctx->data_hash, 32) != 0) {
+        return 0;
+    }
+    memcpy(s2c_ctx->data, rand32, 32);
+    return 1;
+}
+
 int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, secp256k1_schnorrsig *sig, int *nonce_is_negated, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, void *ndata) {
     secp256k1_scalar x;
     secp256k1_scalar e;
