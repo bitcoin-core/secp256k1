@@ -53,6 +53,80 @@ int secp256k1_schnorrsig_verify_s2c_commit(const secp256k1_context* ctx, const s
     return secp256k1_ec_commit_verify(ctx, &pubnonce, &opening->original_pubnonce, data32, 32);
 }
 
+int secp256k1_schnorrsig_anti_nonce_sidechan_host_commit(secp256k1_context *ctx, unsigned char *rand_commitment32, const unsigned char *rand32) {
+    secp256k1_sha256 sha;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(rand_commitment32 != NULL);
+    ARG_CHECK(rand32 != NULL);
+
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, rand32, 32);
+    secp256k1_sha256_finalize(&sha, rand_commitment32);
+
+    return 1;
+}
+
+int secp256k1_schnorrsig_anti_nonce_sidechan_client_commit(secp256k1_context *ctx, secp256k1_pubkey *client_commit, const unsigned char *msg32, const unsigned char *seckey32, unsigned char *rand_commitment32) {
+    unsigned char nonce32[32];
+    secp256k1_scalar k;
+    secp256k1_gej rj;
+    secp256k1_ge r;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    ARG_CHECK(client_commit != NULL);
+    ARG_CHECK(msg32 != NULL);
+    ARG_CHECK(seckey32 != NULL);
+    ARG_CHECK(rand_commitment32 != NULL);
+
+    if (!secp256k1_nonce_function_bipschnorr(nonce32, msg32, seckey32, NULL, rand_commitment32, 0)) {
+        return 0;
+    }
+
+    secp256k1_scalar_set_b32(&k, nonce32, NULL);
+    if (secp256k1_scalar_is_zero(&k)) {
+        return 0;
+    }
+
+    secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &rj, &k);
+    secp256k1_ge_set_gej(&r, &rj);
+    secp256k1_pubkey_save(client_commit, &r);
+    return 1;
+}
+
+SECP256K1_API int secp256k1_schnorrsig_anti_nonce_sidechan_host_verify(secp256k1_context *ctx, const secp256k1_schnorrsig *sig, const unsigned char *rand32, const secp256k1_s2c_opening *opening, const secp256k1_pubkey *client_commit) {
+    secp256k1_ge gcommit;
+    secp256k1_ge gopening;
+    secp256k1_gej pj;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(sig != NULL);
+    ARG_CHECK(rand32 != NULL);
+    ARG_CHECK(opening != NULL);
+    ARG_CHECK(client_commit != NULL);
+
+    /* Check that client_commit == opening->original_pubnonce */
+    secp256k1_gej_set_infinity(&pj);
+    if (!secp256k1_pubkey_load(ctx, &gcommit, client_commit)) {
+        return 0;
+    }
+    secp256k1_ge_neg(&gcommit, &gcommit);
+    secp256k1_gej_add_ge(&pj, &pj, &gcommit);
+    if (!secp256k1_pubkey_load(ctx, &gopening, &opening->original_pubnonce)) {
+        return 0;
+    }
+    secp256k1_gej_add_ge(&pj, &pj, &gopening);
+    if (!secp256k1_gej_is_infinity(&pj)) {
+        return 0;
+    }
+
+    if (!secp256k1_schnorrsig_verify_s2c_commit(ctx, sig, rand32, opening)) {
+        return 0;
+    }
+    return 1;
+}
+
 int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, secp256k1_schnorrsig *sig, secp256k1_s2c_opening *s2c_opening, const unsigned char *msg32, const unsigned char *seckey, const unsigned char *s2c_data32, secp256k1_nonce_function noncefp, void *ndata) {
     secp256k1_scalar x;
     secp256k1_scalar e;

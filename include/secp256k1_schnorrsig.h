@@ -62,6 +62,85 @@ SECP256K1_API int secp256k1_schnorrsig_parse(
     const unsigned char *in64
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
+/** Anti Nonce Sidechannel Protocol
+ *
+ *  The next functions can be used to prevent a signing device from exfiltrating the secret signing
+ *  keys through biased signature nonces. The general idea is that a host provides additional
+ *  randomness to the signing device client and the client commits to the randomness in the nonce
+ *  using sign-to-contract.
+ *  In order to make the randomness unpredictable, the host and client must engage in a
+ *  commit-reveal protocol as follows:
+ *  1. The host draws the randomness, commits to it with the `anti_nonce_sidechan_host_commit`
+ *     function and sends the commitment to the client.
+ *  2. The client commits to its sign-to-contract original nonce (which is the nonce without the
+ *     sign-to-contract tweak) using the hosts commitment by calling the
+ *     `secp256k1_schnorrsig_anti_nonce_sidechan_client_commit` function. The client sends the
+ *     rusulting commitment to the host
+ *  3. The host replies with the randomness generated in step 1.
+ *  4. The client signs with `schnorrsig_sign` using the host provided randomness as `s2c_data` and
+ *     sends the signature and opening to the host.
+ *  5. The host checks that the signature contains an sign-to-contract commitment to the randomness
+ *     by calling `secp256k1_schnorrsig_anti_nonce_sidechan_host_verify` with the client's
+ *     commitment from step 2 and the signature and opening received in step 4. If verification does
+ *     not succeed, the protocol failed and can be restarted.
+ */
+
+/** Create a randomness commitment on the host as part of the Anti Nonce Sidechannel Protocol.
+ *
+ *  Returns 1 on success, 0 on failure.
+ *  Args:              ctx: pointer to a context object (cannot be NULL)
+ *  Out: rand_commitment32: pointer to 32-byte array to store the returned commitment (cannot be NULL)
+ *  In:             rand32: the 32-byte randomness to commit to (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_schnorrsig_anti_nonce_sidechan_host_commit(
+    secp256k1_context *ctx,
+    unsigned char *rand_commitment32,
+    const unsigned char *rand32
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
+/** Compute commitment on the client as part of the Anti Nonce Sidechannel Protocol.
+ *
+ *  Returns 1 on success, 0 on failure.
+ *  Args:           ctx: pointer to a context object (cannot be NULL)
+ *  Out:  client_commit: pointer to a pubkey where the clients public nonce will be
+ *                       placed. This is the public nonce before doing the
+ *                       sign-to-contract commitment to the hosts randomness (cannot
+ *                       be NULL)
+ *  In:           msg32: the 32-byte message hash to be signed (cannot be NULL)
+ *             seckey32: the 32-byte secret key used for signing (cannot be NULL)
+ *    rand_commitment32: the 32-byte randomness commitment from the host (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_schnorrsig_anti_nonce_sidechan_client_commit(
+    secp256k1_context *ctx,
+    secp256k1_pubkey *client_commit,
+    const unsigned char *msg32,
+    const unsigned char *seckey32,
+    unsigned char *rand_commitment32
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
+
+/** Verify that a clients signature contains the hosts randomness as part of the Anti
+ *  Nonce Sidechannel Protocol. Does not verify the signature itself.
+ *
+ *  Returns 1 on success, 0 on failure.
+ *  Args:         ctx: pointer to a context object (cannot be NULL)
+ *  In:           sig: pointer to the signature whose randomness should be verified
+ *                     (cannot be NULL)
+ *             rand32: pointer to the 32-byte randomness from the host which should
+ *                     be included by the signature (cannot be NULL)
+ *            opening: pointer to the opening produced by the client when signing
+ *                     with `rand32` as `s2c_data` (cannot be NULL)
+ *      client_commit: pointer to the client's commitment created in
+ *                     `secp256k1_schnorrsig_anti_nonce_sidechan_client_commit`
+ *                     (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_schnorrsig_anti_nonce_sidechan_host_verify(
+    secp256k1_context *ctx,
+    const secp256k1_schnorrsig *sig,
+    const unsigned char *rand32,
+    const secp256k1_s2c_opening *opening,
+    const secp256k1_pubkey *client_commit
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
+
 /** Create a Schnorr signature.
  *
  * Returns 1 on success, 0 on failure.
