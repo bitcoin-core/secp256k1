@@ -158,7 +158,7 @@ gen_%.o: src/gen_%.c
 	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) $(CFLAGS_FOR_BUILD) -c $< -o $@
 
 $(gen_context_BIN): $(gen_context_OBJECTS)
-	$(CC_FOR_BUILD) $^ -o $@
+	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) $^ -o $@
 
 $(libsecp256k1_la_OBJECTS): src/ecmult_static_context.h
 $(tests_OBJECTS): src/ecmult_static_context.h
