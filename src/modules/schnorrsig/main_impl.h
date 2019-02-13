@@ -11,6 +11,60 @@
 #include "../../../include/secp256k1_schnorrsig.h"
 #include "../../hash.h"
 
+static uint64_t s2c_opening_magic = 0x5d0520b8b7f2b168ULL;
+
+static void secp256k1_schnorrsig_s2c_opening_init(secp256k1_schnorrsig_s2c_opening *opening) {
+    opening->magic = s2c_opening_magic;
+    opening->nonce_is_negated = 0;
+}
+
+static int secp256k1_schnorrsig_s2c_commit_is_init(const secp256k1_schnorrsig_s2c_opening *opening) {
+    return opening->magic == s2c_opening_magic;
+}
+
+/* s2c_opening is serialized as 33 bytes containing the compressed original pubnonce. In addition to
+ * holding the EVEN or ODD tag, the first byte has the third bit set to 1 if the nonce was negated.
+ * The remaining bits in the first byte are 0. */
+int secp256k1_schnorrsig_s2c_opening_parse(const secp256k1_context* ctx, secp256k1_schnorrsig_s2c_opening* opening, const unsigned char *input33) {
+    unsigned char pk_ser[33];
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(opening != NULL);
+    ARG_CHECK(input33 != NULL);
+
+    secp256k1_schnorrsig_s2c_opening_init(opening);
+    /* Return 0 if unknown bits are set */
+    if ((input33[0] & ~0x06) != 0) {
+        return 0;
+    }
+    /* Read nonce_is_negated bit */
+    opening->nonce_is_negated = input33[0] & (1 << 2);
+    memcpy(pk_ser, input33, sizeof(pk_ser));
+    /* Unset nonce_is_negated bit to allow parsing the public key */
+    pk_ser[0] &= ~(1 << 2);
+    return secp256k1_ec_pubkey_parse(ctx, &opening->original_pubnonce, &pk_ser[0], 33);
+}
+
+int secp256k1_schnorrsig_s2c_opening_serialize(const secp256k1_context* ctx, unsigned char *output33, const secp256k1_schnorrsig_s2c_opening* opening) {
+    size_t outputlen = 33;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(output33 != NULL);
+    ARG_CHECK(opening != NULL);
+    ARG_CHECK(secp256k1_schnorrsig_s2c_commit_is_init(opening));
+
+    if (!secp256k1_ec_pubkey_serialize(ctx, &output33[0], &outputlen, &opening->original_pubnonce, SECP256K1_EC_COMPRESSED)) {
+        return 0;
+    }
+    /* Verify that ec_pubkey_serialize only sets the first two bits of the
+     * first byte, otherwise this function doesn't make any sense */
+    VERIFY_CHECK(output33[0] == 0x02 || output33[0] == 0x03);
+    if (opening->nonce_is_negated) {
+        /* Set nonce_is_negated bit */
+        output33[0] |= (1 << 2);
+    }
+    return 1;
+}
+
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("BIP0340/nonce")||SHA256("BIP0340/nonce"). */
 static void secp256k1_nonce_function_bip340_sha256_tagged(secp256k1_sha256 *sha) {
