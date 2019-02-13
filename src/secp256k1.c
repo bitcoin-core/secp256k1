@@ -764,6 +764,39 @@ static int secp256k1_ec_commit_verify(const secp256k1_context* ctx, const secp25
     return secp256k1_gej_is_infinity(&pj);
 }
 
+static uint64_t s2c_opening_magic = 0x5d0520b8b7f2b168ULL;
+
+static void secp256k1_s2c_opening_init(secp256k1_s2c_opening *opening) {
+    opening->magic = s2c_opening_magic;
+    opening->nonce_is_negated = 0;
+}
+
+static int secp256k1_s2c_commit_is_init(const secp256k1_s2c_opening *opening) {
+    return opening->magic == s2c_opening_magic;
+}
+
+int secp256k1_s2c_opening_parse(const secp256k1_context* ctx, secp256k1_s2c_opening* opening, const unsigned char *input34) {
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(opening != NULL);
+    ARG_CHECK(input34 != NULL);
+
+    secp256k1_s2c_opening_init(opening);
+    opening->nonce_is_negated = input34[0];
+    return secp256k1_ec_pubkey_parse(ctx, &opening->original_pubnonce, &input34[1], 33);
+}
+
+int secp256k1_s2c_opening_serialize(const secp256k1_context* ctx, unsigned char *output34, const secp256k1_s2c_opening* opening) {
+    size_t outputlen = 33;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(output34 != NULL);
+    ARG_CHECK(opening != NULL);
+    ARG_CHECK(secp256k1_s2c_commit_is_init(opening));
+
+    output34[0] = opening->nonce_is_negated;
+    return secp256k1_ec_pubkey_serialize(ctx, &output34[1], &outputlen, &opening->original_pubnonce, SECP256K1_EC_COMPRESSED);
+}
+
 #ifdef ENABLE_MODULE_ECDH
 # include "modules/ecdh/main_impl.h"
 #endif
