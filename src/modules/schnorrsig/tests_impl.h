@@ -965,7 +965,63 @@ static void test_schnorrsig_taproot(void) {
     CHECK(secp256k1_xonly_pubkey_tweak_add_check(CTX, output_pk_bytes, pk_parity, &internal_pk, tweak) == 1);
 }
 
-static void run_schnorrsig_tests(void) {
+void test_s2c_opening(void) {
+    int i = 0;
+    unsigned char output[33];
+    /* First byte 0x06 means that nonce_is_negated and EVEN tag for the
+     * following compressed pubkey (which is valid). */
+    unsigned char input[33] = {
+            0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x02
+    };
+    secp256k1_schnorrsig_s2c_opening opening;
+
+    /* Uninitialized opening can't be serialized. Actually testing that would be
+     * undefined behavior. Therefore we simulate it by setting the opening to 0. */
+    memset(&opening, 0, sizeof(opening));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_s2c_opening_serialize(CTX, output, &opening));
+
+    /* First parsing, then serializing works */
+    CHECK(secp256k1_schnorrsig_s2c_opening_parse(CTX, &opening, input) == 1);
+    CHECK(secp256k1_schnorrsig_s2c_opening_serialize(CTX, output, &opening) == 1);
+    CHECK(secp256k1_schnorrsig_s2c_opening_parse(CTX, &opening, input) == 1);
+
+    {
+        /* Invalid pubkey makes parsing fail */
+        unsigned char input_tmp[33];
+        memcpy(input_tmp, input, sizeof(input_tmp));
+        /* Pubkey oddness tag is invalid */
+        input_tmp[0] = 0;
+        CHECK(secp256k1_schnorrsig_s2c_opening_parse(CTX, &opening, input_tmp) == 0);
+        /* nonce_is_negated bit is set but pubkey oddness tag is invalid */
+        input_tmp[0] = 5;
+        CHECK(secp256k1_schnorrsig_s2c_opening_parse(CTX, &opening, input_tmp) == 0);
+        /* Unknown bit is set */
+        input_tmp[0] = 8;
+        CHECK(secp256k1_schnorrsig_s2c_opening_parse(CTX, &opening, input_tmp) == 0);
+    }
+
+    /* Try parsing and serializing a bunch of openings */
+    do {
+        /* This is expected to fail in about 50% of iterations because the
+         * points' x-coordinates are uniformly random */
+        if (secp256k1_schnorrsig_s2c_opening_parse(CTX, &opening, input) == 1) {
+            CHECK(secp256k1_schnorrsig_s2c_opening_serialize(CTX, output, &opening) == 1);
+            CHECK(secp256k1_memcmp_var(output, input, sizeof(output)) == 0);
+        }
+        testrand256(&input[1]);
+        /* Set pubkey oddness tag to first bit of input[1] */
+        input[0] = (input[1] & 1) + 2;
+        /* Set nonce_is_negated bit to input[1]'s 3rd bit */
+        input[0] |= (input[1] & (1 << 2));
+        i++;
+    } while(i < COUNT);
+}
+
+void run_schnorrsig_tests(void) {
     int i;
     run_nonce_function_bip340_tests();
 
@@ -977,6 +1033,7 @@ static void run_schnorrsig_tests(void) {
         test_schnorrsig_sign_verify();
     }
     test_schnorrsig_taproot();
+    test_s2c_opening();
 }
 
 #endif
