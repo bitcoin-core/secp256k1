@@ -5391,6 +5391,68 @@ void run_eckey_negate_test(void) {
     CHECK(secp256k1_memcmp_var(seckey, seckey_tmp, 32) == 0);
 }
 
+
+void run_s2c_opening_test(void) {
+    int i = 0;
+    unsigned char output[33];
+    /* First byte 0x06 means that nonce_is_negated and EVEN tag for the
+     * following compressed pubkey (which is valid). */
+    unsigned char input[33] = {
+            0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x02
+    };
+    secp256k1_s2c_opening opening;
+    size_t ecount = 0;
+
+    secp256k1_context_set_illegal_callback(ctx, counting_illegal_callback_fn, &ecount);
+
+    /* Uninitialized opening can't be serialized. Actually testing that would be
+     * undefined behavior. Therefore we simulate it by setting the opening to 0. */
+    memset(&opening, 0, sizeof(opening));
+    CHECK(ecount == 0);
+    CHECK(secp256k1_s2c_opening_serialize(ctx, output, &opening) == 0);
+    CHECK(ecount == 1);
+
+    /* First parsing, then serializing works */
+    CHECK(secp256k1_s2c_opening_parse(ctx, &opening, input) == 1);
+    CHECK(secp256k1_s2c_opening_serialize(ctx, output, &opening) == 1);
+    CHECK(secp256k1_s2c_opening_parse(ctx, &opening, input) == 1);
+
+    {
+        /* Invalid pubkey makes parsing fail */
+        unsigned char input_tmp[33];
+        memcpy(input_tmp, input, sizeof(input_tmp));
+        /* Pubkey oddness tag is invalid */
+        input_tmp[0] = 0;
+        CHECK(secp256k1_s2c_opening_parse(ctx, &opening, input_tmp) == 0);
+        /* nonce_is_negated bit is set but pubkey oddness tag is invalid */
+        input_tmp[0] = 5;
+        CHECK(secp256k1_s2c_opening_parse(ctx, &opening, input_tmp) == 0);
+        /* Unknown bit is set */
+        input_tmp[0] = 8;
+        CHECK(secp256k1_s2c_opening_parse(ctx, &opening, input_tmp) == 0);
+    }
+
+    /* Try parsing and serializing a bunch of openings */
+    do {
+        /* This is expected to fail in about 50% of iterations because the
+         * points' x-coordinates are uniformly random */
+        if (secp256k1_s2c_opening_parse(ctx, &opening, input) == 1) {
+            CHECK(secp256k1_s2c_opening_serialize(ctx, output, &opening) == 1);
+            CHECK(memcmp(output, input, sizeof(output)) == 0);
+        }
+        secp256k1_testrand256(&input[1]);
+        /* Set pubkey oddness tag to first bit of input[1] */
+        input[0] = (input[1] & 1) + 2;
+        /* Set nonce_is_negated bit to input[1]'s 3rd bit */
+        input[0] |= (input[1] & (1 << 2));
+        i++;
+    } while(i < count);
+}
+
 void random_sign(secp256k1_scalar *sigr, secp256k1_scalar *sigs, const secp256k1_scalar *key, const secp256k1_scalar *msg, int *recid) {
     secp256k1_scalar nonce;
     do {
@@ -6676,6 +6738,8 @@ int main(int argc, char **argv) {
 
     /* EC key arithmetic test */
     run_eckey_negate_test();
+
+    run_s2c_opening_test();
 
 #ifdef ENABLE_MODULE_ECDH
     /* ecdh tests */
