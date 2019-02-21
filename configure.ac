@@ -153,12 +153,6 @@ AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto]
 
 AC_CHECK_TYPES([__int128])
 
-AC_MSG_CHECKING([for __builtin_expect])
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([[void myfunc() {__builtin_expect(0,0);}]])],
-    [ AC_MSG_RESULT([yes]);AC_DEFINE(HAVE_BUILTIN_EXPECT,1,[Define this symbol if __builtin_expect is available]) ],
-    [ AC_MSG_RESULT([no])
-    ])
-
 if test x"$enable_coverage" = x"yes"; then
     AC_DEFINE(COVERAGE, 1, [Define this symbol to compile out all VERIFY code])
     CFLAGS="$CFLAGS -O0 --coverage"
@@ -441,18 +435,6 @@ if test x"$use_external_asm" = x"yes"; then
   AC_DEFINE(USE_EXTERNAL_ASM, 1, [Define this symbol if an external (non-inline) assembly implementation is used])
 fi
 
-AC_MSG_NOTICE([Using static precomputation: $set_precomp])
-AC_MSG_NOTICE([Using assembly optimizations: $set_asm])
-AC_MSG_NOTICE([Using field implementation: $set_field])
-AC_MSG_NOTICE([Using bignum implementation: $set_bignum])
-AC_MSG_NOTICE([Using scalar implementation: $set_scalar])
-AC_MSG_NOTICE([Using endomorphism optimizations: $use_endomorphism])
-AC_MSG_NOTICE([Building benchmarks: $use_benchmark])
-AC_MSG_NOTICE([Building for coverage analysis: $enable_coverage])
-AC_MSG_NOTICE([Building ECDH module: $enable_module_ecdh])
-AC_MSG_NOTICE([Building ECDSA pubkey recovery module: $enable_module_recovery])
-AC_MSG_NOTICE([Using jni: $use_jni])
-
 if test x"$enable_experimental" = x"yes"; then
   AC_MSG_NOTICE([******])
   AC_MSG_NOTICE([WARNING: experimental build])
@@ -482,7 +464,7 @@ AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
 AM_CONDITIONAL([USE_ECMULT_STATIC_PRECOMPUTATION], [test x"$set_precomp" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
-AM_CONDITIONAL([USE_JNI], [test x"$use_jni" == x"yes"])
+AM_CONDITIONAL([USE_JNI], [test x"$use_jni" = x"yes"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$use_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
 
@@ -492,3 +474,24 @@ unset PKG_CONFIG_PATH
 PKG_CONFIG_PATH="$PKGCONFIG_PATH_TEMP"
 
 AC_OUTPUT
+
+echo
+echo "Build Options:"
+echo "  with endomorphism   = $use_endomorphism"
+echo "  with ecmult precomp = $set_precomp"
+echo "  with jni            = $use_jni"
+echo "  with benchmarks     = $use_benchmark"
+echo "  with coverage       = $enable_coverage"
+echo "  module ecdh         = $enable_module_ecdh"
+echo "  module recovery     = $enable_module_recovery"
+echo
+echo "  asm                 = $set_asm"
+echo "  bignum              = $set_bignum"
+echo "  field               = $set_field"
+echo "  scalar              = $set_scalar"
+echo
+echo "  CC                  = $CC"
+echo "  CFLAGS              = $CFLAGS"
+echo "  CPPFLAGS            = $CPPFLAGS"
+echo "  LDFLAGS             = $LDFLAGS"
+echo

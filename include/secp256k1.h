@@ -179,6 +179,13 @@ typedef int (*secp256k1_nonce_function)(
 #define SECP256K1_TAG_PUBKEY_HYBRID_EVEN 0x06
 #define SECP256K1_TAG_PUBKEY_HYBRID_ODD 0x07
 
+/** A simple secp256k1 context object with no precomputed tables. These are useful for
+ *  type serialization/parsing functions which require a context object to maintain
+ *  API consistency, but currently do not require expensive precomputations or dynamic
+ *  allocations.
+ */
+SECP256K1_API extern const secp256k1_context *secp256k1_context_no_precomp;
+
 /** Create a secp256k1 context object.
  *
  *  Returns: a newly created context object.
@@ -260,12 +267,10 @@ SECP256K1_API void secp256k1_context_set_error_callback(
  *
  *  Returns: a newly created scratch space.
  *  Args: ctx:  an existing context object (cannot be NULL)
- *  In:  init_size: initial amount of memory to allocate
- *        max_size: maximum amount of memory to allocate
+ *  In:   max_size: maximum amount of memory to allocate
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT secp256k1_scratch_space* secp256k1_scratch_space_create(
     const secp256k1_context* ctx,
-    size_t init_size,
     size_t max_size
 ) SECP256K1_ARG_NONNULL(1);
 
@@ -533,7 +538,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_create(
  *
  *  Returns: 1 always
  *  Args:   ctx:        pointer to a context object
- *  In/Out: pubkey:     pointer to the public key to be negated (cannot be NULL)
+ *  In/Out: seckey:     pointer to the 32-byte private key to be negated (cannot be NULL)
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_negate(
     const secp256k1_context* ctx,
@@ -610,7 +615,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_mul(
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
 /** Updates the context randomization to protect against side-channel leakage.
- *  Returns: 1: randomization successfully updated
+ *  Returns: 1: randomization successfully updated or nothing to randomize
  *           0: error
  *  Args:    ctx:       pointer to a context object (cannot be NULL)
  *  In:      seed32:    pointer to a 32-byte random seed (NULL resets to initial state)
@@ -624,6 +629,11 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_mul(
  * blinding value is added before each multiplication (and removed afterwards) so
  * that it does not affect function results, but shields against attacks which
  * rely on any input-dependent behaviour.
+ *
+ * This function has currently an effect only on contexts initialized for signing
+ * because randomization is currently used only for signing. However, this is not
+ * guaranteed and may change in the future. It is safe to call this function on
+ * contexts not initialized for signing; then it will have no effect and return 1.
  *
  * You should call this after secp256k1_context_create or
  * secp256k1_context_clone, and may call this repeatedly afterwards.

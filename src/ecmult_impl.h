@@ -47,7 +47,8 @@
 #else
     #define WNAF_BITS 256
 #endif
-#define WNAF_SIZE(w) ((WNAF_BITS + (w) - 1) / (w))
+#define WNAF_SIZE_BITS(bits, w) (((bits) + (w) - 1) / (w))
+#define WNAF_SIZE(w) WNAF_SIZE_BITS(WNAF_BITS, w)
 
 /** The number of entries a table with precomputed multiples needs to have. */
 #define ECMULT_TABLE_SIZE(w) (1 << ((w)-2))
@@ -136,24 +137,135 @@ static void secp256k1_ecmult_odd_multiples_table_globalz_windowa(secp256k1_ge *p
     secp256k1_ge_globalz_set_table_gej(ECMULT_TABLE_SIZE(WINDOW_A), pre, globalz, prej, zr);
 }
 
-static void secp256k1_ecmult_odd_multiples_table_storage_var(int n, secp256k1_ge_storage *pre, const secp256k1_gej *a, const secp256k1_callback *cb) {
-    secp256k1_gej *prej = (secp256k1_gej*)checked_malloc(cb, sizeof(secp256k1_gej) * n);
-    secp256k1_ge *prea = (secp256k1_ge*)checked_malloc(cb, sizeof(secp256k1_ge) * n);
-    secp256k1_fe *zr = (secp256k1_fe*)checked_malloc(cb, sizeof(secp256k1_fe) * n);
+static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp256k1_ge_storage *pre, const secp256k1_gej *a) {
+    secp256k1_gej d;
+    secp256k1_ge d_ge, p_ge;
+    secp256k1_gej pj;
+    secp256k1_fe zi;
+    secp256k1_fe zr;
+    secp256k1_fe dx_over_dz_squared;
     int i;
 
-    /* Compute the odd multiples in Jacobian form. */
-    secp256k1_ecmult_odd_multiples_table(n, prej, zr, a);
-    /* Convert them in batch to affine coordinates. */
-    secp256k1_ge_set_table_gej_var(prea, prej, zr, n);
-    /* Convert them to compact storage form. */
-    for (i = 0; i < n; i++) {
-        secp256k1_ge_to_storage(&pre[i], &prea[i]);
+    VERIFY_CHECK(!a->infinity);
+
+    secp256k1_gej_double_var(&d, a, NULL);
+
+    /* First, we perform all the additions in an isomorphic curve obtained by multiplying
+     * all `z` coordinates by 1/`d.z`. In these coordinates `d` is affine so we can use
+     * `secp256k1_gej_add_ge_var` to perform the additions. For each addition, we store
+     * the resulting y-coordinate and the z-ratio, since we only have enough memory to
+     * store two field elements. These are sufficient to efficiently undo the isomorphism
+     * and recompute all the `x`s.
+     */
+    d_ge.x = d.x;
+    d_ge.y = d.y;
+    d_ge.infinity = 0;
+
+    secp256k1_ge_set_gej_zinv(&p_ge, a, &d.z);
+    pj.x = p_ge.x;
+    pj.y = p_ge.y;
+    pj.z = a->z;
+    pj.infinity = 0;
+
+    for (i = 0; i < (n - 1); i++) {
+        secp256k1_fe_normalize_var(&pj.y);
+        secp256k1_fe_to_storage(&pre[i].y, &pj.y);
+        secp256k1_gej_add_ge_var(&pj, &pj, &d_ge, &zr);
+        secp256k1_fe_normalize_var(&zr);
+        secp256k1_fe_to_storage(&pre[i].x, &zr);
     }
 
-    free(prea);
-    free(prej);
-    free(zr);
+    /* Invert d.z in the same batch, preserving pj.z so we can extract 1/d.z */
+    secp256k1_fe_mul(&zi, &pj.z, &d.z);
+    secp256k1_fe_inv_var(&zi, &zi);
+
+    /* Directly set `pre[n - 1]` to `pj`, saving the inverted z-coordinate so
+     * that we can combine it with the saved z-ratios to compute the other zs
+     * without any more inversions. */
+    secp256k1_ge_set_gej_zinv(&p_ge, &pj, &zi);
+    secp256k1_ge_to_storage(&pre[n - 1], &p_ge);
+
+    /* Compute the actual x-coordinate of D, which will be needed below. */
+    secp256k1_fe_mul(&d.z, &zi, &pj.z);  /* d.z = 1/d.z */
+    secp256k1_fe_sqr(&dx_over_dz_squared, &d.z);
+    secp256k1_fe_mul(&dx_over_dz_squared, &dx_over_dz_squared, &d.x);
+
+    /* Going into the second loop, we have set `pre[n-1]` to its final affine
+     * form, but still need to set `pre[i]` for `i` in 0 through `n-2`. We
+     * have `zi = (p.z * d.z)^-1`, where
+     *
+     *     `p.z` is the z-coordinate of the point on the isomorphic curve
+     *           which was ultimately assigned to `pre[n-1]`.
+     *     `d.z` is the multiplier that must be applied to all z-coordinates
+     *           to move from our isomorphic curve back to secp256k1; so the
+     *           product `p.z * d.z` is the z-coordinate of the secp256k1
+     *           point assigned to `pre[n-1]`.
+     *
+     * All subsequent inverse-z-coordinates can be obtained by multiplying this
+     * factor by successive z-ratios, which is much more efficient than directly
+     * computing each one.
+     *
+     * Importantly, these inverse-zs will be coordinates of points on secp256k1,
+     * while our other stored values come from computations on the isomorphic
+     * curve. So in the below loop, we will take care not to actually use `zi`
+     * or any derived values until we're back on secp256k1.
+     */
+    i = n - 1;
+    while (i > 0) {
+        secp256k1_fe zi2, zi3;
+        const secp256k1_fe *rzr;
+        i--;
+
+        secp256k1_ge_from_storage(&p_ge, &pre[i]);
+
+        /* For each remaining point, we extract the z-ratio from the stored
+         * x-coordinate, compute its z^-1 from that, and compute the full
+         * point from that. */
+        rzr = &p_ge.x;
+        secp256k1_fe_mul(&zi, &zi, rzr);
+        secp256k1_fe_sqr(&zi2, &zi);
+        secp256k1_fe_mul(&zi3, &zi2, &zi);
+        /* To compute the actual x-coordinate, we use the stored z ratio and
+         * y-coordinate, which we obtained from `secp256k1_gej_add_ge_var`
+         * in the loop above, as well as the inverse of the square of its
+         * z-coordinate. We store the latter in the `zi2` variable, which is
+         * computed iteratively starting from the overall Z inverse then
+         * multiplying by each z-ratio in turn.
+         *
+         * Denoting the z-ratio as `rzr`, we observe that it is equal to `h`
+         * from the inside of the above `gej_add_ge_var` call. This satisfies
+         *
+         *    rzr = d_x * z^2 - x * d_z^2
+         *
+         * where (`d_x`, `d_z`) are Jacobian coordinates of `D` and `(x, z)`
+         * are Jacobian coordinates of our desired point -- except both are on
+         * the isomorphic curve that we were using when we called `gej_add_ge_var`.
+         * To get back to secp256k1, we must multiply both `z`s by `d_z`, or
+         * equivalently divide both `x`s by `d_z^2`. Our equation then becomes
+         *
+         *    rzr = d_x * z^2 / d_z^2 - x
+         *
+         * (The left-hand-side, being a ratio of z-coordinates, is unaffected
+         * by the isomorphism.)
+         *
+         * Rearranging to solve for `x`, we have
+         *
+         *     x = d_x * z^2 / d_z^2 - rzr
+         *
+         * But what we actually want is the affine coordinate `X = x/z^2`,
+         * which will satisfy
+         *
+         *     X = d_x / d_z^2 - rzr / z^2
+         *       = dx_over_dz_squared - rzr * zi2
+         */
+        secp256k1_fe_mul(&p_ge.x, rzr, &zi2);
+        secp256k1_fe_negate(&p_ge.x, &p_ge.x, 1);
+        secp256k1_fe_add(&p_ge.x, &dx_over_dz_squared);
+        /* y is stored_y/z^3, as we expect */
+        secp256k1_fe_mul(&p_ge.y, &p_ge.y, &zi3);
+        /* Store */
+        secp256k1_ge_to_storage(&pre[i], &p_ge);
+    }
 }
 
 /** The following two macro retrieves a particular odd multiple from a table
@@ -165,7 +277,8 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(int n, secp256k1_ge
     if ((n) > 0) { \
         *(r) = (pre)[((n)-1)/2]; \
     } else { \
-        secp256k1_ge_neg((r), &(pre)[(-(n)-1)/2]); \
+        *(r) = (pre)[(-(n)-1)/2]; \
+        secp256k1_fe_negate(&((r)->y), &((r)->y), 1); \
     } \
 } while(0)
 
@@ -177,7 +290,7 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(int n, secp256k1_ge
         secp256k1_ge_from_storage((r), &(pre)[((n)-1)/2]); \
     } else { \
         secp256k1_ge_from_storage((r), &(pre)[(-(n)-1)/2]); \
-        secp256k1_ge_neg((r), (r)); \
+        secp256k1_fe_negate(&((r)->y), &((r)->y), 1); \
     } \
 } while(0)
 
@@ -201,7 +314,7 @@ static void secp256k1_ecmult_context_build(secp256k1_ecmult_context *ctx, const 
     ctx->pre_g = (secp256k1_ge_storage (*)[])checked_malloc(cb, sizeof((*ctx->pre_g)[0]) * ECMULT_TABLE_SIZE(WINDOW_G));
 
     /* precompute the tables with odd multiples */
-    secp256k1_ecmult_odd_multiples_table_storage_var(ECMULT_TABLE_SIZE(WINDOW_G), *ctx->pre_g, &gj, cb);
+    secp256k1_ecmult_odd_multiples_table_storage_var(ECMULT_TABLE_SIZE(WINDOW_G), *ctx->pre_g, &gj);
 
 #ifdef USE_ENDOMORPHISM
     {
@@ -215,7 +328,7 @@ static void secp256k1_ecmult_context_build(secp256k1_ecmult_context *ctx, const 
         for (i = 0; i < 128; i++) {
             secp256k1_gej_double_var(&g_128j, &g_128j, NULL);
         }
-        secp256k1_ecmult_odd_multiples_table_storage_var(ECMULT_TABLE_SIZE(WINDOW_G), *ctx->pre_g_128, &g_128j, cb);
+        secp256k1_ecmult_odd_multiples_table_storage_var(ECMULT_TABLE_SIZE(WINDOW_G), *ctx->pre_g_128, &g_128j);
     }
 #endif
 }
@@ -524,10 +637,9 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_ecmult_context *ctx, s
         return 1;
     }
 
-    if (!secp256k1_scratch_resize(scratch, secp256k1_strauss_scratch_size(n_points), STRAUSS_SCRATCH_OBJECTS)) {
+    if (!secp256k1_scratch_allocate_frame(scratch, secp256k1_strauss_scratch_size(n_points), STRAUSS_SCRATCH_OBJECTS)) {
         return 0;
     }
-    secp256k1_scratch_reset(scratch);
     points = (secp256k1_gej*)secp256k1_scratch_alloc(scratch, n_points * sizeof(secp256k1_gej));
     scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(scratch, n_points * sizeof(secp256k1_scalar));
     state.prej = (secp256k1_gej*)secp256k1_scratch_alloc(scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_gej));
@@ -542,10 +654,14 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_ecmult_context *ctx, s
 
     for (i = 0; i < n_points; i++) {
         secp256k1_ge point;
-        if (!cb(&scalars[i], &point, i+cb_offset, cbdata)) return 0;
+        if (!cb(&scalars[i], &point, i+cb_offset, cbdata)) {
+            secp256k1_scratch_deallocate_frame(scratch);
+            return 0;
+        }
         secp256k1_gej_set_ge(&points[i], &point);
     }
     secp256k1_ecmult_strauss_wnaf(ctx, &state, r, n_points, points, scalars, inp_g_sc);
+    secp256k1_scratch_deallocate_frame(scratch);
     return 1;
 }
 
@@ -563,53 +679,66 @@ static size_t secp256k1_strauss_max_points(secp256k1_scratch *scratch) {
  *  It has the following guarantees:
  *  - each wnaf[i] is either 0 or an odd integer between -(1 << w) and (1 << w)
  *  - the number of words set is always WNAF_SIZE(w)
- *  - the returned skew is 0 without endomorphism, or 0 or 1 with endomorphism
+ *  - the returned skew is 0 or 1
  */
 static int secp256k1_wnaf_fixed(int *wnaf, const secp256k1_scalar *s, int w) {
-    int sign = 0;
     int skew = 0;
-    int pos = 1;
-#ifndef USE_ENDOMORPHISM
-    secp256k1_scalar neg_s;
-#endif
+    int pos;
+    int max_pos;
+    int last_w;
     const secp256k1_scalar *work = s;
 
     if (secp256k1_scalar_is_zero(s)) {
-        while (pos * w < WNAF_BITS) {
+        for (pos = 0; pos < WNAF_SIZE(w); pos++) {
             wnaf[pos] = 0;
-            ++pos;
         }
         return 0;
     }
 
     if (secp256k1_scalar_is_even(s)) {
-#ifdef USE_ENDOMORPHISM
         skew = 1;
-#else
-        secp256k1_scalar_negate(&neg_s, s);
-        work = &neg_s;
-        sign = -1;
-#endif
     }
 
-    wnaf[0] = (secp256k1_scalar_get_bits_var(work, 0, w) + skew + sign) ^ sign;
+    wnaf[0] = secp256k1_scalar_get_bits_var(work, 0, w) + skew;
+    /* Compute last window size. Relevant when window size doesn't divide the
+     * number of bits in the scalar */
+    last_w = WNAF_BITS - (WNAF_SIZE(w) - 1) * w;
 
-    while (pos * w < WNAF_BITS) {
-        int now = w;
-        int val;
-        if (now + pos * w > WNAF_BITS) {
-            now = WNAF_BITS - pos * w;
+    /* Store the position of the first nonzero word in max_pos to allow
+     * skipping leading zeros when calculating the wnaf. */
+    for (pos = WNAF_SIZE(w) - 1; pos > 0; pos--) {
+        int val = secp256k1_scalar_get_bits_var(work, pos * w, pos == WNAF_SIZE(w)-1 ? last_w : w);
+        if(val != 0) {
+            break;
         }
-        val = secp256k1_scalar_get_bits_var(work, pos * w, now);
+        wnaf[pos] = 0;
+    }
+    max_pos = pos;
+    pos = 1;
+
+    while (pos <= max_pos) {
+        int val = secp256k1_scalar_get_bits_var(work, pos * w, pos == WNAF_SIZE(w)-1 ? last_w : w);
         if ((val & 1) == 0) {
-            wnaf[pos - 1] -= ((1 << w) + sign) ^ sign;
-            wnaf[pos] = (val + 1 + sign) ^ sign;
+            wnaf[pos - 1] -= (1 << w);
+            wnaf[pos] = (val + 1);
         } else {
-            wnaf[pos] = (val + sign) ^ sign;
+            wnaf[pos] = val;
+        }
+        /* Set a coefficient to zero if it is 1 or -1 and the proceeding digit
+         * is strictly negative or strictly positive respectively. Only change
+         * coefficients at previous positions because above code assumes that
+         * wnaf[pos - 1] is odd.
+         */
+        if (pos >= 2 && ((wnaf[pos - 1] == 1 && wnaf[pos - 2] < 0) || (wnaf[pos - 1] == -1 && wnaf[pos - 2] > 0))) {
+            if (wnaf[pos - 1] == 1) {
+                wnaf[pos - 2] += 1 << w;
+            } else {
+                wnaf[pos - 2] -= 1 << w;
+            }
+            wnaf[pos - 1] = 0;
         }
         ++pos;
     }
-    VERIFY_CHECK(pos == WNAF_SIZE(w));
 
     return skew;
 }
@@ -631,7 +760,7 @@ struct secp256k1_pippenger_state {
  * to the point's wnaf[i]. Second, the buckets are added together such that
  * r += 1*bucket[0] + 3*bucket[1] + 5*bucket[2] + ...
  */
-static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_window, struct secp256k1_pippenger_state *state, secp256k1_gej *r, secp256k1_scalar *sc, secp256k1_ge *pt, size_t num) {
+static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_window, struct secp256k1_pippenger_state *state, secp256k1_gej *r, const secp256k1_scalar *sc, const secp256k1_ge *pt, size_t num) {
     size_t n_wnaf = WNAF_SIZE(bucket_window+1);
     size_t np;
     size_t no = 0;
@@ -665,7 +794,6 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
             secp256k1_ge tmp;
             int idx;
 
-#ifdef USE_ENDOMORPHISM
             if (i == 0) {
                 /* correct for wnaf skew */
                 int skew = point_state.skew_na;
@@ -674,7 +802,6 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
                     secp256k1_gej_add_ge_var(&buckets[0], &buckets[0], &tmp, NULL);
                 }
             }
-#endif
             if (n > 0) {
                 idx = (n - 1)/2;
                 secp256k1_gej_add_ge_var(&buckets[idx], &buckets[idx], &pt[point_state.input_pos], NULL);
@@ -861,10 +988,9 @@ static int secp256k1_ecmult_pippenger_batch(const secp256k1_ecmult_context *ctx,
     }
 
     bucket_window = secp256k1_pippenger_bucket_window(n_points);
-    if (!secp256k1_scratch_resize(scratch, secp256k1_pippenger_scratch_size(n_points, bucket_window), PIPPENGER_SCRATCH_OBJECTS)) {
+    if (!secp256k1_scratch_allocate_frame(scratch, secp256k1_pippenger_scratch_size(n_points, bucket_window), PIPPENGER_SCRATCH_OBJECTS)) {
         return 0;
     }
-    secp256k1_scratch_reset(scratch);
     points = (secp256k1_ge *) secp256k1_scratch_alloc(scratch, entries * sizeof(*points));
     scalars = (secp256k1_scalar *) secp256k1_scratch_alloc(scratch, entries * sizeof(*scalars));
     state_space = (struct secp256k1_pippenger_state *) secp256k1_scratch_alloc(scratch, sizeof(*state_space));
@@ -884,6 +1010,7 @@ static int secp256k1_ecmult_pippenger_batch(const secp256k1_ecmult_context *ctx,
 
     while (point_idx < n_points) {
         if (!cb(&scalars[idx], &points[idx], point_idx + cb_offset, cbdata)) {
+            secp256k1_scratch_deallocate_frame(scratch);
             return 0;
         }
         idx++;
@@ -907,6 +1034,7 @@ static int secp256k1_ecmult_pippenger_batch(const secp256k1_ecmult_context *ctx,
     for(i = 0; i < 1<<bucket_window; i++) {
         secp256k1_gej_clear(&buckets[i]);
     }
+    secp256k1_scratch_deallocate_frame(scratch);
     return 1;
 }
 
