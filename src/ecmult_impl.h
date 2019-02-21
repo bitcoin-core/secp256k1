@@ -277,7 +277,8 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
     if ((n) > 0) { \
         *(r) = (pre)[((n)-1)/2]; \
     } else { \
-        secp256k1_ge_neg((r), &(pre)[(-(n)-1)/2]); \
+        *(r) = (pre)[(-(n)-1)/2]; \
+        secp256k1_fe_negate(&((r)->y), &((r)->y), 1); \
     } \
 } while(0)
 
@@ -289,7 +290,7 @@ static void secp256k1_ecmult_odd_multiples_table_storage_var(const int n, secp25
         secp256k1_ge_from_storage((r), &(pre)[((n)-1)/2]); \
     } else { \
         secp256k1_ge_from_storage((r), &(pre)[(-(n)-1)/2]); \
-        secp256k1_ge_neg((r), (r)); \
+        secp256k1_fe_negate(&((r)->y), &((r)->y), 1); \
     } \
 } while(0)
 
