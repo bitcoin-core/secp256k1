@@ -38,22 +38,22 @@
  */
 #if defined(EXHAUSTIVE_TEST_ORDER)
 #  if EXHAUSTIVE_TEST_ORDER == 199
-const secp256k1_ge secp256k1_ge_const_g = SECP256K1_GE_CONST(
+static const secp256k1_ge secp256k1_ge_const_g = SECP256K1_GE_CONST(
     0xFA7CC9A7, 0x0737F2DB, 0xA749DD39, 0x2B4FB069,
     0x3B017A7D, 0xA808C2F1, 0xFB12940C, 0x9EA66C18,
     0x78AC123A, 0x5ED8AEF3, 0x8732BC91, 0x1F3A2868,
     0x48DF246C, 0x808DAE72, 0xCFE52572, 0x7F0501ED
 );
 
-const int CURVE_B = 4;
+static const int CURVE_B = 4;
 #  elif EXHAUSTIVE_TEST_ORDER == 13
-const secp256k1_ge secp256k1_ge_const_g = SECP256K1_GE_CONST(
+static const secp256k1_ge secp256k1_ge_const_g = SECP256K1_GE_CONST(
     0xedc60018, 0xa51a786b, 0x2ea91f4d, 0x4c9416c0,
     0x9de54c3b, 0xa1316554, 0x6cf4345c, 0x7277ef15,
     0x54cb1b6b, 0xdc8c1273, 0x087844ea, 0x43f4603e,
     0x0eaf9a43, 0xf6effe55, 0x939f806d, 0x37adf8ac
 );
-const int CURVE_B = 2;
+static const int CURVE_B = 2;
 #  else
 #    error No known generator for the specified exhaustive test group order.
 #  endif
@@ -68,7 +68,7 @@ static const secp256k1_ge secp256k1_ge_const_g = SECP256K1_GE_CONST(
     0xFD17B448UL, 0xA6855419UL, 0x9C47D08FUL, 0xFB10D4B8UL
 );
 
-const int CURVE_B = 7;
+static const int CURVE_B = 7;
 #endif
 
 static void secp256k1_ge_set_gej_zinv(secp256k1_ge *r, const secp256k1_gej *a, const secp256k1_fe *zi) {
