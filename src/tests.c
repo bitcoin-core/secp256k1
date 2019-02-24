@@ -2926,6 +2926,7 @@ void run_ecmult_multi_tests(void) {
     test_ecmult_multi_pippenger_max_points();
     scratch = secp256k1_scratch_create(&ctx->error_callback, 819200);
     test_ecmult_multi(scratch, secp256k1_ecmult_multi_var);
+    test_ecmult_multi(NULL, secp256k1_ecmult_multi_var);
     test_ecmult_multi(scratch, secp256k1_ecmult_pippenger_batch_single);
     test_ecmult_multi(scratch, secp256k1_ecmult_strauss_batch_single);
     secp256k1_scratch_destroy(scratch);
