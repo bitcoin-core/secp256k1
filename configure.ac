@@ -156,7 +156,7 @@ AC_CHECK_TYPES([__int128])
 if test x"$enable_coverage" = x"yes"; then
     AC_DEFINE(COVERAGE, 1, [Define this symbol to compile out all VERIFY code])
     CFLAGS="$CFLAGS -O0 --coverage"
-    LDFLAGS="--coverage"
+    LDFLAGS="$LDFLAGS --coverage"
 else
     CFLAGS="$CFLAGS -O3"
 fi
