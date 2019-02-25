@@ -2854,6 +2854,50 @@ void test_ecmult_multi_pippenger_max_points(void) {
     CHECK(bucket_window == PIPPENGER_MAX_BUCKET_WINDOW);
 }
 
+void test_ecmult_multi_batch_size_helper(void) {
+    size_t n_batches, n_batch_points, max_n_batch_points, n;
+
+    max_n_batch_points = 0;
+    n = 1;
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 0);
+
+    max_n_batch_points = 1;
+    n = 0;
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(n_batches == 0);
+    CHECK(n_batch_points == 0);
+
+    max_n_batch_points = 2;
+    n = 5;
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(n_batches == 3);
+    CHECK(n_batch_points == 2);
+
+    max_n_batch_points = ECMULT_MAX_POINTS_PER_BATCH;
+    n = ECMULT_MAX_POINTS_PER_BATCH;
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(n_batches == 1);
+    CHECK(n_batch_points == ECMULT_MAX_POINTS_PER_BATCH);
+
+    max_n_batch_points = ECMULT_MAX_POINTS_PER_BATCH + 1;
+    n = ECMULT_MAX_POINTS_PER_BATCH + 1;
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(n_batches == 2);
+    CHECK(n_batch_points == ECMULT_MAX_POINTS_PER_BATCH/2 + 1);
+
+    max_n_batch_points = 1;
+    n = SIZE_MAX;
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(n_batches == SIZE_MAX);
+    CHECK(n_batch_points == 1);
+
+    max_n_batch_points = 2;
+    n = SIZE_MAX;
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(n_batches == SIZE_MAX/2 + 1);
+    CHECK(n_batch_points == 2);
+}
+
 /**
  * Run secp256k1_ecmult_multi_var with num points and a scratch space restricted to
  * 1 <= i <= num points.
@@ -2936,6 +2980,7 @@ void run_ecmult_multi_tests(void) {
     test_ecmult_multi(scratch, secp256k1_ecmult_multi_var);
     secp256k1_scratch_destroy(scratch);
 
+    test_ecmult_multi_batch_size_helper();
     test_ecmult_multi_batching();
 }
 
