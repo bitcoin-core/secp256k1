@@ -247,11 +247,28 @@ SECP256K1_API void secp256k1_context_destroy(
  *  to cause a crash, though its return value and output arguments are
  *  undefined.
  *
+ *  When this function has not been called (or called with fn==NULL), then the
+ *  default handler will be used. The library provides a default handler which
+ *  writes the message to stderr and calls abort. This default handler can be
+ *  replaced at link time if the preprocessor macro
+ *  USE_EXTERNAL_DEFAULT_CALLBACKS is defined, which is the case if the build
+ *  has been configured with --enable-external-default-callbacks. Then the
+ *  following two symbols must be provided to link against:
+ *   - void secp256k1_default_illegal_callback_fn(const char* message, void* data);
+ *   - void secp256k1_default_error_callback_fn(const char* message, void* data);
+ *  The library can call these default handlers even before a proper callback data
+ *  pointer could have been set using secp256k1_context_set_illegal_callback or
+ *  secp256k1_context_set_illegal_callback, e.g., when the creation of a context
+ *  fails. In this case, the corresponding default handler will be called with
+ *  the data pointer argument set to NULL.
+ *
  *  Args: ctx:  an existing context object (cannot be NULL)
  *  In:   fun:  a pointer to a function to call when an illegal argument is
- *              passed to the API, taking a message and an opaque pointer
- *              (NULL restores a default handler that calls abort).
+ *              passed to the API, taking a message and an opaque pointer.
+ *              (NULL restores the default handler.)
  *        data: the opaque pointer to pass to fun above.
+ *
+ *  See also secp256k1_context_set_error_callback.
  */
 SECP256K1_API void secp256k1_context_set_illegal_callback(
     secp256k1_context* ctx,
@@ -271,9 +288,12 @@ SECP256K1_API void secp256k1_context_set_illegal_callback(
  *
  *  Args: ctx:  an existing context object (cannot be NULL)
  *  In:   fun:  a pointer to a function to call when an internal error occurs,
- *              taking a message and an opaque pointer (NULL restores a default
- *              handler that calls abort).
+ *              taking a message and an opaque pointer (NULL restores the
+ *              default handler, see secp256k1_context_set_illegal_callback
+ *              for details).
  *        data: the opaque pointer to pass to fun above.
+ *
+ *  See also secp256k1_context_set_illegal_callback.
  */
 SECP256K1_API void secp256k1_context_set_error_callback(
     secp256k1_context* ctx,
