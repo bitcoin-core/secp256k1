@@ -85,42 +85,42 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
     ])
 
 AC_ARG_ENABLE(benchmark,
-    AS_HELP_STRING([--enable-benchmark],[compile benchmark (default is yes)]),
+    AS_HELP_STRING([--enable-benchmark],[compile benchmark [default=yes]]),
     [use_benchmark=$enableval],
     [use_benchmark=yes])
 
 AC_ARG_ENABLE(coverage,
-    AS_HELP_STRING([--enable-coverage],[enable compiler flags to support kcov coverage analysis]),
+    AS_HELP_STRING([--enable-coverage],[enable compiler flags to support kcov coverage analysis [default=no]]),
     [enable_coverage=$enableval],
     [enable_coverage=no])
 
 AC_ARG_ENABLE(tests,
-    AS_HELP_STRING([--enable-tests],[compile tests (default is yes)]),
+    AS_HELP_STRING([--enable-tests],[compile tests [default=yes]]),
     [use_tests=$enableval],
     [use_tests=yes])
 
 AC_ARG_ENABLE(openssl_tests,
-    AS_HELP_STRING([--enable-openssl-tests],[enable OpenSSL tests, if OpenSSL is available (default is auto)]),
+    AS_HELP_STRING([--enable-openssl-tests],[enable OpenSSL tests [default=auto]]),
     [enable_openssl_tests=$enableval],
     [enable_openssl_tests=auto])
 
 AC_ARG_ENABLE(experimental,
-    AS_HELP_STRING([--enable-experimental],[allow experimental configure options (default is no)]),
+    AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]),
     [use_experimental=$enableval],
     [use_experimental=no])
 
 AC_ARG_ENABLE(exhaustive_tests,
-    AS_HELP_STRING([--enable-exhaustive-tests],[compile exhaustive tests (default is yes)]),
+    AS_HELP_STRING([--enable-exhaustive-tests],[compile exhaustive tests [default=yes]]),
     [use_exhaustive_tests=$enableval],
     [use_exhaustive_tests=yes])
 
 AC_ARG_ENABLE(endomorphism,
-    AS_HELP_STRING([--enable-endomorphism],[enable endomorphism (default is no)]),
+    AS_HELP_STRING([--enable-endomorphism],[enable endomorphism [default=no]]),
     [use_endomorphism=$enableval],
     [use_endomorphism=no])
 
 AC_ARG_ENABLE(ecmult_static_precomputation,
-    AS_HELP_STRING([--enable-ecmult-static-precomputation],[enable precomputed ecmult table for signing (default is yes)]),
+    AS_HELP_STRING([--enable-ecmult-static-precomputation],[enable precomputed ecmult table for signing [default=auto]]),
     [use_ecmult_static_precomputation=$enableval],
     [use_ecmult_static_precomputation=auto])
 
@@ -130,26 +130,26 @@ AC_ARG_ENABLE(module_ecdh,
     [enable_module_ecdh=no])
 
 AC_ARG_ENABLE(module_recovery,
-    AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module (default is no)]),
+    AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module [default=no]]),
     [enable_module_recovery=$enableval],
     [enable_module_recovery=no])
 
 AC_ARG_ENABLE(jni,
-    AS_HELP_STRING([--enable-jni],[enable libsecp256k1_jni (default is no)]),
+    AS_HELP_STRING([--enable-jni],[enable libsecp256k1_jni [default=no]]),
     [use_jni=$enableval],
     [use_jni=no])
 
 AC_ARG_WITH([field], [AS_HELP_STRING([--with-field=64bit|32bit|auto],
-[Specify Field Implementation. Default is auto])],[req_field=$withval], [req_field=auto])
+[finite field implementation to use [default=auto]])],[req_field=$withval], [req_field=auto])
 
 AC_ARG_WITH([bignum], [AS_HELP_STRING([--with-bignum=gmp|no|auto],
-[Specify Bignum Implementation. Default is auto])],[req_bignum=$withval], [req_bignum=auto])
+[bignum implementation to use [default=auto]])],[req_bignum=$withval], [req_bignum=auto])
 
 AC_ARG_WITH([scalar], [AS_HELP_STRING([--with-scalar=64bit|32bit|auto],
-[Specify scalar implementation. Default is auto])],[req_scalar=$withval], [req_scalar=auto])
+[scalar implementation to use [default=auto]])],[req_scalar=$withval], [req_scalar=auto])
 
-AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto]
-[Specify assembly optimizations to use. Default is auto (experimental: arm)])],[req_asm=$withval], [req_asm=auto])
+AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto],
+[assembly optimizations to use (experimental: arm) [default=auto]])],[req_asm=$withval], [req_asm=auto])
 
 AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
 [window size for ecmult precomputation for verification, specified as integer in range [2..24].]
