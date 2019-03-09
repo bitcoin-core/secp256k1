@@ -114,7 +114,7 @@ exhaustive_tests_CPPFLAGS = -DSECP256K1_BUILD -I$(top_srcdir)/src $(SECP_INCLUDE
 if !ENABLE_COVERAGE
 exhaustive_tests_CPPFLAGS += -DVERIFY
 endif
-exhaustive_tests_LDADD = $(SECP_LIBS)
+exhaustive_tests_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 exhaustive_tests_LDFLAGS = -static
 TESTS += exhaustive_tests
 endif
