@@ -14,6 +14,7 @@ static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* err
     secp256k1_scratch* ret = (secp256k1_scratch*)checked_malloc(error_callback, sizeof(*ret));
     if (ret != NULL) {
         memset(ret, 0, sizeof(*ret));
+        memcpy(ret->magic, "scratch", 8);
         ret->data = (secp256k1_scratch*)checked_malloc(error_callback, max_size);
         ret->max_size = max_size;
     }
@@ -23,6 +24,10 @@ static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* err
 static void secp256k1_scratch_destroy(secp256k1_scratch* scratch) {
     if (scratch != NULL) {
         VERIFY_CHECK(scratch->frame == 0);
+        if (memcmp(scratch->magic, "scratch", 8) != 0) {
+            return;
+        }
+        memset(scratch->magic, 0, sizeof(scratch->magic));
         free(scratch->data);
         free(scratch);
     }
@@ -31,6 +36,9 @@ static void secp256k1_scratch_destroy(secp256k1_scratch* scratch) {
 static size_t secp256k1_scratch_max_allocation(const secp256k1_scratch* scratch, size_t objects) {
     size_t i = 0;
     size_t allocated = 0;
+    if (memcmp(scratch->magic, "scratch", 8) != 0) {
+        return 0;
+    }
     for (i = 0; i < scratch->frame; i++) {
         allocated += scratch->frame_size[i];
     }
@@ -42,6 +50,10 @@ static size_t secp256k1_scratch_max_allocation(const secp256k1_scratch* scratch,
 
 static int secp256k1_scratch_allocate_frame(secp256k1_scratch* scratch, size_t n, size_t objects) {
     VERIFY_CHECK(scratch->frame < SECP256K1_SCRATCH_MAX_FRAMES);
+
+    if (memcmp(scratch->magic, "scratch", 8) != 0) {
+        return 0;
+    }
 
     if (n <= secp256k1_scratch_max_allocation(scratch, objects)) {
         n += objects * ALIGNMENT;
@@ -58,6 +70,11 @@ static int secp256k1_scratch_allocate_frame(secp256k1_scratch* scratch, size_t n
 
 static void secp256k1_scratch_deallocate_frame(secp256k1_scratch* scratch) {
     VERIFY_CHECK(scratch->frame > 0);
+
+    if (memcmp(scratch->magic, "scratch", 8) != 0) {
+        return;
+    }
+
     scratch->frame--;
     scratch->data = (void *) ((char *) scratch->data - scratch->frame_size[scratch->frame]);
 }
@@ -66,6 +83,10 @@ static void *secp256k1_scratch_alloc(secp256k1_scratch* scratch, size_t size) {
     void *ret;
     size_t frame = scratch->frame - 1;
     size = ROUND_TO_ALIGN(size);
+
+    if (memcmp(scratch->magic, "scratch", 8) != 0) {
+        return NULL;
+    }
 
     if (scratch->frame == 0 || size + scratch->offset[frame] > scratch->frame_size[frame]) {
         return NULL;

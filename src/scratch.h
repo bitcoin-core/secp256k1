@@ -12,6 +12,7 @@
 /* The typedef is used internally; the struct name is used in the public API
  * (where it is exposed as a different typedef) */
 typedef struct secp256k1_scratch_space_struct {
+    unsigned char magic[8];
     void *data;
     void *current_frame;
     size_t offset[SECP256K1_SCRATCH_MAX_FRAMES];
