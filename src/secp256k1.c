@@ -199,8 +199,9 @@ secp256k1_scratch_space* secp256k1_scratch_space_create(const secp256k1_context*
     return secp256k1_scratch_create(&ctx->error_callback, max_size);
 }
 
-void secp256k1_scratch_space_destroy(secp256k1_scratch_space* scratch) {
-    secp256k1_scratch_destroy(scratch);
+void secp256k1_scratch_space_destroy(const secp256k1_context *ctx, secp256k1_scratch_space* scratch) {
+    VERIFY_CHECK(ctx != NULL);
+    secp256k1_scratch_destroy(&ctx->error_callback, scratch);
 }
 
 static int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge, const secp256k1_pubkey* pubkey) {

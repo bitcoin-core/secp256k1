@@ -295,11 +295,13 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT secp256k1_scratch_space* secp256k1_sc
 /** Destroy a secp256k1 scratch space.
  *
  *  The pointer may not be used afterwards.
- *  Args:   scratch: space to destroy
+ *  Args:       ctx: a secp256k1 context object.
+ *          scratch: space to destroy
  */
 SECP256K1_API void secp256k1_scratch_space_destroy(
+    const secp256k1_context* ctx,
     secp256k1_scratch_space* scratch
-);
+) SECP256K1_ARG_NONNULL(1);
 
 /** Parse a variable-length public key into the pubkey object.
  *
