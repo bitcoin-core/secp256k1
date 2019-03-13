@@ -14,8 +14,8 @@ static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* err
     secp256k1_scratch* ret = (secp256k1_scratch*)checked_malloc(error_callback, sizeof(*ret));
     if (ret != NULL) {
         memset(ret, 0, sizeof(*ret));
+        ret->data = (secp256k1_scratch*)checked_malloc(error_callback, max_size);
         ret->max_size = max_size;
-        ret->error_callback = error_callback;
     }
     return ret;
 }
@@ -23,6 +23,7 @@ static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* err
 static void secp256k1_scratch_destroy(secp256k1_scratch* scratch) {
     if (scratch != NULL) {
         VERIFY_CHECK(scratch->frame == 0);
+        free(scratch->data);
         free(scratch);
     }
 }
@@ -44,10 +45,8 @@ static int secp256k1_scratch_allocate_frame(secp256k1_scratch* scratch, size_t n
 
     if (n <= secp256k1_scratch_max_allocation(scratch, objects)) {
         n += objects * ALIGNMENT;
-        scratch->data[scratch->frame] = checked_malloc(scratch->error_callback, n);
-        if (scratch->data[scratch->frame] == NULL) {
-            return 0;
-        }
+        scratch->current_frame = scratch->data;
+        scratch->data = (void *) ((char *) scratch->data + n);
         scratch->frame_size[scratch->frame] = n;
         scratch->offset[scratch->frame] = 0;
         scratch->frame++;
@@ -59,8 +58,8 @@ static int secp256k1_scratch_allocate_frame(secp256k1_scratch* scratch, size_t n
 
 static void secp256k1_scratch_deallocate_frame(secp256k1_scratch* scratch) {
     VERIFY_CHECK(scratch->frame > 0);
-    scratch->frame -= 1;
-    free(scratch->data[scratch->frame]);
+    scratch->frame--;
+    scratch->data = (void *) ((char *) scratch->data - scratch->frame_size[scratch->frame]);
 }
 
 static void *secp256k1_scratch_alloc(secp256k1_scratch* scratch, size_t size) {
@@ -71,7 +70,7 @@ static void *secp256k1_scratch_alloc(secp256k1_scratch* scratch, size_t size) {
     if (scratch->frame == 0 || size + scratch->offset[frame] > scratch->frame_size[frame]) {
         return NULL;
     }
-    ret = (void *) ((unsigned char *) scratch->data[frame] + scratch->offset[frame]);
+    ret = (void *) ((char *) scratch->current_frame + scratch->offset[frame]);
     memset(ret, 0, size);
     scratch->offset[frame] += size;
 
