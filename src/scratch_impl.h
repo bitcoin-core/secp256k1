@@ -10,15 +10,15 @@
 #include "util.h"
 #include "scratch.h"
 
-static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* error_callback, size_t max_size) {
+static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* error_callback, size_t size) {
     const size_t base_alloc = ((sizeof(secp256k1_scratch) + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT;
-    void *alloc = checked_malloc(error_callback, base_alloc + max_size);
+    void *alloc = checked_malloc(error_callback, base_alloc + size);
     secp256k1_scratch* ret = (secp256k1_scratch *)alloc;
     if (ret != NULL) {
         memset(ret, 0, sizeof(*ret));
         memcpy(ret->magic, "scratch", 8);
         ret->data = (void *) ((char *) alloc + base_alloc);
-        ret->max_size = max_size;
+        ret->max_size = size;
     }
     return ret;
 }
