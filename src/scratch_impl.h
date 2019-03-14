@@ -11,11 +11,13 @@
 #include "scratch.h"
 
 static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* error_callback, size_t max_size) {
-    secp256k1_scratch* ret = (secp256k1_scratch*)checked_malloc(error_callback, sizeof(*ret));
+    const size_t base_alloc = ((sizeof(secp256k1_scratch) + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT;
+    void *alloc = checked_malloc(error_callback, base_alloc + max_size);
+    secp256k1_scratch* ret = (secp256k1_scratch *)alloc;
     if (ret != NULL) {
         memset(ret, 0, sizeof(*ret));
         memcpy(ret->magic, "scratch", 8);
-        ret->data = (secp256k1_scratch*)checked_malloc(error_callback, max_size);
+        ret->data = (void *) ((char *) alloc + base_alloc);
         ret->max_size = max_size;
     }
     return ret;
@@ -29,7 +31,6 @@ static void secp256k1_scratch_destroy(const secp256k1_callback* error_callback, 
             return;
         }
         memset(scratch->magic, 0, sizeof(scratch->magic));
-        free(scratch->data);
         free(scratch);
     }
 }
