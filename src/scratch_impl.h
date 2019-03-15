@@ -45,10 +45,10 @@ static size_t secp256k1_scratch_max_allocation(const secp256k1_callback* error_c
     for (i = 0; i < scratch->frame; i++) {
         allocated += scratch->frame_size[i];
     }
-    if (scratch->max_size - allocated <= objects * ALIGNMENT) {
+    if (scratch->max_size - allocated <= objects * (ALIGNMENT - 1)) {
         return 0;
     }
-    return scratch->max_size - allocated - objects * ALIGNMENT;
+    return scratch->max_size - allocated - objects *  (ALIGNMENT - 1);
 }
 
 static int secp256k1_scratch_allocate_frame(const secp256k1_callback* error_callback, secp256k1_scratch* scratch, size_t n, size_t objects) {
@@ -60,7 +60,7 @@ static int secp256k1_scratch_allocate_frame(const secp256k1_callback* error_call
     }
 
     if (n <= secp256k1_scratch_max_allocation(error_callback, scratch, objects)) {
-        n += objects * ALIGNMENT;
+        n += objects * (ALIGNMENT - 1);
         scratch->current_frame = scratch->data;
         scratch->data = (void *) ((char *) scratch->data + n);
         scratch->frame_size[scratch->frame] = n;

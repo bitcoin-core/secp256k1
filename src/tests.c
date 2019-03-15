@@ -356,7 +356,7 @@ void run_scratch_tests(void) {
 
     /* ...but pushing a new stack frame does affect the max allocation */
     CHECK(secp256k1_scratch_allocate_frame(&none->error_callback, scratch, 500, 1) == 1);
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) < 500); /* 500 - ALIGNMENT */
+    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) < 500); /* 500 - (ALIGNMENT - 1) */
     CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) != NULL);
     CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) == NULL);
 
