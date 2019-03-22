@@ -38,8 +38,10 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
 
 #if SECP256K1_GNUC_PREREQ(3, 0)
 #define EXPECT(x,c) __builtin_expect((x),(c))
+#define ASSUME(x) do { if (!(x)) __builtin_unreachable(); } while(0)
 #else
 #define EXPECT(x,c) (x)
+#define ASSUME(x) (void)(x)
 #endif
 
 #ifdef DETERMINISTIC
@@ -63,6 +65,9 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
 #elif defined(VERIFY)
 #define VERIFY_CHECK CHECK
 #define VERIFY_SETUP(stmt) do { stmt; } while(0)
+#elif defined(ASSUME) || defined(__clang_analyzer__)
+#define VERIFY_CHECK(cond) do { ASSUME(cond); } while(0)
+#define VERIFY_SETUP(stmt)
 #else
 #define VERIFY_CHECK(cond) do { (void)(cond); } while(0)
 #define VERIFY_SETUP(stmt)
