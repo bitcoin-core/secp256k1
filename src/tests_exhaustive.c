@@ -14,6 +14,7 @@
 #include <time.h>
 
 #undef USE_ECMULT_STATIC_PRECOMPUTATION
+#undef STATIC_WINDOW_G
 
 #ifndef EXHAUSTIVE_TEST_ORDER
 /* see group_impl.h for allowable values */
