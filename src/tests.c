@@ -3050,7 +3050,7 @@ void test_constant_wnaf(const secp256k1_scalar *number, int w) {
     }
     bits = 128;
 #endif
-    skew = secp256k1_wnaf_const(wnaf, num, w, bits);
+    skew = secp256k1_wnaf_const(wnaf, &num, w, bits);
 
     for (i = WNAF_SIZE_BITS(bits, w); i >= 0; --i) {
         secp256k1_scalar t;
