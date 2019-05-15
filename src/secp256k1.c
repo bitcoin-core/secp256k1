@@ -457,6 +457,7 @@ int secp256k1_ec_privkey_negate(const secp256k1_context* ctx, unsigned char *sec
     secp256k1_scalar_negate(&sec, &sec);
     secp256k1_scalar_get_b32(seckey, &sec);
 
+    secp256k1_scalar_clear(&sec);
     return 1;
 }
 
