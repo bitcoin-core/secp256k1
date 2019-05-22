@@ -61,6 +61,10 @@ static int secp256k1_wnaf_const(int *wnaf, const secp256k1_scalar *scalar, int w
     int bit;
     secp256k1_scalar s;
     int not_neg_one;
+
+    VERIFY_CHECK(w > 0);
+    VERIFY_CHECK(size > 0);
+
     /* Note that we cannot handle even numbers by negating them to be odd, as is
      * done in other implementations, since if our scalars were specified to have
      * width < 256 for performance reasons, their negations would have width 256
@@ -94,7 +98,7 @@ static int secp256k1_wnaf_const(int *wnaf, const secp256k1_scalar *scalar, int w
 
     /* 4 */
     u_last = secp256k1_scalar_shr_int(&s, w);
-    while (word * w < size) {
+    do {
         int sign;
         int even;
 
@@ -110,7 +114,7 @@ static int secp256k1_wnaf_const(int *wnaf, const secp256k1_scalar *scalar, int w
         wnaf[word++] = u_last * global_sign;
 
         u_last = u;
-    }
+    } while (word * w < size);
     wnaf[word] = u * global_sign;
 
     VERIFY_CHECK(secp256k1_scalar_is_zero(&s));
