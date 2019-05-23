@@ -702,4 +702,14 @@ static int secp256k1_gej_has_quad_y_var(const secp256k1_gej *a) {
     return secp256k1_fe_is_quad_var(&yz);
 }
 
+static void secp256k1_ge_to_iso(secp256k1_ge *r, const secp256k1_fe *iso2, const secp256k1_fe *iso3) {
+    secp256k1_fe_mul(&r->x, &r->x, iso2);
+    secp256k1_fe_mul(&r->y, &r->y, iso3);
+}
+
+static void secp256k1_gej_to_iso(secp256k1_gej *r, const secp256k1_fe *iso2, const secp256k1_fe *iso3) {
+    secp256k1_fe_mul(&r->x, &r->x, iso2);
+    secp256k1_fe_mul(&r->y, &r->y, iso3);
+}
+
 #endif /* SECP256K1_GROUP_IMPL_H */

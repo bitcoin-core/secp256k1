@@ -84,10 +84,16 @@ static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context *ctx
             secp256k1_ge_to_storage(&(*ctx->prec)[j][i], &prec[j*16 + i]);
         }
     }
+    secp256k1_fe_set_int(&ctx->iso, 1);
 #else
     (void)cb;
     ctx->prec = (secp256k1_ge_storage (*)[64][16])secp256k1_ecmult_static_context;
 #endif
+
+    secp256k1_gej_set_ge(&ctx->initial, &secp256k1_ge_const_g);
+    secp256k1_gej_neg(&ctx->initial, &ctx->initial);
+    secp256k1_scalar_set_int(&ctx->blind, 1);
+
     secp256k1_ecmult_gen_blind(ctx, NULL);
 }
 
@@ -103,6 +109,7 @@ static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
         dst->prec = (secp256k1_ge_storage (*)[64][16])checked_malloc(cb, sizeof(*dst->prec));
         memcpy(dst->prec, src->prec, sizeof(*dst->prec));
+        dst->iso = src->iso;
 #else
         (void)cb;
         dst->prec = src->prec;
@@ -115,6 +122,7 @@ static void secp256k1_ecmult_gen_context_clone(secp256k1_ecmult_gen_context *dst
 static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx) {
 #ifndef USE_ECMULT_STATIC_PRECOMPUTATION
     free(ctx->prec);
+    secp256k1_fe_clear(&ctx->iso);
 #endif
     secp256k1_scalar_clear(&ctx->blind);
     secp256k1_gej_clear(&ctx->initial);
@@ -150,6 +158,9 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
         secp256k1_ge_from_storage(&add, &adds);
         secp256k1_gej_add_ge(r, r, &add);
     }
+#ifndef USE_ECMULT_STATIC_PRECOMPUTATION
+    secp256k1_fe_mul(&r->z, &r->z, &ctx->iso);
+#endif
     bits = 0;
     secp256k1_ge_clear(&add);
     secp256k1_scalar_clear(&gnb);
@@ -159,50 +170,109 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
 static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const unsigned char *seed32) {
     secp256k1_scalar b;
     secp256k1_gej gb;
-    secp256k1_fe s;
+    secp256k1_fe iso;
     unsigned char nonce32[32];
     secp256k1_rfc6979_hmac_sha256 rng;
     int retry;
+#ifdef USE_ECMULT_STATIC_PRECOMPUTATION
     unsigned char keydata[64] = {0};
-    if (seed32 == NULL) {
-        /* When seed is NULL, reset the initial point and blinding value. */
-        secp256k1_gej_set_ge(&ctx->initial, &secp256k1_ge_const_g);
-        secp256k1_gej_neg(&ctx->initial, &ctx->initial);
-        secp256k1_scalar_set_int(&ctx->blind, 1);
+#else
+    secp256k1_ge tmp;
+    secp256k1_fe iso2, iso3;
+    int i, j;
+    unsigned char keydata[96] = {0};
+#endif
+
+    /** Initialize the RNG. Using a CSPRNG allows a failure free interface, avoids needing large
+     *  amounts of random data, and guards against weak or adversarial seeds.  This is a simpler
+     *  and safer interface than asking the caller for blinding values directly and expecting them
+     *  to retry on failure. */
+    {
+        /* The prior blinding values are chained forward by including them in the hash. */
+        secp256k1_scalar_get_b32(keydata, &ctx->blind);
+#ifdef USE_ECMULT_STATIC_PRECOMPUTATION
+        if (seed32 != NULL) {
+            memcpy(keydata + 32, seed32, 32);
+        }
+        secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, seed32 ? 64 : 32);
+#else
+        secp256k1_fe_get_b32(keydata + 32, &ctx->iso);
+        if (seed32 != NULL) {
+            memcpy(keydata + 64, seed32, 32);
+        }
+        secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, seed32 ? 96 : 64);
+#endif
+        memset(keydata, 0, sizeof(keydata));
     }
-    /* The prior blinding value (if not reset) is chained forward by including it in the hash. */
-    secp256k1_scalar_get_b32(nonce32, &ctx->blind);
-    /** Using a CSPRNG allows a failure free interface, avoids needing large amounts of random data,
-     *   and guards against weak or adversarial seeds.  This is a simpler and safer interface than
-     *   asking the caller for blinding values directly and expecting them to retry on failure.
-     */
-    memcpy(keydata, nonce32, 32);
-    if (seed32 != NULL) {
-        memcpy(keydata + 32, seed32, 32);
-    }
-    secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, seed32 ? 64 : 32);
-    memset(keydata, 0, sizeof(keydata));
-    /* Retry for out of range results to achieve uniformity. */
+
+    /* Choose a random isomorphism, defined by some non-zero field element. */
     do {
         secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
-        retry = !secp256k1_fe_set_b32(&s, nonce32);
-        retry |= secp256k1_fe_is_zero(&s);
-    } while (retry); /* This branch true is cryptographically unreachable. Requires sha256_hmac output > Fp. */
-    /* Randomize the projection to defend against multiplier sidechannels. */
-    secp256k1_gej_rescale(&ctx->initial, &s);
-    secp256k1_fe_clear(&s);
+
+        /* Retry for out of range results to achieve uniformity. */
+        retry = !secp256k1_fe_set_b32(&iso, nonce32);
+        retry |= secp256k1_fe_is_zero(&iso);
+    }
+    /* This branch true is cryptographically unreachable. Requires sha256_hmac output > Fp. */
+    while (retry);
+
+    /* Map precomputed points onto the random isomorphism to defend against multiplier sidechannels. */
+    {
+#ifdef USE_ECMULT_STATIC_PRECOMPUTATION
+        /* For static case, we settle for randomizing the projective coordinate of ctx->initial. */
+        secp256k1_gej_rescale(&ctx->initial, &iso);
+#else
+        secp256k1_fe_sqr(&iso2, &iso);
+        secp256k1_fe_mul(&iso3, &iso2, &iso);
+
+        secp256k1_gej_to_iso(&ctx->initial, &iso2, &iso3);
+
+        for (j = 0; j < 64; j++) {
+            for (i = 0; i < 16; i++) {
+                secp256k1_ge_from_storage(&tmp, &(*ctx->prec)[j][i]);
+                secp256k1_ge_to_iso(&tmp, &iso2, &iso3);
+                secp256k1_ge_to_storage(&(*ctx->prec)[j][i], &tmp);
+            }
+        }
+
+        secp256k1_fe_clear(&iso2);
+        secp256k1_fe_clear(&iso3);
+        secp256k1_ge_clear(&tmp);
+#endif
+    }
+
+    /* Choose a random scalar 'blind'. */
     do {
         secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
         secp256k1_scalar_set_b32(&b, nonce32, &retry);
         /* A blinding value of 0 works, but would undermine the projection hardening. */
         retry |= secp256k1_scalar_is_zero(&b);
-    } while (retry); /* This branch true is cryptographically unreachable. Requires sha256_hmac output > order. */
+    }
+    /* This branch true is cryptographically unreachable. Requires sha256_hmac output > order. */
+    while (retry);
+
     secp256k1_rfc6979_hmac_sha256_finalize(&rng);
     memset(nonce32, 0, 32);
-    secp256k1_ecmult_gen(ctx, &gb, &b);
-    secp256k1_scalar_negate(&b, &b);
-    ctx->blind = b;
-    ctx->initial = gb;
+
+    /* Calculate the 'initial' point corresponding to the chosen scalar 'blind'. */
+    {
+#ifndef USE_ECMULT_STATIC_PRECOMPUTATION
+        secp256k1_fe_mul(&iso, &iso, &ctx->iso);
+        secp256k1_fe_set_int(&ctx->iso, 1);
+#endif
+
+        secp256k1_ecmult_gen(ctx, &gb, &b);
+        secp256k1_scalar_negate(&b, &b);
+        ctx->blind = b;
+        ctx->initial = gb;
+
+#ifndef USE_ECMULT_STATIC_PRECOMPUTATION
+        secp256k1_fe_normalize(&iso);
+        ctx->iso = iso;
+        secp256k1_fe_clear(&iso);
+#endif
+    }
+
     secp256k1_scalar_clear(&b);
     secp256k1_gej_clear(&gb);
 }
