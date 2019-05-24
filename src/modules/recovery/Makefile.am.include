@@ -1,4 +1,3 @@
-include_HEADERS += include/secp256k1_recovery.h
 noinst_HEADERS += src/modules/recovery/main_impl.h
 noinst_HEADERS += src/modules/recovery/tests_impl.h
 if USE_BENCHMARK
