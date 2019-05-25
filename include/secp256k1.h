@@ -33,9 +33,10 @@ extern "C" {
  *  verification).
  *
  *  A constructed context can safely be used from multiple threads
- *  simultaneously, but API call that take a non-const pointer to a context
+ *  simultaneously, but API calls that take a non-const pointer to a context
  *  need exclusive access to it. In particular this is the case for
- *  secp256k1_context_destroy and secp256k1_context_randomize.
+ *  secp256k1_context_destroy, secp256k1_context_preallocated_destroy,
+ *  and secp256k1_context_randomize.
  *
  *  Regarding randomization, either do it once at creation time (in which case
  *  you do not need any locking for the other calls), or use a read-write lock.
@@ -163,7 +164,8 @@ typedef int (*secp256k1_nonce_function)(
 #define SECP256K1_FLAGS_BIT_CONTEXT_SIGN (1 << 9)
 #define SECP256K1_FLAGS_BIT_COMPRESSION (1 << 8)
 
-/** Flags to pass to secp256k1_context_create. */
+/** Flags to pass to secp256k1_context_create, secp256k1_context_preallocated_size, and
+ *  secp256k1_context_preallocated_create. */
 #define SECP256K1_CONTEXT_VERIFY (SECP256K1_FLAGS_TYPE_CONTEXT | SECP256K1_FLAGS_BIT_CONTEXT_VERIFY)
 #define SECP256K1_CONTEXT_SIGN (SECP256K1_FLAGS_TYPE_CONTEXT | SECP256K1_FLAGS_BIT_CONTEXT_SIGN)
 #define SECP256K1_CONTEXT_NONE (SECP256K1_FLAGS_TYPE_CONTEXT)
@@ -186,7 +188,11 @@ typedef int (*secp256k1_nonce_function)(
  */
 SECP256K1_API extern const secp256k1_context *secp256k1_context_no_precomp;
 
-/** Create a secp256k1 context object.
+/** Create a secp256k1 context object (in dynamically allocated memory).
+ *
+ *  This function uses malloc to allocate memory. It is guaranteed that malloc is
+ *  called at most once for every call of this function. If you need to avoid dynamic
+ *  memory allocation entirely, see the functions in secp256k1_preallocated.h.
  *
  *  Returns: a newly created context object.
  *  In:      flags: which parts of the context to initialize.
@@ -197,7 +203,11 @@ SECP256K1_API secp256k1_context* secp256k1_context_create(
     unsigned int flags
 ) SECP256K1_WARN_UNUSED_RESULT;
 
-/** Copies a secp256k1 context object.
+/** Copy a secp256k1 context object (into dynamically allocated memory).
+ *
+ *  This function uses malloc to allocate memory. It is guaranteed that malloc is
+ *  called at most once for every call of this function. If you need to avoid dynamic
+ *  memory allocation entirely, see the functions in secp256k1_preallocated.h.
  *
  *  Returns: a newly created context object.
  *  Args:    ctx: an existing context to copy (cannot be NULL)
@@ -206,10 +216,18 @@ SECP256K1_API secp256k1_context* secp256k1_context_clone(
     const secp256k1_context* ctx
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_WARN_UNUSED_RESULT;
 
-/** Destroy a secp256k1 context object.
+/** Destroy a secp256k1 context object (created in dynamically allocated memory).
  *
  *  The context pointer may not be used afterwards.
- *  Args:   ctx: an existing context to destroy (cannot be NULL)
+ *
+ *  The context to destroy must have been created using secp256k1_context_create
+ *  or secp256k1_context_clone. If the context has instead been created using
+ *  secp256k1_context_preallocated_create or secp256k1_context_preallocated_clone, the
+ *  behaviour is undefined. In that case, secp256k1_context_preallocated_destroy must
+ *  be used instead.
+ *
+ *  Args:   ctx: an existing context to destroy, constructed using
+ *               secp256k1_context_create or secp256k1_context_clone
  */
 SECP256K1_API void secp256k1_context_destroy(
     secp256k1_context* ctx
@@ -636,7 +654,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_mul(
  * contexts not initialized for signing; then it will have no effect and return 1.
  *
  * You should call this after secp256k1_context_create or
- * secp256k1_context_clone, and may call this repeatedly afterwards.
+ * secp256k1_context_clone (and secp256k1_context_preallocated_create or
+ * secp256k1_context_clone, resp.), and you may call this repeatedly afterwards.
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_context_randomize(
     secp256k1_context* ctx,
