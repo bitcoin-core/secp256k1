@@ -30,16 +30,32 @@
 #  endif
 #else
 /* optimal for 128-bit and 256-bit exponents. */
-#define WINDOW_A 5
-/** larger numbers may result in slightly better performance, at the cost of
-    exponentially larger precomputed tables. */
-#ifdef USE_ENDOMORPHISM
-/** Two tables for window size 15: 1.375 MiB. */
-#define WINDOW_G 15
-#else
-/** One table for window size 16: 1.375 MiB. */
-#define WINDOW_G 16
+#  define WINDOW_A 5
+/** Larger values for ECMULT_WINDOW_SIZE result in possibly better
+ *  performance at the cost of an exponentially larger precomputed
+ *  table. The exact table size is
+ *      (1 << (WINDOW_G - 2)) * sizeof(secp256k1_ge_storage)  bytes,
+ *  where sizeof(secp256k1_ge_storage) is typically 64 bytes but can
+ *  be larger due to platform-specific padding and alignment.
+ *  If the endomorphism optimization is enabled (USE_ENDOMORMPHSIM)
+ *  two tables of this size are used instead of only one.
+ */
+#  define WINDOW_G ECMULT_WINDOW_SIZE
 #endif
+
+/* Noone will ever need more than a window size of 24. The code might
+ * be correct for larger values of ECMULT_WINDOW_SIZE but this is not
+ * not tested.
+ *
+ * The following limitations are known, and there are probably more:
+ * If WINDOW_G > 27 and size_t has 32 bits, then the code is incorrect
+ * because the size of the memory object that we allocate (in bytes)
+ * will not fit in a size_t.
+ * If WINDOW_G > 31 and int has 32 bits, then the code is incorrect
+ * because certain expressions will overflow.
+ */
+#if ECMULT_WINDOW_SIZE < 2 || ECMULT_WINDOW_SIZE > 24
+#  error Set ECMULT_WINDOW_SIZE to an integer in range [2..24].
 #endif
 
 #ifdef USE_ENDOMORPHISM
@@ -311,7 +327,12 @@ static void secp256k1_ecmult_context_build(secp256k1_ecmult_context *ctx, const 
     /* get the generator */
     secp256k1_gej_set_ge(&gj, &secp256k1_ge_const_g);
 
-    ctx->pre_g = (secp256k1_ge_storage (*)[])checked_malloc(cb, sizeof((*ctx->pre_g)[0]) * ECMULT_TABLE_SIZE(WINDOW_G));
+    {
+        size_t size = sizeof((*ctx->pre_g)[0]) * ((size_t)ECMULT_TABLE_SIZE(WINDOW_G));
+        /* check for overflow */
+        VERIFY_CHECK(size / sizeof((*ctx->pre_g)[0]) == ((size_t)ECMULT_TABLE_SIZE(WINDOW_G)));
+        ctx->pre_g = (secp256k1_ge_storage (*)[])checked_malloc(cb, size);
+    }
 
     /* precompute the tables with odd multiples */
     secp256k1_ecmult_odd_multiples_table_storage_var(ECMULT_TABLE_SIZE(WINDOW_G), *ctx->pre_g, &gj);
@@ -321,7 +342,10 @@ static void secp256k1_ecmult_context_build(secp256k1_ecmult_context *ctx, const 
         secp256k1_gej g_128j;
         int i;
 
-        ctx->pre_g_128 = (secp256k1_ge_storage (*)[])checked_malloc(cb, sizeof((*ctx->pre_g_128)[0]) * ECMULT_TABLE_SIZE(WINDOW_G));
+        size_t size = sizeof((*ctx->pre_g_128)[0]) * ((size_t) ECMULT_TABLE_SIZE(WINDOW_G));
+        /* check for overflow */
+        VERIFY_CHECK(size / sizeof((*ctx->pre_g_128)[0]) == ((size_t)ECMULT_TABLE_SIZE(WINDOW_G)));
+        ctx->pre_g_128 = (secp256k1_ge_storage (*)[])checked_malloc(cb, size);
 
         /* calculate 2^128*generator */
         g_128j = gj;
@@ -338,7 +362,7 @@ static void secp256k1_ecmult_context_clone(secp256k1_ecmult_context *dst,
     if (src->pre_g == NULL) {
         dst->pre_g = NULL;
     } else {
-        size_t size = sizeof((*dst->pre_g)[0]) * ECMULT_TABLE_SIZE(WINDOW_G);
+        size_t size = sizeof((*dst->pre_g)[0]) * ((size_t)ECMULT_TABLE_SIZE(WINDOW_G));
         dst->pre_g = (secp256k1_ge_storage (*)[])checked_malloc(cb, size);
         memcpy(dst->pre_g, src->pre_g, size);
     }
@@ -346,7 +370,7 @@ static void secp256k1_ecmult_context_clone(secp256k1_ecmult_context *dst,
     if (src->pre_g_128 == NULL) {
         dst->pre_g_128 = NULL;
     } else {
-        size_t size = sizeof((*dst->pre_g_128)[0]) * ECMULT_TABLE_SIZE(WINDOW_G);
+        size_t size = sizeof((*dst->pre_g_128)[0]) * ((size_t)ECMULT_TABLE_SIZE(WINDOW_G));
         dst->pre_g_128 = (secp256k1_ge_storage (*)[])checked_malloc(cb, size);
         memcpy(dst->pre_g_128, src->pre_g_128, size);
     }
