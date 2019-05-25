@@ -7,17 +7,17 @@
 #ifndef _SECP256K1_SCRATCH_
 #define _SECP256K1_SCRATCH_
 
-#define SECP256K1_SCRATCH_MAX_FRAMES	5
-
 /* The typedef is used internally; the struct name is used in the public API
  * (where it is exposed as a different typedef) */
 typedef struct secp256k1_scratch_space_struct {
+    /** guard against interpreting this object as other types */
     unsigned char magic[8];
+    /** actual allocated data */
     void *data;
-    void *current_frame;
-    size_t offset[SECP256K1_SCRATCH_MAX_FRAMES];
-    size_t frame_size[SECP256K1_SCRATCH_MAX_FRAMES];
-    size_t frame;
+    /** amount that has been allocated (i.e. `data + offset` is the next
+     *  available pointer)  */
+    size_t alloc_size;
+    /** maximum size available to allocate */
     size_t max_size;
 } secp256k1_scratch;
 
@@ -25,11 +25,13 @@ static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* err
 
 static void secp256k1_scratch_destroy(const secp256k1_callback* error_callback, secp256k1_scratch* scratch);
 
-/** Attempts to allocate a new stack frame with `n` available bytes. Returns 1 on success, 0 on failure */
-static int secp256k1_scratch_allocate_frame(const secp256k1_callback* error_callback, secp256k1_scratch* scratch, size_t n, size_t objects);
+/** Returns an opaque object used to "checkpoint" a scratch space. Used
+ *  with `secp256k1_scratch_apply_checkpoint` to undo allocations. */
+static size_t secp256k1_scratch_checkpoint(const secp256k1_callback* error_callback, const secp256k1_scratch* scratch);
 
-/** Deallocates a stack frame */
-static void secp256k1_scratch_deallocate_frame(const secp256k1_callback* error_callback, secp256k1_scratch* scratch);
+/** Applies a check point received from `secp256k1_scratch_checkpoint`,
+ *  undoing all allocations since that point. */
+static void secp256k1_scratch_apply_checkpoint(const secp256k1_callback* error_callback, secp256k1_scratch* scratch, size_t checkpoint);
 
 /** Returns the maximum allocation the scratch space will allow */
 static size_t secp256k1_scratch_max_allocation(const secp256k1_callback* error_callback, const secp256k1_scratch* scratch, size_t n_objects);

@@ -333,7 +333,11 @@ void run_context_tests(int use_prealloc) {
 }
 
 void run_scratch_tests(void) {
+    const size_t adj_alloc = ((500 + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT;
+
     int32_t ecount = 0;
+    size_t checkpoint;
+    size_t checkpoint_2;
     secp256k1_context *none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     secp256k1_scratch_space *scratch;
     secp256k1_scratch_space local_scratch;
@@ -348,43 +352,54 @@ void run_scratch_tests(void) {
 
     /* Test internal API */
     CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000);
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) < 1000);
+    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) == 1000 - (ALIGNMENT - 1));
+    CHECK(scratch->alloc_size == 0);
+    CHECK(scratch->alloc_size % ALIGNMENT == 0);
 
-    /* Allocating 500 bytes with no frame fails */
-    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) == NULL);
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000);
-
-    /* ...but pushing a new stack frame does affect the max allocation */
-    CHECK(secp256k1_scratch_allocate_frame(&none->error_callback, scratch, 500, 1) == 1);
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) < 500); /* 500 - (ALIGNMENT - 1) */
+    /* Allocating 500 bytes succeeds */
+    checkpoint = secp256k1_scratch_checkpoint(&none->error_callback, scratch);
     CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) != NULL);
+    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000 - adj_alloc);
+    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) == 1000 - adj_alloc - (ALIGNMENT - 1));
+    CHECK(scratch->alloc_size != 0);
+    CHECK(scratch->alloc_size % ALIGNMENT == 0);
+
+    /* Allocating another 500 bytes fails */
     CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) == NULL);
+    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000 - adj_alloc);
+    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) == 1000 - adj_alloc - (ALIGNMENT - 1));
+    CHECK(scratch->alloc_size != 0);
+    CHECK(scratch->alloc_size % ALIGNMENT == 0);
 
-    CHECK(secp256k1_scratch_allocate_frame(&none->error_callback, scratch, 500, 1) == 0);
-
-    /* ...and this effect is undone by popping the frame */
-    secp256k1_scratch_deallocate_frame(&none->error_callback, scratch);
+    /* ...but it succeeds once we apply the checkpoint to undo it */
+    secp256k1_scratch_apply_checkpoint(&none->error_callback, scratch, checkpoint);
+    CHECK(scratch->alloc_size == 0);
     CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000);
-    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) == NULL);
+    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) != NULL);
+    CHECK(scratch->alloc_size != 0);
 
-    /* cleanup */
-    secp256k1_scratch_space_destroy(none, scratch);
+    /* try to apply a bad checkpoint */
+    checkpoint_2 = secp256k1_scratch_checkpoint(&none->error_callback, scratch);
+    secp256k1_scratch_apply_checkpoint(&none->error_callback, scratch, checkpoint);
     CHECK(ecount == 0);
+    secp256k1_scratch_apply_checkpoint(&none->error_callback, scratch, checkpoint_2); /* checkpoint_2 is after checkpoint */
+    CHECK(ecount == 1);
+    secp256k1_scratch_apply_checkpoint(&none->error_callback, scratch, (size_t) -1); /* this is just wildly invalid */
+    CHECK(ecount == 2);
 
     /* try to use badly initialized scratch space */
+    secp256k1_scratch_space_destroy(none, scratch);
     memset(&local_scratch, 0, sizeof(local_scratch));
     scratch = &local_scratch;
     CHECK(!secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0));
-    CHECK(ecount == 1);
-    CHECK(secp256k1_scratch_allocate_frame(&none->error_callback, scratch, 500, 1) == 0);
-    CHECK(ecount == 2);
-    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) == NULL);
     CHECK(ecount == 3);
-    secp256k1_scratch_deallocate_frame(&none->error_callback, scratch);
+    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) == NULL);
     CHECK(ecount == 4);
     secp256k1_scratch_space_destroy(none, scratch);
     CHECK(ecount == 5);
 
+    /* cleanup */
+    secp256k1_scratch_space_destroy(none, NULL); /* no-op */
     secp256k1_context_destroy(none);
 }
 
@@ -2946,16 +2961,26 @@ void test_ecmult_multi_pippenger_max_points(void) {
     int bucket_window = 0;
 
     for(; scratch_size < max_size; scratch_size+=256) {
+        size_t i;
+        size_t total_alloc;
+        size_t checkpoint;
         scratch = secp256k1_scratch_create(&ctx->error_callback, scratch_size);
         CHECK(scratch != NULL);
+        checkpoint = secp256k1_scratch_checkpoint(&ctx->error_callback, scratch);
         n_points_supported = secp256k1_pippenger_max_points(&ctx->error_callback, scratch);
         if (n_points_supported == 0) {
             secp256k1_scratch_destroy(&ctx->error_callback, scratch);
             continue;
         }
         bucket_window = secp256k1_pippenger_bucket_window(n_points_supported);
-        CHECK(secp256k1_scratch_allocate_frame(&ctx->error_callback, scratch, secp256k1_pippenger_scratch_size(n_points_supported, bucket_window), PIPPENGER_SCRATCH_OBJECTS));
-        secp256k1_scratch_deallocate_frame(&ctx->error_callback, scratch);
+        /* allocate `total_alloc` bytes over `PIPPENGER_SCRATCH_OBJECTS` many allocations */
+        total_alloc = secp256k1_pippenger_scratch_size(n_points_supported, bucket_window);
+        for (i = 0; i < PIPPENGER_SCRATCH_OBJECTS - 1; i++) {
+            CHECK(secp256k1_scratch_alloc(&ctx->error_callback, scratch, 1));
+            total_alloc--;
+        }
+        CHECK(secp256k1_scratch_alloc(&ctx->error_callback, scratch, total_alloc));
+        secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, checkpoint);
         secp256k1_scratch_destroy(&ctx->error_callback, scratch);
     }
     CHECK(bucket_window == PIPPENGER_MAX_BUCKET_WINDOW);
