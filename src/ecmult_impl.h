@@ -1174,16 +1174,18 @@ static int secp256k1_ecmult_multi_var(const secp256k1_ecmult_context *ctx, secp2
         return secp256k1_ecmult_multi_simple_var(ctx, r, inp_g_sc, cb, cbdata, n);
     }
 
-    /* Compute the batch sizes for pippenger given a scratch space. If it's greater than a threshold
-     * use pippenger. Otherwise use strauss */
+    /* Compute the batch sizes for Pippenger's algorithm given a scratch space. If it's greater than
+     * a threshold use Pippenger's algorithm. Otherwise use Strauss' algorithm.
+     * As a first step check if there's enough space for Pippenger's algo (which requires less space
+     * than Strauss' algo) and if not, use the simple algorithm. */
     if (!secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, secp256k1_pippenger_max_points(scratch), n)) {
-        return 0;
+        return secp256k1_ecmult_multi_simple_var(ctx, r, inp_g_sc, cb, cbdata, n);
     }
     if (n_batch_points >= ECMULT_PIPPENGER_THRESHOLD) {
         f = secp256k1_ecmult_pippenger_batch;
     } else {
         if (!secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, secp256k1_strauss_max_points(scratch), n)) {
-            return 0;
+            return secp256k1_ecmult_multi_simple_var(ctx, r, inp_g_sc, cb, cbdata, n);
         }
         f = secp256k1_ecmult_strauss_batch;
     }

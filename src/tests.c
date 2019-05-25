@@ -2649,7 +2649,6 @@ void test_ecmult_multi(secp256k1_scratch *scratch, secp256k1_ecmult_multi_func e
     secp256k1_gej r;
     secp256k1_gej r2;
     ecmult_multi_data data;
-    secp256k1_scratch *scratch_empty;
 
     data.sc = sc;
     data.pt = pt;
@@ -2683,11 +2682,6 @@ void test_ecmult_multi(secp256k1_scratch *scratch, secp256k1_ecmult_multi_func e
         secp256k1_gej_neg(&r2, &r2);
         secp256k1_gej_add_var(&r, &r, &r2, NULL);
         CHECK(secp256k1_gej_is_infinity(&r));
-
-        /* Try to multiply 1 point, but scratch space is empty */
-        scratch_empty = secp256k1_scratch_create(&ctx->error_callback, 0);
-        CHECK(!ecmult_multi(&ctx->ecmult_ctx, scratch_empty, &r, &szero, ecmult_multi_callback, &data, 1));
-        secp256k1_scratch_destroy(scratch_empty);
 
         /* Try to multiply 1 point, but callback returns false */
         CHECK(!ecmult_multi(&ctx->ecmult_ctx, scratch, &r, &szero, ecmult_multi_false_callback, &data, 1));
@@ -2886,6 +2880,24 @@ void test_ecmult_multi(secp256k1_scratch *scratch, secp256k1_ecmult_multi_func e
     }
 }
 
+void test_ecmult_multi_batch_single(secp256k1_ecmult_multi_func ecmult_multi) {
+    secp256k1_scalar szero;
+    secp256k1_scalar sc[32];
+    secp256k1_ge pt[32];
+    secp256k1_gej r;
+    ecmult_multi_data data;
+    secp256k1_scratch *scratch_empty;
+
+    data.sc = sc;
+    data.pt = pt;
+    secp256k1_scalar_set_int(&szero, 0);
+
+    /* Try to multiply 1 point, but scratch space is empty.*/
+    scratch_empty = secp256k1_scratch_create(&ctx->error_callback, 0);
+    CHECK(!ecmult_multi(&ctx->ecmult_ctx, scratch_empty, &r, &szero, ecmult_multi_callback, &data, 1));
+    secp256k1_scratch_destroy(scratch_empty);
+}
+
 void test_secp256k1_pippenger_bucket_window_inv(void) {
     int i;
 
@@ -3009,19 +3021,25 @@ void test_ecmult_multi_batching(void) {
     }
     data.sc = sc;
     data.pt = pt;
+    secp256k1_gej_neg(&r2, &r2);
 
-    /* Test with empty scratch space */
+    /* Test with empty scratch space. It should compute the correct result using 
+     * ecmult_mult_simple algorithm which doesn't require a scratch space. */
     scratch = secp256k1_scratch_create(&ctx->error_callback, 0);
-    CHECK(!secp256k1_ecmult_multi_var(&ctx->ecmult_ctx, scratch, &r, &scG, ecmult_multi_callback, &data, 1));
+    CHECK(secp256k1_ecmult_multi_var(&ctx->ecmult_ctx, scratch, &r, &scG, ecmult_multi_callback, &data, n_points));
+    secp256k1_gej_add_var(&r, &r, &r2, NULL);
+    CHECK(secp256k1_gej_is_infinity(&r));
     secp256k1_scratch_destroy(scratch);
 
     /* Test with space for 1 point in pippenger. That's not enough because
-     * ecmult_multi selects strauss which requires more memory. */
+     * ecmult_multi selects strauss which requires more memory. It should
+     * therefore select the simple algorithm. */
     scratch = secp256k1_scratch_create(&ctx->error_callback, secp256k1_pippenger_scratch_size(1, 1) + PIPPENGER_SCRATCH_OBJECTS*ALIGNMENT);
-    CHECK(!secp256k1_ecmult_multi_var(&ctx->ecmult_ctx, scratch, &r, &scG, ecmult_multi_callback, &data, 1));
+    CHECK(secp256k1_ecmult_multi_var(&ctx->ecmult_ctx, scratch, &r, &scG, ecmult_multi_callback, &data, n_points));
+    secp256k1_gej_add_var(&r, &r, &r2, NULL);
+    CHECK(secp256k1_gej_is_infinity(&r));
     secp256k1_scratch_destroy(scratch);
 
-    secp256k1_gej_neg(&r2, &r2);
     for(i = 1; i <= n_points; i++) {
         if (i > ECMULT_PIPPENGER_THRESHOLD) {
             int bucket_window = secp256k1_pippenger_bucket_window(i);
@@ -3049,7 +3067,9 @@ void run_ecmult_multi_tests(void) {
     test_ecmult_multi(scratch, secp256k1_ecmult_multi_var);
     test_ecmult_multi(NULL, secp256k1_ecmult_multi_var);
     test_ecmult_multi(scratch, secp256k1_ecmult_pippenger_batch_single);
+    test_ecmult_multi_batch_single(secp256k1_ecmult_pippenger_batch_single);
     test_ecmult_multi(scratch, secp256k1_ecmult_strauss_batch_single);
+    test_ecmult_multi_batch_single(secp256k1_ecmult_strauss_batch_single);
     secp256k1_scratch_destroy(scratch);
 
     /* Run test_ecmult_multi with space for exactly one point */
