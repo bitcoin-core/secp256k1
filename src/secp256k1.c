@@ -27,28 +27,39 @@
     } \
 } while(0)
 
-static void default_illegal_callback_fn(const char* str, void* data) {
+#define ARG_CHECK_NO_RETURN(cond) do { \
+    if (EXPECT(!(cond), 0)) { \
+        secp256k1_callback_call(&ctx->illegal_callback, #cond); \
+    } \
+} while(0)
+
+#ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
+#include <stdlib.h>
+#include <stdio.h>
+static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
     (void)data;
     fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
     abort();
 }
-
-static const secp256k1_callback default_illegal_callback = {
-    default_illegal_callback_fn,
-    NULL
-};
-
-static void default_error_callback_fn(const char* str, void* data) {
+static void secp256k1_default_error_callback_fn(const char* str, void* data) {
     (void)data;
     fprintf(stderr, "[libsecp256k1] internal consistency check failed: %s\n", str);
     abort();
 }
+#else
+void secp256k1_default_illegal_callback_fn(const char* str, void* data);
+void secp256k1_default_error_callback_fn(const char* str, void* data);
+#endif
 
-static const secp256k1_callback default_error_callback = {
-    default_error_callback_fn,
+static const secp256k1_callback default_illegal_callback = {
+    secp256k1_default_illegal_callback_fn,
     NULL
 };
 
+static const secp256k1_callback default_error_callback = {
+    secp256k1_default_error_callback_fn,
+    NULL
+};
 
 struct secp256k1_context_struct {
     secp256k1_ecmult_context ecmult_ctx;
@@ -60,8 +71,8 @@ struct secp256k1_context_struct {
 static const secp256k1_context secp256k1_context_no_precomp_ = {
     { 0 },
     { 0 },
-    { default_illegal_callback_fn, 0 },
-    { default_error_callback_fn, 0 }
+    { secp256k1_default_illegal_callback_fn, 0 },
+    { secp256k1_default_error_callback_fn, 0 }
 };
 const secp256k1_context *secp256k1_context_no_precomp = &secp256k1_context_no_precomp_;
 
@@ -162,7 +173,7 @@ secp256k1_context* secp256k1_context_clone(const secp256k1_context* ctx) {
 }
 
 void secp256k1_context_preallocated_destroy(secp256k1_context* ctx) {
-    CHECK(ctx != secp256k1_context_no_precomp);
+    ARG_CHECK_NO_RETURN(ctx != secp256k1_context_no_precomp);
     if (ctx != NULL) {
         secp256k1_ecmult_context_clear(&ctx->ecmult_ctx);
         secp256k1_ecmult_gen_context_clear(&ctx->ecmult_gen_ctx);
@@ -177,18 +188,18 @@ void secp256k1_context_destroy(secp256k1_context* ctx) {
 }
 
 void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
-    CHECK(ctx != secp256k1_context_no_precomp);
+    ARG_CHECK_NO_RETURN(ctx != secp256k1_context_no_precomp);
     if (fun == NULL) {
-        fun = default_illegal_callback_fn;
+        fun = secp256k1_default_illegal_callback_fn;
     }
     ctx->illegal_callback.fn = fun;
     ctx->illegal_callback.data = data;
 }
 
 void secp256k1_context_set_error_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
-    CHECK(ctx != secp256k1_context_no_precomp);
+    ARG_CHECK_NO_RETURN(ctx != secp256k1_context_no_precomp);
     if (fun == NULL) {
-        fun = default_error_callback_fn;
+        fun = secp256k1_default_error_callback_fn;
     }
     ctx->error_callback.fn = fun;
     ctx->error_callback.data = data;
