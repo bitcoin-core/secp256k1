@@ -83,7 +83,9 @@ void random_field_element_magnitude(secp256k1_fe *fe) {
     secp256k1_fe_negate(&zero, &zero, 0);
     secp256k1_fe_mul_int(&zero, n - 1);
     secp256k1_fe_add(fe, &zero);
-    VERIFY_CHECK(fe->magnitude == n);
+#ifdef VERIFY
+    CHECK(fe->magnitude == n);
+#endif
 }
 
 void random_group_element_test(secp256k1_ge *ge) {
@@ -1819,24 +1821,32 @@ void run_field_misc(void) {
         /* Test fe conditional move; z is not normalized here. */
         q = x;
         secp256k1_fe_cmov(&x, &z, 0);
-        VERIFY_CHECK(!x.normalized && x.magnitude == z.magnitude);
+#ifdef VERIFY
+        CHECK(!x.normalized && x.magnitude == z.magnitude);
+#endif
         secp256k1_fe_cmov(&x, &x, 1);
         CHECK(fe_memcmp(&x, &z) != 0);
         CHECK(fe_memcmp(&x, &q) == 0);
         secp256k1_fe_cmov(&q, &z, 1);
-        VERIFY_CHECK(!q.normalized && q.magnitude == z.magnitude);
+#ifdef VERIFY
+        CHECK(!q.normalized && q.magnitude == z.magnitude);
+#endif
         CHECK(fe_memcmp(&q, &z) == 0);
         secp256k1_fe_normalize_var(&x);
         secp256k1_fe_normalize_var(&z);
         CHECK(!secp256k1_fe_equal_var(&x, &z));
         secp256k1_fe_normalize_var(&q);
         secp256k1_fe_cmov(&q, &z, (i&1));
-        VERIFY_CHECK(q.normalized && q.magnitude == 1);
+#ifdef VERIFY
+        CHECK(q.normalized && q.magnitude == 1);
+#endif
         for (j = 0; j < 6; j++) {
             secp256k1_fe_negate(&z, &z, j+1);
             secp256k1_fe_normalize_var(&q);
             secp256k1_fe_cmov(&q, &z, (j&1));
-            VERIFY_CHECK(!q.normalized && q.magnitude == (j+2));
+#ifdef VERIFY
+            CHECK(!q.normalized && q.magnitude == (j+2));
+#endif
         }
         secp256k1_fe_normalize_var(&z);
         /* Test storage conversion and conditional moves. */
