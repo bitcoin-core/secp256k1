@@ -4455,7 +4455,7 @@ int test_ecdsa_der_parse(const unsigned char *sig, size_t siglen, int certainly_
     if (valid_der) {
         ret |= (!roundtrips_der_lax) << 12;
         ret |= (len_der != len_der_lax) << 13;
-        ret |= (memcmp(roundtrip_der_lax, roundtrip_der, len_der) != 0) << 14;
+        ret |= ((len_der != len_der_lax) || (memcmp(roundtrip_der_lax, roundtrip_der, len_der) != 0)) << 14;
     }
     ret |= (roundtrips_der != roundtrips_der_lax) << 15;
     if (parsed_der) {
@@ -4496,7 +4496,7 @@ int test_ecdsa_der_parse(const unsigned char *sig, size_t siglen, int certainly_
     ret |= (roundtrips_der != roundtrips_openssl) << 7;
     if (roundtrips_openssl) {
         ret |= (len_der != (size_t)len_openssl) << 8;
-        ret |= (memcmp(roundtrip_der, roundtrip_openssl, len_der) != 0) << 9;
+        ret |= ((len_der != (size_t)len_openssl) || (memcmp(roundtrip_der, roundtrip_openssl, len_der) != 0)) << 9;
     }
 #endif
     return ret;
