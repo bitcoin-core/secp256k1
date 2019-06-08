@@ -385,11 +385,11 @@ static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned c
         secp256k1_scalar_set_b32(&k[i], buf, NULL);
 
         /* Attempt to erase secret data */
-        memset(buf, 0, sizeof(buf));
-        memset(&sha_tmp, 0, sizeof(sha_tmp));
+        secp256k1_memclear(buf, sizeof(buf));
+        secp256k1_memclear(&sha_tmp, sizeof(sha_tmp));
     }
-    memset(rand, 0, sizeof(rand));
-    memset(&sha, 0, sizeof(sha));
+    secp256k1_memclear(rand, sizeof(rand));
+    secp256k1_memclear(&sha, sizeof(sha));
 }
 
 int secp256k1_musig_nonce_gen_internal(const secp256k1_context* ctx, secp256k1_musig_secnonce *secnonce, secp256k1_musig_pubnonce *pubnonce, const unsigned char *input_nonce, const unsigned char *seckey, const secp256k1_pubkey *pubkey, const unsigned char *msg32, const secp256k1_musig_keyagg_cache *keyagg_cache, const unsigned char *extra_input32) {
@@ -509,7 +509,7 @@ int secp256k1_musig_nonce_gen_counter(const secp256k1_context* ctx, secp256k1_mu
     if (!secp256k1_musig_nonce_gen_internal(ctx, secnonce, pubnonce, buf, seckey, &pubkey, msg32, keyagg_cache, extra_input32)) {
         return 0;
     }
-    memset(seckey, 0, sizeof(seckey));
+    secp256k1_memclear(seckey, sizeof(seckey));
     return 1;
 }
 
