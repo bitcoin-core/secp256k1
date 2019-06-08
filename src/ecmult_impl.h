@@ -406,7 +406,9 @@ static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, 
     VERIFY_CHECK(a != NULL);
     VERIFY_CHECK(2 <= w && w <= 31);
 
-    memset(wnaf, 0, len * sizeof(wnaf[0]));
+    for (bit = 0; bit < len; bit++) {
+        wnaf[bit] = 0;
+    }
 
     s = *a;
     if (secp256k1_scalar_get_bits(&s, 255, 1)) {
@@ -414,6 +416,7 @@ static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, 
         sign = -1;
     }
 
+    bit = 0;
     while (bit < len) {
         int now;
         int word;
