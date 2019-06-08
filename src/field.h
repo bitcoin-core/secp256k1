@@ -81,7 +81,6 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_normalizes_to_zero secp256k1_fe_impl_normalizes_to_zero
 #  define secp256k1_fe_normalizes_to_zero_var secp256k1_fe_impl_normalizes_to_zero_var
 #  define secp256k1_fe_set_int secp256k1_fe_impl_set_int
-#  define secp256k1_fe_clear secp256k1_fe_impl_clear
 #  define secp256k1_fe_is_zero secp256k1_fe_impl_is_zero
 #  define secp256k1_fe_is_odd secp256k1_fe_impl_is_odd
 #  define secp256k1_fe_cmp_var secp256k1_fe_impl_cmp_var
