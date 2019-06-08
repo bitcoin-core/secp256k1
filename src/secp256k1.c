@@ -494,7 +494,7 @@ static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *m
        buffer_append(keydata, &offset, algo16, 16);
    }
    secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, offset);
-   memset(keydata, 0, sizeof(keydata));
+   secp256k1_memclear(keydata, sizeof(keydata));
    for (i = 0; i <= counter; i++) {
        secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
    }
@@ -548,7 +548,7 @@ static int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_sc
      * seckey. As a result is_sec_valid is included in ret only after ret was
      * used as a branching variable. */
     ret &= is_sec_valid;
-    memset(nonce32, 0, 32);
+    secp256k1_memclear(nonce32, sizeof(nonce32));
     secp256k1_scalar_clear(&msg);
     secp256k1_scalar_clear(&non);
     secp256k1_scalar_clear(&sec);
