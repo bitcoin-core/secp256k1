@@ -206,16 +206,11 @@ static void secp256k1_ge_set_infinity(secp256k1_ge *r) {
 }
 
 static void secp256k1_gej_clear(secp256k1_gej *r) {
-    r->infinity = 0;
-    secp256k1_fe_clear(&r->x);
-    secp256k1_fe_clear(&r->y);
-    secp256k1_fe_clear(&r->z);
+    memclear(r, sizeof(secp256k1_gej));
 }
 
 static void secp256k1_ge_clear(secp256k1_ge *r) {
-    r->infinity = 0;
-    secp256k1_fe_clear(&r->x);
-    secp256k1_fe_clear(&r->y);
+    memclear(r, sizeof(secp256k1_ge));
 }
 
 static int secp256k1_ge_set_xquad(secp256k1_ge *r, const secp256k1_fe *x) {
