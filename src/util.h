@@ -283,7 +283,7 @@ static SECP256K1_INLINE int secp256k1_is_zero_array(const unsigned char *s, size
     }
     ret = (acc == 0);
     /* acc may contain secret values. Try to explicitly clear it. */
-    acc = 0;
+    secp256k1_memclear(&acc, sizeof(acc));
     return ret;
 }
 
