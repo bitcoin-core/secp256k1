@@ -194,15 +194,15 @@ static void secp256k1_ge_globalz_set_table_gej(size_t len, secp256k1_ge *r, secp
 
 static void secp256k1_gej_set_infinity(secp256k1_gej *r) {
     r->infinity = 1;
-    secp256k1_fe_clear(&r->x);
-    secp256k1_fe_clear(&r->y);
-    secp256k1_fe_clear(&r->z);
+    secp256k1_fe_set_int(&r->x, 0);
+    secp256k1_fe_set_int(&r->y, 0);
+    secp256k1_fe_set_int(&r->z, 0);
 }
 
 static void secp256k1_ge_set_infinity(secp256k1_ge *r) {
     r->infinity = 1;
-    secp256k1_fe_clear(&r->x);
-    secp256k1_fe_clear(&r->y);
+    secp256k1_fe_set_int(&r->x, 0);
+    secp256k1_fe_set_int(&r->y, 0);
 }
 
 static void secp256k1_gej_clear(secp256k1_gej *r) {

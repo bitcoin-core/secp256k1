@@ -293,7 +293,7 @@ SECP256K1_INLINE static void secp256k1_fe_clear(secp256k1_fe *a) {
     int i;
 #ifdef VERIFY
     a->magnitude = 0;
-    a->normalized = 1;
+    a->normalized = 0;
 #endif
     for (i=0; i<10; i++) {
         a->n[i] = 0;
