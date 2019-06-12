@@ -144,11 +144,7 @@ static int secp256k1_fe_normalizes_to_zero_var(const secp256k1_fe *r);
  */
 static void secp256k1_fe_set_int(secp256k1_fe *r, int a);
 
-/** Set a field element to 0.
- *
- * On input, a does not need to be initialized.
- * On output, a represents 0, is normalized and has magnitude 0.
- */
+/** Clear a field element to prevent leaking sensitive information. */
 static void secp256k1_fe_clear(secp256k1_fe *a);
 
 /** Determine whether a represents field element 0.
