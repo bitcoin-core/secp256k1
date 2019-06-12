@@ -986,4 +986,20 @@ static int secp256k1_ecmult_multi_var(const secp256k1_callback* error_callback, 
     return 1;
 }
 
+/**
+ * Returns the optimal scratch space size for a given number of points
+ * excluding base point G.
+ */
+static size_t secp256k1_ecmult_multi_scratch_size(size_t n_points) {
+    if (n_points > ECMULT_MAX_POINTS_PER_BATCH) {
+        n_points = ECMULT_MAX_POINTS_PER_BATCH;
+    }
+    if (n_points >= ECMULT_PIPPENGER_THRESHOLD) {
+        int bucket_window = secp256k1_pippenger_bucket_window(n_points);
+        return secp256k1_pippenger_scratch_size(n_points, bucket_window);
+    } else {
+        return secp256k1_strauss_scratch_size(n_points);
+    }
+}
+
 #endif /* SECP256K1_ECMULT_IMPL_H */
