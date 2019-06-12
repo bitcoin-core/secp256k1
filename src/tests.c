@@ -4433,7 +4433,7 @@ void test_ecmult_multi_batching(void) {
     secp256k1_scratch_destroy(&ctx->error_callback, scratch);
 
     for(i = 1; i <= n_points; i++) {
-        if (i > ECMULT_PIPPENGER_THRESHOLD) {
+        if (i >= ECMULT_PIPPENGER_THRESHOLD) {
             int bucket_window = secp256k1_pippenger_bucket_window(i);
             size_t scratch_size = secp256k1_pippenger_scratch_size(i, bucket_window);
             scratch = secp256k1_scratch_create(&ctx->error_callback, scratch_size + PIPPENGER_SCRATCH_OBJECTS*ALIGNMENT);
