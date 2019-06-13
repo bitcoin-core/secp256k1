@@ -14,14 +14,15 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 typedef struct {
-    void (*fn)(const char *text, void* data);
+    void (*fn)(const char *text, size_t text_len, void* data);
     const void* data;
 } secp256k1_callback;
 
 static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * const cb, const char * const text) {
-    cb->fn(text, (void*)cb->data);
+    cb->fn(text, strlen(text), (void*)cb->data);
 }
 
 #ifdef DETERMINISTIC

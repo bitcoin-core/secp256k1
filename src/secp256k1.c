@@ -36,19 +36,21 @@
 #ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
 #include <stdlib.h>
 #include <stdio.h>
-static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
+static void secp256k1_default_illegal_callback_fn(const char* str, size_t str_len, void* data) {
+    VERIFY_CHECK(strlen(str) == str_len);
     (void)data;
     fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
     abort();
 }
-static void secp256k1_default_error_callback_fn(const char* str, void* data) {
+static void secp256k1_default_error_callback_fn(const char* str, size_t str_len, void* data) {
+    VERIFY_CHECK(strlen(str) == str_len);
     (void)data;
     fprintf(stderr, "[libsecp256k1] internal consistency check failed: %s\n", str);
     abort();
 }
 #else
-void secp256k1_default_illegal_callback_fn(const char* str, void* data);
-void secp256k1_default_error_callback_fn(const char* str, void* data);
+void secp256k1_default_illegal_callback_fn(const char* str, size_t str_len, void* data);
+void secp256k1_default_error_callback_fn(const char* str, size_t str_len, void* data);
 #endif
 
 static const secp256k1_callback default_illegal_callback = {
@@ -187,7 +189,7 @@ void secp256k1_context_destroy(secp256k1_context* ctx) {
     }
 }
 
-void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
+void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(const char* message, size_t message_len, void* data), const void* data) {
     ARG_CHECK_NO_RETURN(ctx != secp256k1_context_no_precomp);
     if (fun == NULL) {
         fun = secp256k1_default_illegal_callback_fn;
@@ -196,7 +198,7 @@ void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(
     ctx->illegal_callback.data = data;
 }
 
-void secp256k1_context_set_error_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
+void secp256k1_context_set_error_callback(secp256k1_context* ctx, void (*fun)(const char* message, size_t message_len, void* data), const void* data) {
     ARG_CHECK_NO_RETURN(ctx != secp256k1_context_no_precomp);
     if (fun == NULL) {
         fun = secp256k1_default_error_callback_fn;
