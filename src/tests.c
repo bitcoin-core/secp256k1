@@ -46,18 +46,20 @@ void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 static int count = 64;
 static secp256k1_context *ctx = NULL;
 
-static void counting_illegal_callback_fn(const char* str, void* data) {
+static void counting_illegal_callback_fn(const char* str, size_t str_len, void* data) {
     /* Dummy callback function that just counts. */
     int32_t *p;
     (void)str;
+    (void)str_len;
     p = data;
     (*p)++;
 }
 
-static void uncounting_illegal_callback_fn(const char* str, void* data) {
+static void uncounting_illegal_callback_fn(const char* str, size_t str_len, void* data) {
     /* Dummy callback function that just counts (backwards). */
     int32_t *p;
     (void)str;
+    (void)str_len;
     p = data;
     (*p)--;
 }
