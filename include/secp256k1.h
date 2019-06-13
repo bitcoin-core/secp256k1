@@ -272,7 +272,7 @@ SECP256K1_API void secp256k1_context_destroy(
  */
 SECP256K1_API void secp256k1_context_set_illegal_callback(
     secp256k1_context* ctx,
-    void (*fun)(const char* message, void* data),
+    void (*fun)(const char* message, size_t message_len, void* data),
     const void* data
 ) SECP256K1_ARG_NONNULL(1);
 
@@ -297,7 +297,7 @@ SECP256K1_API void secp256k1_context_set_illegal_callback(
  */
 SECP256K1_API void secp256k1_context_set_error_callback(
     secp256k1_context* ctx,
-    void (*fun)(const char* message, void* data),
+    void (*fun)(const char* message, size_t message_len, void* data),
     const void* data
 ) SECP256K1_ARG_NONNULL(1);
 
