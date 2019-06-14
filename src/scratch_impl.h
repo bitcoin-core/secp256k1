@@ -70,17 +70,21 @@ static size_t secp256k1_scratch_max_allocation(const secp256k1_callback* error_c
     return scratch->max_size - scratch->alloc_size - objects * (ALIGNMENT - 1);
 }
 
+static int secp256k1_scratch_round_size(size_t *size) {
+    /* Check that rounding does not wrap around */
+    if (ROUND_TO_ALIGN(*size) < *size) {
+        return 0;
+    }
+    *size = ROUND_TO_ALIGN(*size);
+    return 1;
+}
+
 static void *secp256k1_scratch_alloc(const secp256k1_callback* error_callback, secp256k1_scratch* scratch, size_t size) {
     void *ret;
-    size_t rounded_size;
 
-    rounded_size = ROUND_TO_ALIGN(size);
-    /* Check that rounding did not wrap around */
-    if (rounded_size < size) {
+    if (!secp256k1_scratch_round_size(&size)) {
         return NULL;
     }
-    size = rounded_size;
-
     if (secp256k1_memcmp_var(scratch->magic, "scratch", 8) != 0) {
         secp256k1_callback_call(error_callback, "invalid scratch space");
         return NULL;
@@ -94,6 +98,23 @@ static void *secp256k1_scratch_alloc(const secp256k1_callback* error_callback, s
     scratch->alloc_size += size;
 
     return ret;
+}
+
+static int secp256k1_scratch_alloc_size(size_t *alloc_size, size_t *sizes, size_t n_sizes) {
+    size_t i;
+
+    *alloc_size = 0;
+    for (i = 0; i < n_sizes; i++) {
+        size_t rounded_size = sizes[i];
+        if (!secp256k1_scratch_round_size(&rounded_size)) {
+            return 0;
+        }
+        if (*alloc_size + rounded_size < *alloc_size) {
+            return 0;
+        }
+        *alloc_size += rounded_size;
+    }
+    return 1;
 }
 
 #endif

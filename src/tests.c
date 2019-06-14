@@ -350,6 +350,7 @@ void run_context_tests(int use_prealloc) {
 void run_scratch_tests(void) {
     const size_t adj_alloc = ((500 + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT;
 
+    int i = 0;
     int32_t ecount = 0;
     size_t checkpoint;
     size_t checkpoint_2;
@@ -401,6 +402,40 @@ void run_scratch_tests(void) {
     CHECK(ecount == 1);
     secp256k1_scratch_apply_checkpoint(&none->error_callback, scratch, (size_t) -1); /* this is just wildly invalid */
     CHECK(ecount == 2);
+
+    /* test alloc_size */
+    CHECK(scratch->alloc_size == 0);
+    for (i = 0; i < 100; i++) {
+        size_t sizes[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+        static const size_t N_SIZES = sizeof(sizes)/sizeof(sizes[0]);
+        size_t j;
+        size_t alloc_size;
+        int ret;
+
+        sizes[0] = i;
+        checkpoint = secp256k1_scratch_checkpoint(&none->error_callback, scratch);
+        for (j = 0; j < N_SIZES; j++) {
+            CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, sizes[j]) != NULL);
+        }
+        ret = secp256k1_scratch_alloc_size(&alloc_size, sizes, N_SIZES);
+        CHECK(ret);
+        CHECK(alloc_size == scratch->alloc_size);
+        secp256k1_scratch_apply_checkpoint(&none->error_callback, scratch, checkpoint);
+    }
+    /* Test alloc_size with overflowing values. Some overflows only happen if
+       ALIGNMENT is greater than 1. */
+    {
+        size_t sizes[2] = { SIZE_MAX, SIZE_MAX };
+        size_t alloc_size;
+        CHECK(ALIGNMENT <= 1 || !secp256k1_scratch_alloc_size(&alloc_size, sizes, 1));
+        CHECK(ALIGNMENT <= 1 || !secp256k1_scratch_alloc_size(&alloc_size, sizes, 2));
+        sizes[0] = 0;
+        CHECK(secp256k1_scratch_alloc_size(&alloc_size, sizes, 1));
+        CHECK(ALIGNMENT <= 1 || !secp256k1_scratch_alloc_size(&alloc_size, sizes, 2));
+        sizes[0] = SIZE_MAX/2+1; sizes[1] = SIZE_MAX/2+1;
+        CHECK(secp256k1_scratch_alloc_size(&alloc_size, sizes, 1));
+        CHECK(!secp256k1_scratch_alloc_size(&alloc_size, sizes, 2));
+    }
 
     /* try to use badly initialized scratch space */
     secp256k1_scratch_space_destroy(none, scratch);
