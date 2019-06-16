@@ -4323,6 +4323,7 @@ void test_ecmult_multi_strauss_scratch_size(void) {
     for(n_points = 0; n_points < ECMULT_PIPPENGER_THRESHOLD*2; n_points++) {
         size_t scratch_size = secp256k1_strauss_scratch_size(n_points);
         secp256k1_scratch *scratch = secp256k1_scratch_create(&ctx->error_callback, scratch_size);
+        CHECK(n_points == secp256k1_strauss_max_points(&ctx->error_callback, scratch));
         {
             secp256k1_gej *points;
             secp256k1_scalar *scalars;
@@ -4332,6 +4333,20 @@ void test_ecmult_multi_strauss_scratch_size(void) {
             CHECK(scratch->alloc_size == scratch_size);
             secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, checkpoint);
         }
+        secp256k1_scratch_destroy(&ctx->error_callback, scratch);
+    }
+}
+
+/* Spot check that any scratch space is large enough to fit
+ * `strauss_max_points(scratch)` many points. */
+void test_ecmult_multi_strauss_max_points(void) {
+    size_t scratch_size = secp256k1_strauss_scratch_size_raw(1, 0);
+    size_t max_scratch_size = secp256k1_strauss_scratch_size_raw(1, 1) + 1;
+    for (; scratch_size < max_scratch_size; scratch_size++) {
+        secp256k1_scratch *scratch = secp256k1_scratch_create(&ctx->error_callback, scratch_size);
+        size_t n_points = secp256k1_strauss_max_points(&ctx->error_callback, scratch);
+        CHECK(secp256k1_scratch_max_allocation(&ctx->error_callback, scratch, 0) == scratch_size);
+        CHECK(scratch_size >= secp256k1_strauss_scratch_size(n_points));
         secp256k1_scratch_destroy(&ctx->error_callback, scratch);
     }
 }
@@ -4516,6 +4531,7 @@ void run_ecmult_multi_tests(void) {
     int64_t todo = (int64_t)320 * count;
 
     test_ecmult_multi_strauss_scratch_size();
+    test_ecmult_multi_strauss_max_points();
     test_secp256k1_pippenger_bucket_window_inv();
     test_ecmult_multi_pippenger_max_points();
     scratch = secp256k1_scratch_create(&ctx->error_callback, 819200);
