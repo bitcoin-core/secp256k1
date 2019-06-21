@@ -18,6 +18,7 @@
 #include "include/secp256k1.h"
 #include "include/secp256k1_preallocated.h"
 #include "testrand_impl.h"
+#include "ecc_secp256k1.h"
 
 #ifdef ENABLE_OPENSSL_TESTS
 #include "openssl/bn.h"
@@ -4134,11 +4135,47 @@ void test_ecdsa_sign_verify(void) {
     CHECK(!secp256k1_ecdsa_sig_verify(&ctx->ecmult_ctx, &sigr, &sigs, &pub, &msg));
 }
 
+void test_ecdsa_sign_verify_rust(void) {
+    /*
+        TODO: get rid of EcdsaSig
+        TODO: Fix linking.
+        TODO: Add signing with ecc-secp256k1 and verifying with secp256k1.
+        TODO: Add get random 
+     */
+
+    secp256k1_scalar msg, key;
+    unsigned char raw_key[32];
+    unsigned char raw_msg[32];
+    unsigned char raw_pubkey[65];
+    size_t pubkey_len = sizeof(raw_pubkey);
+    secp256k1_pubkey pubkey;
+    secp256k1_ecdsa_signature sig;
+    EcdsaSig new_sig;
+
+    random_scalar_order_test(&msg);
+    secp256k1_scalar_get_b32(raw_msg, &msg);
+    /*TODO: retry if `secp256k1_ec_seckey_verify` fails. */
+    random_scalar_order_test(&key);
+    secp256k1_scalar_get_b32(raw_key, &key);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, raw_key) == 1);
+    secp256k1_ec_pubkey_serialize(ctx, raw_pubkey, &pubkey_len, &pubkey, SECP256K1_EC_UNCOMPRESSED);
+
+    CHECK(secp256k1_ecdsa_sign(ctx, &sig, raw_msg, raw_key, NULL, NULL) == 1);
+    CHECK(secp256k1_ecdsa_verify(ctx, &sig, raw_msg, &pubkey) == 1);
+    secp256k1_ecdsa_signature_serialize_compact(ctx, (unsigned char*)&new_sig._0, &sig);
+    CHECK(secp256k1_ec_ecdsa_verify(&new_sig, raw_msg, raw_pubkey, 0) == 1);
+}
+
+
 void run_ecdsa_sign_verify(void) {
     int i;
     for (i = 0; i < 10*count; i++) {
         test_ecdsa_sign_verify();
     }
+    
+    for (i = 0; i < 10*count; i++) {
+        test_ecdsa_sign_verify_rust();
+    } 
 }
 
 /** Dummy nonce generation function that just uses a precomputed nonce, and fails if it is not accepted. Use only for testing. */
