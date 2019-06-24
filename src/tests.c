@@ -18,7 +18,10 @@
 #include "include/secp256k1.h"
 #include "include/secp256k1_preallocated.h"
 #include "testrand_impl.h"
+
+#ifdef ENABLE_RUST_NAIVETESTS
 #include "ecc_secp256k1.h"
+#endif
 
 #ifdef ENABLE_OPENSSL_TESTS
 #include "openssl/bn.h"
@@ -4135,6 +4138,7 @@ void test_ecdsa_sign_verify(void) {
     CHECK(!secp256k1_ecdsa_sig_verify(&ctx->ecmult_ctx, &sigr, &sigs, &pub, &msg));
 }
 
+#ifdef ENABLE_RUST_NAIVETESTS
 void test_ecdsa_sign_verify_rust(void) {
 
     secp256k1_scalar msg, key;
@@ -4168,15 +4172,21 @@ void test_ecdsa_sign_verify_rust(void) {
 }
 
 
+void run_ecdsa_sign_verify_rust(void) {
+    int i;
+    for (i = 0; i < 10*count; i++) {
+        test_ecdsa_sign_verify_rust();
+    }
+}
+
+#endif
+
+
 void run_ecdsa_sign_verify(void) {
     int i;
     for (i = 0; i < 10*count; i++) {
         test_ecdsa_sign_verify();
     }
-    
-    for (i = 0; i < 10*count; i++) {
-        test_ecdsa_sign_verify_rust();
-    } 
 }
 
 /** Dummy nonce generation function that just uses a precomputed nonce, and fails if it is not accepted. Use only for testing. */
@@ -5326,6 +5336,10 @@ int main(int argc, char **argv) {
 #ifdef ENABLE_MODULE_RECOVERY
     /* ECDSA pubkey recovery tests */
     run_recovery_tests();
+#endif
+
+#ifdef ENABLE_RUST_NAIVETESTS
+    run_ecdsa_sign_verify_rust();
 #endif
 
     secp256k1_rand256(run32);
