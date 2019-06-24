@@ -161,8 +161,9 @@ gen_%.o: src/gen_%.c
 $(gen_context_BIN): $(gen_context_OBJECTS)
 	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) $^ -o $@
 
+ECC_SECP=libecc_secp256k1.a
 $(libsecp256k1_la_OBJECTS): src/ecmult_static_context.h
-$(tests_OBJECTS): src/ecmult_static_context.h
+$(tests_OBJECTS): src/ecmult_static_context.h $(ECC_SECP)
 $(bench_internal_OBJECTS): src/ecmult_static_context.h
 $(bench_ecmult_OBJECTS): src/ecmult_static_context.h
 
@@ -180,4 +181,13 @@ endif
 
 if ENABLE_MODULE_RECOVERY
 include src/modules/recovery/Makefile.am.include
+endif
+
+
+if ENABLE_RUST_NAIVETESTS
+$(ECC_SECP):
+	git clone https://github.com/elichai/ecc-secp256k1.git -b v0.1.0 2> /dev/null | true
+	cd ecc-secp256k1 && cargo build --release --features=ffi
+	cp ./ecc-secp256k1/target/release/libecc_secp256k1.a  .
+	cp ./ecc-secp256k1/ecc_secp256k1.h  ./src/
 endif
