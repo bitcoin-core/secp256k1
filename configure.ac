@@ -449,7 +449,7 @@ if test x"$use_tests" = x"yes"; then
   fi
   if test x"$enable_rust_naivetests" != x"no"; then
     AC_DEFINE(ENABLE_RUST_NAIVETESTS, 1, [Define this symbol if you want to build the rust tests])
-    SECP_TEST_LIBS="$SECP_TEST_LIBS -ldl -lpthread -lm -lecc_secp256k1 -L./ecc-secp256k1/target/release"
+    SECP_TEST_ONLY_LIBS="$SECP_TEST_ONLY_LIBS -lecc_secp256k1 -ldl -lpthread -lm -L./ecc-secp256k1/target/release"
   fi
 else
   if test x"$enable_openssl_tests" = x"yes"; then
@@ -535,6 +535,7 @@ AC_SUBST(JNI_INCLUDES)
 AC_SUBST(SECP_INCLUDES)
 AC_SUBST(SECP_LIBS)
 AC_SUBST(SECP_TEST_LIBS)
+AC_SUBST(SECP_TEST_ONLY_LIBS)
 AC_SUBST(SECP_TEST_INCLUDES)
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"$enable_coverage" = x"yes"])
 AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])

@@ -57,6 +57,9 @@ noinst_HEADERS += contrib/lax_der_parsing.c
 noinst_HEADERS += contrib/lax_der_privatekey_parsing.h
 noinst_HEADERS += contrib/lax_der_privatekey_parsing.c
 
+NAIVE_SECP=ecc-secp256k1
+
+
 if USE_EXTERNAL_ASM
 COMMON_LIB = libsecp256k1_common.la
 noinst_LTLIBRARIES = $(COMMON_LIB)
@@ -103,7 +106,7 @@ tests_CPPFLAGS = -DSECP256K1_BUILD -I$(top_srcdir)/src -I$(top_srcdir)/include $
 if !ENABLE_COVERAGE
 tests_CPPFLAGS += -DVERIFY
 endif
-tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB)
+tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB) $(SECP_TEST_ONLY_LIBS)
 tests_LDFLAGS = -static
 TESTS += tests
 endif
@@ -150,6 +153,8 @@ check-java: libsecp256k1.la $(JAVA_GUAVA) .stamp-java
 endif
 endif
 
+
+TESTS_OBJS =
 if USE_ECMULT_STATIC_PRECOMPUTATION
 CPPFLAGS_FOR_BUILD +=-I$(top_srcdir)
 
@@ -161,9 +166,8 @@ gen_%.o: src/gen_%.c
 $(gen_context_BIN): $(gen_context_OBJECTS)
 	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) $^ -o $@
 
-NAIVE_SECP=ecc-secp256k1
 $(libsecp256k1_la_OBJECTS): src/ecmult_static_context.h
-$(tests_OBJECTS): src/ecmult_static_context.h $(NAIVE_SECP)
+TESTS_OBJS +=  src/ecmult_static_context.h
 $(bench_internal_OBJECTS): src/ecmult_static_context.h
 $(bench_ecmult_OBJECTS): src/ecmult_static_context.h
 
@@ -185,11 +189,16 @@ endif
 
 
 if ENABLE_RUST_NAIVETESTS
+TESTS_OBJS +=  $(NAIVE_SECP)
 $(NAIVE_SECP):
+	@echo "IMPORTANT"
 	git clone https://github.com/elichai/ecc-secp256k1.git -b v0.1.0 2> /dev/null | true
-	cd ecc-secp256k1 && cargo build --release --features=ffi
+	cd ecc-secp256k1 && RUSTFLAGS="-C opt-level=0" cargo build --release --features=ffi # No need for optimizations. tests only.
 	cp ./ecc-secp256k1/ecc_secp256k1.h  ./src/
+
 
 clean-local:
 	cargo clean --manifest-path="./ecc-secp256k1/Cargo.toml" 2> /dev/null | true
 endif
+
+$(tests_OBJECTS): $(TESTS_OBJS)
