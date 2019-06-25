@@ -192,7 +192,9 @@ if ENABLE_RUST_NAIVETESTS
 TESTS_OBJS +=  $(NAIVE_SECP)
 $(NAIVE_SECP):
 	@echo "IMPORTANT"
-	git clone https://github.com/elichai/ecc-secp256k1.git -b v0.1.0 2> /dev/null | true
+	wget -O ecc-secp256k1.tar.gz https://github.com/elichai/ecc-secp256k1/archive/v0.2.0.tar.gz
+	sha256sum -c --status ecc-secp256k1.tar.gz.sha256 # Should fail the building if doesn't pass
+	tar xf ecc-secp256k1.tar.gz && mv ecc-secp256k1-0.2.0 ecc-secp256k1
 	cd ecc-secp256k1 && RUSTFLAGS="-C opt-level=0" cargo build --release --features=ffi # No need for optimizations. tests only.
 	cp ./ecc-secp256k1/ecc_secp256k1.h  ./src/
 
