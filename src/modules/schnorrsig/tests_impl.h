@@ -25,12 +25,16 @@ void test_schnorrsig_api(secp256k1_scratch_space *scratch) {
     unsigned char sk2[32];
     unsigned char sk3[32];
     unsigned char msg[32];
+    unsigned char data32[32];
+    unsigned char s2c_data32[32];
     unsigned char sig64[64];
     secp256k1_pubkey pk[3];
     secp256k1_schnorrsig sig;
     const secp256k1_schnorrsig *sigptr = &sig;
     const unsigned char *msgptr = msg;
     const secp256k1_pubkey *pkptr = &pk[0];
+    secp256k1_s2c_opening s2c_opening;
+    unsigned char ones[32];
 
     /** setup **/
     secp256k1_context *none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
@@ -38,6 +42,7 @@ void test_schnorrsig_api(secp256k1_scratch_space *scratch) {
     secp256k1_context *vrfy = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
     secp256k1_context *both = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
     int ecount;
+    memset(ones, 0xff, 32);
 
     secp256k1_context_set_error_callback(none, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_error_callback(sign, counting_illegal_callback_fn, &ecount);
@@ -52,24 +57,36 @@ void test_schnorrsig_api(secp256k1_scratch_space *scratch) {
     secp256k1_rand256(sk2);
     secp256k1_rand256(sk3);
     secp256k1_rand256(msg);
+    secp256k1_rand256(s2c_data32);
     CHECK(secp256k1_ec_pubkey_create(ctx, &pk[0], sk1) == 1);
     CHECK(secp256k1_ec_pubkey_create(ctx, &pk[1], sk2) == 1);
     CHECK(secp256k1_ec_pubkey_create(ctx, &pk[2], sk3) == 1);
 
     /** main test body **/
     ecount = 0;
-    CHECK(secp256k1_schnorrsig_sign(none, &sig, msg, sk1, NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(none, &sig, &s2c_opening, msg, sk1, s2c_data32, NULL, NULL) == 0);
     CHECK(ecount == 1);
-    CHECK(secp256k1_schnorrsig_sign(vrfy, &sig, msg, sk1, NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(vrfy, &sig, &s2c_opening, msg, sk1, s2c_data32, NULL, NULL) == 0);
     CHECK(ecount == 2);
-    CHECK(secp256k1_schnorrsig_sign(sign, &sig, msg, sk1, NULL, NULL) == 1);
+    CHECK(secp256k1_schnorrsig_sign(sign, &sig, &s2c_opening, msg, sk1, s2c_data32, NULL, NULL) == 1);
     CHECK(ecount == 2);
-    CHECK(secp256k1_schnorrsig_sign(sign, NULL, msg, sk1, NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(sign, NULL, &s2c_opening, msg, sk1, s2c_data32, NULL, NULL) == 0);
     CHECK(ecount == 3);
-    CHECK(secp256k1_schnorrsig_sign(sign, &sig, NULL, sk1, NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(sign, &sig, NULL, msg, sk1, s2c_data32, NULL, NULL) == 0);
     CHECK(ecount == 4);
-    CHECK(secp256k1_schnorrsig_sign(sign, &sig, msg, NULL, NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(sign, &sig, &s2c_opening, NULL, sk1, s2c_data32, NULL, NULL) == 0);
     CHECK(ecount == 5);
+    CHECK(secp256k1_schnorrsig_sign(sign, &sig, &s2c_opening, msg, NULL, s2c_data32, NULL, NULL) == 0);
+    CHECK(ecount == 6);
+    CHECK(secp256k1_schnorrsig_sign(sign, &sig, &s2c_opening, msg, sk1, NULL, NULL, NULL) == 0);
+    CHECK(ecount == 7);
+    /* It's okay if both s2c_opening and s2c_data32 are NULL. It's just not okay if
+     * only a single one of them is NULL. */
+    CHECK(secp256k1_schnorrsig_sign(sign, &sig, NULL, msg, sk1, NULL, NULL, NULL) == 1);
+    CHECK(ecount == 7);
+    /* s2c commitments with a different nonce function than bipschnorr are not allowed */
+    CHECK(secp256k1_schnorrsig_sign(sign, &sig, &s2c_opening, msg, sk1, s2c_data32, secp256k1_nonce_function_rfc6979, NULL) == 0);
+    CHECK(ecount == 8);
 
     ecount = 0;
     CHECK(secp256k1_schnorrsig_serialize(none, sig64, &sig) == 1);
@@ -84,6 +101,36 @@ void test_schnorrsig_api(secp256k1_scratch_space *scratch) {
     CHECK(ecount == 3);
     CHECK(secp256k1_schnorrsig_parse(none, &sig, NULL) == 0);
     CHECK(ecount == 4);
+
+    /* Create sign-to-contract commitment to data32 for testing verify_s2c_commit */
+    secp256k1_rand256(data32);
+    CHECK(secp256k1_schnorrsig_sign(sign, &sig, &s2c_opening, msg, sk1, data32, NULL, NULL) == 1);
+    ecount = 0;
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(none, &sig, data32, &s2c_opening) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig, data32, &s2c_opening) == 1);
+    CHECK(ecount == 1);
+    {
+        /* Overflowing x-coordinate in signature */
+        secp256k1_schnorrsig sig_tmp = sig;
+        memcpy(&sig_tmp.data[0], ones, 32);
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig_tmp, data32, &s2c_opening) == 0);
+    }
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, NULL, data32, &s2c_opening) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig, NULL, &s2c_opening) == 0);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig, data32, NULL) == 0);
+    CHECK(ecount == 4);
+    {
+        /* Verification with uninitialized s2c_opening should fail. Actually testing
+         * that would be undefined behavior. Therefore we simulate it by setting the
+         * opening to 0. */
+        secp256k1_s2c_opening s2c_opening_tmp;
+        memset(&s2c_opening_tmp, 0, sizeof(s2c_opening_tmp));
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(vrfy, &sig, data32, &s2c_opening_tmp) == 0);
+        CHECK(ecount == 5);
+    }
 
     ecount = 0;
     CHECK(secp256k1_schnorrsig_verify(none, &sig, msg, &pk[0]) == 0);
@@ -132,7 +179,7 @@ void test_schnorrsig_bip_vectors_check_signing(const unsigned char *sk, const un
     unsigned char serialized_sig[64];
     secp256k1_pubkey pk;
 
-    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, msg, sk, NULL, NULL));
+    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, NULL, msg, sk, NULL, NULL, NULL));
     CHECK(secp256k1_schnorrsig_serialize(ctx, serialized_sig, &sig));
     CHECK(memcmp(serialized_sig, expected_sig, 64) == 0);
 
@@ -634,15 +681,16 @@ void test_schnorrsig_sign(void) {
     secp256k1_schnorrsig sig;
 
     memset(sk, 23, sizeof(sk));
-    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, msg, sk, NULL, NULL) == 1);
+
+    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, NULL, msg, sk, NULL, NULL, NULL) == 1);
 
     /* Overflowing secret key */
     memset(sk, 0xFF, sizeof(sk));
-    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, msg, sk, NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, NULL, msg, sk, NULL, NULL, NULL) == 0);
     memset(sk, 23, sizeof(sk));
 
-    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, msg, sk, nonce_function_failing, NULL) == 0);
-    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, msg, sk, nonce_function_0, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, NULL, msg, sk, NULL, nonce_function_failing, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, NULL, msg, sk, NULL, nonce_function_0, NULL) == 0);
 }
 
 #define N_SIGS  200
@@ -664,7 +712,7 @@ void test_schnorrsig_sign_verify(secp256k1_scratch_space *scratch) {
 
     for (i = 0; i < N_SIGS; i++) {
         secp256k1_rand256(msg[i]);
-        CHECK(secp256k1_schnorrsig_sign(ctx, &sig[i], msg[i], sk, NULL, NULL));
+        CHECK(secp256k1_schnorrsig_sign(ctx, &sig[i], NULL, msg[i], sk, NULL, NULL, NULL));
         CHECK(secp256k1_schnorrsig_verify(ctx, &sig[i], msg[i], &pk));
         sig_arr[i] = &sig[i];
         msg_arr[i] = msg[i];
@@ -706,7 +754,68 @@ void test_schnorrsig_sign_verify(secp256k1_scratch_space *scratch) {
 }
 #undef N_SIGS
 
+void test_schnorrsig_s2c_commit_verify(void) {
+    unsigned char data32[32];
+    secp256k1_schnorrsig sig;
+    secp256k1_s2c_opening s2c_opening;
+    unsigned char msg[32];
+    unsigned char sk[32];
+    secp256k1_pubkey pk;
+    unsigned char noncedata[32];
+
+    secp256k1_rand256(data32);
+    secp256k1_rand256(msg);
+    secp256k1_rand256(sk);
+    secp256k1_rand256(noncedata);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pk, sk) == 1);
+
+    /* Create and verify correct commitment */
+    CHECK(secp256k1_schnorrsig_sign(ctx, &sig, &s2c_opening, msg, sk, data32, NULL, noncedata) == 1);
+    CHECK(secp256k1_schnorrsig_verify(ctx, &sig, msg, &pk));
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(ctx, &sig, data32, &s2c_opening) == 1);
+    {
+        /* verify_s2c_commit fails if nonce_is_negated is wrong */
+        secp256k1_s2c_opening s2c_opening_tmp;
+        s2c_opening_tmp = s2c_opening;
+        s2c_opening_tmp.nonce_is_negated = !s2c_opening.nonce_is_negated;
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(ctx, &sig, data32, &s2c_opening_tmp) == 0);
+    }
+    {
+        /* verify_s2c_commit fails if given data does not match committed data */
+        unsigned char data32_tmp[32];
+        memcpy(data32_tmp, data32, sizeof(data32_tmp));
+        data32_tmp[31] ^= 1;
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(ctx, &sig, data32_tmp, &s2c_opening) == 0);
+    }
+    {
+        /* verify_s2c_commit fails if signature does not commit to data */
+        secp256k1_schnorrsig sig_tmp;
+        sig_tmp = sig;
+        secp256k1_rand256(&sig_tmp.data[0]);
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(ctx, &sig_tmp, data32, &s2c_opening) == 0);
+    }
+    {
+        /* A commitment to different data creates a different original_pubnonce
+         * (i.e. data is hashed into the nonce) */
+        secp256k1_s2c_opening s2c_opening_tmp;
+        secp256k1_schnorrsig sig_tmp;
+        unsigned char data32_tmp[32];
+        unsigned char serialized_nonce[33];
+        unsigned char serialized_nonce_tmp[33];
+        size_t outputlen = 33;
+        secp256k1_rand256(data32_tmp);
+        CHECK(secp256k1_schnorrsig_sign(ctx, &sig_tmp, &s2c_opening_tmp, msg, sk, data32_tmp, NULL, NULL) == 1);
+        CHECK(secp256k1_schnorrsig_verify(ctx, &sig_tmp, msg, &pk));
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(ctx, &sig_tmp, data32_tmp, &s2c_opening_tmp) == 1);
+        secp256k1_ec_pubkey_serialize(ctx, serialized_nonce, &outputlen, &s2c_opening.original_pubnonce, SECP256K1_EC_COMPRESSED);
+        secp256k1_ec_pubkey_serialize(ctx, serialized_nonce_tmp, &outputlen, &s2c_opening_tmp.original_pubnonce, SECP256K1_EC_COMPRESSED);
+        CHECK(outputlen == 33);
+        CHECK(memcmp(serialized_nonce, serialized_nonce_tmp, outputlen) != 0);
+    }
+}
+
 void run_schnorrsig_tests(void) {
+    int i;
     secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(ctx, 1024 * 1024);
 
     test_schnorrsig_serialize();
@@ -715,6 +824,11 @@ void run_schnorrsig_tests(void) {
     test_schnorrsig_sign();
     test_schnorrsig_sign_verify(scratch);
 
+    for (i = 0; i < count; i++) {
+        /* Run multiple times to increase probability that the nonce is negated in
+         * a test. */
+        test_schnorrsig_s2c_commit_verify();
+    }
     secp256k1_scratch_space_destroy(ctx, scratch);
 }
 

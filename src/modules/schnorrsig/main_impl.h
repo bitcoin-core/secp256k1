@@ -29,7 +29,31 @@ int secp256k1_schnorrsig_parse(const secp256k1_context* ctx, secp256k1_schnorrsi
     return 1;
 }
 
-int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, secp256k1_schnorrsig *sig, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, void *ndata) {
+int secp256k1_schnorrsig_verify_s2c_commit(const secp256k1_context* ctx, const secp256k1_schnorrsig *sig, const unsigned char *data32, const secp256k1_s2c_opening *opening) {
+    secp256k1_fe rx;
+    secp256k1_ge R;
+    secp256k1_pubkey pubnonce;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(sig != NULL);
+    ARG_CHECK(data32 != NULL);
+    ARG_CHECK(opening != NULL);
+    ARG_CHECK(secp256k1_s2c_commit_is_init(opening));
+
+    if (!secp256k1_fe_set_b32(&rx, &sig->data[0])) {
+        return 0;
+    }
+    if (!secp256k1_ge_set_xquad(&R, &rx)) {
+        return 0;
+    }
+    if (opening->nonce_is_negated) {
+        secp256k1_ge_neg(&R, &R);
+    }
+    secp256k1_pubkey_save(&pubnonce, &R);
+    return secp256k1_ec_commit_verify(ctx, &pubnonce, &opening->original_pubnonce, data32, 32);
+}
+
+int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, secp256k1_schnorrsig *sig, secp256k1_s2c_opening *s2c_opening, const unsigned char *msg32, const unsigned char *seckey, const unsigned char *s2c_data32, secp256k1_nonce_function noncefp, void *ndata) {
     secp256k1_scalar x;
     secp256k1_scalar e;
     secp256k1_scalar k;
@@ -41,12 +65,19 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, secp256k1_schnorrsig
     int overflow;
     unsigned char buf[33];
     size_t buflen = sizeof(buf);
+    unsigned char noncedata[32];
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
     ARG_CHECK(sig != NULL);
     ARG_CHECK(msg32 != NULL);
     ARG_CHECK(seckey != NULL);
+    /* sign-to-contract commitments only work with the default nonce function,
+     * because we need to ensure that s2c_data is actually hashed into the nonce and
+     * not just ignored because otherwise this could result in nonce reuse. */
+    ARG_CHECK(s2c_data32 == NULL || (noncefp == NULL || noncefp == secp256k1_nonce_function_bipschnorr));
+    /* s2c_opening and s2c_data32 should be either both non-NULL or both NULL. */
+    ARG_CHECK((s2c_opening != NULL) == (s2c_data32 != NULL));
 
     if (noncefp == NULL) {
         noncefp = secp256k1_nonce_function_bipschnorr;
@@ -61,6 +92,24 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, secp256k1_schnorrsig
     secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pkj, &x);
     secp256k1_ge_set_gej(&pk, &pkj);
 
+    if (s2c_data32 != NULL) {
+        /* Provide s2c_data32 and ndata (if not NULL) to the the nonce function
+         * as additional data to derive the nonce from. If both pointers are
+         * not NULL, they need to be hashed to get the nonce data 32 bytes.
+         * Even if only s2c_data32 is not NULL, it's hashed because it should
+         * be possible to derive nonces even if only a SHA256 commitment to the
+         * data is known. This is for example important in the anti nonce
+         * sidechannel protocol.
+         */
+        secp256k1_sha256_initialize(&sha);
+        secp256k1_sha256_write(&sha, s2c_data32, 32);
+        if (ndata != NULL) {
+            secp256k1_sha256_write(&sha, ndata, 32);
+        }
+        secp256k1_sha256_finalize(&sha, noncedata);
+        ndata = &noncedata;
+    }
+
     if (!noncefp(buf, msg32, seckey, NULL, (void*)ndata, 0)) {
         return 0;
     }
@@ -72,8 +121,22 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, secp256k1_schnorrsig
     secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &rj, &k);
     secp256k1_ge_set_gej(&r, &rj);
 
+    if (s2c_opening != NULL) {
+        secp256k1_s2c_opening_init(s2c_opening);
+        if (s2c_data32 != NULL) {
+            /* Create sign-to-contract commitment */
+            secp256k1_pubkey_save(&s2c_opening->original_pubnonce, &r);
+            secp256k1_ec_commit_seckey(ctx, buf, &s2c_opening->original_pubnonce, s2c_data32, 32);
+            secp256k1_scalar_set_b32(&k, buf, NULL);
+            secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &rj, &k);
+            secp256k1_ge_set_gej(&r, &rj);
+        }
+    }
     if (!secp256k1_fe_is_quad_var(&r.y)) {
         secp256k1_scalar_negate(&k, &k);
+        if (s2c_opening != NULL) {
+            s2c_opening->nonce_is_negated = 1;
+        }
     }
     secp256k1_fe_normalize(&r.x);
     secp256k1_fe_get_b32(&sig->data[0], &r.x);

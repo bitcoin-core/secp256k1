@@ -67,19 +67,28 @@ SECP256K1_API int secp256k1_schnorrsig_parse(
  * Returns 1 on success, 0 on failure.
  *  Args:    ctx: pointer to a context object, initialized for signing (cannot be NULL)
  *  Out:     sig: pointer to the returned signature (cannot be NULL)
- *  In:    msg32: the 32-byte message being signed (cannot be NULL)
+ *   s2c_opening: pointer to an secp256k1_s2c_opening structure which can be
+ *                NULL but is required to be not NULL if this signature creates
+ *                a sign-to-contract commitment (i.e. the `s2c_data` argument
+ *                is not NULL).
+ *  In:    msg32: the 32-byte message hash being signed (cannot be NULL)
  *        seckey: pointer to a 32-byte secret key (cannot be NULL)
+ *    s2c_data32: pointer to a 32-byte data to create an optional
+ *                sign-to-contract commitment to if not NULL (can be NULL).
  *       noncefp: pointer to a nonce generation function. If NULL, secp256k1_nonce_function_bipschnorr is used
- *         ndata: pointer to arbitrary data used by the nonce generation function (can be NULL)
+ *         ndata: pointer to arbitrary data used by the nonce generation function. If s2c_data is not NULL,
+ *                nust be NULL or `secp256k1_nonce_function_bipschnorr` (can be NULL)
  */
 SECP256K1_API int secp256k1_schnorrsig_sign(
     const secp256k1_context* ctx,
     secp256k1_schnorrsig *sig,
+    secp256k1_s2c_opening *s2c_opening,
     const unsigned char *msg32,
     const unsigned char *seckey,
+    const unsigned char *s2c_data32,
     secp256k1_nonce_function noncefp,
     void *ndata
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
 
 /** Verify a Schnorr signature.
  *
@@ -118,6 +127,22 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_verify_batch
     const secp256k1_pubkey *const *pk,
     size_t n_sigs
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
+
+/** Verify a sign-to-contract commitment.
+ *
+ *  Returns: 1: the signature contains a commitment to data32
+ *           0: incorrect opening
+ *  Args:    ctx: a secp256k1 context object, initialized for verification.
+ *  In:      sig: the signature containing the sign-to-contract commitment (cannot be NULL)
+ *        data32: the 32-byte data that was committed to (cannot be NULL)
+ *       opening: pointer to the opening created during signing (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_schnorrsig_verify_s2c_commit(
+    const secp256k1_context* ctx,
+    const secp256k1_schnorrsig *sig,
+    const unsigned char *data32,
+    const secp256k1_s2c_opening *opening
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
 #ifdef __cplusplus
 }

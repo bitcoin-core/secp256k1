@@ -35,7 +35,7 @@ void bench_schnorrsig_sign(void* arg) {
         msg[1] = i >> 8;
         sk[0] = i;
         sk[1] = i >> 8;
-        CHECK(secp256k1_schnorrsig_sign(data->ctx, &sig, msg, sk, NULL, NULL));
+        CHECK(secp256k1_schnorrsig_sign(data->ctx, &sig, NULL, msg, sk, NULL, NULL, NULL));
     }
 }
 
@@ -100,7 +100,7 @@ int main(void) {
 
         CHECK(secp256k1_ec_pubkey_create(data.ctx, &pk, sk));
         CHECK(secp256k1_ec_pubkey_serialize(data.ctx, pk_char, &pk_len, &pk, SECP256K1_EC_COMPRESSED) == 1);
-        CHECK(secp256k1_schnorrsig_sign(data.ctx, sig, msg, sk, NULL, NULL));
+        CHECK(secp256k1_schnorrsig_sign(data.ctx, sig, NULL, msg, sk, NULL, NULL, NULL));
     }
 
     run_benchmark("schnorrsig_sign", bench_schnorrsig_sign, NULL, NULL, (void *) &data, 10, 1000);
