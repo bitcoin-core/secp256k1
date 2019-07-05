@@ -75,7 +75,7 @@ SECP256K1_API int secp256k1_schnorrsig_parse(
  *  2. The client commits to its sign-to-contract original nonce (which is the nonce without the
  *     sign-to-contract tweak) using the hosts commitment by calling the
  *     `secp256k1_schnorrsig_anti_nonce_sidechan_client_commit` function. The client sends the
- *     rusulting commitment to the host
+ *     resulting commitment to the host
  *  3. The host replies with the randomness generated in step 1.
  *  4. The client signs with `schnorrsig_sign` using the host provided randomness as `s2c_data` and
  *     sends the signature and opening to the host.
@@ -83,6 +83,16 @@ SECP256K1_API int secp256k1_schnorrsig_parse(
  *     by calling `secp256k1_schnorrsig_anti_nonce_sidechan_host_verify` with the client's
  *     commitment from step 2 and the signature and opening received in step 4. If verification does
  *     not succeed, the protocol failed and can be restarted.
+ *
+ *  Rationale:
+ *      - The reason for having a host commitment is to allow the client to derive a unique nonce
+ *        for every host randomness. Otherwise the client would reuse the original nonce and thereby
+ *        leaking the secret key to the host.
+ *      - The client does not need to check that the host commitment matches the host's randomness.
+ *        That's because the client derives its nonce using the hosts randomness commitment. If the
+ *        commitment doesn't match then the client will derive a different original nonce and the
+ *        only result will be that the host is not able to verify the sign-to-contract commitment.
+ *        Therefore, the client does not need to maintain state about the progress of the protocol.
  */
 
 /** Create a randomness commitment on the host as part of the Anti Nonce Sidechannel Protocol.
