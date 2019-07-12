@@ -60,6 +60,10 @@ static size_t secp256k1_scratch_max_allocation(const secp256k1_callback* error_c
         secp256k1_callback_call(error_callback, "invalid scratch space");
         return 0;
     }
+    /* Ensure that multiplication will not wrap around */
+    if (ALIGNMENT > 1 && objects > SIZE_MAX/(ALIGNMENT - 1)) {
+        return 0;
+    }
     if (scratch->max_size - scratch->alloc_size <= objects * (ALIGNMENT - 1)) {
         return 0;
     }
