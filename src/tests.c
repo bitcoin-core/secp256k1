@@ -406,6 +406,10 @@ void run_scratch_tests(void) {
      * ALIGNMENT is greater than 1 because otherwise the objects take no extra
      * space. */
     CHECK(ALIGNMENT <= 1 || !secp256k1_scratch_max_allocation(&none->error_callback, scratch, (SIZE_MAX / (ALIGNMENT - 1)) + 1));
+    /* Try allocating SIZE_MAX to test wrap around which only happens if
+     * ALIGNMENT > 1, otherwise it returns NULL anyway because the scratch
+     * space is too small. */
+    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, SIZE_MAX) == NULL);
     secp256k1_scratch_space_destroy(none, scratch);
 
     /* cleanup */

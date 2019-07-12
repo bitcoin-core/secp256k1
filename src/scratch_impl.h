@@ -72,7 +72,14 @@ static size_t secp256k1_scratch_max_allocation(const secp256k1_callback* error_c
 
 static void *secp256k1_scratch_alloc(const secp256k1_callback* error_callback, secp256k1_scratch* scratch, size_t size) {
     void *ret;
-    size = ROUND_TO_ALIGN(size);
+    size_t rounded_size;
+
+    rounded_size = ROUND_TO_ALIGN(size);
+    /* Check that rounding did not wrap around */
+    if (rounded_size < size) {
+        return NULL;
+    }
+    size = rounded_size;
 
     if (memcmp(scratch->magic, "scratch", 8) != 0) {
         secp256k1_callback_call(error_callback, "invalid scratch space");
