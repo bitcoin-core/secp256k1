@@ -136,6 +136,11 @@ AC_ARG_ENABLE(module_recovery,
     [enable_module_recovery=$enableval],
     [enable_module_recovery=no])
 
+AC_ARG_ENABLE(module_ecdsa_sign_to_contract,
+    AS_HELP_STRING([--enable-module-ecdsa-sign-to-contract],[enable ECDSA sign-to-contract module [default=no]]),
+    [enable_module_ecdsa_sign_to_contract=$enableval],
+    [enable_module_ecdsa_sign_to_contract=no])
+
 AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]),
     [use_external_default_callbacks=$enableval],
@@ -493,6 +498,10 @@ if test x"$enable_module_recovery" = x"yes"; then
   AC_DEFINE(ENABLE_MODULE_RECOVERY, 1, [Define this symbol to enable the ECDSA pubkey recovery module])
 fi
 
+if test x"$enable_module_ecdsa_sign_to_contract" = x"yes"; then
+  AC_DEFINE(ENABLE_MODULE_ECDSA_SIGN_TO_CONTRACT, 1, [Define this symbol to enable the ECDSA sign-to-contract module])
+fi
+
 AC_C_BIGENDIAN()
 
 if test x"$use_external_asm" = x"yes"; then
@@ -508,10 +517,14 @@ if test x"$enable_experimental" = x"yes"; then
   AC_MSG_NOTICE([WARNING: experimental build])
   AC_MSG_NOTICE([Experimental features do not have stable APIs or properties, and may not be safe for production use.])
   AC_MSG_NOTICE([Building ECDH module: $enable_module_ecdh])
+  AC_MSG_NOTICE([Building ECDSA sign-to-contract module: $enable_module_ecdsa_sign_to_contract])
   AC_MSG_NOTICE([******])
 else
   if test x"$enable_module_ecdh" = x"yes"; then
     AC_MSG_ERROR([ECDH module is experimental. Use --enable-experimental to allow.])
+  fi
+  if test x"$enable_module_ecdsa_sign_to_contract" = x"yes"; then
+    AC_MSG_ERROR([ECDA sign-to-contract module module is experimental. Use --enable-experimental to allow.])
   fi
   if test x"$set_asm" = x"arm"; then
     AC_MSG_ERROR([ARM assembly optimization is experimental. Use --enable-experimental to allow.])
@@ -531,6 +544,7 @@ AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
 AM_CONDITIONAL([USE_ECMULT_STATIC_PRECOMPUTATION], [test x"$set_precomp" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
+AM_CONDITIONAL([ENABLE_MODULE_ECDSA_SIGN_TO_CONTRACT], [test x"$enable_module_ecdsa_sign_to_contract" = x"yes"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$use_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
 
@@ -543,20 +557,21 @@ AC_OUTPUT
 
 echo
 echo "Build Options:"
-echo "  with endomorphism       = $use_endomorphism"
-echo "  with ecmult precomp     = $set_precomp"
-echo "  with external callbacks = $use_external_default_callbacks"
-echo "  with benchmarks         = $use_benchmark"
-echo "  with coverage           = $enable_coverage"
-echo "  module ecdh             = $enable_module_ecdh"
-echo "  module recovery         = $enable_module_recovery"
+echo "  with endomorphism             = $use_endomorphism"
+echo "  with ecmult precomp           = $set_precomp"
+echo "  with external callbacks       = $use_external_default_callbacks"
+echo "  with benchmarks               = $use_benchmark"
+echo "  with coverage                 = $enable_coverage"
+echo "  module ecdh                   = $enable_module_ecdh"
+echo "  module recovery               = $enable_module_recovery"
+echo "  module ecdsa sign-to-contract = $enable_module_ecdsa_sign_to_contract"
 echo
-echo "  asm                     = $set_asm"
-echo "  bignum                  = $set_bignum"
-echo "  field                   = $set_field"
-echo "  scalar                  = $set_scalar"
-echo "  ecmult window size      = $set_ecmult_window"
-echo "  ecmult gen prec. bits   = $set_ecmult_gen_precision"
+echo "  asm                           = $set_asm"
+echo "  bignum                        = $set_bignum"
+echo "  field                         = $set_field"
+echo "  scalar                        = $set_scalar"
+echo "  ecmult window size            = $set_ecmult_window"
+echo "  ecmult gen prec. bits         = $set_ecmult_gen_precision"
 echo
 echo "  valgrind                = $enable_valgrind"
 echo "  CC                      = $CC"

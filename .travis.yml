@@ -11,14 +11,15 @@ compiler:
   - gcc
 env:
   global:
-    - FIELD=auto  BIGNUM=auto  SCALAR=auto  ENDOMORPHISM=no  STATICPRECOMPUTATION=yes  ECMULTGENPRECISION=auto  ASM=no  BUILD=check  EXTRAFLAGS=  HOST=  ECDH=no  RECOVERY=no  EXPERIMENTAL=no CTIMETEST=yes BENCH=yes SECP256K1_BENCH_ITERS=2
+    - FIELD=auto  BIGNUM=auto  SCALAR=auto  ENDOMORPHISM=no  STATICPRECOMPUTATION=yes  ECMULTGENPRECISION=auto  ASM=no  BUILD=check  EXTRAFLAGS=  HOST=  ECDH=no  RECOVERY=no  ECDSA_SIGN_TO_CONTRACT=no  EXPERIMENTAL=no CTIMETEST=yes BENCH=yes SECP256K1_BENCH_ITERS=2
   matrix:
     - SCALAR=32bit    RECOVERY=yes
-    - SCALAR=32bit    FIELD=32bit       ECDH=yes  EXPERIMENTAL=yes
+    - SCALAR=32bit    FIELD=32bit       ECDH=yes ECDSA_SIGN_TO_CONTRACT=yes EXPERIMENTAL=yes
+    - SCALAR=32bit    FIELD=32bit       EXPERIMENTAL=yes
     - SCALAR=64bit
     - FIELD=64bit     RECOVERY=yes
     - FIELD=64bit     ENDOMORPHISM=yes
-    - FIELD=64bit     ENDOMORPHISM=yes  ECDH=yes EXPERIMENTAL=yes
+    - FIELD=64bit     ENDOMORPHISM=yes  ECDH=yes ECDSA_SIGN_TO_CONTRACT=yes EXPERIMENTAL=yes
     - FIELD=64bit                       ASM=x86_64
     - FIELD=64bit     ENDOMORPHISM=yes  ASM=x86_64
     - FIELD=32bit     ENDOMORPHISM=yes
@@ -85,7 +86,7 @@ before_script: ./autogen.sh
 script:
  - if [ -n "$HOST" ]; then export USE_HOST="--host=$HOST"; fi
  - if [ "x$HOST" = "xi686-linux-gnu" ]; then export CC="$CC -m32"; fi
- - ./configure --enable-experimental=$EXPERIMENTAL --enable-endomorphism=$ENDOMORPHISM --with-field=$FIELD --with-bignum=$BIGNUM --with-asm=$ASM --with-scalar=$SCALAR --enable-ecmult-static-precomputation=$STATICPRECOMPUTATION --with-ecmult-gen-precision=$ECMULTGENPRECISION --enable-module-ecdh=$ECDH --enable-module-recovery=$RECOVERY $EXTRAFLAGS $USE_HOST
+ - ./configure --enable-experimental=$EXPERIMENTAL --enable-endomorphism=$ENDOMORPHISM --with-field=$FIELD --with-bignum=$BIGNUM --with-asm=$ASM --with-scalar=$SCALAR --enable-ecmult-static-precomputation=$STATICPRECOMPUTATION --with-ecmult-gen-precision=$ECMULTGENPRECISION --enable-module-ecdh=$ECDH --enable-module-recovery=$RECOVERY --enable-module-ecdsa-sign-to-contract=$ECDSA_SIGN_TO_CONTRACT $EXTRAFLAGS $USE_HOST
  - if [ -n "$BUILD" ]; then make -j2 $BUILD; fi
  - # travis_wait extends the 10 minutes without output allowed (https://docs.travis-ci.com/user/common-build-problems/#build-times-out-because-no-output-was-received)
  - # the `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (http://valgrind.org/docs/manual/manual-core.html)

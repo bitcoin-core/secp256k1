@@ -467,8 +467,10 @@ static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *m
 const secp256k1_nonce_function secp256k1_nonce_function_rfc6979 = nonce_function_rfc6979;
 const secp256k1_nonce_function secp256k1_nonce_function_default = nonce_function_rfc6979;
 
-int secp256k1_ecdsa_sign(const secp256k1_context* ctx, secp256k1_ecdsa_signature *signature, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, const void* noncedata) {
-    secp256k1_scalar r, s;
+static void secp256k1_s2c_opening_init(secp256k1_s2c_opening *opening);
+static int secp256k1_ec_commit_seckey(const secp256k1_context* ctx, unsigned char *seckey, const secp256k1_pubkey *pubkey, const unsigned char *data, size_t data_size);
+
+static int secp256k1_ecdsa_sign_helper(const secp256k1_context *ctx, secp256k1_scalar *r, secp256k1_scalar *s, secp256k1_s2c_opening *s2c_opening, const unsigned char *msg32, const unsigned char *seckey, const unsigned char* s2c_data32, secp256k1_nonce_function noncefp, const void* noncedata, int *recid) {
     secp256k1_scalar sec, non, msg;
     int ret = 0;
     int overflow = 0;
@@ -477,10 +479,19 @@ int secp256k1_ecdsa_sign(const secp256k1_context* ctx, secp256k1_ecdsa_signature
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
     ARG_CHECK(msg32 != NULL);
-    ARG_CHECK(signature != NULL);
+    ARG_CHECK(r != NULL && s != NULL);
     ARG_CHECK(seckey != NULL);
     if (noncefp == NULL) {
         noncefp = secp256k1_nonce_function_default;
+    }
+    /* sign-to-contract commitments only work with the default nonce function,
+     * because we need to ensure that s2c_data is actually hashed into the nonce and
+     * not just ignored. */
+    VERIFY_CHECK(s2c_data32 == NULL || noncefp == secp256k1_nonce_function_default);
+    /* s2c_opening and s2c_data32 should be either both non-NULL or both NULL. */
+    ARG_CHECK((s2c_opening != NULL) == (s2c_data32 != NULL));
+    if (s2c_opening != NULL) {
+        secp256k1_s2c_opening_init(s2c_opening);
     }
 
     secp256k1_scalar_set_b32(&sec, seckey, &overflow);
@@ -499,11 +510,31 @@ int secp256k1_ecdsa_sign(const secp256k1_context* ctx, secp256k1_ecdsa_signature
         /* The nonce is still secret here, but it overflowing or being zero is is less likely than 1:2^255. */
         secp256k1_declassify(ctx, &koverflow, sizeof(koverflow));
         if (!koverflow) {
-            ret = secp256k1_ecdsa_sig_sign(&ctx->ecmult_gen_ctx, &r, &s, &sec, &msg, &non, NULL);
-            /* The final signature is no longer a secret, nor is the fact that we were successful or not. */
-            secp256k1_declassify(ctx, &ret, sizeof(ret));
-            if (ret) {
-                break;
+            if (s2c_data32 != NULL) {
+                secp256k1_gej nonce_pj;
+                secp256k1_ge nonce_p;
+
+                /* Compute original nonce commitment/pubkey */
+                secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &nonce_pj, &non);
+                secp256k1_ge_set_gej(&nonce_p, &nonce_pj);
+                secp256k1_pubkey_save(&s2c_opening->original_pubnonce, &nonce_p);
+
+                /* Tweak nonce with s2c commitment. */
+                ret = secp256k1_ec_commit_seckey(ctx, nonce32, &s2c_opening->original_pubnonce, s2c_data32, 32);
+                if (!ret) {
+                    break;
+                }
+                secp256k1_scalar_set_b32(&non, nonce32, &koverflow);
+                koverflow |= secp256k1_scalar_is_zero(&non);
+            }
+
+            if (!koverflow) {
+                ret = secp256k1_ecdsa_sig_sign(&ctx->ecmult_gen_ctx, r, s, &sec, &msg, &non, recid);
+                /* The final signature is no longer a secret, nor is the fact that we were successful or not. */
+                secp256k1_declassify(ctx, &ret, sizeof(ret));
+                if (ret) {
+                    break;
+                }
             }
         }
         count++;
@@ -514,8 +545,18 @@ int secp256k1_ecdsa_sign(const secp256k1_context* ctx, secp256k1_ecdsa_signature
     secp256k1_scalar_clear(&sec);
     secp256k1_scalar_cmov(&r, &secp256k1_scalar_zero, (!ret) | overflow);
     secp256k1_scalar_cmov(&s, &secp256k1_scalar_zero, (!ret) | overflow);
-    secp256k1_ecdsa_signature_save(signature, &r, &s);
     return !!ret & !overflow;
+}
+
+int secp256k1_ecdsa_sign(const secp256k1_context* ctx, secp256k1_ecdsa_signature *signature, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, const void* noncedata) {
+    secp256k1_scalar r, s;
+    int ret;
+    ARG_CHECK(signature != NULL);
+    ret = secp256k1_ecdsa_sign_helper(ctx, &r, &s, NULL, msg32, seckey, NULL, noncefp, noncedata, NULL);
+    secp256k1_scalar_cmov(&r, &secp256k1_scalar_zero, !ret);
+    secp256k1_scalar_cmov(&s, &secp256k1_scalar_zero, !ret);
+    secp256k1_ecdsa_signature_save(signature, &r, &s);
+    return ret;
 }
 
 int secp256k1_ec_seckey_verify(const secp256k1_context* ctx, const unsigned char *seckey) {
@@ -827,4 +868,8 @@ int secp256k1_s2c_opening_serialize(const secp256k1_context* ctx, unsigned char 
 
 #ifdef ENABLE_MODULE_RECOVERY
 # include "modules/recovery/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_ECDSA_SIGN_TO_CONTRACT
+# include "modules/ecdsa_sign_to_contract/main_impl.h"
 #endif
