@@ -804,3 +804,7 @@ int secp256k1_s2c_opening_serialize(const secp256k1_context* ctx, unsigned char 
 #ifdef ENABLE_MODULE_RECOVERY
 # include "modules/recovery/main_impl.h"
 #endif
+
+#ifdef ENABLE_MODULE_ECDSA_SIGN_TO_CONTRACT
+# include "modules/ecdsa_sign_to_contract/main_impl.h"
+#endif

@@ -181,3 +181,7 @@ endif
 if ENABLE_MODULE_RECOVERY
 include src/modules/recovery/Makefile.am.include
 endif
+
+if ENABLE_MODULE_ECDSA_SIGN_TO_CONTRACT
+include src/modules/ecdsa_sign_to_contract/Makefile.am.include
+endif

@@ -3155,7 +3155,7 @@ void test_ecmult_multi_batching(void) {
     data.pt = pt;
     secp256k1_gej_neg(&r2, &r2);
 
-    /* Test with empty scratch space. It should compute the correct result using 
+    /* Test with empty scratch space. It should compute the correct result using
      * ecmult_mult_simple algorithm which doesn't require a scratch space. */
     scratch = secp256k1_scratch_create(&ctx->error_callback, 0);
     CHECK(secp256k1_ecmult_multi_var(&ctx->error_callback, &ctx->ecmult_ctx, scratch, &r, &scG, ecmult_multi_callback, &data, n_points));
@@ -5298,6 +5298,11 @@ void run_ecdsa_openssl(void) {
 # include "modules/recovery/tests_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_ECDSA_SIGN_TO_CONTRACT
+# include "modules/ecdsa_sign_to_contract/tests_impl.h"
+#endif
+
+
 int main(int argc, char **argv) {
     unsigned char seed16[16] = {0};
     unsigned char run32[32] = {0};
@@ -5423,6 +5428,11 @@ int main(int argc, char **argv) {
 #ifdef ENABLE_MODULE_RECOVERY
     /* ECDSA pubkey recovery tests */
     run_recovery_tests();
+#endif
+
+#ifdef ENABLE_MODULE_ECDSA_SIGN_TO_CONTRACT
+    /* ECDSA sign to contract */
+    run_ecdsa_sign_to_contract_tests();
 #endif
 
     secp256k1_rand256(run32);
