@@ -147,7 +147,7 @@ static void test_ecdsa_s2c_api(void) {
         CHECK(secp256k1_ecdsa_s2c_sign(sign, &signature, &s2c_opening, message, privkey, NULL, NULL, NULL) == 0);
         CHECK(ecount == 2);
     }
-    { /* verify_commit, ctx */
+    { /* verify_commit: ctx */
         ecount = 0;
         CHECK(secp256k1_ecdsa_s2c_sign(sign, &signature, &s2c_opening, message, privkey, s2c_data, NULL, NULL) == 1);
         CHECK(secp256k1_ecdsa_s2c_verify_commit(none, &signature, s2c_data, &s2c_opening) == 0);
@@ -159,7 +159,7 @@ static void test_ecdsa_s2c_api(void) {
         CHECK(secp256k1_ecdsa_s2c_verify_commit(both, &signature, s2c_data, &s2c_opening) == 1);
         CHECK(ecount == 2);
     }
-    { /* verify_commit, NULL signature, s2c_data, s2c_opening */
+    { /* verify_commit: NULL signature, s2c_data, s2c_opening */
         ecount = 0;
         CHECK(secp256k1_ecdsa_s2c_sign(sign, &signature, &s2c_opening, message, privkey, s2c_data, NULL, NULL) == 1);
         CHECK(secp256k1_ecdsa_s2c_verify_commit(vrfy, NULL, s2c_data, &s2c_opening) == 0);
@@ -169,11 +169,74 @@ static void test_ecdsa_s2c_api(void) {
         CHECK(secp256k1_ecdsa_s2c_verify_commit(vrfy, &signature, s2c_data, NULL) == 0);
         CHECK(ecount == 3);
     }
-    { /* verify_commit, invalid opening */
+    { /* verify_commit: invalid opening */
         secp256k1_s2c_opening invalid_opening = {0};
         ecount = 0;
         CHECK(secp256k1_ecdsa_s2c_verify_commit(vrfy, &signature, s2c_data, &invalid_opening) == 0);
         CHECK(ecount == 1);
+    }
+    { /* anti_nonce_covert_channel_client_commit: ctx */
+        secp256k1_pubkey commitment;
+        uint8_t rand_commitment[32] = {0};
+        ecount = 0;
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(none, &commitment, message, privkey, rand_commitment) == 0);
+        CHECK(ecount == 1);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(sign, &commitment, message, privkey, rand_commitment) == 1);
+        CHECK(ecount == 1);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(vrfy, &commitment, message, privkey, rand_commitment) == 0);
+        CHECK(ecount == 2);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(both, &commitment, message, privkey, rand_commitment) == 1);
+        CHECK(ecount == 2);
+    }
+    { /* anti_nonce_covert_channel_client_commit: client_commitment, msg32, seckey32, rand_commitment32 */
+        secp256k1_pubkey commitment;
+        uint8_t rand_commitment[32] = {0};
+        ecount = 0;
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(sign, NULL, message, privkey, rand_commitment) == 0);
+        CHECK(ecount == 1);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(sign, &commitment, NULL, privkey, rand_commitment) == 0);
+        CHECK(ecount == 2);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(sign, &commitment, message, NULL, rand_commitment) == 0);
+        CHECK(ecount == 3);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(sign, &commitment, message, privkey, NULL) == 0);
+        CHECK(ecount == 4);
+    }
+    { /* anti_nonce_covert_channel_host_verify */
+        uint8_t host_nonce[32] = {0};
+        uint8_t host_commitment[32] = {0};
+        secp256k1_pubkey client_commitment = {0};
+        secp256k1_s2c_opening invalid_opening = {0};
+        secp256k1_pubkey invalid_pubkey = {0};
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(ctx, &client_commitment, message, privkey, host_commitment) == 1);
+        ecount = 0;
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_verify(vrfy, NULL, host_nonce, &s2c_opening, &client_commitment) == 0);
+        CHECK(ecount == 1);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_verify(vrfy, &signature, NULL, &s2c_opening, &client_commitment) == 0);
+        CHECK(ecount == 2);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_verify(vrfy, &signature, host_nonce, NULL, &client_commitment) == 0);
+        CHECK(ecount == 3);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_verify(vrfy, &signature, host_nonce, &invalid_opening, &client_commitment) == 0);
+        CHECK(ecount == 4);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_verify(vrfy, &signature, host_nonce, &s2c_opening, NULL) == 0);
+        CHECK(ecount == 5);
+        /* invalid client commitment */
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_verify(vrfy, &signature, host_nonce, &s2c_opening, &invalid_pubkey) == 0);
+        CHECK(ecount == 6);
+        /* invalid original pubnonce */
+        memset(&s2c_opening.original_pubnonce, 0, sizeof(s2c_opening.original_pubnonce));
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_verify(vrfy, &signature, host_nonce, &s2c_opening, &client_commitment) == 0);
+        CHECK(ecount == 7);
+    }
+    { /* anti_nonce_covert_channel_host_commit */
+        uint8_t rand_commitment[32];
+        uint8_t rand[32] = {1};
+        ecount = 0;
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_commit(none, rand_commitment, rand) == 1);
+        CHECK(ecount == 0);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_commit(none, NULL, rand) == 0);
+        CHECK(ecount == 1);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_commit(none, rand_commitment, NULL) == 0);
+        CHECK(ecount == 2);
     }
 }
 
@@ -263,12 +326,88 @@ static void test_ecdsa_s2c_sign_verify(void) {
     }
 }
 
+static void test_ecdsa_s2c_anti_nonce_covert_channel_client_commit(void) {
+    size_t i;
+    unsigned char privkey[32] = {
+        0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+        0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+    };
+    unsigned char message[32] = {
+        0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
+        0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
+    };
+    secp256k1_pubkey client_commit;
+    unsigned char pubnonce[33];
+    /*
+      Check that original pubnonce is derived from s2c_data and ndata.
+    */
+    for (i = 0; i < sizeof(ecdsa_s2c_tests) / sizeof(ecdsa_s2c_tests[0]); i++) {
+        size_t pubnonce_size = 33;
+        const ecdsa_s2c_test *test = &ecdsa_s2c_tests[i];
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(ctx, &client_commit, message, privkey, (unsigned char*)test->host_commitment) == 1);
+        CHECK(secp256k1_ec_pubkey_serialize(ctx, pubnonce, &pubnonce_size, &client_commit, SECP256K1_EC_COMPRESSED) == 1);
+        CHECK(memcmp(test->expected_pubnonce, pubnonce, pubnonce_size) == 0);
+    }
+}
+
+/* This tests the full ECDSA Anti Nonce Covert Channel Protocol */
+static void test_ecdsa_s2c_anti_nonce_covert_channel(void) {
+    unsigned char client_privkey[32];
+    unsigned char host_msg[32];
+    unsigned char host_commitment[32];
+    unsigned char host_nonce_contribution[32];
+    secp256k1_pubkey client_commitment;
+    secp256k1_ecdsa_signature signature;
+    secp256k1_s2c_opening s2c_opening;
+
+    /* Generate a random key, message. */
+    {
+        secp256k1_scalar key;
+        random_scalar_order_test(&key);
+        secp256k1_scalar_get_b32(client_privkey, &key);
+        secp256k1_rand256_test(host_msg);
+        secp256k1_rand256_test(host_nonce_contribution);
+    }
+
+    /* Protocol step 1. */
+    CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_commit(ctx, host_commitment, host_nonce_contribution) == 1);
+    /* Protocol step 2. */
+    CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_client_commit(ctx, &client_commitment, host_msg, client_privkey, host_commitment) == 1);
+    /* Protocol step 3: host_nonce_contribution send to client to be used in step 4. */
+    /* Protocol step 4. */
+    CHECK(secp256k1_ecdsa_s2c_sign(ctx, &signature, &s2c_opening, host_msg, client_privkey, host_nonce_contribution, NULL, NULL) == 1);
+    /* Protocol step 5. */
+    CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_verify(ctx, &signature, host_nonce_contribution, &s2c_opening, &client_commitment) == 1);
+
+    { /* host_verify: commitment does not match */
+        uint8_t sigbytes[64];
+        size_t i;
+        CHECK(secp256k1_ecdsa_signature_serialize_compact(ctx, sigbytes, &signature) == 1);
+        for(i = 0; i < 32; i++) {
+            /* change one byte */
+            sigbytes[i] = (((int)sigbytes[i]) + 1) % 256;
+            CHECK(secp256k1_ecdsa_signature_parse_compact(ctx, &signature, sigbytes) == 1);
+            CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_verify(ctx, &signature, host_nonce_contribution, &s2c_opening, &client_commitment) == 0);
+            /* revert */
+            sigbytes[i] = (((int)sigbytes[i]) + 255) % 256;
+        }
+    }
+    { /* host_verify: client commitment != opening original pubnonce */
+
+        uint8_t tweak[32] = {1};
+        CHECK(secp256k1_ec_pubkey_tweak_add(ctx, &client_commitment, tweak) == 1);
+        CHECK(secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_verify(ctx, &signature, host_nonce_contribution, &s2c_opening, &client_commitment) == 0);
+    }
+}
+
 static void run_ecdsa_sign_to_contract_tests(void) {
     int i;
     test_ecdsa_s2c_api();
     test_ecdsa_s2c_original_pubnonce();
+    test_ecdsa_s2c_anti_nonce_covert_channel_client_commit();
     for (i = 0; i < count; i++) {
         test_ecdsa_s2c_sign_verify();
+        test_ecdsa_s2c_anti_nonce_covert_channel();
     }
 }
 
