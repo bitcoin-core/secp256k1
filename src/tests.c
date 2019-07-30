@@ -366,8 +366,8 @@ void run_scratch_tests(void) {
     CHECK(scratch->alloc_size != 0);
     CHECK(scratch->alloc_size % ALIGNMENT == 0);
 
-    /* Allocating another 500 bytes fails */
-    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) == NULL);
+    /* Allocating another 501 bytes fails */
+    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 501) == NULL);
     CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000 - adj_alloc);
     CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) == 1000 - adj_alloc - (ALIGNMENT - 1));
     CHECK(scratch->alloc_size != 0);
