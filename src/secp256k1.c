@@ -820,9 +820,8 @@ static int secp256k1_ec_commit_verify(const secp256k1_context* ctx, const secp25
     }
 
     /* Return commitment == commitment_tmp */
-    secp256k1_gej_set_infinity(&pj);
     secp256k1_pubkey_load(ctx, &p, &commitment_tmp);
-    secp256k1_gej_add_ge_var(&pj, &pj, &p, NULL);
+    secp256k1_gej_set_ge(&pj, &p);
     secp256k1_pubkey_load(ctx, &p, commitment);
     secp256k1_ge_neg(&p, &p);
     secp256k1_gej_add_ge_var(&pj, &pj, &p, NULL);
