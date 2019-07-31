@@ -4293,13 +4293,13 @@ void run_eckey_edge_case_test(void) {
     secp256k1_context_set_illegal_callback(ctx, NULL, NULL);
 }
 
-
 void run_s2c_opening_test(void) {
     int i = 0;
-    unsigned char output[34];
-    unsigned char input[34] = {
-            0x01,
-            0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    unsigned char output[33];
+    /* First byte 0x06 means that nonce_is_negated and EVEN tag for the
+     * following compressed pubkey (which is valid). */
+    unsigned char input[33] = {
+            0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -4320,12 +4320,20 @@ void run_s2c_opening_test(void) {
     /* First parsing, then serializing works */
     CHECK(secp256k1_s2c_opening_parse(ctx, &opening, input) == 1);
     CHECK(secp256k1_s2c_opening_serialize(ctx, output, &opening) == 1);
+    CHECK(secp256k1_s2c_opening_parse(ctx, &opening, input) == 1);
 
     {
         /* Invalid pubkey makes parsing fail */
-        unsigned char input_tmp[34];
+        unsigned char input_tmp[33];
         memcpy(input_tmp, input, sizeof(input_tmp));
-        input_tmp[33] = 0;
+        /* Pubkey oddness tag is invalid */
+        input_tmp[0] = 0;
+        CHECK(secp256k1_s2c_opening_parse(ctx, &opening, input_tmp) == 0);
+        /* nonce_is_negated bit is set but pubkey oddness tag is invalid */
+        input_tmp[0] = 5;
+        CHECK(secp256k1_s2c_opening_parse(ctx, &opening, input_tmp) == 0);
+        /* Unknown bit is set */
+        input_tmp[0] = 8;
         CHECK(secp256k1_s2c_opening_parse(ctx, &opening, input_tmp) == 0);
     }
 
@@ -4335,13 +4343,13 @@ void run_s2c_opening_test(void) {
          * points' x-coordinates are uniformly random */
         if (secp256k1_s2c_opening_parse(ctx, &opening, input) == 1) {
             CHECK(secp256k1_s2c_opening_serialize(ctx, output, &opening) == 1);
-            CHECK(memcmp(output, input, 34) == 0);
+            CHECK(memcmp(output, input, sizeof(output)) == 0);
         }
-        secp256k1_rand256(input);
-        /* nonce_is_negated */
-        input[0] = input[0] & 1;
-        /* oddness */
-        input[1] = (input[1] % 2) + 2;
+        secp256k1_rand256(&input[1]);
+        /* Set pubkey oddness tag to first bit of input[1] */
+        input[0] = (input[1] & 1) + 2;
+        /* Set nonce_is_negated bit to input[1]'s 3rd bit */
+        input[0] |= (input[1] & (1 << 2));
         i++;
     } while(i < count);
 }

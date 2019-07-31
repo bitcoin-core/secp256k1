@@ -475,13 +475,13 @@ SECP256K1_API int secp256k1_ecdsa_signature_serialize_compact(
  *  Args:    ctx: a secp256k1 context object.
  *  Out: opening: pointer to an opening object. If 1 is returned, it is set to a
  *                 parsed version of input. If not, its value is undefined.
- *  In:  input34: pointer to 34-byte array with a serialized opening
+ *  In:  input33: pointer to 33-byte array with a serialized opening
  *
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_s2c_opening_parse(
     const secp256k1_context* ctx,
     secp256k1_s2c_opening* opening,
-    const unsigned char *input34
+    const unsigned char *input33
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
 /** Serialize a sign-to-contract opening into a byte sequence.
@@ -489,13 +489,13 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_s2c_opening_parse(
  *  Returns: 1 if the opening was successfully serialized.
  *           0 if the opening was not initializaed.
  *  Args:     ctx: a secp256k1 context object.
- *  Out: output34: pointer to a 34-byte array to place the serialized opening
+ *  Out: output33: pointer to a 33-byte array to place the serialized opening
  *                 in.
  *  In:   opening: a pointer to an initialized `secp256k1_s2c_opening`.
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_s2c_opening_serialize(
     const secp256k1_context* ctx,
-    unsigned char *output34,
+    unsigned char *output33,
     const secp256k1_s2c_opening* opening
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
