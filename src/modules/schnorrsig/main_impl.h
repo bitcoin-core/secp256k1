@@ -107,12 +107,11 @@ SECP256K1_API int secp256k1_schnorrsig_anti_nonce_sidechan_host_verify(secp256k1
     ARG_CHECK(client_commit != NULL);
 
     /* Check that client_commit == opening->original_pubnonce */
-    secp256k1_gej_set_infinity(&pj);
     if (!secp256k1_pubkey_load(ctx, &gcommit, client_commit)) {
         return 0;
     }
     secp256k1_ge_neg(&gcommit, &gcommit);
-    secp256k1_gej_add_ge(&pj, &pj, &gcommit);
+    secp256k1_gej_set_ge(&pj, &gcommit);
     if (!secp256k1_pubkey_load(ctx, &gopening, &opening->original_pubnonce)) {
         return 0;
     }
