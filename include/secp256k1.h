@@ -258,7 +258,7 @@ SECP256K1_API void secp256k1_context_destroy(
  *   - void secp256k1_default_error_callback_fn(const char* message, void* data);
  *  The library can call these default handlers even before a proper callback data
  *  pointer could have been set using secp256k1_context_set_illegal_callback or
- *  secp256k1_context_set_illegal_callback, e.g., when the creation of a context
+ *  secp256k1_context_set_error_callback, e.g., when the creation of a context
  *  fails. In this case, the corresponding default handler will be called with
  *  the data pointer argument set to NULL.
  *
