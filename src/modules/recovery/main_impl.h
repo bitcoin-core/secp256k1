@@ -120,6 +120,74 @@ static int secp256k1_ecdsa_sig_recover(const secp256k1_ecmult_context *ctx, cons
     return !secp256k1_gej_is_infinity(&qj);
 }
 
+static int secp256k1_ecdsa_sig_recover_four(const secp256k1_ecmult_context *ctx, secp256k1_gej out[], size_t *n, const secp256k1_scalar *sigr, const secp256k1_scalar *rn, const secp256k1_scalar* sigs, const secp256k1_scalar *message) {
+  unsigned char brx[32];
+  secp256k1_fe rx, rx2;
+  secp256k1_ge gex;
+  secp256k1_gej xj1, xj1n, xj2, xj2n, u1j;
+  secp256k1_scalar u1, u2, zero;
+  int r;
+  *n = 0;
+  if (secp256k1_scalar_is_zero(sigr) || secp256k1_scalar_is_zero(sigs)) {
+    return 0;
+  }
+
+  secp256k1_scalar_set_int(&zero, 0);
+  secp256k1_gej_set_infinity(&u1j);
+  secp256k1_scalar_get_b32(brx, sigr);
+  r = secp256k1_fe_set_b32(&rx, brx);
+  (void)r;
+  VERIFY_CHECK(r); /* brx comes from a scalar, so is less than the order; certainly less than p */
+
+  secp256k1_scalar_mul(&u1, rn, message);
+  secp256k1_scalar_negate(&u1, &u1);
+  secp256k1_scalar_mul(&u2, rn, sigs);
+  secp256k1_ecmult(ctx, &u1j, &u1j, &zero, &u1);
+
+  if (secp256k1_fe_cmp_var(&rx, &secp256k1_ecdsa_const_p_minus_order) < 0) {
+    secp256k1_fe_copy_add(&rx2, &rx, &secp256k1_ecdsa_const_order_as_fe);
+    if(secp256k1_ge_set_xquad(&gex, &rx2)) {
+      secp256k1_gej_set_ge(&xj2, &gex);
+
+      secp256k1_ecmult(ctx, &xj2, &xj2, &u2, NULL);
+      secp256k1_gej_neg(&xj2n, &xj2);
+
+      secp256k1_gej_add_var(&xj2, &xj2, &u1j, NULL);
+      secp256k1_gej_add_var(&xj2n, &xj2n, &u1j, NULL);
+
+      if (!secp256k1_gej_is_infinity(&xj2)) {
+        memcpy(&out[*n], &xj2n, sizeof(out[*n]));
+        (*n)++;
+      }
+      if (!secp256k1_gej_is_infinity(&xj2n)) {
+        memcpy(&out[*n], &xj2n, sizeof(out[*n]));
+        (*n)++;
+      }
+    }
+  }
+
+  if (secp256k1_ge_set_xquad(&gex, &rx)) {
+    secp256k1_gej_set_ge(&xj1, &gex);
+    secp256k1_ecmult(ctx, &xj1, &xj1, &u2, NULL);
+
+    secp256k1_gej_neg(&xj1n, &xj1);
+
+    secp256k1_gej_add_var(&xj1, &xj1, &u1j, NULL);
+    secp256k1_gej_add_var(&xj1n, &xj1n, &u1j, NULL);
+
+    if (!secp256k1_gej_is_infinity(&xj1)) {
+      memcpy(&out[*n], &xj1, sizeof(out[*n]));
+      (*n)++;
+    }
+    if (!secp256k1_gej_is_infinity(&xj1n)) {
+      memcpy(&out[*n], &xj1n, sizeof(out[*n]));
+      (*n)++;
+    }
+  }
+
+  return *n > 0;
+}
+
 int secp256k1_ecdsa_sign_recoverable(const secp256k1_context* ctx, secp256k1_ecdsa_recoverable_signature *signature, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, const void* noncedata) {
     secp256k1_scalar r, s;
     secp256k1_scalar sec, non, msg;
@@ -188,6 +256,76 @@ int secp256k1_ecdsa_recover(const secp256k1_context* ctx, secp256k1_pubkey *pubk
         memset(pubkey, 0, sizeof(*pubkey));
         return 0;
     }
+}
+
+
+int secp256k1_ecdsa_recover_batch(const secp256k1_context* ctx, secp256k1_scratch *scratch, secp256k1_pubkey pubkeys[], size_t pubkeys_n[], const secp256k1_ecdsa_signature *const sigs[], const unsigned char *const msgs32[], size_t n) {
+  secp256k1_scalar m;
+  secp256k1_scalar *ss, *rs, *rns;
+  secp256k1_ge *ges;
+  secp256k1_gej *gejs;
+  size_t i, j;
+  size_t scratch_checkpoint;
+
+  VERIFY_CHECK(ctx != NULL);
+  ARG_CHECK(scratch != NULL);
+  ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
+  if (n > 0) {
+    ARG_CHECK(msgs32 != NULL);
+    ARG_CHECK(sigs != NULL);
+    ARG_CHECK(pubkeys != NULL);
+  }
+  scratch_checkpoint = secp256k1_scratch_checkpoint(&ctx->error_callback, scratch);
+
+  ges = (secp256k1_ge *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, n * 4 * sizeof(*ges));
+  gejs = (secp256k1_gej *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, n * 4 * sizeof(*gejs));
+  rs = (secp256k1_scalar *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, n * sizeof(*rs));
+  rns = (secp256k1_scalar *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, n * sizeof(*rns));
+  ss = (secp256k1_scalar *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, n * sizeof(*ss));
+  if (gejs == NULL || ges == NULL || rs == NULL || rns == NULL || ss == NULL) {
+    secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, scratch_checkpoint);
+    memset(pubkeys, 0, sizeof(*pubkeys)*n*4);
+    memset(pubkeys_n, 0, sizeof(*pubkeys_n)*n);
+    return 0;
+  }
+
+  j = 0;
+  for (i = 0; i < n; ++i) {
+    secp256k1_ecdsa_signature_load(ctx, &rs[i], &ss[i], sigs[i]);
+    if (secp256k1_scalar_is_zero(&rs[i]) || secp256k1_scalar_is_zero(&ss[i])) {
+      secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, scratch_checkpoint);
+      memset(pubkeys, 0, sizeof(*pubkeys)*n*4);
+      memset(pubkeys_n, 0, sizeof(*pubkeys_n)*n);
+      return 0;
+    }
+  }
+  secp256k1_scalar_inv_all_var(rns, rs, n);
+
+
+  for (i = 0; i < n; ++i) {
+    secp256k1_scalar_set_b32(&m, msgs32[i], NULL);
+    if(!secp256k1_ecdsa_sig_recover_four(&ctx->ecmult_ctx, &gejs[i*4], &pubkeys_n[i], &rs[i], &rns[i], &ss[i], &m)) {
+      secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, scratch_checkpoint);
+      memset(pubkeys, 0, sizeof(*pubkeys)*n*4);
+      memset(pubkeys_n, 0, sizeof(*pubkeys_n)*n);
+      return 0;
+    }
+    for (j = pubkeys_n[i]; j < 4; j++) {
+      secp256k1_gej_set_infinity(&gejs[(i*4)+j]);
+    }
+  }
+
+  secp256k1_ge_set_all_gej_var(ges, gejs, n*4);
+
+  for (i = 0; i < n*4; ++i) {
+    if(!secp256k1_ge_is_infinity(&ges[i])) {
+      secp256k1_pubkey_save(&pubkeys[i], &ges[i]);
+    } else {
+      memset(&pubkeys[i], 0, sizeof(*pubkeys));
+    }
+  }
+  secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, scratch_checkpoint);
+  return 1;
 }
 
 #endif /* SECP256K1_MODULE_RECOVERY_MAIN_H */

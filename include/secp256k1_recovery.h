@@ -103,6 +103,32 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdsa_recover(
     const unsigned char *msg32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
+/** Recover a set of ECDSA public keys from a set of regular signatures and messages.
+ * Producing 0-4 public keys per signature.
+ *
+ *  Returns: 1: Nothing memory-wise failed.
+ *           0: otherwise.
+ *           In particular, returns 1 if n is 0.
+ *  Args:    ctx:        pointer to a context object, initialized for verification (cannot be NULL)
+ *           scratch:    scratch space used for point conversions.
+ *  Out:     pubkeys:    Array size n*4, the pubkeys will be written by signature to this. (4 keys assigned for each signature)
+ *  Out:     pubkeys_n:  Array size n, the amount of recovered pubkeys per signature will be written to this.
+ *                       i.e. if pubkeys_n[i]=x then from pubkeys[i*4] to pubkeys[i*4+x] are the valid public keys for signature i
+ *  In:      sigs:       Array size n, of pointers to the signatures being recovered.
+ *           msgs32:     Array size n, of pointers to the 32-byte message hashs assumed to be signed
+ *           n:          The amount of public keys to recover.
+ *                       All arrays *must* be at the documented size, unless n is zero then they can be NULL.
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdsa_recover_batch(
+    const secp256k1_context* ctx,
+    secp256k1_scratch_space *scratch,
+    secp256k1_pubkey pubkeys[],
+    size_t pubkeys_n[],
+    const secp256k1_ecdsa_signature *const sigs[],
+    const unsigned char *const msgs32[],
+    size_t n
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
+
 #ifdef __cplusplus
 }
 #endif
