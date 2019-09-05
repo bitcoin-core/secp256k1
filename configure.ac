@@ -165,6 +165,14 @@ AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
 )],
 [req_ecmult_window=$withval], [req_ecmult_window=auto])
 
+AC_ARG_WITH([ecmult-gen-precision], [AS_HELP_STRING([--with-ecmult-gen-precision=2|4|8|auto],
+[Precision bits to tune the precomputed table size for signing.]
+[The size of the table is 32kB for 2 bits, 64kB for 4 bits, 512kB for 8 bits of precision.]
+[A larger table size usually results in possible faster signing.]
+["auto" is a reasonable setting for desktop machines (currently 4). [default=auto]]
+)],
+[req_ecmult_gen_precision=$withval], [req_ecmult_gen_precision=auto])
+
 AC_CHECK_TYPES([__int128])
 
 if test x"$enable_coverage" = x"yes"; then
@@ -423,6 +431,22 @@ case $set_ecmult_window in
   ;;
 esac
 
+#set ecmult gen precision
+if test x"$req_ecmult_gen_precision" = x"auto"; then
+  set_ecmult_gen_precision=4
+else
+  set_ecmult_gen_precision=$req_ecmult_gen_precision
+fi
+
+case $set_ecmult_gen_precision in
+2|4|8)
+  AC_DEFINE_UNQUOTED(ECMULT_GEN_PREC_BITS, $set_ecmult_gen_precision, [Set ecmult gen precision bits])
+  ;;
+*)
+  AC_MSG_ERROR(['ecmult gen precision not 2, 4, 8 or "auto"'])
+  ;;
+esac
+
 if test x"$use_tests" = x"yes"; then
   SECP_OPENSSL_CHECK
   if test x"$has_openssl_ec" = x"yes"; then
@@ -558,6 +582,7 @@ echo "  bignum                  = $set_bignum"
 echo "  field                   = $set_field"
 echo "  scalar                  = $set_scalar"
 echo "  ecmult window size      = $set_ecmult_window"
+echo "  ecmult gen prec. bits   = $set_ecmult_gen_precision"
 echo
 echo "  CC                      = $CC"
 echo "  CFLAGS                  = $CFLAGS"
