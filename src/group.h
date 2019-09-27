@@ -105,6 +105,9 @@ static void secp256k1_gej_double_var(secp256k1_gej *r, const secp256k1_gej *a, s
 /** Set r equal to the sum of a and b. If rzr is non-NULL, r->z = a->z * *rzr (a cannot be infinity in that case). */
 static void secp256k1_gej_add_var(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_gej *b, secp256k1_fe *rzr);
 
+/** Set r equal to the sum of a and b. And set n equal to a-b If rzr is non-NULL, r->z = a->z * *rzr (a cannot be infinity in that case). */
+static void secp256k1_gej_add_neg_var(secp256k1_gej *r, secp256k1_gej *n, const secp256k1_gej *a, const secp256k1_gej *b, secp256k1_fe *rzr);
+
 /** Set r equal to the sum of a and b (with b given in affine coordinates, and not infinity). */
 static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_ge *b);
 

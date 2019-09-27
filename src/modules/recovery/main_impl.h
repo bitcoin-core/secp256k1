@@ -150,10 +150,8 @@ static int secp256k1_ecdsa_sig_recover_four(const secp256k1_ecmult_context *ctx,
       secp256k1_gej_set_ge(&xj2, &gex);
 
       secp256k1_ecmult(ctx, &xj2, &xj2, &u2, NULL);
-      secp256k1_gej_neg(&xj2n, &xj2);
 
-      secp256k1_gej_add_var(&xj2, &xj2, &u1j, NULL);
-      secp256k1_gej_add_var(&xj2n, &xj2n, &u1j, NULL);
+      secp256k1_gej_add_neg_var(&xj2, &xj2n, &u1j, &xj2, NULL);
 
       if (!secp256k1_gej_is_infinity(&xj2)) {
         memcpy(&out[*n], &xj2n, sizeof(out[*n]));
@@ -170,10 +168,7 @@ static int secp256k1_ecdsa_sig_recover_four(const secp256k1_ecmult_context *ctx,
     secp256k1_gej_set_ge(&xj1, &gex);
     secp256k1_ecmult(ctx, &xj1, &xj1, &u2, NULL);
 
-    secp256k1_gej_neg(&xj1n, &xj1);
-
-    secp256k1_gej_add_var(&xj1, &xj1, &u1j, NULL);
-    secp256k1_gej_add_var(&xj1n, &xj1n, &u1j, NULL);
+    secp256k1_gej_add_neg_var(&xj1, &xj1n, &u1j, &xj1, NULL);
 
     if (!secp256k1_gej_is_infinity(&xj1)) {
       memcpy(&out[*n], &xj1, sizeof(out[*n]));
