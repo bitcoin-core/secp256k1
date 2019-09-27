@@ -12,6 +12,15 @@
 #include <math.h>
 #include "sys/time.h"
 
+
+/* A memory fence to prevent compiler optimizations
+   It tells the optimizer that it can do whatever it wants with *p so the optimizer can't optimize *p out.
+   The nice thing is that because the assembly is actually empty it doesn't add any instrcutions
+   *Notice: This is a best effort, nothing promise us it will always work.* */
+static void memory_fence(void *p) {
+    __asm__ __volatile__("": : "g"(p) : "memory");
+}
+
 static double gettimedouble(void) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
