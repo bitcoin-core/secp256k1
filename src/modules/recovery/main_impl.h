@@ -284,7 +284,6 @@ int secp256k1_ecdsa_recover_batch(const secp256k1_context* ctx, secp256k1_scratc
     return 0;
   }
 
-  j = 0;
   for (i = 0; i < n; ++i) {
     secp256k1_ecdsa_signature_load(ctx, &rs[i], &ss[i], sigs[i]);
     if (secp256k1_scalar_is_zero(&rs[i]) || secp256k1_scalar_is_zero(&ss[i])) {

@@ -434,7 +434,7 @@ static void secp256k1_gej_add_neg_var(secp256k1_gej *r, secp256k1_gej *n, const 
     return;
   }
 
-  r->infinity = 0;
+  r->infinity = 0; n->infinity = 0;
   secp256k1_fe_sqr(&z22, &b->z);
   secp256k1_fe_sqr(&z12, &a->z);
   secp256k1_fe_mul(&u1, &a->x, &z22);
@@ -447,13 +447,13 @@ static void secp256k1_gej_add_neg_var(secp256k1_gej *r, secp256k1_gej *n, const 
   if (secp256k1_fe_normalizes_to_zero_var(&h)) {
     if (secp256k1_fe_normalizes_to_zero_var(&i)) {
       secp256k1_gej_double_var(r, a, rzr);
-      n->infinity = 1;
+      n->infinity = 1; /* if a==b then a-b==inf */
     } else {
       if (rzr != NULL) {
         secp256k1_fe_set_int(rzr, 0);
       }
+      secp256k1_gej_double_var(n, a, rzr); /*a is a complement of b, so a-b == a*2 */
       r->infinity = 1;
-      n->infinity = 1;
     }
     return;
   }
