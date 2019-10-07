@@ -577,9 +577,11 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_create(
 
 /** Negates a private key in place.
  *
- *  Returns: 1 always
+ *  Returns: 1 if seckey was successfully negated and 0 otherwise
  *  Args:   ctx:        pointer to a context object
- *  In/Out: seckey:     pointer to the 32-byte private key to be negated (cannot be NULL)
+ *  In/Out: seckey:     pointer to the 32-byte private key to be negated. The private key
+ *                      interpreted as an integer (most significant byte first) must be less than
+ *                      the curve order. (cannot be NULL)
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_negate(
     const secp256k1_context* ctx,

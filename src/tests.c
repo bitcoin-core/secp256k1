@@ -4104,6 +4104,30 @@ void run_eckey_edge_case_test(void) {
     secp256k1_context_set_illegal_callback(ctx, NULL, NULL);
 }
 
+void run_eckey_arithmetic_test(void) {
+    unsigned char seckey[32];
+    unsigned char seckey_tmp[32];
+
+    secp256k1_rand256_test(seckey);
+    memcpy(seckey_tmp, seckey, 32);
+
+    /* Verify negation changes the key and changes it back */
+    CHECK(secp256k1_ec_privkey_negate(ctx, seckey) == 1);
+    CHECK(memcmp(seckey, seckey_tmp, 32) != 0);
+    CHECK(secp256k1_ec_privkey_negate(ctx, seckey) == 1);
+    CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
+
+    /* Negating an overflowing seckey fails and the seckey is not modified. In
+     * this test, the seckey has 16 random bytes to ensure that
+     * ec_privkey_negate doesn't just set seckey to a constant value in case of
+     * failure.*/
+    secp256k1_rand256_test(seckey);
+    memset(seckey, 0xFF, 16);
+    memcpy(seckey_tmp, seckey, 32);
+    CHECK(secp256k1_ec_privkey_negate(ctx, seckey) == 0);
+    CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
+}
+
 void random_sign(secp256k1_scalar *sigr, secp256k1_scalar *sigs, const secp256k1_scalar *key, const secp256k1_scalar *msg, int *recid) {
     secp256k1_scalar nonce;
     do {
@@ -5269,6 +5293,9 @@ int main(int argc, char **argv) {
 
     /* EC key edge cases */
     run_eckey_edge_case_test();
+
+    /* EC key arithmetic test */
+    run_eckey_arithmetic_test();
 
 #ifdef ENABLE_MODULE_ECDH
     /* ecdh tests */

@@ -530,10 +530,14 @@ int secp256k1_ec_pubkey_create(const secp256k1_context* ctx, secp256k1_pubkey *p
 
 int secp256k1_ec_privkey_negate(const secp256k1_context* ctx, unsigned char *seckey) {
     secp256k1_scalar sec;
+    int overflow;
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(seckey != NULL);
 
-    secp256k1_scalar_set_b32(&sec, seckey, NULL);
+    secp256k1_scalar_set_b32(&sec, seckey, &overflow);
+    if (overflow) {
+        return 0;
+    }
     secp256k1_scalar_negate(&sec, &sec);
     secp256k1_scalar_get_b32(seckey, &sec);
 
