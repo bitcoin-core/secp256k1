@@ -1123,16 +1123,43 @@ void run_scalar_tests(void) {
 
 #ifndef USE_NUM_NONE
     {
-        /* A scalar with value of the curve order should be 0. */
+        /* Test secp256k1_scalar_set_b32 boundary conditions */
         secp256k1_num order;
-        secp256k1_scalar zero;
+        secp256k1_scalar scalar;
         unsigned char bin[32];
+        unsigned char bin_tmp[32];
         int overflow = 0;
+        /* 2^256-1 - order */
+        static const secp256k1_scalar all_ones_minus_order = SECP256K1_SCALAR_CONST(
+            0x00000000UL, 0x00000000UL, 0x00000000UL, 0x00000001UL,
+            0x45512319UL, 0x50B75FC4UL, 0x402DA173UL, 0x2FC9BEBEUL
+        );
+
+        /* A scalar set to 0s should be 0. */
+        memset(bin, 0, 32);
+        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
+        CHECK(overflow == 0);
+        CHECK(secp256k1_scalar_is_zero(&scalar));
+
+        /* A scalar with value of the curve order should be 0. */
         secp256k1_scalar_order_get_num(&order);
         secp256k1_num_get_bin(bin, 32, &order);
-        secp256k1_scalar_set_b32(&zero, bin, &overflow);
+        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
         CHECK(overflow == 1);
-        CHECK(secp256k1_scalar_is_zero(&zero));
+        CHECK(secp256k1_scalar_is_zero(&scalar));
+
+        /* A scalar with value of the curve order minus one should not overflow. */
+        bin[31] -= 1;
+        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
+        CHECK(overflow == 0);
+        secp256k1_scalar_get_b32(bin_tmp, &scalar);
+        CHECK(memcmp(bin, bin_tmp, 32) == 0);
+
+        /* A scalar set to all 1s should overflow. */
+        memset(bin, 0xFF, 32);
+        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
+        CHECK(overflow == 1);
+        CHECK(secp256k1_scalar_eq(&scalar, &all_ones_minus_order));
     }
 #endif
 
