@@ -70,3 +70,11 @@ Exhaustive tests
 With valgrind, you might need to increase the max stack size:
 
     $ valgrind --max-stackframe=2500000 ./exhaustive_tests
+
+
+Usage
+-----
+
+* The application must generate the private key with a strong random number generator and check its validity with the `secp256k1_ec_seckey_verify` function
+* The private key is stored separately from the context and your app is responsible for storing and loading it
+* The application can generate the public key using the `secp256k1_ec_pubkey_create` and `secp256k1_ec_pubkey_serialize` functions (check [src/bench_verify.c](src/bench_verify.c))
