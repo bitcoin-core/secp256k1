@@ -20,8 +20,8 @@ typedef struct {
     unsigned char sig[RECOVER_AMOUNT][64];
     secp256k1_ecdsa_signature sig_arr[RECOVER_AMOUNT];
     const secp256k1_ecdsa_signature* sigs_ptrs[RECOVER_AMOUNT];
-    secp256k1_pubkey keys_arr[RECOVER_AMOUNT*4];
-    size_t pubkeys_n[RECOVER_AMOUNT];
+    secp256k1_pubkey keys_arr[RECOVER_AMOUNT];
+    const secp256k1_pubkey* pubkeys_ptrs[RECOVER_AMOUNT];
 } bench_recover_data;
 
 void bench_recover(void* arg) {
@@ -37,38 +37,41 @@ void bench_recover(void* arg) {
         CHECK(secp256k1_ecdsa_recoverable_signature_parse_compact(data->ctx, &sig, data->sig[0], i % 2));
         CHECK(secp256k1_ecdsa_recover(data->ctx, &pubkey, &sig, data->msg[0]));
         CHECK(secp256k1_ec_pubkey_serialize(data->ctx, pubkeyc, &pubkeylen, &pubkey, SECP256K1_EC_COMPRESSED));
-        for (j = 0; j < 32; j++) {
+        if (i < RECOVER_AMOUNT) { /* Populate the dataset for the batch recovery with the first RECOVER_AMOUNT msgs,sigs and keys */
+          memcpy(data->sig[i], data->sig[0], 64);
+          memcpy(data->msg[i], data->msg[0], 32);
+          memcpy(&data->keys_arr[i], &pubkey, sizeof(secp256k1_pubkey));
+        }
+      for (j = 0; j < 32; j++) {
             data->sig[0][j + 32] = data->msg[0][j];    /* Move former message to S. */
             data->msg[0][j] = data->sig[0][j];         /* Move former R to message. */
             data->sig[0][j] = pubkeyc[j + 1];       /* Move recovered pubkey X coordinate to R (which must be a valid X coordinate). */
         }
-      if (i < RECOVER_AMOUNT) {
-        memcpy(data->sig[i], data->sig[0], 64);
-        memcpy(data->msg[i], data->msg[0], 32);
-      }
     }
 }
 
 
 void bench_recover_batch(void* arg) {
-  size_t i, j, k;
+  size_t i, j, ctr, pubkeylen = 33;
   bench_recover_data *data = (bench_recover_data*)arg;
   unsigned char pubkeyc[33];
+  const secp256k1_pubkey* pubkeys_out[RECOVER_AMOUNT*4];
 
 
   for (i = 0; i < 200; i++) {
-    size_t pubkeylen = 33;
+    ctr = 0;
     for (j = 0; j < RECOVER_AMOUNT; j++) {
       CHECK(secp256k1_ecdsa_signature_parse_compact(data->ctx, &data->sig_arr[j], data->sig[j]));
     }
-    CHECK(secp256k1_ecdsa_recover_batch(data->ctx, data->scratch, data->keys_arr, data->pubkeys_n, data->sigs_ptrs, data->msgs_ptrs, RECOVER_AMOUNT));
+    CHECK(secp256k1_ecdsa_recover_batch(data->ctx, data->scratch, pubkeys_out, data->sigs_ptrs, data->msgs_ptrs, RECOVER_AMOUNT, data->pubkeys_ptrs, RECOVER_AMOUNT));
 
-    for (j = 0; j < RECOVER_AMOUNT; j++) {
-      CHECK(data->pubkeys_n[j]>0);
-      for (k = 0; k < data->pubkeys_n[j]; k++) {
-        CHECK(secp256k1_ec_pubkey_serialize(data->ctx, pubkeyc, &pubkeylen, &data->keys_arr[(j*4)+k], SECP256K1_EC_COMPRESSED));
+    for (j = 0; j < 4*RECOVER_AMOUNT; j++) {
+      if(pubkeys_out[j]) {
+        CHECK(secp256k1_ec_pubkey_serialize(data->ctx, pubkeyc, &pubkeylen, pubkeys_out[j], SECP256K1_EC_COMPRESSED));
+        ctr+=1;
       }
     }
+    CHECK(ctr == RECOVER_AMOUNT);
   }
 }
 
@@ -78,6 +81,7 @@ void bench_recover_setup(void* arg) {
 
     for (i = 0; i < RECOVER_AMOUNT; i++) {
       data->sigs_ptrs[i] = &data->sig_arr[i];
+      data->pubkeys_ptrs[i] = &data->keys_arr[i];
       data->msgs_ptrs[i] = data->msg[i];
     }
     for (i = 0; i < 32; i++) {

@@ -254,12 +254,12 @@ int secp256k1_ecdsa_recover(const secp256k1_context* ctx, secp256k1_pubkey *pubk
 }
 
 
-int secp256k1_ecdsa_recover_batch(const secp256k1_context* ctx, secp256k1_scratch *scratch, secp256k1_pubkey pubkeys[], size_t pubkeys_n[], const secp256k1_ecdsa_signature *const sigs[], const unsigned char *const msgs32[], size_t n) {
+int secp256k1_ecdsa_recover_batch(const secp256k1_context* ctx, secp256k1_scratch_space *scratch, const secp256k1_pubkey *pubkeys_out[], const secp256k1_ecdsa_signature *const sigs[], const unsigned char *const msgs32[], size_t n, const secp256k1_pubkey *const pubkeys[], size_t pubkeys_n) {
   secp256k1_scalar m;
   secp256k1_scalar *ss, *rs, *rns;
   secp256k1_ge *ges;
-  secp256k1_gej *gejs;
-  size_t i, j;
+  secp256k1_gej four_gejs[4];
+  size_t i, j, k, l, n_keys;
   size_t scratch_checkpoint;
 
   VERIFY_CHECK(ctx != NULL);
@@ -270,56 +270,49 @@ int secp256k1_ecdsa_recover_batch(const secp256k1_context* ctx, secp256k1_scratc
     ARG_CHECK(sigs != NULL);
     ARG_CHECK(pubkeys != NULL);
   }
+  memset(pubkeys_out, 0, sizeof(*pubkeys_out)*n*4); /* TODO: Should replace with a loop that writes NULLs */
   scratch_checkpoint = secp256k1_scratch_checkpoint(&ctx->error_callback, scratch);
 
-  ges = (secp256k1_ge *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, n * 4 * sizeof(*ges));
-  gejs = (secp256k1_gej *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, n * 4 * sizeof(*gejs));
+  ges = (secp256k1_ge *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, pubkeys_n * sizeof(*ges));
   rs = (secp256k1_scalar *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, n * sizeof(*rs));
   rns = (secp256k1_scalar *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, n * sizeof(*rns));
   ss = (secp256k1_scalar *) secp256k1_scratch_alloc(&ctx->error_callback, scratch, n * sizeof(*ss));
-  if (gejs == NULL || ges == NULL || rs == NULL || rns == NULL || ss == NULL) {
-    secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, scratch_checkpoint);
-    memset(pubkeys, 0, sizeof(*pubkeys)*n*4);
-    memset(pubkeys_n, 0, sizeof(*pubkeys_n)*n);
-    return 0;
-  }
+  if ( ges == NULL || rs == NULL || rns == NULL || ss == NULL) goto error;
 
   for (i = 0; i < n; ++i) {
     secp256k1_ecdsa_signature_load(ctx, &rs[i], &ss[i], sigs[i]);
-    if (secp256k1_scalar_is_zero(&rs[i]) || secp256k1_scalar_is_zero(&ss[i])) {
-      secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, scratch_checkpoint);
-      memset(pubkeys, 0, sizeof(*pubkeys)*n*4);
-      memset(pubkeys_n, 0, sizeof(*pubkeys_n)*n);
-      return 0;
-    }
+    if (secp256k1_scalar_is_zero(&rs[i]) || secp256k1_scalar_is_zero(&ss[i])) goto error;
   }
-  secp256k1_scalar_inv_all_var(rns, rs, n);
+  for (i = 0; i < pubkeys_n; ++i) {
+    if(!secp256k1_pubkey_load(ctx, &ges[i], pubkeys[i])) goto error;
+  }
 
+
+  secp256k1_scalar_inv_all_var(rns, rs, n);
 
   for (i = 0; i < n; ++i) {
     secp256k1_scalar_set_b32(&m, msgs32[i], NULL);
-    if(!secp256k1_ecdsa_sig_recover_four(&ctx->ecmult_ctx, &gejs[i*4], &pubkeys_n[i], &rs[i], &rns[i], &ss[i], &m)) {
-      secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, scratch_checkpoint);
-      memset(pubkeys, 0, sizeof(*pubkeys)*n*4);
-      memset(pubkeys_n, 0, sizeof(*pubkeys_n)*n);
-      return 0;
-    }
-    for (j = pubkeys_n[i]; j < 4; j++) {
-      secp256k1_gej_set_infinity(&gejs[(i*4)+j]);
+    if(!secp256k1_ecdsa_sig_recover_four(&ctx->ecmult_ctx, four_gejs, &n_keys, &rs[i], &rns[i], &ss[i], &m)) goto error;
+    l = 0; /* index how many were equal */
+    for(j = 0; j < n_keys; ++j) { /* loop over four_gejs */
+      secp256k1_fe_normalize_weak(&four_gejs[j].x);
+      secp256k1_fe_normalize_weak(&four_gejs[j].y);
+      for (k = 0; k < pubkeys_n; ++k) {  /* loop over pubkeys */
+        if(ge_equals_gej_var(&ges[k], &four_gejs[j])) {
+          pubkeys_out[i*4+l] = pubkeys[k];
+          l++;
+          break;
+        }
+      }
     }
   }
 
-  secp256k1_ge_set_all_gej_var(ges, gejs, n*4);
-
-  for (i = 0; i < n*4; ++i) {
-    if(!secp256k1_ge_is_infinity(&ges[i])) {
-      secp256k1_pubkey_save(&pubkeys[i], &ges[i]);
-    } else {
-      memset(&pubkeys[i], 0, sizeof(*pubkeys));
-    }
-  }
   secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, scratch_checkpoint);
   return 1;
+
+  error:
+      secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, scratch_checkpoint);
+      return 0;
 }
 
 #endif /* SECP256K1_MODULE_RECOVERY_MAIN_H */
