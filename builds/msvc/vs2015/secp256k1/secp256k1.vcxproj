@@ -91,6 +91,7 @@
     <ClInclude Include="..\..\..\..\contrib\lax_der_privatekey_parsing.h" />
     <ClInclude Include="..\..\..\..\include\secp256k1.h" />
     <ClInclude Include="..\..\..\..\include\secp256k1_ecdh.h" />
+    <ClInclude Include="..\..\..\..\include\secp256k1_preallocated.h" />
     <ClInclude Include="..\..\..\..\include\secp256k1_recovery.h" />
     <ClInclude Include="..\..\..\..\src\basic-config.h" />
     <ClInclude Include="..\..\..\..\src\ecdsa.h" />

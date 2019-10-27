@@ -9,7 +9,6 @@
       <Category Name="field64" DisplayName="field64" />
       <Category Name="scalar64" DisplayName="scalar64" />
       <Category Name="ecdh" DisplayName="ecdh" />
-      <Category Name="schnorr" DisplayName="schnorr" />
       <Category Name="recovery" DisplayName="recovery" />
     </Rule.Categories>
     <Rule.DataSource>

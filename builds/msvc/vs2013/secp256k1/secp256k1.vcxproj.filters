@@ -200,6 +200,9 @@
     <ClInclude Include="..\..\..\..\src\scratch.h">
       <Filter>src\include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\secp256k1_preallocated.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Xml Include="..\..\..\..\packaging\nuget\package.xml">

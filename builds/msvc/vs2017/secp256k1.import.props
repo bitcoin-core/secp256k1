@@ -17,6 +17,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\..\secp256k1\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>inline=__inline;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ECMULT_GEN_PREC_BITS=4;ECMULT_WINDOW_SIZE=15;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies Condition="'$(Linkage-secp256k1)' != ''">secp256k1.lib;%(AdditionalDependencies)</AdditionalDependencies>

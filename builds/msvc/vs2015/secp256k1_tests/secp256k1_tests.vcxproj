@@ -68,10 +68,9 @@
     <Option-endomorphism>true</Option-endomorphism>
   </PropertyGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\src\tests.c">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\tests.c" />
     <ClCompile Include="..\..\..\..\src\tests_exhaustive.c">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

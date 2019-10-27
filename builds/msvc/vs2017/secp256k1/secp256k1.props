@@ -21,6 +21,7 @@
       <DisableSpecificWarnings>4244;4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <EnablePREfast>false</EnablePREfast>
       <PreprocessorDefinitions>inline=__inline;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ECMULT_GEN_PREC_BITS=4;ECMULT_WINDOW_SIZE=15;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(ConfigurationType)' == 'DynamicLibrary'">SECP256K1_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 	  
       <PreprocessorDefinitions Condition="'$(Option-gmp)' == ''">USE_NUM_NONE;USE_FIELD_INV_BUILTIN;USE_SCALAR_INV_BUILTIN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
