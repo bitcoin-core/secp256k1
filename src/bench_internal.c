@@ -95,14 +95,14 @@ void bench_scalar_mul(void* arg) {
 
 #ifdef USE_ENDOMORPHISM
 void bench_scalar_split(void* arg) {
-    int i;
+    int i, j = 0;
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < 20000; i++) {
-        secp256k1_scalar l, r;
-        secp256k1_scalar_split_lambda(&l, &r, &data->scalar_x);
-        secp256k1_scalar_add(&data->scalar_x, &data->scalar_x, &data->scalar_y);
+        secp256k1_scalar_split_lambda(&data->scalar_x, &data->scalar_y, &data->scalar_x);
+        j += secp256k1_scalar_add(&data->scalar_x, &data->scalar_x, &data->scalar_y);
     }
+    CHECK(j <= 20000);
 }
 #endif
 
