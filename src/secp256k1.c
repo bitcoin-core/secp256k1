@@ -535,7 +535,7 @@ int secp256k1_ec_privkey_negate(const secp256k1_context* ctx, unsigned char *sec
     ARG_CHECK(seckey != NULL);
 
     secp256k1_scalar_set_b32(&sec, seckey, &overflow);
-    if (overflow) {
+    if (overflow || secp256k1_scalar_is_zero(&sec)) {
         return 0;
     }
     secp256k1_scalar_negate(&sec, &sec);

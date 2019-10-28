@@ -1103,7 +1103,8 @@ void run_scalar_tests(void) {
         unsigned char bin[32];
         unsigned char bin_tmp[32];
         int overflow = 0;
-        static const secp256k1_scalar all_zeros_minus_order = SECP256K1_SCALAR_CONST(
+        /* 2^256-1 - order */
+        static const secp256k1_scalar all_ones_minus_order = SECP256K1_SCALAR_CONST(
             0x00000000UL, 0x00000000UL, 0x00000000UL, 0x00000001UL,
             0x45512319UL, 0x50B75FC4UL, 0x402DA173UL, 0x2FC9BEBEUL
         );
@@ -1132,7 +1133,7 @@ void run_scalar_tests(void) {
         memset(bin, 0xFF, 32);
         secp256k1_scalar_set_b32(&scalar, bin, &overflow);
         CHECK(overflow == 1);
-        CHECK(secp256k1_scalar_eq(&scalar, &all_zeros_minus_order));
+        CHECK(secp256k1_scalar_eq(&scalar, &all_ones_minus_order));
     }
 #endif
 
@@ -4141,6 +4142,13 @@ void run_eckey_arithmetic_test(void) {
     CHECK(secp256k1_ec_privkey_negate(ctx, seckey) == 1);
     CHECK(memcmp(seckey, seckey_tmp, 32) != 0);
     CHECK(secp256k1_ec_privkey_negate(ctx, seckey) == 1);
+    CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
+
+    /* Negating all 0s fails */
+    memset(seckey, 0, 32);
+    memset(seckey_tmp, 0, 32);
+    CHECK(secp256k1_ec_privkey_negate(ctx, seckey) == 0);
+    /* Check that seckey is not modified */
     CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
 
     /* Negating an overflowing seckey fails and the seckey is not modified. In

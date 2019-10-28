@@ -549,7 +549,10 @@ SECP256K1_API int secp256k1_ecdsa_sign(
     const void *ndata
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
-/** Verify an ECDSA secret key.
+/** Verify an ECDSA secret key. It is valid if it is not 0 and less than the
+ *  secp256k1 curve order when interpreted as an integer (most significant byte
+ *  first). The probability of choosing a 32-byte string at random which is an
+ *  invalid secret key is negligible.
  *
  *  Returns: 1: secret key is valid
  *           0: secret key is invalid
@@ -579,9 +582,9 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_create(
  *
  *  Returns: 1 if seckey was successfully negated and 0 otherwise
  *  Args:   ctx:        pointer to a context object
- *  In/Out: seckey:     pointer to the 32-byte private key to be negated. The private key
- *                      interpreted as an integer (most significant byte first) must be less than
- *                      the curve order. (cannot be NULL)
+ *  In/Out: seckey:     pointer to the 32-byte private key to be negated. The private
+ *                      key should be valid according to secp256k1_ec_seckey_verify
+ *                      (cannot be NULL)
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_negate(
     const secp256k1_context* ctx,
