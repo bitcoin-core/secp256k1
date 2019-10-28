@@ -70,3 +70,8 @@ Exhaustive tests
 With valgrind, you might need to increase the max stack size:
 
     $ valgrind --max-stackframe=2500000 ./exhaustive_tests
+
+Reporting a vulnerability
+------------
+
+See [SECURITY.md](SECURITY.md)
