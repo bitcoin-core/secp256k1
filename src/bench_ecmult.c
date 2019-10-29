@@ -232,7 +232,7 @@ static void bench_ecmult_multi_teardown(void* arg, int iters) {
 
 static void generate_scalar(uint32_t num, secp256k1_scalar* scalar) {
     secp256k1_sha256 sha256;
-    unsigned char c[11] = {'e', 'c', 'm', 'u', 'l', 't', 0, 0, 0, 0};
+    unsigned char c[10] = {'e', 'c', 'm', 'u', 'l', 't', 0, 0, 0, 0};
     unsigned char buf[32];
     int overflow = 0;
     c[6] = num;
