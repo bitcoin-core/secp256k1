@@ -61,6 +61,34 @@ matrix:
           packages:
             - gcc-multilib
             - libgmp-dev:i386
+
+    # clang with memory sanitizer
+    #
+    # --disable-openssl-tests because openssl uses uninitialized memory. ASM
+    # and BIGNUM are disabled because clang memory sanitizer does not work
+    # with inline assembly (https://clang.llvm.org/docs/MemorySanitizer.html).
+    # The memory sanitizer is instructed to exit with a different exit code
+    # using MSAN_OPTIONS. This is because the default exit code is 77 - the
+    # same exit code that autotools make check interprets as a test that is
+    # supposed to be skipped.
+    #
+    # With endomorphism
+    - compiler: clang
+      env:
+        - CFLAGS="-fsanitize=memory -fno-omit-frame-pointer -g"
+        - ASM=no BIGNUM=no EXTRAFLAGS="--disable-openssl-tests"
+        - EXPERIMENTAL=yes RECOVERY=yes ECDH=yes
+        - MSAN_OPTIONS=exitcode=42
+        - ENDOMORPHISM=yes
+    # Memory sanitizer without endomorphism
+    - compiler: clang
+      env:
+        - CFLAGS="-fsanitize=memory -fno-omit-frame-pointer -g"
+        - ASM=no BIGNUM=no EXTRAFLAGS="--disable-openssl-tests"
+        - EXPERIMENTAL=yes RECOVERY=yes ECDH=yes
+        - MSAN_OPTIONS=exitcode=42
+        - ENDOMORPHISM=no
+
 before_install: mkdir -p `dirname $GUAVA_JAR`
 install: if [ ! -f $GUAVA_JAR ]; then wget $GUAVA_URL -O $GUAVA_JAR; fi
 before_script: ./autogen.sh
