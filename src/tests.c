@@ -5167,6 +5167,8 @@ void run_ecdsa_openssl(void) {
 #endif
 
 int main(int argc, char **argv) {
+    unsigned char dummy1[16];
+    unsigned char dummy2[16];
     unsigned char seed16[16] = {0};
     unsigned char run32[32] = {0};
     /* find iteration count */
@@ -5210,6 +5212,8 @@ int main(int argc, char **argv) {
 
     printf("test count = %i\n", count);
     printf("random seed = %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\n", seed16[0], seed16[1], seed16[2], seed16[3], seed16[4], seed16[5], seed16[6], seed16[7], seed16[8], seed16[9], seed16[10], seed16[11], seed16[12], seed16[13], seed16[14], seed16[15]);
+
+    CHECK(memcmp(dummy2, dummy3, sizeof(dummy2)) == 0);
 
     /* initialize */
     run_context_tests(0);
