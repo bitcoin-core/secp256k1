@@ -61,14 +61,13 @@ matrix:
           packages:
             - gcc-multilib
             - libgmp-dev:i386
+    # clang with memory sanitizer
     - compiler: clang
-      # TODO: specifically disable asm and bignum AND enable features
-      # no host
-      env: EXTRAFLAGS="--disable-openssl-tests CFLAGS=-fsanitize=memory"
-      addons:
-        apt:
-          packages:
-            - gcc-multilib
+      # --disable-openssl-tests because openssl uses uninitialized memory. ASM
+      # and BIGNUM are disabled because clang memory sanitizer does not work
+      # with inline assembly (https://clang.llvm.org/docs/MemorySanitizer.html).
+      env: EXTRAFLAGS="--disable-openssl-tests CFLAGS=-fsanitize=memory" ASM=no BIGNUM=no EXPERIMENTAL=yes ENDOMORPHISM=yes RECOVERY=yes ECDH=yes
+
 before_install: mkdir -p `dirname $GUAVA_JAR`
 install: if [ ! -f $GUAVA_JAR ]; then wget $GUAVA_URL -O $GUAVA_JAR; fi
 before_script: ./autogen.sh
@@ -77,4 +76,5 @@ script:
  - if [ "x$HOST" = "xi686-linux-gnu" ]; then export CC="$CC -m32"; fi
  - echo $EXTRAFLAGS
  - ./configure --enable-experimental=$EXPERIMENTAL --enable-endomorphism=$ENDOMORPHISM --with-field=$FIELD --with-bignum=$BIGNUM --with-scalar=$SCALAR --enable-ecmult-static-precomputation=$STATICPRECOMPUTATION --with-ecmult-gen-precision=$ECMULTGENPRECISION --enable-module-ecdh=$ECDH --enable-module-recovery=$RECOVERY --enable-jni=$JNI $EXTRAFLAGS $USE_HOST && make -j2 $BUILD
+# TODO: remove
 after_script: cat ./config.log
