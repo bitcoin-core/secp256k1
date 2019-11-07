@@ -61,10 +61,21 @@ matrix:
           packages:
             - gcc-multilib
             - libgmp-dev:i386
+    - compiler: gcc
+      env:
+        - FIELD=auto  BIGNUM=no  SCALAR=auto  ENDOMORPHISM=yes  STATICPRECOMPUTATION=yes  ASM=x86_64
+        - EXPERIMENTAL=no ECDH=no  RECOVERY=no VALGRIND=yes EXTRAFLAGS="--disable-openssl-tests CPPFLAGS=-DVALGRIND"  HOST= BUILD= JNI=no
+      addons:
+        apt:
+          packages:
+            - valgrind
+    
 before_install: mkdir -p `dirname $GUAVA_JAR`
 install: if [ ! -f $GUAVA_JAR ]; then wget $GUAVA_URL -O $GUAVA_JAR; fi
 before_script: ./autogen.sh
 script:
  - if [ -n "$HOST" ]; then export USE_HOST="--host=$HOST"; fi
  - if [ "x$HOST" = "xi686-linux-gnu" ]; then export CC="$CC -m32"; fi
- - ./configure --enable-experimental=$EXPERIMENTAL --enable-endomorphism=$ENDOMORPHISM --with-field=$FIELD --with-bignum=$BIGNUM --with-asm=$ASM --with-scalar=$SCALAR --enable-ecmult-static-precomputation=$STATICPRECOMPUTATION --with-ecmult-gen-precision=$ECMULTGENPRECISION --enable-module-ecdh=$ECDH --enable-module-recovery=$RECOVERY --enable-jni=$JNI $EXTRAFLAGS $USE_HOST && make -j2 $BUILD
+ - ./configure --enable-experimental=$EXPERIMENTAL --enable-endomorphism=$ENDOMORPHISM --with-field=$FIELD --with-bignum=$BIGNUM --with-asm=$ASM --with-scalar=$SCALAR --enable-ecmult-static-precomputation=$STATICPRECOMPUTATION --with-ecmult-gen-precision=$ECMULTGENPRECISION --enable-module-ecdh=$ECDH --enable-module-recovery=$RECOVERY --enable-jni=$JNI $EXTRAFLAGS $USE_HOST
+ - if [ -n "$BUILD" ]; then make -j2 $BUILD; fi
+ - if [ -n "$VALGRIND" ]; then make -j2 && travis_wait 30 valgrind --error-exitcode=42 ./tests 8; fi
