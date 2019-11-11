@@ -10,11 +10,19 @@
 #include "scalar.h"
 #include "group.h"
 
+#if defined HAVE_CONFIG_H
+#include "libsecp256k1-config.h"
+#endif
+
 #if defined(EXHAUSTIVE_TEST_ORDER)
 
   /* We need to control these values for exhaustive tests because
    * the tables cannot have infinities in them (secp256k1_ge_storage
    * doesn't support infinities) */
+#undef COMB_BLOCKS
+#undef COMB_TEETH
+#undef COMB_SPACING
+
 #  if EXHAUSTIVE_TEST_ORDER > 32
 #    define COMB_BLOCKS 52
 #    define COMB_TEETH 5
@@ -39,9 +47,15 @@
   /* COMB_BLOCKS, COMB_TEETH, COMB_SPACING must all be positive and the product of the three (COMB_BITS)
    * must evaluate to a value in the range [256, 288]. The resulting memory usage for precomputation
    * will be COMB_POINTS_TOTAL * sizeof(secp256k1_ge_storage). */
-  #define COMB_BLOCKS 4
-  #define COMB_TEETH 5
-  #define COMB_SPACING 13
+#  ifndef COMB_BLOCKS
+#    define COMB_BLOCKS 4
+#  endif
+#  ifndef COMB_TEETH
+#    define COMB_TEETH 5
+#  endif
+#  ifndef COMB_SPACING
+#    define COMB_SPACING ((COMB_BLOCKS * COMB_TEETH + 255) / (COMB_BLOCKS * COMB_TEETH))
+#  endif
 
 #endif
 
