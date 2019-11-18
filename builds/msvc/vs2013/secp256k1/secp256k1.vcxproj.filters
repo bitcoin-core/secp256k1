@@ -54,6 +54,9 @@
     <Filter Include="src\modules\ecdh">
       <UniqueIdentifier>{2e005bbf-94fb-4114-8453-222dd6850262}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\modules\schnorrsig">
+      <UniqueIdentifier>{05a4391c-a96c-4da0-b34e-8946f3b56fec}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\secp256k1.h">
@@ -201,6 +204,15 @@
       <Filter>src\include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\secp256k1_preallocated.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\modules\schnorrsig\tests_impl.h">
+      <Filter>src\modules\schnorrsig</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\modules\schnorrsig\main_impl.h">
+      <Filter>src\modules\schnorrsig</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\secp256k1_schnorrsig.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

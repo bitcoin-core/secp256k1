@@ -74,6 +74,9 @@
     </Option-schnorr>
     <Option-recovery>true</Option-recovery>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseLIB|x64'">
+    <Option-schnorrsig>true</Option-schnorrsig>
+  </PropertyGroup>
   <ItemGroup>
     <None Include="..\..\..\..\packaging\nuget\gmp\package.bat" />
     <None Include="..\..\..\..\packaging\nuget\gmp\package.config" />
@@ -93,6 +96,7 @@
     <ClInclude Include="..\..\..\..\include\secp256k1_ecdh.h" />
     <ClInclude Include="..\..\..\..\include\secp256k1_preallocated.h" />
     <ClInclude Include="..\..\..\..\include\secp256k1_recovery.h" />
+    <ClInclude Include="..\..\..\..\include\secp256k1_schnorrsig.h" />
     <ClInclude Include="..\..\..\..\src\basic-config.h" />
     <ClInclude Include="..\..\..\..\src\ecdsa.h" />
     <ClInclude Include="..\..\..\..\src\ecdsa_impl.h" />
@@ -120,6 +124,8 @@
     <ClInclude Include="..\..\..\..\src\modules\ecdh\tests_impl.h" />
     <ClInclude Include="..\..\..\..\src\modules\recovery\main_impl.h" />
     <ClInclude Include="..\..\..\..\src\modules\recovery\tests_impl.h" />
+    <ClInclude Include="..\..\..\..\src\modules\schnorrsig\main_impl.h" />
+    <ClInclude Include="..\..\..\..\src\modules\schnorrsig\tests_impl.h" />
     <ClInclude Include="..\..\..\..\src\num.h" />
     <ClInclude Include="..\..\..\..\src\num_gmp.h" />
     <ClInclude Include="..\..\..\..\src\num_gmp_impl.h" />

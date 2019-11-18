@@ -22,6 +22,9 @@
     <ClCompile Include="..\..\..\..\src\bench_ecmult.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\bench_schnorrsig.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="src">

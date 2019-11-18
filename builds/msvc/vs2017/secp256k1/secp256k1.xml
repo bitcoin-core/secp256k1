@@ -10,6 +10,7 @@
       <Category Name="scalar64" DisplayName="scalar64" />
       <Category Name="ecdh" DisplayName="ecdh" />
       <Category Name="recovery" DisplayName="recovery" />
+      <Category Name="schnorrsig" DisplayName="schnorrsig" />
     </Rule.Categories>
     <Rule.DataSource>
       <DataSource Persistence="ProjectFile" ItemType="" />
@@ -43,6 +44,10 @@
       <EnumValue Name="true" DisplayName="Yes" />
     </EnumProperty>
     <EnumProperty Name="Option-recovery" DisplayName="Build recovery" Description="Build the recovery module." Category="recovery">
+      <EnumValue Name="" DisplayName="No" />
+      <EnumValue Name="true" DisplayName="Yes" />
+    </EnumProperty>
+    <EnumProperty Name="Option-schnorrsig" DisplayName="Build schnorrsig" Description="Build the schnorrsig module." Category="schnorrsig">
       <EnumValue Name="" DisplayName="No" />
       <EnumValue Name="true" DisplayName="Yes" />
     </EnumProperty>

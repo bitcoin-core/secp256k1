@@ -80,13 +80,16 @@
     <ClCompile Include="..\..\..\..\src\bench_recover.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\bench_schnorrsig.c" />
     <ClCompile Include="..\..\..\..\src\bench_sign.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\bench_verify.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\gen_context.c" />
+    <ClCompile Include="..\..\..\..\src\gen_context.c">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionSettings" />
