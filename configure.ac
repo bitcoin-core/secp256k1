@@ -129,6 +129,11 @@ AC_ARG_ENABLE(module_ecdh,
     [enable_module_ecdh=$enableval],
     [enable_module_ecdh=no])
 
+AC_ARG_ENABLE(module_schnorrsig,
+    AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module (experimental)]),
+    [enable_module_schnorrsig=$enableval],
+    [enable_module_schnorrsig=no])
+
 AC_ARG_ENABLE(module_recovery,
     AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module [default=no]]),
     [enable_module_recovery=$enableval],
@@ -154,7 +159,7 @@ AC_ARG_WITH([scalar], [AS_HELP_STRING([--with-scalar=64bit|32bit|auto],
 [scalar implementation to use [default=auto]])],[req_scalar=$withval], [req_scalar=auto])
 
 AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto],
-[assembly optimizations to useÂ (experimental: arm) [default=auto]])],[req_asm=$withval], [req_asm=auto])
+[assembly optimizations to use (experimental: arm) [default=auto]])],[req_asm=$withval], [req_asm=auto])
 
 AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
 [window size for ecmult precomputation for verification, specified as integer in range [2..24].]
@@ -512,6 +517,10 @@ if test x"$enable_module_ecdh" = x"yes"; then
   AC_DEFINE(ENABLE_MODULE_ECDH, 1, [Define this symbol to enable the ECDH module])
 fi
 
+if test x"$enable_module_schnorrsig" = x"yes"; then
+  AC_DEFINE(ENABLE_MODULE_SCHNORRSIG, 1, [Define this symbol to enable the schnorrsig module])
+fi
+
 if test x"$enable_module_recovery" = x"yes"; then
   AC_DEFINE(ENABLE_MODULE_RECOVERY, 1, [Define this symbol to enable the ECDSA pubkey recovery module])
 fi
@@ -531,10 +540,21 @@ if test x"$enable_experimental" = x"yes"; then
   AC_MSG_NOTICE([WARNING: experimental build])
   AC_MSG_NOTICE([Experimental features do not have stable APIs or properties, and may not be safe for production use.])
   AC_MSG_NOTICE([Building ECDH module: $enable_module_ecdh])
+  AC_MSG_NOTICE([Building schnorrsig module: $enable_module_schnorrsig])
   AC_MSG_NOTICE([******])
+
+
+  if test x"$enable_module_schnorrsig" != x"yes"; then
+    if test x"$enable_module_musig" = x"yes"; then
+      AC_MSG_ERROR([MuSig module requires the schnorrsig module. Use --enable-module-schnorrsig to allow.])
+    fi
+  fi
 else
   if test x"$enable_module_ecdh" = x"yes"; then
     AC_MSG_ERROR([ECDH module is experimental. Use --enable-experimental to allow.])
+  fi
+  if test x"$enable_module_schnorrsig" = x"yes"; then
+    AC_MSG_ERROR([schnorrsig module is experimental. Use --enable-experimental to allow.])
   fi
   if test x"$set_asm" = x"arm"; then
     AC_MSG_ERROR([ARM assembly optimization is experimental. Use --enable-experimental to allow.])
@@ -554,6 +574,7 @@ AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$use_exhaustive_tests" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
 AM_CONDITIONAL([USE_ECMULT_STATIC_PRECOMPUTATION], [test x"$set_precomp" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
+AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
 AM_CONDITIONAL([USE_JNI], [test x"$use_jni" = x"yes"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$use_external_asm" = x"yes"])
@@ -576,6 +597,7 @@ echo "  with benchmarks         = $use_benchmark"
 echo "  with coverage           = $enable_coverage"
 echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
+echo "  module schnorrsig       = $enable_module_schnorrsig"
 echo
 echo "  asm                     = $set_asm"
 echo "  bignum                  = $set_bignum"
