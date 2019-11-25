@@ -5174,6 +5174,9 @@ int main(int argc, char **argv) {
      * diagnostic information. Happens right at the start of main because
      * setbuf must be used before any other operation on the stream. */
     setbuf(stdout, NULL);
+    /* Also disable buffering for stderr because it's not guaranteed that it's
+     * unbuffered on all systems. */
+    setbuf(stderr, NULL);
 
     /* find iteration count */
     if (argc > 1) {
