@@ -5169,6 +5169,15 @@ void run_ecdsa_openssl(void) {
 int main(int argc, char **argv) {
     unsigned char seed16[16] = {0};
     unsigned char run32[32] = {0};
+
+    /* Disable buffering for stdout to improve reliability of getting
+     * diagnostic information. Happens right at the start of main because
+     * setbuf must be used before any other operation on the stream. */
+    setbuf(stdout, NULL);
+    /* Also disable buffering for stderr because it's not guaranteed that it's
+     * unbuffered on all systems. */
+    setbuf(stderr, NULL);
+
     /* find iteration count */
     if (argc > 1) {
         count = strtol(argv[1], NULL, 0);
