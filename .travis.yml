@@ -1,5 +1,6 @@
 language: c
 os: linux
+arch: amd64
 addons:
   apt:
     packages: libgmp-dev
@@ -61,6 +62,20 @@ matrix:
           packages:
             - gcc-multilib
             - libgmp-dev:i386
+    - compiler: clang
+      env: HOST=arm-linux-gnueabihf ASM=arm CC=arm-linux-gnueabihf-gcc EXPERIMENTAL=yes
+      arch: arm64
+      addons:
+        apt:
+          packages:
+            - gcc-arm-linux-gnueabihf
+    - compiler: gcc
+      env: HOST=arm-linux-gnueabihf ASM=arm CC=arm-linux-gnueabihf-gcc EXPERIMENTAL=yes ENDOMORPHISM=yes
+      arch: arm64
+      addons:
+        apt:
+          packages:
+            - gcc-arm-linux-gnueabihf
     - compiler: gcc
       env:
         - BIGNUM=no  ENDOMORPHISM=yes  ASM=x86_64 EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes
@@ -83,9 +98,11 @@ install: if [ ! -f $GUAVA_JAR ]; then wget $GUAVA_URL -O $GUAVA_JAR; fi
 before_script: ./autogen.sh
 
 script:
+ - export LIBRARY_PATH=/usr/arm-linux-gnueabihf/lib:$LIBRARY_PATH
+ - if [ "x$TRAVIS_CPU_ARCH" = "xarm64" ]; then sudo bash -c "dpkg --add-architecture armhf && apt update && apt install libc6:armhf"; fi
  - if [ -n "$HOST" ]; then export USE_HOST="--host=$HOST"; fi
  - if [ "x$HOST" = "xi686-linux-gnu" ]; then export CC="$CC -m32"; fi
- - ./configure --enable-experimental=$EXPERIMENTAL --enable-endomorphism=$ENDOMORPHISM --with-field=$FIELD --with-bignum=$BIGNUM --with-asm=$ASM --with-scalar=$SCALAR --enable-ecmult-static-precomputation=$STATICPRECOMPUTATION --with-ecmult-gen-precision=$ECMULTGENPRECISION --enable-module-ecdh=$ECDH --enable-module-recovery=$RECOVERY --enable-jni=$JNI $EXTRAFLAGS $USE_HOST
+ - ./configure --enable-experimental=$EXPERIMENTAL --enable-endomorphism=$ENDOMORPHISM --with-field=$FIELD --with-bignum=$BIGNUM --with-asm=$ASM --with-scalar=$SCALAR --enable-ecmult-static-precomputation=$STATICPRECOMPUTATION --with-ecmult-gen-precision=$ECMULTGENPRECISION --enable-module-ecdh=$ECDH --enable-module-recovery=$RECOVERY --enable-jni=$JNI $EXTRAFLAGS $USE_HOST || ( cat config.log && false )
  - if [ -n "$BUILD" ]; then make -j2 $BUILD; fi
  - # travis_wait extends the 10 minutes without output allowed (https://docs.travis-ci.com/user/common-build-problems/#build-times-out-because-no-output-was-received)
  - # the `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (http://valgrind.org/docs/manual/manual-core.html)
