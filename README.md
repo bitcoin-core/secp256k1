@@ -23,7 +23,7 @@ Implementation details
   * Extensive testing infrastructure.
   * Structured to facilitate review and analysis.
   * Intended to be portable to any system with a C89 compiler and uint64_t support.
-  * No use of floating types, except in benchmarks.
+  * No use of floating types.
   * Expose only higher level interfaces to minimize the API surface and improve application security. ("Be difficult to use insecurely.")
 * Field operations
   * Optimized implementation of arithmetic modulo the curve's field size (2^256 - 0x1000003D1).
