@@ -140,6 +140,12 @@ void random_scalar_order(secp256k1_scalar *num) {
     } while(1);
 }
 
+void random_scalar_order_b32(unsigned char *b32) {
+    secp256k1_scalar num;
+    random_scalar_order(&num);
+    secp256k1_scalar_get_b32(b32, &num);
+}
+
 void run_context_tests(int use_prealloc) {
     secp256k1_pubkey pubkey;
     secp256k1_pubkey zero_pubkey;
@@ -1077,10 +1083,30 @@ void scalar_test(void) {
 
 }
 
+void run_scalar_set_b32_seckey_tests(void) {
+    unsigned char b32[32];
+    secp256k1_scalar s1;
+    secp256k1_scalar s2;
+
+    /* Usually set_b32 and set_b32_seckey give the same result */
+    random_scalar_order_b32(b32);
+    secp256k1_scalar_set_b32(&s1, b32, NULL);
+    CHECK(secp256k1_scalar_set_b32_seckey(&s2, b32) == 1);
+    CHECK(secp256k1_scalar_eq(&s1, &s2) == 1);
+
+    memset(b32, 0, sizeof(b32));
+    CHECK(secp256k1_scalar_set_b32_seckey(&s2, b32) == 0);
+    memset(b32, 0xFF, sizeof(b32));
+    CHECK(secp256k1_scalar_set_b32_seckey(&s2, b32) == 0);
+}
+
 void run_scalar_tests(void) {
     int i;
     for (i = 0; i < 128 * count; i++) {
         scalar_test();
+    }
+    for (i = 0; i < count; i++) {
+        run_scalar_set_b32_seckey_tests();
     }
 
     {
