@@ -19,10 +19,6 @@ AC_PATH_TOOL(RANLIB, ranlib)
 AC_PATH_TOOL(STRIP, strip)
 AX_PROG_CC_FOR_BUILD
 
-if test "x$CFLAGS" = "x"; then
-  CFLAGS="-g"
-fi
-
 AM_PROG_CC_C_O
 
 AC_PROG_CC_C89
