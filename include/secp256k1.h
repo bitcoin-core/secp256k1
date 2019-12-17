@@ -579,9 +579,12 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_create(
 
 /** Negates a private key in place.
  *
- *  Returns: 1 always
+ *  Returns: 0 if the given private key is invalid according to
+ *           secp256k1_ec_seckey_verify. 1 otherwise
  *  Args:   ctx:        pointer to a context object
- *  In/Out: seckey:     pointer to the 32-byte private key to be negated (cannot be NULL)
+ *  In/Out: seckey:     pointer to the 32-byte private key to be negated. The private
+ *                      key should be valid according to secp256k1_ec_seckey_verify
+ *                      (cannot be NULL)
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_negate(
     const secp256k1_context* ctx,
@@ -601,9 +604,10 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_negate(
 
 /** Tweak a private key by adding tweak to it.
  * Returns: 0 if the tweak was out of range (chance of around 1 in 2^128 for
- *          uniformly random 32-byte arrays, or if the resulting private key
- *          would be invalid (only when the tweak is the complement of the
- *          private key). 1 otherwise.
+ *          uniformly random 32-byte arrays, or if the given private key is
+ *          invalid according to secp256k1_ec_seckey_verify, or if the resulting
+ *          private key would be invalid (only when the tweak is the complement
+ *          of the private key). 1 otherwise.
  * Args:    ctx:    pointer to a context object (cannot be NULL).
  * In/Out:  seckey: pointer to a 32-byte private key.
  * In:      tweak:  pointer to a 32-byte tweak.
@@ -616,9 +620,10 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_tweak_add(
 
 /** Tweak a public key by adding tweak times the generator to it.
  * Returns: 0 if the tweak was out of range (chance of around 1 in 2^128 for
- *          uniformly random 32-byte arrays, or if the resulting public key
- *          would be invalid (only when the tweak is the complement of the
- *          corresponding private key). 1 otherwise.
+ *          uniformly random 32-byte arrays, or if the given private key is
+ *          invalid according to secp256k1_ec_seckey_verify, or if the resulting
+ *          public key would be invalid (only when the tweak is the complement
+ *          of the corresponding private key). 1 otherwise.
  * Args:    ctx:    pointer to a context object initialized for validation
  *                  (cannot be NULL).
  * In/Out:  pubkey: pointer to a public key object.

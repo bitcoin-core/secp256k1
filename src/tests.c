@@ -4000,7 +4000,20 @@ void run_eckey_edge_case_test(void) {
     CHECK(secp256k1_ec_pubkey_tweak_mul(ctx, &pubkey, ctmp2) == 0);
     CHECK(memcmp(&pubkey, zeros, sizeof(pubkey)) == 0);
     memcpy(&pubkey, &pubkey2, sizeof(pubkey));
-    /* Overflowing key tweak zeroizes. */
+    /* If seckey_tweak_add or seckey_tweak_mul are called with an overflowing
+    seckey, the seckey is zeroized. */
+    memcpy(ctmp, orderc, 32);
+    memset(ctmp2, 0, 32);
+    ctmp2[31] = 0x01;
+    CHECK(secp256k1_ec_seckey_verify(ctx, ctmp2) == 1);
+    CHECK(secp256k1_ec_seckey_verify(ctx, ctmp) == 0);
+    CHECK(secp256k1_ec_privkey_tweak_add(ctx, ctmp, ctmp2) == 0);
+    CHECK(memcmp(zeros, ctmp, 32) == 0);
+    memcpy(ctmp, orderc, 32);
+    CHECK(secp256k1_ec_privkey_tweak_mul(ctx, ctmp, ctmp2) == 0);
+    CHECK(memcmp(zeros, ctmp, 32) == 0);
+    /* If seckey_tweak_add or seckey_tweak_mul are called with an overflowing
+    tweak, the seckey is zeroized. */
     memcpy(ctmp, orderc, 32);
     ctmp[31] = 0x40;
     CHECK(secp256k1_ec_privkey_tweak_add(ctx, ctmp, orderc) == 0);
@@ -4011,13 +4024,20 @@ void run_eckey_edge_case_test(void) {
     CHECK(memcmp(zeros, ctmp, 32) == 0);
     memcpy(ctmp, orderc, 32);
     ctmp[31] = 0x40;
+    /* If pubkey_tweak_add or pubkey_tweak_mul are called with an overflowing
+    tweak, the pubkey is zeroized. */
     CHECK(secp256k1_ec_pubkey_tweak_add(ctx, &pubkey, orderc) == 0);
     CHECK(memcmp(&pubkey, zeros, sizeof(pubkey)) == 0);
     memcpy(&pubkey, &pubkey2, sizeof(pubkey));
     CHECK(secp256k1_ec_pubkey_tweak_mul(ctx, &pubkey, orderc) == 0);
     CHECK(memcmp(&pubkey, zeros, sizeof(pubkey)) == 0);
     memcpy(&pubkey, &pubkey2, sizeof(pubkey));
-    /* Private key tweaks results in a key of zero. */
+    /* If the resulting key in secp256k1_ec_seckey_tweak_add and
+     * secp256k1_ec_pubkey_tweak_add is 0 the functions fail and in the latter
+     * case the pubkey is zeroized. */
+    memcpy(ctmp, orderc, 32);
+    ctmp[31] = 0x40;
+    memset(ctmp2, 0, 32);
     ctmp2[31] = 1;
     CHECK(secp256k1_ec_privkey_tweak_add(ctx, ctmp2, ctmp) == 0);
     CHECK(memcmp(zeros, ctmp2, 32) == 0);
@@ -4155,6 +4175,36 @@ void run_eckey_edge_case_test(void) {
     CHECK(memcmp(&pubkey, zeros, sizeof(secp256k1_pubkey)) > 0);
     CHECK(ecount == 3);
     secp256k1_context_set_illegal_callback(ctx, NULL, NULL);
+}
+
+void run_eckey_negate_test(void) {
+    unsigned char seckey[32];
+    unsigned char seckey_tmp[32];
+
+    random_scalar_order_b32(seckey);
+    memcpy(seckey_tmp, seckey, 32);
+
+     /* Verify negation changes the key and changes it back */
+    CHECK(secp256k1_ec_privkey_negate(ctx, seckey) == 1);
+    CHECK(memcmp(seckey, seckey_tmp, 32) != 0);
+    CHECK(secp256k1_ec_privkey_negate(ctx, seckey) == 1);
+    CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
+
+     /* Negating all 0s fails */
+    memset(seckey, 0, 32);
+    memset(seckey_tmp, 0, 32);
+    CHECK(secp256k1_ec_privkey_negate(ctx, seckey) == 0);
+    /* Check that seckey is not modified */
+    CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
+
+    /* Negating an overflowing seckey fails and the seckey is zeroed. In this
+     * test, the seckey has 16 random bytes to ensure that ec_privkey_negate
+     * doesn't just set seckey to a constant value in case of failure. */
+    random_scalar_order_b32(seckey);
+    memset(seckey, 0xFF, 16);
+    memset(seckey_tmp, 0, 32);
+    CHECK(secp256k1_ec_privkey_negate(ctx, seckey) == 0);
+    CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
 }
 
 void random_sign(secp256k1_scalar *sigr, secp256k1_scalar *sigs, const secp256k1_scalar *key, const secp256k1_scalar *msg, int *recid) {
@@ -5346,6 +5396,9 @@ int main(int argc, char **argv) {
 
     /* EC key edge cases */
     run_eckey_edge_case_test();
+
+    /* EC key arithmetic test */
+    run_eckey_negate_test();
 
 #ifdef ENABLE_MODULE_ECDH
     /* ecdh tests */
