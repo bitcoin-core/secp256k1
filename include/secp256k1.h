@@ -553,6 +553,11 @@ SECP256K1_API int secp256k1_ecdsa_sign(
 
 /** Verify an ECDSA secret key.
  *
+ *  A secret key is valid if it is not 0 and less than the secp256k1 curve order
+ *  when interpreted as an integer (most significant byte first). The
+ *  probability of choosing a 32-byte string uniformly at random which is an
+ *  invalid secret key is negligible.
+ *
  *  Returns: 1: secret key is valid
  *           0: secret key is invalid
  *  Args:    ctx: pointer to a context object (cannot be NULL)
