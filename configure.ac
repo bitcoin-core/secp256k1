@@ -7,6 +7,10 @@ AH_TOP([#ifndef LIBSECP256K1_CONFIG_H])
 AH_TOP([#define LIBSECP256K1_CONFIG_H])
 AH_BOTTOM([#endif /*LIBSECP256K1_CONFIG_H*/])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
+
+# Set -g (but not -O2 because this would override -O3 which we're adding later)
+# if CFLAGS are not already set (see PROG_CC in the Autoconf manual)
+: ${CFLAGS="-g"}
 LT_INIT
 
 dnl make the compilation flags quiet unless V=1 is used
