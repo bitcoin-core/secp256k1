@@ -588,7 +588,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_create(
  *           secp256k1_ec_seckey_verify. 1 otherwise
  *  Args:   ctx:        pointer to a context object
  *  In/Out: seckey:     pointer to the 32-byte private key to be negated. The private
- *                      key should be valid according to secp256k1_ec_seckey_verify
+ *                      key should be valid according to secp256k1_ec_seckey_verify.
+ *                      Value becomes unspecified if this function returns 0.
  *                      (cannot be NULL)
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_negate(
@@ -614,7 +615,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_negate(
  *          private key would be invalid (only when the tweak is the complement
  *          of the private key). 1 otherwise.
  * Args:    ctx:    pointer to a context object (cannot be NULL).
- * In/Out:  seckey: pointer to a 32-byte private key.
+ * In/Out:  seckey: pointer to a 32-byte private key. Value becomes unspecified if this
+ *                  function returns 0. (cannot be NULL)
  * In:      tweak:  pointer to a 32-byte tweak.
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_tweak_add(
@@ -631,7 +633,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_tweak_add(
  *          of the corresponding private key). 1 otherwise.
  * Args:    ctx:    pointer to a context object initialized for validation
  *                  (cannot be NULL).
- * In/Out:  pubkey: pointer to a public key object.
+ * In/Out:  pubkey: pointer to a public key object. Value becomes unspecified if this
+ *                  function returns 0. (cannot be NULL).
  * In:      tweak:  pointer to a 32-byte tweak.
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_add(
@@ -644,7 +647,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_add(
  * Returns: 0 if the tweak was out of range (chance of around 1 in 2^128 for
  *          uniformly random 32-byte arrays, or equal to zero. 1 otherwise.
  * Args:   ctx:    pointer to a context object (cannot be NULL).
- * In/Out: seckey: pointer to a 32-byte private key.
+ * In/Out: seckey: pointer to a 32-byte private key. Value becomes unspecified if this
+ *                  function returns 0. (cannot be NULL).
  * In:     tweak:  pointer to a 32-byte tweak.
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_tweak_mul(
@@ -658,7 +662,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_tweak_mul(
  *          uniformly random 32-byte arrays, or equal to zero. 1 otherwise.
  * Args:    ctx:    pointer to a context object initialized for validation
  *                 (cannot be NULL).
- * In/Out:  pubkey: pointer to a public key object.
+ * In/Out:  pubkey: pointer to a public key object. Value becomes unspecified if this
+ *                  function returns 0. (cannot be NULL).
  * In:      tweak:  pointer to a 32-byte tweak.
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_mul(
