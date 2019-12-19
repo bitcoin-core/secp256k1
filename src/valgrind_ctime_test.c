@@ -73,19 +73,19 @@ int main(void) {
     CHECK(ret == 1);
 
     VALGRIND_MAKE_MEM_UNDEFINED(key, 32);
-    ret = secp256k1_ec_privkey_negate(ctx, key);
+    ret = secp256k1_ec_seckey_negate(ctx, key);
     VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
     CHECK(ret == 1);
 
     VALGRIND_MAKE_MEM_UNDEFINED(key, 32);
     VALGRIND_MAKE_MEM_UNDEFINED(msg, 32);
-    ret = secp256k1_ec_privkey_tweak_add(ctx, key, msg);
+    ret = secp256k1_ec_seckey_tweak_add(ctx, key, msg);
     VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
     CHECK(ret == 1);
 
     VALGRIND_MAKE_MEM_UNDEFINED(key, 32);
     VALGRIND_MAKE_MEM_UNDEFINED(msg, 32);
-    ret = secp256k1_ec_privkey_tweak_mul(ctx, key, msg);
+    ret = secp256k1_ec_seckey_tweak_mul(ctx, key, msg);
     VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
     CHECK(ret == 1);
 
