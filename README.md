@@ -77,6 +77,27 @@ With valgrind, you might need to increase the max stack size:
 
     $ valgrind --max-stackframe=2500000 ./exhaustive_tests
 
+Test coverage
+-----------
+
+This library aims to have full coverage of the reachable lines and branches.
+
+To create a test coverage report, configure with `--enable-coverage` (use of GCC is necessary):
+
+    $ ./configure --enable-coverage
+
+Run the tests:
+
+    $ make check
+
+To create a report, `gcovr` is recommended, as it includes branch coverage reporting:
+
+    $ gcovr --exclude 'src/bench*' --print-summary
+
+To create a HTML report with coloured and annotated source code:
+
+    $ gcovr --exclude 'src/bench*' --html --html-details -o coverage.html
+
 Reporting a vulnerability
 ------------
 
