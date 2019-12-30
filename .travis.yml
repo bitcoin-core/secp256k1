@@ -2,7 +2,9 @@ language: c
 os: linux
 addons:
   apt:
-    packages: libgmp-dev
+    packages:
+      - libgmp-dev
+      - gcovr
 compiler:
   - clang
   - gcc
@@ -41,7 +43,7 @@ matrix:
         apt:
           packages:
             - gcc-multilib
-            - libgmp-dev:i386
+#            - libgmp-dev:i386
     - compiler: clang
       env: HOST=i686-linux-gnu
       addons:
@@ -60,7 +62,7 @@ matrix:
         apt:
           packages:
             - gcc-multilib
-            - libgmp-dev:i386
+#            - libgmp-dev:i386
     - compiler: gcc
       env:
         - BIGNUM=no  ENDOMORPHISM=yes  ASM=x86_64 EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes
@@ -94,7 +96,15 @@ script:
    travis_wait 30 valgrind --error-exitcode=42 ./tests 16 &&
    travis_wait 30 valgrind --error-exitcode=42 ./exhaustive_tests;
    fi
+ - ./configure --disable-benchmark --enable-experimental=$EXPERIMENTAL --enable-endomorphism=$ENDOMORPHISM --with-field=$FIELD --with-bignum=$BIGNUM --with-asm=$ASM --with-scalar=$SCALAR --enable-ecmult-static-precomputation=$STATICPRECOMPUTATION --with-ecmult-gen-precision=$ECMULTGENPRECISION --enable-module-ecdh=$ECDH --enable-module-recovery=$RECOVERY --enable-jni=$JNI $EXTRAFLAGS $USE_HOST;
+   make;
+   ./tests 16;
+   ./exhaustive_tests;
 
 after_script:
     - cat ./tests.log
     - cat ./exhaustive_tests.log
+
+after_success:
+    - if [ -"$CC" = "clang" ]; then export GCOV="llvm-cov gcov"; fi;
+      gcovr --root . --exclude "src/bench*" --print-summary
