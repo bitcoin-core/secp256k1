@@ -15,6 +15,7 @@
 /* This is like `ECMULT_TABLE_GET_GE` but is constant time */
 #define ECMULT_CONST_TABLE_GET_GE(r,pre,n,w) do { \
     int m; \
+    /* Extract the sign-bit for a constant time absolute-value. */ \
     int mask = (n) >> (sizeof(n) * CHAR_BIT - 1); \
     int abs_n = ((n) + mask) ^ mask; \
     int idx_n = abs_n >> 1; \
