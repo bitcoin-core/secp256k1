@@ -265,6 +265,9 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *r, int flag) {
 /** Add a*b to the number defined by (c0,c1,c2). c2 must never overflow. */
 #define muladd(a,b) { \
     uint32_t tl, th; \
+    /* VERIFY that the 64x64->64 mul a*b is in fact a 32x32->64 mul for MSVC, see util.h. */ \
+    VERIFY_BITS((uint64_t)a, 32); \
+    VERIFY_BITS((uint64_t)b, 32); \
     { \
         uint64_t t = (uint64_t)a * b; \
         th = t >> 32;         /* at most 0xFFFFFFFE */ \
@@ -280,6 +283,9 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *r, int flag) {
 /** Add a*b to the number defined by (c0,c1). c1 must never overflow. */
 #define muladd_fast(a,b) { \
     uint32_t tl, th; \
+    /* VERIFY that the 64x64->64 mul a*b is in fact a 32x32->64 mul for MSVC, see util.h. */ \
+    VERIFY_BITS((uint64_t)a, 32); \
+    VERIFY_BITS((uint64_t)b, 32); \
     { \
         uint64_t t = (uint64_t)a * b; \
         th = t >> 32;         /* at most 0xFFFFFFFE */ \
@@ -294,6 +300,9 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *r, int flag) {
 /** Add 2*a*b to the number defined by (c0,c1,c2). c2 must never overflow. */
 #define muladd2(a,b) { \
     uint32_t tl, th, th2, tl2; \
+    /* VERIFY that the 64x64->64 mul a*b is in fact a 32x32->64 mul for MSVC, see util.h. */ \
+    VERIFY_BITS((uint64_t)a, 32); \
+    VERIFY_BITS((uint64_t)b, 32); \
     { \
         uint64_t t = (uint64_t)a * b; \
         th = t >> 32;               /* at most 0xFFFFFFFE */ \

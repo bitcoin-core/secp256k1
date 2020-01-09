@@ -88,6 +88,12 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
 #define VG_CHECK_VERIFY(x,y)
 #endif
 
+#ifdef VERIFY
+#define VERIFY_BITS(x, n) VERIFY_CHECK(((x) >> (n)) == 0)
+#else
+#define VERIFY_BITS(x, n) do { } while(0)
+#endif
+
 static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_t size) {
     void *ret = malloc(size);
     if (ret == NULL) {
@@ -207,5 +213,44 @@ static SECP256K1_INLINE void secp256k1_int_cmov(int *r, const int *a, int flag) 
 
     *r = (int)(r_masked | a_masked);
 }
+
+/* MSVC for x86 32-bit targets implements 64x64->64 bit multiplications using
+   a non-constant subroutine. The subroutine is not constant-time because it
+   shortcuts when the high 32 bits of both multiplicands are all 0.
+   See https://research.kudelskisecurity.com/2017/01/16/when-constant-time-source-may-not-save-you/
+   and also https://www.bearssl.org/ctmul.html for more information.
+
+   To work around this we can use the following macro if all we need is a
+   64x64->63 multiplication. We set the MSB of the right multiplicand
+   before the multiplication and clear the MSB of the product.
+
+   For 64-bit integers a, b where a, b, and a*b can be represented in 63
+   bits, we have
+
+      (a * (b | 0x8000000000000000)) & 0x7FFFFFFFFFFFFFFF
+    = (a * (b + 0x8000000000000000)) & 0x7FFFFFFFFFFFFFFF
+    = ((a * b) + (a * 0x8000000000000000)) & 0x7FFFFFFFFFFFFFFF
+    = ((a * b) + (a << 63)) & 0x7FFFFFFFFFFFFFFF
+    = ((a * b) | (a << 63)) & 0x7FFFFFFFFFFFFFFF
+    = ((a * b) & 0x7FFFFFFFFFFFFFFF) | (a << 63) & 0x7FFFFFFFFFFFFFFF
+    = (a * b) | 0
+    = a * b.
+
+   If a*b can be represented in 63 bits but a or b can't, we necessarily
+   have a == 0 or b == 0. Then it's easy to check that
+
+     (0 * (b | 0x8000000000000000)) & 0x7FFFFFFFFFFFFFFF = 0, and
+     (a * (0 | 0x8000000000000000)) & 0x7FFFFFFFFFFFFFFF = 0.
+
+   Thus our macro works for any 64x64->63 multiplication.
+
+   A variant of the macro for 16x16->15 bit multiplications has been
+   verified for all acceptable inputs by brute-force computation.
+*/
+#if defined(_MSC_VER) && defined(_M_IX86)
+#define MUL_64X64_63(a, b) ((((a) | UINT64_C(0x8000000000000000)) * (b)) & UINT64_C(0x7FFFFFFFFFFFFFFF))
+#else
+#define MUL_64X64_63(a, b) ((a) * (b))
+#endif
 
 #endif /* SECP256K1_UTIL_H */

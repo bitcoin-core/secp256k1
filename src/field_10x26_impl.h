@@ -454,17 +454,14 @@ void secp256k1_fe_sqr_inner(uint32_t *r, const uint32_t *a);
 
 #else
 
-#ifdef VERIFY
-#define VERIFY_BITS(x, n) VERIFY_CHECK(((x) >> (n)) == 0)
-#else
-#define VERIFY_BITS(x, n) do { } while(0)
-#endif
-
 SECP256K1_INLINE static void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t *a, const uint32_t * SECP256K1_RESTRICT b) {
     uint64_t c, d;
     uint64_t u0, u1, u2, u3, u4, u5, u6, u7, u8;
     uint32_t t9, t1, t0, t2, t3, t4, t5, t6, t7;
     const uint32_t M = 0x3FFFFFFUL, R0 = 0x3D10UL, R1 = 0x400UL;
+
+    VERIFY_BITS(R0, 14);
+    VERIFY_BITS(R1, 11);
 
     VERIFY_BITS(a[0], 30);
     VERIFY_BITS(a[1], 30);
@@ -765,14 +762,14 @@ SECP256K1_INLINE static void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t 
     /* [d 0 0 0 0 0 0 0 -d*R1 r9+(c<<22)-d*R0 r8 r7 r6 r5 r4 r3 t2 t1 t0] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
     /* [r9+(c<<22) r8 r7 r6 r5 r4 r3 t2 t1 t0] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
 
-    d    = c * (R0 >> 4) + t0;
+    d    = MUL_64X64_63(c, R0 >> 4) + t0;
     VERIFY_BITS(d, 56);
     /* [r9+(c<<22) r8 r7 r6 r5 r4 r3 t2 t1 d-c*R0>>4] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
     r[0] = d & M; d >>= 26;
     VERIFY_BITS(r[0], 26);
     VERIFY_BITS(d, 30);
     /* [r9+(c<<22) r8 r7 r6 r5 r4 r3 t2 t1+d r0-c*R0>>4] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
-    d   += c * (R1 >> 4) + t1;
+    d   += MUL_64X64_63(c, R1 >> 4) + t1;
     VERIFY_BITS(d, 53);
     VERIFY_CHECK(d <= 0x10000003FFFFBFULL);
     /* [r9+(c<<22) r8 r7 r6 r5 r4 r3 t2 d-c*R1>>4 r0-c*R0>>4] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
@@ -1039,14 +1036,14 @@ SECP256K1_INLINE static void secp256k1_fe_sqr_inner(uint32_t *r, const uint32_t 
     /* [d 0 0 0 0 0 0 0 -d*R1 r9+(c<<22)-d*R0 r8 r7 r6 r5 r4 r3 t2 t1 t0] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
     /* [r9+(c<<22) r8 r7 r6 r5 r4 r3 t2 t1 t0] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
 
-    d    = c * (R0 >> 4) + t0;
+    d    = MUL_64X64_63(c, R0 >> 4) + t0;
     VERIFY_BITS(d, 56);
     /* [r9+(c<<22) r8 r7 r6 r5 r4 r3 t2 t1 d-c*R0>>4] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
     r[0] = d & M; d >>= 26;
     VERIFY_BITS(r[0], 26);
     VERIFY_BITS(d, 30);
     /* [r9+(c<<22) r8 r7 r6 r5 r4 r3 t2 t1+d r0-c*R0>>4] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
-    d   += c * (R1 >> 4) + t1;
+    d   += MUL_64X64_63(c, R1 >> 4) + t1;
     VERIFY_BITS(d, 53);
     VERIFY_CHECK(d <= 0x10000003FFFFBFULL);
     /* [r9+(c<<22) r8 r7 r6 r5 r4 r3 t2 d-c*R1>>4 r0-c*R0>>4] = [p18 p17 p16 p15 p14 p13 p12 p11 p10 p9 p8 p7 p6 p5 p4 p3 p2 p1 p0] */
