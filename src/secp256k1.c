@@ -20,6 +20,10 @@
 #include "hash_impl.h"
 #include "scratch_impl.h"
 
+#if defined(VALGRIND)
+# include <valgrind/memcheck.h>
+#endif
+
 #define ARG_CHECK(cond) do { \
     if (EXPECT(!(cond), 0)) { \
         secp256k1_callback_call(&ctx->illegal_callback, #cond); \
@@ -66,13 +70,15 @@ struct secp256k1_context_struct {
     secp256k1_ecmult_gen_context ecmult_gen_ctx;
     secp256k1_callback illegal_callback;
     secp256k1_callback error_callback;
+    int declassify;
 };
 
 static const secp256k1_context secp256k1_context_no_precomp_ = {
     { 0 },
     { 0 },
     { secp256k1_default_illegal_callback_fn, 0 },
-    { secp256k1_default_error_callback_fn, 0 }
+    { secp256k1_default_error_callback_fn, 0 },
+    0
 };
 const secp256k1_context *secp256k1_context_no_precomp = &secp256k1_context_no_precomp_;
 
@@ -132,6 +138,7 @@ secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigne
     if (flags & SECP256K1_FLAGS_BIT_CONTEXT_VERIFY) {
         secp256k1_ecmult_context_build(&ret->ecmult_ctx, &prealloc);
     }
+    ret->declassify = !!(flags & SECP256K1_FLAGS_BIT_CONTEXT_DECLASSIFY);
 
     return (secp256k1_context*) ret;
 }
@@ -213,6 +220,20 @@ secp256k1_scratch_space* secp256k1_scratch_space_create(const secp256k1_context*
 void secp256k1_scratch_space_destroy(const secp256k1_context *ctx, secp256k1_scratch_space* scratch) {
     VERIFY_CHECK(ctx != NULL);
     secp256k1_scratch_destroy(&ctx->error_callback, scratch);
+}
+
+/* Mark memory as no-longer-secret for the purpose of analysing constant-time behaviour
+ *  of the software. This is setup for use with valgrind but could be substituted with
+ *  the appropriate instrumentation for other analysis tools.
+ */
+static SECP256K1_INLINE void secp256k1_declassify(const secp256k1_context* ctx, void *p, size_t len) {
+#if defined(VALGRIND)
+    if (EXPECT(ctx->declassify,0)) VALGRIND_MAKE_MEM_DEFINED(p, len);
+#else
+    (void)ctx;
+    (void)p;
+    (void)len;
+#endif
 }
 
 static int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge, const secp256k1_pubkey* pubkey) {
@@ -474,8 +495,14 @@ int secp256k1_ecdsa_sign(const secp256k1_context* ctx, secp256k1_ecdsa_signature
             break;
         }
         secp256k1_scalar_set_b32(&non, nonce32, &koverflow);
-        if (!koverflow && !secp256k1_scalar_is_zero(&non)) {
-            if (secp256k1_ecdsa_sig_sign(&ctx->ecmult_gen_ctx, &r, &s, &sec, &msg, &non, NULL)) {
+        koverflow |= secp256k1_scalar_is_zero(&non);
+        /* The nonce is still secret here, but it overflowing or being zero is is less likely than 1:2^255. */
+        secp256k1_declassify(ctx, &koverflow, sizeof(koverflow));
+        if (!koverflow) {
+            ret = secp256k1_ecdsa_sig_sign(&ctx->ecmult_gen_ctx, &r, &s, &sec, &msg, &non, NULL);
+            /* The final signature is no longer a secret, nor is the fact that we were successful or not. */
+            secp256k1_declassify(ctx, &ret, sizeof(ret));
+            if (ret) {
                 break;
             }
         }
