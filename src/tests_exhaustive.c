@@ -142,7 +142,7 @@ void test_exhaustive_addition(const secp256k1_ge *group, const secp256k1_gej *gr
     for (i = 0; i < order; i++) {
         secp256k1_gej tmp;
         if (i > 0) {
-            secp256k1_gej_double_nonzero(&tmp, &groupj[i], NULL);
+            secp256k1_gej_double_nonzero(&tmp, &groupj[i]);
             ge_equals_gej(&group[(2 * i) % order], &tmp);
         }
         secp256k1_gej_double_var(&tmp, &groupj[i], NULL);
