@@ -39,9 +39,8 @@ int secp256k1_ecdsa_s2c_sign(const secp256k1_context *ctx, secp256k1_ecdsa_signa
 int secp256k1_ecdsa_s2c_verify_commit(const secp256k1_context* ctx, const secp256k1_ecdsa_signature *sig, const unsigned char *data32, const secp256k1_s2c_opening *opening) {
     secp256k1_pubkey commitment;
     secp256k1_ge commitment_ge;
-    unsigned char x_bytes1[32];
-    unsigned char x_bytes2[32];
-    secp256k1_scalar sigr, sigs;
+    unsigned char x_bytes[32];
+    secp256k1_scalar sigr, sigs, x_scalar;
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(sig != NULL);
@@ -67,10 +66,9 @@ int secp256k1_ecdsa_s2c_verify_commit(const secp256k1_context* ctx, const secp25
         return 0;
     }
     secp256k1_fe_normalize(&commitment_ge.x);
-    secp256k1_fe_get_b32(x_bytes1, &commitment_ge.x);
-    secp256k1_scalar_get_b32(x_bytes2, &sigr);
-    return memcmp(x_bytes1, x_bytes2, 32) == 0;
-
+    secp256k1_fe_get_b32(x_bytes, & commitment_ge.x);
+    secp256k1_scalar_set_b32(&x_scalar, x_bytes, NULL);
+    return secp256k1_scalar_eq(&sigr, &x_scalar);
 }
 int secp256k1_ecdsa_s2c_anti_nonce_covert_channel_host_commit(secp256k1_context *ctx, unsigned char *rand_commitment32, const unsigned char *rand32) {
     secp256k1_sha256 sha;
