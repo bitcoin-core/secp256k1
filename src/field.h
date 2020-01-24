@@ -32,10 +32,12 @@
 
 #include "util.h"
 
-/** Normalize a field element. */
+/** Normalize a field element. This brings the field element to a canonical representation, reduces
+ *  its magnitude to 1, and reduces it modulo field size `p`.
+ */
 static void secp256k1_fe_normalize(secp256k1_fe *r);
 
-/** Weakly normalize a field element: reduce it magnitude to 1, but don't fully normalize. */
+/** Weakly normalize a field element: reduce its magnitude to 1, but don't fully normalize. */
 static void secp256k1_fe_normalize_weak(secp256k1_fe *r);
 
 /** Normalize a field element, without constant-time guarantee. */

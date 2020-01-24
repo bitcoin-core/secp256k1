@@ -32,7 +32,11 @@ static unsigned int secp256k1_scalar_get_bits(const secp256k1_scalar *a, unsigne
 /** Access bits from a scalar. Not constant time. */
 static unsigned int secp256k1_scalar_get_bits_var(const secp256k1_scalar *a, unsigned int offset, unsigned int count);
 
-/** Set a scalar from a big endian byte array. */
+/** Set a scalar from a big endian byte array. The scalar will be reduced modulo group order `n`.
+ * In:      bin:        pointer to a 32-byte array.
+ * Out:     r:          scalar to be set.
+ *          overflow:   non-zero if the scalar was bigger or equal to `n` before reduction, zero otherwise (can be NULL).
+ */
 static void secp256k1_scalar_set_b32(secp256k1_scalar *r, const unsigned char *bin, int *overflow);
 
 /** Set a scalar to an unsigned integer. */
