@@ -10,14 +10,14 @@
 #include "include/secp256k1_ecdh.h"
 #include "ecmult_const_impl.h"
 
-static int ecdh_hash_function_sha256(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
-    unsigned char version = (y[31] & 0x01) | 0x02;
+static int ecdh_hash_function_sha256(unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data) {
+    unsigned char version = (y32[31] & 0x01) | 0x02;
     secp256k1_sha256 sha;
     (void)data;
 
     secp256k1_sha256_initialize(&sha);
     secp256k1_sha256_write(&sha, &version, 1);
-    secp256k1_sha256_write(&sha, x, 32);
+    secp256k1_sha256_write(&sha, x32, 32);
     secp256k1_sha256_finalize(&sha, output);
 
     return 1;
