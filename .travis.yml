@@ -5,12 +5,13 @@ addons:
     packages:
       - libgmp-dev
       - valgrind
+      - libtool-bin
 compiler:
   - clang
   - gcc
 env:
   global:
-    - FIELD=auto  BIGNUM=auto  SCALAR=auto  ENDOMORPHISM=no  STATICPRECOMPUTATION=yes  ECMULTGENPRECISION=auto  ASM=no  BUILD=check  EXTRAFLAGS=  HOST=  ECDH=no  RECOVERY=no  EXPERIMENTAL=no
+    - FIELD=auto  BIGNUM=auto  SCALAR=auto  ENDOMORPHISM=no  STATICPRECOMPUTATION=yes  ECMULTGENPRECISION=auto  ASM=no  BUILD=check  EXTRAFLAGS=  HOST=  ECDH=no  RECOVERY=no  EXPERIMENTAL=no CTIMETEST=yes
   matrix:
     - SCALAR=32bit    RECOVERY=yes
     - SCALAR=32bit    FIELD=32bit       ECDH=yes  EXPERIMENTAL=yes
@@ -24,7 +25,7 @@ env:
     - BIGNUM=no
     - BIGNUM=no       ENDOMORPHISM=yes RECOVERY=yes EXPERIMENTAL=yes
     - BIGNUM=no       STATICPRECOMPUTATION=no
-    - BUILD=distcheck
+    - BUILD=distcheck CTIMETEST=
     - EXTRAFLAGS=CPPFLAGS=-DDETERMINISTIC
     - EXTRAFLAGS=CFLAGS=-O0
     - ECMULTGENPRECISION=2
@@ -39,18 +40,27 @@ matrix:
           packages:
             - gcc-multilib
             - libgmp-dev:i386
+            - valgrind
+            - libtool-bin
+            - libc6-dbg:i386
     - compiler: clang
       env: HOST=i686-linux-gnu
       addons:
         apt:
           packages:
             - gcc-multilib
+            - valgrind
+            - libtool-bin
+            - libc6-dbg:i386
     - compiler: gcc
       env: HOST=i686-linux-gnu ENDOMORPHISM=yes
       addons:
         apt:
           packages:
             - gcc-multilib
+            - valgrind
+            - libtool-bin
+            - libc6-dbg:i386
     - compiler: gcc
       env: HOST=i686-linux-gnu
       addons:
@@ -58,6 +68,9 @@ matrix:
           packages:
             - gcc-multilib
             - libgmp-dev:i386
+            - valgrind
+            - libtool-bin
+            - libc6-dbg:i386
     - compiler: gcc
       env:
         - BIGNUM=no  ENDOMORPHISM=yes  ASM=x86_64 EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes
@@ -81,7 +94,11 @@ script:
    travis_wait 30 valgrind --error-exitcode=42 ./tests 16 &&
    travis_wait 30 valgrind --error-exitcode=42 ./exhaustive_tests;
    fi
+ - if [ -n "$CTIMETEST" ]; then
+   libtool --mode=execute valgrind  ./valgrind_ctime_test &> valgrind_ctime_test.log;
+   fi
 
 after_script:
     - cat ./tests.log
     - cat ./exhaustive_tests.log
+    - cat ./valgrind_ctime_test.log
