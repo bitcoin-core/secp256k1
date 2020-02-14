@@ -13,3 +13,4 @@ The following keys may be used to communicate sensitive information to developer
 | Tim Ruffing | 09E0 3F87 1092 E40E 106E  902B 33BC 86AB 80FF 5516 |
 
 You can import a key by running the following command with that individual’s fingerprint: `gpg --recv-keys "<fingerprint>"` Ensure that you put quotes around fingerprints containing spaces.
+$ valgrind --max-stackframe=2500000 ./exhaustive_tests
