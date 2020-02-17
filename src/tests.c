@@ -5299,6 +5299,8 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef ENABLE_MODULE_MULTISET
+    /* ECMH tests */
+    printf("running multiset tests\n");
     run_multiset_tests();
 #endif
 
