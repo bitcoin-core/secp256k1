@@ -36,6 +36,32 @@ SECP256K1_API int secp256k1_multiset_init(
   secp256k1_multiset *multiset
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
 
+/** Serialize a multiset to bytes
+ *
+ *  Returns: 1:
+ *  Args:        ctx:  pointer to a context object (cannot be NULL)
+ *  Out:       out64:  pointer to a 64-byte array to store the serialized multiset (cannot be NULL)
+ *  In:    multiset:   pointer to the multiset (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_multiset_serialize(
+    const secp256k1_context* ctx,
+    unsigned char *out64,
+    const secp256k1_multiset *multiset
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
+/** Serialize a multiset to bytes
+ *
+ *  Returns: 1: suceess
+ *           0: Failed to parse multiset
+ *  Args:        ctx:  pointer to a context object (cannot be NULL)
+ *  Out:    multiset:  pointer to a multiset object (cannot be NULL)
+ *  In:         in64:  pointer to the 64-byte multiset to be parsed (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_multiset_parse(
+    const secp256k1_context* ctx,
+    secp256k1_multiset *multiset,
+    const unsigned char *out64
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
 /** Adds an element to a multiset from single data element
  *
