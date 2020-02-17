@@ -53,7 +53,7 @@ Algorithm
 
 Using Elliptic Curves as multisets is described in [3].
 
-This implementation uses trial-and-hash [4] to convert the hash into
+This implementation uses Try and Increment [4] to convert the hash into
 point on the secp256k1 curve which serves as multiset. The curve's
 group operations are then used to add and remove multisets.
 Associativity and Commutativity then follow.
@@ -67,7 +67,6 @@ not securely conceal the underlying data being hashed.
 
 For the purpose of UTXO commitments this is not relevant.
 
-Faster and constant time algorithms exists [3] but only for char-2 curves.
 
 References
 ----------

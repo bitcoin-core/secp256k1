@@ -29,7 +29,7 @@ typedef struct {
  *  Returns: 1: success
  *           0: invalid parameter
  *  Args:    ctx:      pointer to a context object (cannot be NULL)
- *  Out:     multiset: the resulting multiset
+ *  Out:     multiset: the resulting multiset (cannot be NULL)
  */
 SECP256K1_API int secp256k1_multiset_init(
   const secp256k1_context* ctx,
@@ -68,8 +68,8 @@ SECP256K1_API int secp256k1_multiset_parse(
  *  Returns: 1: success
  *           0: invalid parameter
  *  Args:    ctx:      pointer to a context object (cannot be NULL)
- *  Out:     multiset: the multiset to update
- *  In:      input:    the data to add
+ *  Out:     multiset: the multiset to update (cannot be NULL)
+ *  In:      input:    the data to add (cannot be NULL)
  *           inputLen: the size of the data to add
  */
 SECP256K1_API int secp256k1_multiset_add(
@@ -84,8 +84,8 @@ SECP256K1_API int secp256k1_multiset_add(
  *  Returns: 1: success
  *           0: invalid parameter
  *  Args:    ctx:      pointer to a context object (cannot be NULL)
- *  Out:     multiset: the multiset to update
- *  In:      input:    the data to remove
+ *  Out:     multiset: the multiset to update (cannot be NULL)
+ *  In:      input:    the data to remove (cannot be NULL)
  *           inputLen: the size of the data to remove
  */
 SECP256K1_API int secp256k1_multiset_remove(
@@ -102,7 +102,7 @@ SECP256K1_API int secp256k1_multiset_remove(
  *  Returns: 1: success
  *           0: invalid parameter
  *  Args:    ctx:      pointer to a context object (cannot be NULL)
- *  In/Out:  multiset: the multiset to which the input must be added
+ *  In/Out:  multiset: the multiset to which the input must be added (cannot be NULL)
  *  In:      input:    the multiset to add
  */
 SECP256K1_API int secp256k1_multiset_combine(

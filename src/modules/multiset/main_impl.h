@@ -3,47 +3,47 @@
  * Distributed under the MIT software license, see the accompanying   *
  * file COPYING or http://www.opensource.org/licenses/mit-license.php.*
  **********************************************************************/
+ /*For future reference: https://reviews.bitcoinabc.org/D1072 */
 
 #ifndef _SECP256K1_MODULE_MULTISET_MAIN_
 #define _SECP256K1_MODULE_MULTISET_MAIN_
 
-
 #include "include/secp256k1_multiset.h"
 
-#include "hash.h"
-#include "field.h"
-#include "group.h"
-
-/** Converts a group element (Jacobian) to a multiset.
- *  Requires the field elements to be normalized
- *  Infinite uses special value, z = 0
+/* Converts a group element (Jacobian) to a multiset.
+ * Requires the field elements to be normalized
+ * Infinite uses special value, z = 0
+ *  Will also normalize the input.
  */
-static void multiset_from_gej_var(secp256k1_multiset *target, const secp256k1_gej *input) {
-    if (input->infinity) {
+static void multiset_from_gej_var(secp256k1_multiset *target, secp256k1_gej *input) {
+    if (secp256k1_gej_is_infinity(input)) {
         memset(&target->d, 0, sizeof(target->d));
     } else {
+        secp256k1_fe_normalize(&input->x);
+        secp256k1_fe_normalize(&input->y);
+        secp256k1_fe_normalize(&input->z);
+
         secp256k1_fe_get_b32(target->d, &input->x);
-        secp256k1_fe_get_b32(target->d+32, &input->y);
-        secp256k1_fe_get_b32(target->d+64, &input->z);
+        secp256k1_fe_get_b32(target->d + 32, &input->y);
+        secp256k1_fe_get_b32(target->d + 64, &input->z);
     }
 }
 
-/** Converts a multiset to group element (Jacobian)
- *  Infinite uses special value, z = 0
- */
-static void gej_from_multiset_var(secp256k1_gej *target,  const secp256k1_multiset *input) {
+/* Converts a multiset to group element (Jacobian)
+ * Infinite uses special value, z = 0 */
+static void gej_from_multiset_var(secp256k1_gej *target, const secp256k1_multiset *input) {
     secp256k1_fe_set_b32(&target->x, input->d);
-    secp256k1_fe_set_b32(&target->y, input->d+32);
-    secp256k1_fe_set_b32(&target->z, input->d+64);
+    secp256k1_fe_set_b32(&target->y, input->d + 32);
+    secp256k1_fe_set_b32(&target->z, input->d + 64);
 
     target->infinity = secp256k1_fe_is_zero(&target->z) ? 1 : 0;
 }
 
-/** Converts a data element to a group element (affine)
+/* Converts a data element to a group element (affine)
  *
- *  We use trial-and-rehash which is fast but non-constant time.
- *  Though constant time algo's exist we are not concerned with timing attacks
- *  as we make no attempt to hide the underlying data
+ * We use Try and Increment which is fast but non-constant time.
+ * Though constant time algo's exist we are not concerned with timing attacks
+ * as we make no attempt to hide the underlying data
  *
  *  Pass inverse=0 to generate the group element, or inverse=1 to generate its inverse
  */
@@ -89,13 +89,12 @@ static void ge_from_data_var(secp256k1_ge *target, const unsigned char *input, s
         }
 
         VERIFY_CHECK(secp256k1_ge_is_valid_var(target));
-        VERIFY_CHECK(!secp256k1_ge_is_infinity(target));
         break;
     }
 }
 
 /** Adds or removes a data element */
-static int multiset_add_remove(const secp256k1_context* ctx, secp256k1_multiset *multiset, const unsigned char *input, size_t inputLen, int remove) {
+static int multiset_add_remove(const secp256k1_context *ctx, secp256k1_multiset *multiset, const unsigned char *input, size_t inputLen, int remove) {
     secp256k1_ge newelm;
     secp256k1_gej source, target;
 
@@ -108,9 +107,6 @@ static int multiset_add_remove(const secp256k1_context* ctx, secp256k1_multiset 
 
     secp256k1_gej_add_ge_var(&target, &source, &newelm, NULL);
 
-    secp256k1_fe_normalize(&target.x);
-    secp256k1_fe_normalize(&target.y);
-    secp256k1_fe_normalize(&target.z);
     multiset_from_gej_var(multiset, &target);
 
     return 1;
@@ -139,15 +135,13 @@ int secp256k1_multiset_combine(const secp256k1_context* ctx, secp256k1_multiset 
 
     secp256k1_gej_add_var(&gej_result, &gej_multiset, &gej_input, NULL);
 
-    secp256k1_fe_normalize(&gej_result.x);
-    secp256k1_fe_normalize(&gej_result.y);
-    secp256k1_fe_normalize(&gej_result.z);
     multiset_from_gej_var(multiset, &gej_result);
 
     return 1;
 }
 
 /** Hash the multiset into resultHash */
+/* TODO: Add hash function pointer to optionally replace the hash function */
 int secp256k1_multiset_finalize(const secp256k1_context* ctx, unsigned char *resultHash, const secp256k1_multiset *multiset) {
     secp256k1_sha256 hasher;
     unsigned char buffer[64];
@@ -159,13 +153,11 @@ int secp256k1_multiset_finalize(const secp256k1_context* ctx, unsigned char *res
     ARG_CHECK(multiset != NULL);
 
     gej_from_multiset_var(&gej, multiset);
-
-    if (gej.infinity) {
+    if (secp256k1_gej_is_infinity(&gej)) {
         /* empty set is encoded as zeros */
         memset(resultHash, 0x00, 32);
         return 1;
     }
-
     /* we must normalize to affine first */
     secp256k1_ge_set_gej(&ge, &gej);
     secp256k1_fe_normalize(&ge.x);
@@ -180,13 +172,13 @@ int secp256k1_multiset_finalize(const secp256k1_context* ctx, unsigned char *res
     return 1;
 }
 
-/** Inits the multiset with the constant for empty data,
- *  represented by the Jacobian GE infinite
- */
-int secp256k1_multiset_init(const secp256k1_context* ctx, secp256k1_multiset *multiset) {
-    const secp256k1_gej inf = SECP256K1_GEJ_CONST_INFINITY;
+/* Inits the multiset with the constant for empty data,
+   represented by the Jacobian GE infinite */
+int secp256k1_multiset_init(const secp256k1_context *ctx, secp256k1_multiset *multiset) {
+    secp256k1_gej inf = SECP256K1_GEJ_CONST_INFINITY;
 
     VERIFY_CHECK(ctx != NULL);
+    VERIFY_CHECK(multiset != NULL);
 
     multiset_from_gej_var(multiset, &inf);
 
