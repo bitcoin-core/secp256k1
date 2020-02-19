@@ -8,8 +8,9 @@ AH_TOP([#define LIBSECP256K1_CONFIG_H])
 AH_BOTTOM([#endif /*LIBSECP256K1_CONFIG_H*/])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 
-# Set -g (but not -O2 because this would override -O3 which we're adding later)
-# if CFLAGS are not already set (see PROG_CC in the Autoconf manual)
+# Set -g if CFLAGS are not already set, which matches the default autoconf
+# behavior (see PROG_CC in the Autoconf manual) with the exception that we don't
+# set -O2 here because we set it in any case (see further down).
 : ${CFLAGS="-g"}
 LT_INIT
 
@@ -180,7 +181,7 @@ if test x"$enable_coverage" = x"yes"; then
     CFLAGS="-O0 --coverage $CFLAGS"
     LDFLAGS="--coverage $LDFLAGS"
 else
-    CFLAGS="-O3 $CFLAGS"
+    CFLAGS="-O2 $CFLAGS"
 fi
 
 if test x"$use_ecmult_static_precomputation" != x"no"; then
