@@ -283,6 +283,7 @@ static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
 }
 
 static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a) {
+    int ret;
     r->n[0] = (uint64_t)a[31]
             | ((uint64_t)a[30] << 8)
             | ((uint64_t)a[29] << 16)
@@ -317,15 +318,17 @@ static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a) {
             | ((uint64_t)a[2] << 24)
             | ((uint64_t)a[1] << 32)
             | ((uint64_t)a[0] << 40);
-    if (r->n[4] == 0x0FFFFFFFFFFFFULL && (r->n[3] & r->n[2] & r->n[1]) == 0xFFFFFFFFFFFFFULL && r->n[0] >= 0xFFFFEFFFFFC2FULL) {
-        return 0;
-    }
+    ret = !((r->n[4] == 0x0FFFFFFFFFFFFULL) & ((r->n[3] & r->n[2] & r->n[1]) == 0xFFFFFFFFFFFFFULL) & (r->n[0] >= 0xFFFFEFFFFFC2FULL));
 #ifdef VERIFY
     r->magnitude = 1;
-    r->normalized = 1;
-    secp256k1_fe_verify(r);
+    if (ret) {
+        r->normalized = 1;
+        secp256k1_fe_verify(r);
+    } else {
+        r->normalized = 0;
+    }
 #endif
-    return 1;
+    return ret;
 }
 
 /** Convert a field element to a 32-byte big endian value. Requires the input to be normalized */
@@ -454,10 +457,10 @@ static SECP256K1_INLINE void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_
     r->n[3] = (r->n[3] & mask0) | (a->n[3] & mask1);
     r->n[4] = (r->n[4] & mask0) | (a->n[4] & mask1);
 #ifdef VERIFY
-    if (a->magnitude > r->magnitude) {
+    if (flag) {
         r->magnitude = a->magnitude;
+        r->normalized = a->normalized;
     }
-    r->normalized &= a->normalized;
 #endif
 }
 

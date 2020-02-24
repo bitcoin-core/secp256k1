@@ -1822,7 +1822,7 @@ void run_field_misc(void) {
         q = x;
         secp256k1_fe_cmov(&x, &z, 0);
 #ifdef VERIFY
-        CHECK(!x.normalized && x.magnitude == z.magnitude);
+        CHECK(x.normalized && x.magnitude == 1);
 #endif
         secp256k1_fe_cmov(&x, &x, 1);
         CHECK(fe_memcmp(&x, &z) != 0);
@@ -1845,7 +1845,7 @@ void run_field_misc(void) {
             secp256k1_fe_normalize_var(&q);
             secp256k1_fe_cmov(&q, &z, (j&1));
 #ifdef VERIFY
-            CHECK(!q.normalized && q.magnitude == (j+2));
+            CHECK((q.normalized != (j&1)) && q.magnitude == ((j&1) ? z.magnitude : 1));
 #endif
         }
         secp256k1_fe_normalize_var(&z);

@@ -160,4 +160,16 @@ static SECP256K1_INLINE void *manual_alloc(void** prealloc_ptr, size_t alloc_siz
 SECP256K1_GNUC_EXT typedef unsigned __int128 uint128_t;
 #endif
 
+/* Zero memory if flag == 1. Constant time. */
+static SECP256K1_INLINE void memczero(void *s, size_t len, int flag) {
+    unsigned char *p;
+    unsigned char mask = -(unsigned char)flag;
+    p = (unsigned char *)s;
+    while (len) {
+        *p ^= *p & mask;
+        p++;
+        len--;
+    }
+}
+
 #endif /* SECP256K1_UTIL_H */

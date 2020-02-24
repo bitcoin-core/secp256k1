@@ -2,7 +2,9 @@ language: c
 os: linux
 addons:
   apt:
-    packages: libgmp-dev
+    packages:
+      - libgmp-dev
+      - valgrind
 compiler:
   - clang
   - gcc
@@ -60,18 +62,10 @@ matrix:
       env:
         - BIGNUM=no  ENDOMORPHISM=yes  ASM=x86_64 EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes
         - VALGRIND=yes EXTRAFLAGS="--disable-openssl-tests CPPFLAGS=-DVALGRIND" BUILD=
-      addons:
-        apt:
-          packages:
-            - valgrind
     - compiler: gcc
       env: # The same as above but without endomorphism.
         - BIGNUM=no  ENDOMORPHISM=no  ASM=x86_64 EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes
         - VALGRIND=yes EXTRAFLAGS="--disable-openssl-tests CPPFLAGS=-DVALGRIND" BUILD=
-      addons:
-        apt:
-          packages:
-            - valgrind
 
 before_script: ./autogen.sh
 
