@@ -93,6 +93,12 @@ if USE_TESTS
 noinst_PROGRAMS += tests
 tests_SOURCES = src/tests.c
 tests_CPPFLAGS = -DSECP256K1_BUILD -I$(top_srcdir)/src -I$(top_srcdir)/include $(SECP_INCLUDES) $(SECP_TEST_INCLUDES)
+if VALGRIND_ENABLED
+tests_CPPFLAGS += -DVALGRIND
+noinst_PROGRAMS += valgrind_ctime_test
+valgrind_ctime_test_SOURCES = src/valgrind_ctime_test.c
+valgrind_ctime_test_LDADD = libsecp256k1.la $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB)
+endif
 if !ENABLE_COVERAGE
 tests_CPPFLAGS += -DVERIFY
 endif

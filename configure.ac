@@ -556,6 +556,7 @@ echo "  scalar                  = $set_scalar"
 echo "  ecmult window size      = $set_ecmult_window"
 echo "  ecmult gen prec. bits   = $set_ecmult_gen_precision"
 echo
+echo "  valgrind                = $enable_valgrind"
 echo "  CC                      = $CC"
 echo "  CFLAGS                  = $CFLAGS"
 echo "  CPPFLAGS                = $CPPFLAGS"
