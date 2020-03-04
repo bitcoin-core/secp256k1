@@ -27,7 +27,7 @@ int main(void) {
 
     if (!RUNNING_ON_VALGRIND) {
         fprintf(stderr, "This test can only usefully be run inside valgrind.\n");
-        fprintf(stderr, "Usage: libtool --mode=execute valgrind ./valgrind_ctime_test\n");
+        fprintf(stderr, "Usage: ./libtool --mode=execute valgrind ./valgrind_ctime_test\n");
         exit(99); /* indicates "ERROR" in make check */
     }
 

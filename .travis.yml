@@ -5,7 +5,6 @@ addons:
     packages:
       - libgmp-dev
       - valgrind
-      - libtool-bin
 compiler:
   - clang
   - gcc
@@ -41,7 +40,6 @@ matrix:
             - gcc-multilib
             - libgmp-dev:i386
             - valgrind
-            - libtool-bin
             - libc6-dbg:i386
     - compiler: clang
       env: HOST=i686-linux-gnu
@@ -50,7 +48,6 @@ matrix:
           packages:
             - gcc-multilib
             - valgrind
-            - libtool-bin
             - libc6-dbg:i386
     - compiler: gcc
       env: HOST=i686-linux-gnu ENDOMORPHISM=yes
@@ -59,7 +56,6 @@ matrix:
           packages:
             - gcc-multilib
             - valgrind
-            - libtool-bin
             - libc6-dbg:i386
     - compiler: gcc
       env: HOST=i686-linux-gnu
@@ -69,7 +65,6 @@ matrix:
             - gcc-multilib
             - libgmp-dev:i386
             - valgrind
-            - libtool-bin
             - libc6-dbg:i386
     - compiler: gcc
       env:
