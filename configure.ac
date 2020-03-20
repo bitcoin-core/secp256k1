@@ -7,6 +7,11 @@ AH_TOP([#ifndef LIBSECP256K1_CONFIG_H])
 AH_TOP([#define LIBSECP256K1_CONFIG_H])
 AH_BOTTOM([#endif /*LIBSECP256K1_CONFIG_H*/])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
+
+# Set -g if CFLAGS are not already set, which matches the default autoconf
+# behavior (see PROG_CC in the Autoconf manual) with the exception that we don't
+# set -O2 here because we set it in any case (see further down).
+: ${CFLAGS="-g"}
 LT_INIT
 
 dnl make the compilation flags quiet unless V=1 is used
@@ -18,10 +23,6 @@ AC_PATH_TOOL(AR, ar)
 AC_PATH_TOOL(RANLIB, ranlib)
 AC_PATH_TOOL(STRIP, strip)
 AX_PROG_CC_FOR_BUILD
-
-if test "x$CFLAGS" = "x"; then
-  CFLAGS="-g"
-fi
 
 AM_PROG_CC_C_O
 
@@ -63,11 +64,11 @@ case $host_os in
    ;;
 esac
 
-CFLAGS="$CFLAGS -W"
+CFLAGS="-W $CFLAGS"
 
 warn_CFLAGS="-std=c89 -pedantic -Wall -Wextra -Wcast-align -Wnested-externs -Wshadow -Wstrict-prototypes -Wno-unused-function -Wno-long-long -Wno-overlength-strings"
 saved_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $warn_CFLAGS"
+CFLAGS="$warn_CFLAGS $CFLAGS"
 AC_MSG_CHECKING([if ${CC} supports ${warn_CFLAGS}])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
     [ AC_MSG_RESULT([yes]) ],
@@ -76,7 +77,7 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
     ])
 
 saved_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -fvisibility=hidden"
+CFLAGS="-fvisibility=hidden $CFLAGS"
 AC_MSG_CHECKING([if ${CC} supports -fvisibility=hidden])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
     [ AC_MSG_RESULT([yes]) ],
@@ -175,10 +176,10 @@ AM_CONDITIONAL([VALGRIND_ENABLED],[test "$enable_valgrind" = "yes"])
 
 if test x"$enable_coverage" = x"yes"; then
     AC_DEFINE(COVERAGE, 1, [Define this symbol to compile out all VERIFY code])
-    CFLAGS="$CFLAGS -O0 --coverage"
-    LDFLAGS="$LDFLAGS --coverage"
+    CFLAGS="-O0 --coverage $CFLAGS"
+    LDFLAGS="--coverage $LDFLAGS"
 else
-    CFLAGS="$CFLAGS -O3"
+    CFLAGS="-O2 $CFLAGS"
 fi
 
 if test x"$use_ecmult_static_precomputation" != x"no"; then
@@ -196,7 +197,7 @@ if test x"$use_ecmult_static_precomputation" != x"no"; then
 
   warn_CFLAGS_FOR_BUILD="-Wall -Wextra -Wno-unused-function"
   saved_CFLAGS="$CFLAGS"
-  CFLAGS="$CFLAGS $warn_CFLAGS_FOR_BUILD"
+  CFLAGS="$warn_CFLAGS_FOR_BUILD $CFLAGS"
   AC_MSG_CHECKING([if native ${CC_FOR_BUILD} supports ${warn_CFLAGS_FOR_BUILD}])
   AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
       [ AC_MSG_RESULT([yes]) ],
