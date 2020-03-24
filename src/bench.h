@@ -73,7 +73,7 @@ void print_number(const int64_t x) {
     printf("%s", &buffer[ptr]);
 }
 
-void run_benchmark(char *name, void (*benchmark)(void*), void (*setup)(void*), void (*teardown)(void*), void* data, int count, int iter) {
+void run_benchmark(char *name, void (*benchmark)(void*, int), void (*setup)(void*), void (*teardown)(void*, int), void* data, int count, int iter) {
     int i;
     int64_t min = INT64_MAX;
     int64_t sum = 0;
@@ -84,10 +84,10 @@ void run_benchmark(char *name, void (*benchmark)(void*), void (*setup)(void*), v
             setup(data);
         }
         begin = gettime_i64();
-        benchmark(data);
+        benchmark(data, iter);
         total = gettime_i64() - begin;
         if (teardown != NULL) {
-            teardown(data);
+            teardown(data, iter);
         }
         if (total < min) {
             min = total;
@@ -119,6 +119,15 @@ int have_flag(int argc, char** argv, char *flag) {
         argv++;
     }
     return 0;
+}
+
+int get_iters(int default_iters) {
+    char* env = getenv("SECP256K1_BENCH_ITERS");
+    if (env) {
+        return strtol(env, NULL, 0);
+    } else {
+        return default_iters;
+    }
 }
 
 #endif /* SECP256K1_BENCH_H */
