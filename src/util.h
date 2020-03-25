@@ -162,11 +162,14 @@ SECP256K1_GNUC_EXT typedef unsigned __int128 uint128_t;
 
 /* Zero memory if flag == 1. Constant time. */
 static SECP256K1_INLINE void memczero(void *s, size_t len, int flag) {
-    unsigned char *p;
-    unsigned char mask = -(unsigned char)flag;
-    p = (unsigned char *)s;
+    unsigned char *p = (unsigned char *)s;
+    /* Access flag with a volatile-qualified lvalue.
+       This prevents clang from figuring out (after inlining) that flag can
+       take only be 0 or 1, which leads to variable time code. */
+    volatile int vflag = flag;
+    unsigned char mask = -(unsigned char) vflag;
     while (len) {
-        *p ^= *p & mask;
+        *p &= ~mask;
         p++;
         len--;
     }
