@@ -5166,6 +5166,21 @@ void run_ecdsa_openssl(void) {
 # include "modules/recovery/tests_impl.h"
 #endif
 
+void run_memczero_test(void) {
+    unsigned char buf1[6] = {1, 2, 3, 4, 5, 6};
+    unsigned char buf2[sizeof(buf1)];
+
+    /* memczero(..., ..., 0) is a noop. */
+    memcpy(buf2, buf1, sizeof(buf1));
+    memczero(buf1, sizeof(buf1), 0);
+    CHECK(memcmp(buf1, buf2, sizeof(buf1)) == 0);
+
+    /* memczero(..., ..., 1) zeros the buffer. */
+    memset(buf2, 0, sizeof(buf2));
+    memczero(buf1, sizeof(buf1) , 1);
+    CHECK(memcmp(buf1, buf2, sizeof(buf1)) == 0);
+}
+
 int main(int argc, char **argv) {
     unsigned char seed16[16] = {0};
     unsigned char run32[32] = {0};
@@ -5298,6 +5313,9 @@ int main(int argc, char **argv) {
     /* ECDSA pubkey recovery tests */
     run_recovery_tests();
 #endif
+
+    /* util tests */
+    run_memczero_test();
 
     secp256k1_rand256(run32);
     printf("random run = %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\n", run32[0], run32[1], run32[2], run32[3], run32[4], run32[5], run32[6], run32[7], run32[8], run32[9], run32[10], run32[11], run32[12], run32[13], run32[14], run32[15]);
