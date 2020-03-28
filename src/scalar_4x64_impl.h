@@ -181,6 +181,31 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *r, int flag) {
     return 2 * (mask == 0) - 1;
 }
 
+static int secp256k1_scalar_complement(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    uint128_t t = 1;
+    t += ~a->d[0];
+    r->d[0] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    t += ~a->d[1];
+    r->d[1] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    t += ~a->d[2];
+    r->d[2] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    t += ~a->d[3];
+    r->d[3] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    return t;
+}
+
+static int secp256k1_scalar_binadd(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    uint128_t t = (uint128_t)a->d[0] + b->d[0];
+    r->d[0] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    t += (uint128_t)a->d[1] + b->d[1];
+    r->d[1] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    t += (uint128_t)a->d[2] + b->d[2];
+    r->d[2] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    t += (uint128_t)a->d[3] + b->d[3];
+    r->d[3] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    return t;
+}
+
 /* Inspired by the macros in OpenSSL's crypto/bn/asm/x86_64-gcc.c. */
 
 /** Add a*b to the number defined by (c0,c1,c2). c2 must never overflow. */

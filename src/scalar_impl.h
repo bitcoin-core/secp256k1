@@ -222,6 +222,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 #endif
 }
 
+#if !defined(EXHAUSTIVE_TEST_ORDER)
 static void secp256k1_scalar_pow2_div(secp256k1_scalar *r, const secp256k1_scalar *a, int k) {
     static const secp256k1_scalar lookup[16] = {
         SECP256K1_SCALAR_CONST(
@@ -293,9 +294,108 @@ static void secp256k1_scalar_pow2_div(secp256k1_scalar *r, const secp256k1_scala
     VERIFY_CHECK(k == 0);
 }
 
+SECP256K1_INLINE static int secp256k1_scalar_shr_zeros(secp256k1_scalar *r) {
+    int n, k = 0;
+
+    /* Ensure that we do not have more than 15 trailing zeros. */
+    while ((n = __builtin_ctz(r->d[0] | (1 << 15)))) {
+        k += n;
+        secp256k1_scalar_shr_int(r, n);
+    }
+
+    return k;
+}
+
+static int secp256k1_scalar_eea_inverse(secp256k1_scalar *r, const secp256k1_scalar *n) {
+    secp256k1_scalar u, v, i, j, acomp, negx;
+    secp256k1_scalar *a, *b, *x0, *x1, *tmp;
+    int ka, kb;
+
+    /* zero is not invertible */
+    if (secp256k1_scalar_is_zero(n)) {
+        secp256k1_scalar_set_int(r, 0);
+        return 0;
+    }
+
+    /**
+     * The extended euclidian algorithm compute x, y and gcd(a, b) such as
+     * a*x + b*y = gcd(a, b)
+     * If we use this algorithm with b = p, then we solve a*x + p*y = gcd(a, p)
+     * We note that:
+     *  - The order is a prime, so gcd(a, p) = 1.
+     *  - We compute modulo p, and y*p = 0 mod p.
+     * So the equation simplify to a*x = 1, and x = a^-1.
+     */
+
+    /* a = n */
+    u = *n;
+    a = &u;
+
+    /* Because 2 is not a common factor between a and b, we can detect
+     * multiples of 2 using the LSB and eliminate them aggressively. */
+    ka = secp256k1_scalar_shr_zeros(a);
+
+    /* b = p - a */
+    secp256k1_scalar_negate(&v, a);
+    b = &v;
+
+    /* x0 = 1 */
+    secp256k1_scalar_set_int(&i, 1);
+    secp256k1_scalar_negate(&negx, &i);
+    x0 = &i;
+
+    /* x1 = 0 */
+    secp256k1_scalar_set_int(&j, 0);
+    x1 = &j;
+
+    if (secp256k1_scalar_is_one(a)) {
+        goto done;
+    }
+
+    /* For a and b, we use 2 comlement math and ensure no overflow happens. */
+    secp256k1_scalar_complement(&acomp, a);
+    goto bzero;
+
+    while (!secp256k1_scalar_is_one(a)) {
+        secp256k1_scalar_complement(&acomp, a);
+        secp256k1_scalar_negate(&negx, x0);
+
+        VERIFY_CHECK(secp256k1_scalar_cmp_var(b, a) > 0);
+        do {
+            secp256k1_scalar_binadd(b, b, &acomp);
+
+        bzero:
+            /* We ensure that a and b are odd, so b must be even after subtracting a. */
+            VERIFY_CHECK(secp256k1_scalar_is_even(b));
+            kb = secp256k1_scalar_shr_zeros(b);
+            secp256k1_scalar_add(x1, x1, &negx);
+            secp256k1_scalar_pow2_div(x1, x1, kb);
+        } while (secp256k1_scalar_cmp_var(b, a) > 0);
+
+        /* a and b can never be equal, so if we exited, it is because a > b. */
+        VERIFY_CHECK(secp256k1_scalar_cmp_var(a, b) > 0);
+
+        /* In order to speed things up, we only swap pointers */
+        tmp = a;
+        a = b;
+        b = tmp;
+
+        tmp = x0;
+        x0 = x1;
+        x1 = tmp;
+    }
+
+done:
+    secp256k1_scalar_pow2_div(r, x0, ka);
+    return 1;
+}
+#endif
+
 static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
-#if defined(USE_SCALAR_INV_BUILTIN)
+#if defined(EXHAUSTIVE_TEST_ORDER)
     secp256k1_scalar_inverse(r, x);
+#elif defined(USE_SCALAR_INV_BUILTIN)
+    secp256k1_scalar_eea_inverse(r, x);
 #elif defined(USE_SCALAR_INV_NUM)
     unsigned char b[32];
     secp256k1_num n, m;

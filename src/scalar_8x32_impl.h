@@ -259,6 +259,46 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *r, int flag) {
     return 2 * (mask == 0) - 1;
 }
 
+static int secp256k1_scalar_complement(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    uint64_t t = 1;
+    t += ~a->d[0];
+    r->d[0] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += ~a->d[1];
+    r->d[1] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += ~a->d[2];
+    r->d[2] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += ~a->d[3];
+    r->d[3] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += ~a->d[4];
+    r->d[4] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += ~a->d[5];
+    r->d[5] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += ~a->d[6];
+    r->d[6] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += ~a->d[7];
+    r->d[7] = t & 0xFFFFFFFFULL; t >>= 32;
+    return t;
+}
+
+static int secp256k1_scalar_binadd(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    uint64_t t = (uint64_t)a->d[0] + b->d[0];
+    r->d[0] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[1] + b->d[1];
+    r->d[1] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[2] + b->d[2];
+    r->d[2] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[3] + b->d[3];
+    r->d[3] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[4] + b->d[4];
+    r->d[4] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[5] + b->d[5];
+    r->d[5] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[6] + b->d[6];
+    r->d[6] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[7] + b->d[7];
+    r->d[7] = t & 0xFFFFFFFFULL; t >>= 32;
+    return t;
+}
 
 /* Inspired by the macros in OpenSSL's crypto/bn/asm/x86_64-gcc.c. */
 

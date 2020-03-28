@@ -1199,9 +1199,7 @@ void run_scalar_tests(void) {
         secp256k1_scalar one;
         secp256k1_scalar r1;
         secp256k1_scalar r2;
-#if defined(USE_SCALAR_INV_NUM)
         secp256k1_scalar zzv;
-#endif
         int overflow;
         unsigned char chal[33][2][32] = {
             {{0xff, 0xff, 0x03, 0x07, 0x00, 0x00, 0x00, 0x00,
@@ -1751,10 +1749,8 @@ void run_scalar_tests(void) {
             if (!secp256k1_scalar_is_zero(&y)) {
                 secp256k1_scalar_inverse(&zz, &y);
                 CHECK(!secp256k1_scalar_check_overflow(&zz));
-#if defined(USE_SCALAR_INV_NUM)
                 secp256k1_scalar_inverse_var(&zzv, &y);
                 CHECK(secp256k1_scalar_eq(&zzv, &zz));
-#endif
                 secp256k1_scalar_mul(&z, &z, &zz);
                 CHECK(!secp256k1_scalar_check_overflow(&z));
                 CHECK(secp256k1_scalar_eq(&x, &z));
