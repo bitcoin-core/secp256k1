@@ -1075,6 +1075,21 @@ void scalar_test(void) {
         CHECK(secp256k1_scalar_eq(&r1, &v0));
     }
 
+    {
+        /* Test division by powers of two */
+        int i;
+        secp256k1_scalar r, e, twoinv;
+
+        secp256k1_scalar_set_int(&twoinv, 2);
+        secp256k1_scalar_inverse_var(&twoinv, &twoinv);
+
+        e = s;
+        for (i = 0; i < 25; i++) {
+            secp256k1_scalar_pow2_div(&r, &s, i);
+            CHECK(secp256k1_scalar_eq(&r, &e));
+            secp256k1_scalar_mul(&e, &e, &twoinv);
+        }
+    }
 }
 
 void run_scalar_tests(void) {
@@ -1117,6 +1132,42 @@ void run_scalar_tests(void) {
             0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL
         );
         CHECK(secp256k1_scalar_check_overflow(&overflowed));
+    }
+
+    {
+        /* Test boundary condition for division by powers of two */
+        int j;
+        secp256k1_scalar r, x, e, twoinv, powtwoinv, negone;
+
+        secp256k1_scalar_set_int(&negone, 1);
+        secp256k1_scalar_negate(&negone, &negone);
+
+        secp256k1_scalar_set_int(&twoinv, 2);
+        secp256k1_scalar_inverse_var(&twoinv, &twoinv);
+
+        secp256k1_scalar_set_int(&powtwoinv, 1);
+
+        for (i = 0; i < 4; i++) {
+            secp256k1_scalar_mul(&powtwoinv, &powtwoinv, &twoinv);
+
+            for (j = 0; j < (1 << i); j++) {
+                x = negone;
+                /* clear the n last bits */
+                x.d[0] ^= x.d[0] & ((1 << i) - 1);
+                /* set j in the lowest bits */
+                x.d[0] |= j;
+
+                /* Save it for later */
+                e = x;
+
+                /* Perform the division and check results. */
+                secp256k1_scalar_pow2_div(&r, &x, i + 1);
+                CHECK(!secp256k1_scalar_check_overflow(&r));
+
+                secp256k1_scalar_mul(&e, &e, &powtwoinv);
+                CHECK(secp256k1_scalar_eq(&r, &e));
+            }
+        }
     }
 
     {
