@@ -1090,6 +1090,22 @@ void scalar_test(void) {
             secp256k1_scalar_mul(&e, &e, &twoinv);
         }
     }
+
+    {
+        /* test cmp_var */
+        secp256k1_scalar negs;
+        int expected = 0;
+
+        secp256k1_scalar_negate(&negs, &s);
+        if (!secp256k1_scalar_is_zero(&s)) {
+            expected = secp256k1_scalar_is_high(&s) * 2 - 1;
+        }
+
+        CHECK(secp256k1_scalar_cmp_var(&s, &s) == 0);
+        CHECK(secp256k1_scalar_cmp_var(&negs, &negs) == 0);
+        CHECK(secp256k1_scalar_cmp_var(&s, &negs) == expected);
+        CHECK(secp256k1_scalar_cmp_var(&negs, &s) == -expected);
+    }
 }
 
 void run_scalar_tests(void) {

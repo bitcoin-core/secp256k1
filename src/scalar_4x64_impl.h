@@ -929,6 +929,19 @@ SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const
     return ((a->d[0] ^ b->d[0]) | (a->d[1] ^ b->d[1]) | (a->d[2] ^ b->d[2]) | (a->d[3] ^ b->d[3])) == 0;
 }
 
+SECP256K1_INLINE static int secp256k1_scalar_cmp_var(const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    int i;
+    for (i = 3; i >= 0; i--) {
+        if (a->d[i] > b->d[i]) {
+            return 1;
+        }
+        if (a->d[i] < b->d[i]) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
 SECP256K1_INLINE static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b, unsigned int shift) {
     uint64_t l[8];
     unsigned int shiftlimbs;
