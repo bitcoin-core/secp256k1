@@ -227,7 +227,7 @@ void secp256k1_scratch_space_destroy(const secp256k1_context *ctx, secp256k1_scr
  *  of the software. This is setup for use with valgrind but could be substituted with
  *  the appropriate instrumentation for other analysis tools.
  */
-static SECP256K1_INLINE void secp256k1_declassify(const secp256k1_context* ctx, void *p, size_t len) {
+static SECP256K1_INLINE void secp256k1_declassify(const secp256k1_context* ctx, const void *p, size_t len) {
 #if defined(VALGRIND)
     if (EXPECT(ctx->declassify,0)) VALGRIND_MAKE_MEM_DEFINED(p, len);
 #else
