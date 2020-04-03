@@ -5444,6 +5444,10 @@ void run_ecdsa_openssl(void) {
 # include "modules/schnorrsig/tests_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_ECDSA_ADAPTOR
+# include "modules/ecdsa_adaptor/tests_impl.h"
+#endif
+
 void run_secp256k1_memczero_test(void) {
     unsigned char buf1[6] = {1, 2, 3, 4, 5, 6};
     unsigned char buf2[sizeof(buf1)];
@@ -5652,6 +5656,7 @@ int main(int argc, char **argv) {
         CHECK(secp256k1_context_randomize(ctx, secp256k1_testrand_bits(1) ? rand32 : NULL));
     }
 
+<<<<<<< HEAD
     run_rand_bits();
     run_rand_int();
 
@@ -5729,6 +5734,11 @@ int main(int argc, char **argv) {
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
     run_schnorrsig_tests();
+#endif
+
+#ifdef ENABLE_MODULE_ECDSA_ADAPTOR
+    /* ECDSA pubkey recovery tests */
+    run_ecdsa_adaptor_tests();
 #endif
 
     /* util tests */
