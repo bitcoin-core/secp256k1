@@ -43,7 +43,7 @@ SECP256K1_API int secp256k1_ecdsa_adaptor_sig_verify(
     const secp256k1_pubkey *pubkey,
     const unsigned char *msg32,
     const secp256k1_pubkey *adaptor,
-    const unsigned char *adaptor_proof97,
+    const unsigned char *adaptor_proof97
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
 
 /** Adapt aka complete
