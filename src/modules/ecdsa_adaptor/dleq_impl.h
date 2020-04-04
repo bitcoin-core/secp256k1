@@ -41,6 +41,19 @@ static void secp256k1_dleq_serialize_point(unsigned char *buf33, const secp256k1
     secp256k1_fe_get_b32(&buf33[1], &x);
 }
 
+static int secp256k1_dleq_deserialize_point(secp256k1_ge *p, const unsigned char *buf33) {
+    secp256k1_fe x;
+
+    if (!secp256k1_fe_set_b32(&x, &buf33[1])) {
+        return 0;
+    }
+    if (buf33[0] > 1) {
+        return 0;
+    }
+    secp256k1_ge_set_xo_var(p, &x, buf33[0]);
+    return 1;
+}
+
 /* TODO: remove */
 static void print_buf(const unsigned char *buf, size_t n) {
     size_t i;
@@ -92,7 +105,12 @@ static void secp256k1_dleq_pair(const secp256k1_ecmult_gen_context *ecmult_gen_c
     secp256k1_ge_set_gej(p2, &p2j);
 }
 
-static int secp256k1_dleq_proof(const secp256k1_ecmult_gen_context *ecmult_gen_ctx, secp256k1_scalar *s, secp256k1_scalar *e, const unsigned char *algo16, const secp256k1_scalar *sk, const secp256k1_ge *gen2) {
+static int secp256k1_dleq_proof(const secp256k1_ecmult_gen_context *ecmult_gen_ctx,
+                                secp256k1_scalar *s,
+                                secp256k1_scalar *e,
+                                const unsigned char *algo16,
+                                const secp256k1_scalar *sk,
+                                const secp256k1_ge *gen2) {
     unsigned char nonce32[32];
     unsigned char key32[32];
     secp256k1_ge p1, p2;
@@ -109,6 +127,7 @@ static int secp256k1_dleq_proof(const secp256k1_ecmult_gen_context *ecmult_gen_c
     secp256k1_dleq_hash_point(&sha, &p2);
     secp256k1_sha256_finalize(&sha, buf32);
 
+    secp256k1_scalar_get_b32(key32, sk);
     /* everything that goes into the challenge hash must go into the nonce as well... */
     if (!nonce_function_bip340(nonce32, buf32, key32, buf32, algo16, NULL, 0)) {
         return 0;

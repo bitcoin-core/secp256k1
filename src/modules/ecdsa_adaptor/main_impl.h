@@ -16,7 +16,7 @@ int secp256k1_ecdsa_adaptor_sign_helper(secp256k1_scalar *sigs, secp256k1_scalar
     secp256k1_scalar sigr;
     secp256k1_scalar n;
     int overflow;
-    int high;
+    /* int high; */
 
     secp256k1_fe_normalize(&r->x);
     secp256k1_fe_get_b32(b, &r->x);
@@ -31,15 +31,21 @@ int secp256k1_ecdsa_adaptor_sign_helper(secp256k1_scalar *sigs, secp256k1_scalar
 
     secp256k1_scalar_clear(&n);
 
-    high = secp256k1_scalar_is_high(sigs);
-    secp256k1_scalar_cond_negate(sigs, high);
-
+    /* high = secp256k1_scalar_is_high(sigs); */
     /* TODO: deal with lows */
+    /* this may result in wrong r in adaptor verify */
+    /* secp256k1_scalar_cond_negate(sigs, high); */
+
 
     return !secp256k1_scalar_is_zero(sigs);
 }
 
-int secp256k1_ecdsa_adaptor_sign(const secp256k1_context* ctx, unsigned char *adaptor_sig65, unsigned char *adaptor_proof97, unsigned char *seckey32, const secp256k1_pubkey *adaptor, const unsigned char *msg32) {
+int secp256k1_ecdsa_adaptor_sign(const secp256k1_context* ctx,
+                                 unsigned char *adaptor_sig65,
+                                 unsigned char *adaptor_proof97,
+                                 unsigned char *seckey32,
+                                 const secp256k1_pubkey *adaptor,
+                                 const unsigned char *msg32) {
     unsigned char nonce32[32];
     secp256k1_scalar k;
     secp256k1_gej rj, rpj;
@@ -91,6 +97,7 @@ int secp256k1_ecdsa_adaptor_sign(const secp256k1_context* ctx, unsigned char *ad
     }
 
     /* 6. return (R, R', s', proof) */
+    secp256k1_ge_set_gej(&rp, &rpj);
     secp256k1_dleq_serialize_point(adaptor_proof97, &rp);
     secp256k1_scalar_get_b32(&adaptor_proof97[33], &dleq_proof_s);
     secp256k1_scalar_get_b32(&adaptor_proof97[33+32], &dleq_proof_e);
@@ -101,6 +108,87 @@ int secp256k1_ecdsa_adaptor_sign(const secp256k1_context* ctx, unsigned char *ad
     secp256k1_scalar_clear(&k);
     secp256k1_scalar_clear(&sk);
     return 1;
+}
+
+/* TODO: does x_coord have to be a scalar? */
+SECP256K1_API int secp256k1_ecdsa_adaptor_sig_verify_helper(const secp256k1_context* ctx, secp256k1_fe *x_coord, secp256k1_scalar *sigr, secp256k1_scalar *sigs, const secp256k1_ge *pubkey, const secp256k1_scalar *message) {
+    secp256k1_scalar sn, u1, u2;
+    secp256k1_gej pubkeyj;
+    secp256k1_gej pr;
+    secp256k1_ge p;
+
+    if (secp256k1_scalar_is_zero(sigr) || secp256k1_scalar_is_zero(sigs)) {
+        return 0;
+    }
+
+    secp256k1_scalar_inverse_var(&sn, sigs);
+    secp256k1_scalar_mul(&u1, &sn, message);
+    secp256k1_scalar_mul(&u2, &sn, sigr);
+
+    secp256k1_gej_set_ge(&pubkeyj, pubkey);
+    secp256k1_ecmult(&ctx->ecmult_ctx, &pr, &pubkeyj, &u2, &u1);
+    if (secp256k1_gej_is_infinity(&pr)) {
+        return 0;
+    }
+    secp256k1_ge_set_gej(&p, &pr);
+    secp256k1_fe_normalize(&p.x);
+    *x_coord = p.x;
+    return 1;
+}
+
+
+int secp256k1_ecdsa_adaptor_sig_verify(const secp256k1_context* ctx, const unsigned char *adaptor_sig65, const secp256k1_pubkey *pubkey, const unsigned char *msg32, const secp256k1_pubkey *adaptor, const unsigned char *adaptor_proof97) {
+    secp256k1_scalar dleq_proof_s, dleq_proof_e;
+    secp256k1_scalar msg;
+    secp256k1_ge q;
+    secp256k1_ge r, rp;
+    secp256k1_fe rhs;
+    secp256k1_scalar sp;
+    secp256k1_scalar sigr;
+    secp256k1_ge adaptor_ge;
+    int overflow;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
+    ARG_CHECK(adaptor_sig65 != NULL);
+    ARG_CHECK(pubkey != NULL);
+    ARG_CHECK(msg32 != NULL);
+    ARG_CHECK(adaptor != NULL);
+    ARG_CHECK(adaptor_proof97 != NULL);
+
+    /* 1. DLEQ_verify((G,R'),(Y, R)) */
+    if (!secp256k1_dleq_deserialize_point(&rp, &adaptor_proof97[0])) {
+        return 0;
+    }
+    secp256k1_scalar_set_b32(&dleq_proof_s, &adaptor_proof97[33], &overflow);
+    if (overflow) {
+        return 0;
+    }
+    secp256k1_scalar_set_b32(&dleq_proof_e, &adaptor_proof97[33 + 32], &overflow);
+    if (overflow) {
+        return 0;
+    }
+    secp256k1_dleq_deserialize_point(&r, &adaptor_sig65[0]);
+    if (!secp256k1_pubkey_load(ctx, &adaptor_ge, adaptor)) {
+        return 0;
+    }
+    if(!secp256k1_dleq_verify(&ctx->ecmult_ctx, (unsigned char *)"ecdsaadaptorsig", &dleq_proof_s, &dleq_proof_e, &rp, &adaptor_ge, &r)) {
+        return 0;
+    }
+
+    /* 2. return x_coord(R') == x_coord(s'⁻¹(H(m) * G + x_coord(R) * X)) */
+    secp256k1_scalar_set_b32(&msg, msg32, NULL);
+    secp256k1_scalar_set_b32(&sp, &adaptor_sig65[33], NULL);
+    secp256k1_scalar_set_b32(&sigr, &adaptor_sig65[1], NULL);
+    if (!secp256k1_pubkey_load(ctx, &q, pubkey)) {
+        return 0;
+    }
+
+    if (!secp256k1_ecdsa_adaptor_sig_verify_helper(ctx, &rhs, &sigr, &sp, &q, &msg)) {
+        return 0;
+    }
+
+    return secp256k1_fe_equal(&rp.x, &rhs);
 }
 
 #endif /* SECP256K1_MODULE_ECDSA_ADAPTOR_MAIN_H */

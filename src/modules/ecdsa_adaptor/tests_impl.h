@@ -69,21 +69,47 @@ void dleq_tests(void) {
     }
 }
 
+void rand_flip_bit(unsigned char *array, size_t n) {
+    array[secp256k1_rand_int(n)] ^= 1 << secp256k1_rand_int(8);
+}
 
 void adaptor_tests(void) {
-    unsigned char adaptor_sig[65];
-    unsigned char adaptor_proof[97];
     unsigned char seckey[32];
+    secp256k1_pubkey pubkey;
     unsigned char msg[32];
     unsigned char adaptor_secret[32];
     secp256k1_pubkey adaptor;
+    unsigned char adaptor_sig[65];
+    unsigned char adaptor_proof[97];
 
     secp256k1_rand256(seckey);
     secp256k1_rand256(msg);
     secp256k1_rand256(adaptor_secret);
 
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, seckey) == 1);
     CHECK(secp256k1_ec_pubkey_create(ctx, &adaptor, adaptor_secret) == 1);
     CHECK(secp256k1_ecdsa_adaptor_sign(ctx, adaptor_sig, adaptor_proof, seckey, &adaptor, msg) == 1);
+    CHECK(secp256k1_ecdsa_adaptor_sig_verify(ctx, adaptor_sig, &pubkey, msg, &adaptor, adaptor_proof) == 1);
+    {
+        unsigned char adaptor_sig_tmp[65];
+        memcpy(adaptor_sig_tmp, adaptor_sig, sizeof(adaptor_sig_tmp));
+        rand_flip_bit(&adaptor_sig_tmp[1], sizeof(adaptor_sig_tmp) - 1);
+        CHECK(secp256k1_ecdsa_adaptor_sig_verify(ctx, adaptor_sig_tmp, &pubkey, msg, &adaptor, adaptor_proof) == 0);
+    }
+    CHECK(secp256k1_ecdsa_adaptor_sig_verify(ctx, adaptor_sig, &adaptor, msg, &adaptor, adaptor_proof) == 0);
+    {
+        unsigned char msg_tmp[32];
+        memcpy(msg_tmp, msg, sizeof(msg_tmp));
+        rand_flip_bit(msg_tmp, sizeof(msg_tmp));
+        CHECK(secp256k1_ecdsa_adaptor_sig_verify(ctx, adaptor_sig, &pubkey, msg_tmp, &adaptor, adaptor_proof) == 0);
+    }
+    CHECK(secp256k1_ecdsa_adaptor_sig_verify(ctx, adaptor_sig, &pubkey, msg, &pubkey, adaptor_proof) == 0);
+    {
+        unsigned char adaptor_proof_tmp[97];
+        memcpy(adaptor_proof_tmp, adaptor_proof, sizeof(adaptor_proof_tmp));
+        rand_flip_bit(adaptor_proof_tmp, sizeof(adaptor_proof_tmp));
+        CHECK(secp256k1_ecdsa_adaptor_sig_verify(ctx, adaptor_sig, &pubkey, msg, &adaptor, adaptor_proof_tmp) == 0);
+    }
 }
 
 void run_ecdsa_adaptor_tests(void) {
@@ -97,5 +123,3 @@ void run_ecdsa_adaptor_tests(void) {
 }
 
 #endif /* SECP256K1_MODULE_ECDSA_ADAPTOR_TESTS_H */
-
-
