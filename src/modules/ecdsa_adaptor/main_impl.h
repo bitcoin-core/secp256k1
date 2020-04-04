@@ -16,7 +16,6 @@ int secp256k1_ecdsa_adaptor_sign_helper(secp256k1_scalar *sigs, secp256k1_scalar
     secp256k1_scalar sigr;
     secp256k1_scalar n;
     int overflow;
-    /* int high; */
 
     secp256k1_fe_normalize(&r->x);
     secp256k1_fe_get_b32(b, &r->x);
@@ -30,11 +29,6 @@ int secp256k1_ecdsa_adaptor_sign_helper(secp256k1_scalar *sigs, secp256k1_scalar
     secp256k1_scalar_mul(sigs, sigs, &n);
 
     secp256k1_scalar_clear(&n);
-
-    /* high = secp256k1_scalar_is_high(sigs); */
-    /* TODO: deal with lows */
-    /* this may result in wrong r in adaptor verify */
-    /* secp256k1_scalar_cond_negate(sigs, high); */
 
 
     return !secp256k1_scalar_is_zero(sigs);
@@ -190,5 +184,48 @@ int secp256k1_ecdsa_adaptor_sig_verify(const secp256k1_context* ctx, const unsig
 
     return secp256k1_fe_equal(&rp.x, &rhs);
 }
+
+int secp256k1_ecdsa_adaptor_adapt(const secp256k1_context* ctx, secp256k1_ecdsa_signature *sig, const unsigned char *adaptor_secret32, const unsigned char *adaptor_sig65) {
+    secp256k1_scalar adaptor_secret;
+    secp256k1_scalar sp;
+    secp256k1_scalar s;
+    secp256k1_ge r;
+    secp256k1_scalar rx;
+    int overflow;
+    unsigned char buf32[32];
+    int high;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(sig != NULL);
+    ARG_CHECK(adaptor_secret32 != NULL);
+    ARG_CHECK(adaptor_sig65 != NULL);
+
+    secp256k1_scalar_set_b32(&adaptor_secret, adaptor_secret32, &overflow);
+    if (overflow) {
+        return 0;
+    }
+    secp256k1_scalar_set_b32(&sp, &adaptor_sig65[33], NULL);
+    secp256k1_scalar_inverse(&s, &adaptor_secret);
+    secp256k1_scalar_mul(&s, &s, &sp);
+    high = secp256k1_scalar_is_high(&s);
+    secp256k1_scalar_cond_negate(&s, high);
+
+    secp256k1_dleq_deserialize_point(&r, &adaptor_sig65[0]);
+    secp256k1_fe_get_b32(buf32, &r.x);
+    secp256k1_scalar_set_b32(&rx, buf32, &overflow);
+    if (overflow) {
+        return 0;
+    }
+
+    secp256k1_ecdsa_signature_save(sig, &rx, &s);
+
+    memset(buf32, 0, sizeof(buf32));
+    secp256k1_scalar_clear(&adaptor_secret);
+    secp256k1_scalar_clear(&sp);
+    secp256k1_scalar_clear(&s);
+
+    return 1;
+}
+
 
 #endif /* SECP256K1_MODULE_ECDSA_ADAPTOR_MAIN_H */
