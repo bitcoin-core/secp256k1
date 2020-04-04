@@ -8,164 +8,99 @@
 #define SECP256K1_MODULE_ECDSA_ADAPTOR_MAIN_H
 
 #include "include/secp256k1_ecdsa_adaptor.h"
+#include "modules/ecdsa_adaptor/dleq_impl.h"
 
-/* TODO: it's not bip340, it's modified */
-static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data, unsigned int counter) {
-    secp256k1_sha256 sha;
-    unsigned char masked_key[32];
+/* 5. s' = k⁻¹(H(m) + x_coord(R)x) */
+int secp256k1_ecdsa_adaptor_sign_helper(secp256k1_scalar *sigs, secp256k1_scalar *message, secp256k1_scalar *k, secp256k1_ge *r, secp256k1_scalar *sk) {
+    unsigned char b[32];
+    secp256k1_scalar sigr;
+    secp256k1_scalar n;
+    int overflow;
+    int high;
 
-    if (counter != 0) {
+    secp256k1_fe_normalize(&r->x);
+    secp256k1_fe_get_b32(b, &r->x);
+    secp256k1_scalar_set_b32(&sigr, b, &overflow);
+    if (overflow) {
         return 0;
     }
-    if (algo16 == NULL) {
-        return 0;
-    }
+    secp256k1_scalar_mul(&n, &sigr, sk);
+    secp256k1_scalar_add(&n, &n, message);
+    secp256k1_scalar_inverse(sigs, k);
+    secp256k1_scalar_mul(sigs, sigs, &n);
 
-    if (data != NULL) {
-        return 0;
-    }
+    secp256k1_scalar_clear(&n);
 
-    secp256k1_sha256_initialize_tagged(&sha, algo16, 16);
+    high = secp256k1_scalar_is_high(sigs);
+    secp256k1_scalar_cond_negate(sigs, high);
 
-    /* Hash (masked-)key||pk||msg using the tagged hash as per the spec */
-    if (data != NULL) {
-        secp256k1_sha256_write(&sha, masked_key, 32);
-    } else {
-        secp256k1_sha256_write(&sha, key32, 32);
-    }
-    secp256k1_sha256_write(&sha, xonly_pk32, 32);
-    secp256k1_sha256_write(&sha, msg32, 32);
-    secp256k1_sha256_finalize(&sha, nonce32);
-    return 1;
+    /* TODO: deal with lows */
+
+    return !secp256k1_scalar_is_zero(sigs);
 }
 
-static void secp256k1_dleq_serialize_point(unsigned char *buf33, const secp256k1_ge *p) {
-    secp256k1_fe x = p->x;
-    secp256k1_fe y = p->y;
-
-    secp256k1_fe_normalize(&y);
-    buf33[0] = secp256k1_fe_is_odd(&y);
-    secp256k1_fe_normalize(&x);
-    secp256k1_fe_get_b32(&buf33[1], &x);
-}
-
-/* TODO: remove */
-static void print_buf(const unsigned char *buf, size_t n) {
-    size_t i;
-    for (i = 0; i < n; i++) {
-        printf("%02X", buf[i]);
-    }
-    printf("\n");
-}
-static void print_scalar(const secp256k1_scalar *x) {
-    unsigned char buf32[32];
-    secp256k1_scalar_get_b32(buf32, x);
-    print_buf(buf32, 32);
-}
-
-static void print_ge(const secp256k1_ge *p) {
-    unsigned char buf33[33];
-    secp256k1_dleq_serialize_point(buf33, p);
-    print_buf(buf33, 33);
-}
-
-static void secp256k1_dleq_hash_point(secp256k1_sha256 *sha, const secp256k1_ge *p) {
-    unsigned char buf33[33];
-    secp256k1_dleq_serialize_point(buf33, p);
-    secp256k1_sha256_write(sha, buf33, 33);
-}
-
-static void secp256k1_dleq_challenge_hash(secp256k1_scalar *e, const unsigned char *algo16, const secp256k1_ge *r1, const secp256k1_ge *r2, const secp256k1_ge *p1, const secp256k1_ge *p2) {
-    secp256k1_sha256 sha;
-    unsigned char buf32[32];
-
-    /* TODO: use tagged hash function */
-    secp256k1_sha256_initialize(&sha);
-    secp256k1_sha256_write(&sha, algo16, 16);
-    secp256k1_dleq_hash_point(&sha, r1);
-    secp256k1_dleq_hash_point(&sha, r2);
-    secp256k1_dleq_hash_point(&sha, p1);
-    secp256k1_dleq_hash_point(&sha, p2);
-    secp256k1_sha256_finalize(&sha, buf32);
-
-    secp256k1_scalar_set_b32(e, buf32, NULL);
-}
-
-/* p1 = x*G, p2 = x*gen2, constant time */
-static void secp256k1_dleq_pair(secp256k1_ge *p1, secp256k1_ge *p2, const secp256k1_scalar *sk, const secp256k1_ge *gen2) {
-    secp256k1_gej p1j, p2j;
-    secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &p1j, sk);
-    secp256k1_ge_set_gej(p1, &p1j);
-    secp256k1_ecmult_const(&p2j, gen2, sk, 256);
-    secp256k1_ge_set_gej(p2, &p2j);
-}
-
-static int secp256k1_dleq_proof(secp256k1_scalar *s, secp256k1_scalar *e, const unsigned char *algo16, const secp256k1_scalar *sk, const secp256k1_ge *gen2) {
+int secp256k1_ecdsa_adaptor_sign(const secp256k1_context* ctx, unsigned char *adaptor_sig65, unsigned char *adaptor_proof97, unsigned char *seckey32, const secp256k1_pubkey *adaptor, const unsigned char *msg32) {
     unsigned char nonce32[32];
-    unsigned char key32[32];
-    secp256k1_ge p1, p2;
-    secp256k1_sha256 sha;
-    secp256k1_gej r1j, r2j;
-    secp256k1_ge r1, r2;
-    unsigned char buf32[32];
     secp256k1_scalar k;
+    secp256k1_gej rj, rpj;
+    secp256k1_ge r, rp;
+    secp256k1_ge adaptor_ge;
+    secp256k1_scalar dleq_proof_s;
+    secp256k1_scalar dleq_proof_e;
+    secp256k1_scalar sk;
+    secp256k1_scalar msg;
+    secp256k1_scalar sp;
+    int overflow;
 
-    secp256k1_dleq_pair(&p1, &p2, sk, gen2);
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    ARG_CHECK(adaptor_sig65 != NULL);
+    ARG_CHECK(adaptor_proof97 != NULL);
+    ARG_CHECK(adaptor != NULL);
+    ARG_CHECK(msg32 != NULL);
 
-    secp256k1_sha256_initialize(&sha);
-    secp256k1_dleq_hash_point(&sha, &p1);
-    secp256k1_dleq_hash_point(&sha, &p2);
-    secp256k1_sha256_finalize(&sha, buf32);
-
-    /* everything that goes into the challenge hash must go into the nonce as well... */
-    if (!nonce_function_bip340(nonce32, buf32, key32, buf32, algo16, NULL, 0)) {
+    /* 1. Choose k randomly, R' = k*G */
+    /* TODO: include adaptor, fix msg32 */
+    if (!nonce_function_bip340(nonce32, msg32, seckey32, msg32, (unsigned char *)"ecdsaadaptorsig", NULL, 0)) {
         return 0;
     }
     secp256k1_scalar_set_b32(&k, nonce32, NULL);
     if (secp256k1_scalar_is_zero(&k)) {
         return 0;
     }
+    secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &rpj, &k);
 
-    secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &r1j, &k);
-    secp256k1_ge_set_gej(&r1, &r1j);
-    secp256k1_ecmult_const(&r2j, gen2, &k, 256);
-    secp256k1_ge_set_gej(&r2, &r2j);
+    if (!secp256k1_pubkey_load(ctx, &adaptor_ge, adaptor)) {
+        return 0;
+    }
+    /* 2. R = k*Y; */
+    secp256k1_ecmult_const(&rj, &adaptor_ge, &k, 256);
 
-    secp256k1_dleq_challenge_hash(e, algo16, &r1, &r2, &p1, &p2);
-    secp256k1_scalar_mul(s, e, sk);
-    secp256k1_scalar_add(s, s, &k);
+    /* 4. [sic] proof = DLEQ_prove((G,R'),(Y, R)) */
+    secp256k1_dleq_proof(&ctx->ecmult_gen_ctx, &dleq_proof_s, &dleq_proof_e, (unsigned char *)"ecdsaadaptorsig", &k, &adaptor_ge);
+
+    /* 5. s' = k⁻¹(H(m) + x_coord(R)x) */
+    secp256k1_ge_set_gej(&r, &rj);
+    secp256k1_scalar_set_b32(&sk, seckey32, &overflow);
+    if (overflow || secp256k1_scalar_is_zero(&sk)) {
+        return 0;
+    }
+    secp256k1_scalar_set_b32(&msg, msg32, NULL);
+    if(!secp256k1_ecdsa_adaptor_sign_helper(&sp, &msg, &k, &r, &sk)) {
+        return 0;
+    }
+
+    /* 6. return (R, R', s', proof) */
+    secp256k1_dleq_serialize_point(adaptor_proof97, &rp);
+    secp256k1_scalar_get_b32(&adaptor_proof97[33], &dleq_proof_s);
+    secp256k1_scalar_get_b32(&adaptor_proof97[33+32], &dleq_proof_e);
+
+    secp256k1_dleq_serialize_point(adaptor_sig65, &r);
+    secp256k1_scalar_get_b32(&adaptor_sig65[33], &sp);
 
     secp256k1_scalar_clear(&k);
+    secp256k1_scalar_clear(&sk);
     return 1;
-}
-
-static int secp256k1_dleq_verify(const unsigned char *algo16, const secp256k1_scalar *s, const secp256k1_scalar *e, const secp256k1_ge *p1, const secp256k1_ge *gen2, const secp256k1_ge *p2) {
-    secp256k1_scalar e_neg;
-    secp256k1_scalar e_expected;
-    secp256k1_gej gen2j;
-    secp256k1_gej p1j, p2j;
-    secp256k1_gej r1j, r2j;
-    secp256k1_ge r1, r2;
-    secp256k1_gej tmpj;
-
-    secp256k1_gej_set_ge(&p1j, p1);
-    secp256k1_gej_set_ge(&p2j, p2);
-
-    secp256k1_scalar_negate(&e_neg, e);
-    /* R1 = s*G  - e*P1 */
-    secp256k1_ecmult(&ctx->ecmult_ctx, &r1j, &p1j, &e_neg, s);
-    /* R2 = s*gen2 - e*P2 */
-    secp256k1_ecmult(&ctx->ecmult_ctx, &tmpj, &p2j, &e_neg, &secp256k1_scalar_zero);
-    secp256k1_gej_set_ge(&gen2j, gen2);
-    secp256k1_ecmult(&ctx->ecmult_ctx, &r2j, &gen2j, s, &secp256k1_scalar_zero);
-    secp256k1_gej_add_var(&r2j, &r2j, &tmpj, NULL);
-
-    secp256k1_ge_set_gej(&r1, &r1j);
-    secp256k1_ge_set_gej(&r2, &r2j);
-    secp256k1_dleq_challenge_hash(&e_expected, algo16, &r1, &r2, p1, p2);
-
-    secp256k1_scalar_add(&e_expected, &e_expected, &e_neg);
-    return secp256k1_scalar_is_zero(&e_expected);
 }
 
 #endif /* SECP256K1_MODULE_ECDSA_ADAPTOR_MAIN_H */

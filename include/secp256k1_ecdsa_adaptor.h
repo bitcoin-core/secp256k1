@@ -14,7 +14,8 @@ extern "C" {
  *  Args:             ctx: a secp256k1 context object
  *  Out:    adaptor_sig65: pointer to 65-byte to store the returned signature
  *       adaptor_proof97: pointer to 97-byte to store the adaptor proof
- *  In:           adaptor: adaptor point
+ *  In:          seckey32: pointer to 32-byte secret key
+                  adaptor: adaptor point
  *                  msg32: the 32-byte message to sign
  *
  */
@@ -22,6 +23,7 @@ SECP256K1_API int secp256k1_ecdsa_adaptor_sign(
     const secp256k1_context* ctx,
     unsigned char *adaptor_sig65,
     unsigned char *adaptor_proof97,
+    unsigned char *seckey32,
     const secp256k1_pubkey *adaptor,
     const unsigned char *msg32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
