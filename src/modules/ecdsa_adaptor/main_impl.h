@@ -10,6 +10,59 @@
 #include "include/secp256k1_ecdsa_adaptor.h"
 #include "modules/ecdsa_adaptor/dleq_impl.h"
 
+static void secp256k1_ecdsa_adaptor_sig_serialize(unsigned char *adaptor_sig65, const secp256k1_ge *r, const secp256k1_scalar *sp) {
+    secp256k1_dleq_serialize_point(adaptor_sig65, r);
+    secp256k1_scalar_get_b32(&adaptor_sig65[33], sp);
+}
+
+static int secp256k1_ecdsa_adaptor_sig_deserialize(secp256k1_ge *r, secp256k1_scalar *sigr, secp256k1_scalar *sp, const unsigned char *adaptor_sig65) {
+    /* Ensure that whenever you call this function to deserialize r you also
+     * check that X fits into a sigr */
+    VERIFY_CHECK((r == NULL) || (r != NULL && sigr != NULL));
+    if (r != NULL) {
+        if (!secp256k1_dleq_deserialize_point(r, &adaptor_sig65[0])) {
+            return 0;
+        }
+    }
+    if (sigr != NULL) {
+        int overflow;
+        secp256k1_scalar_set_b32(sigr, &adaptor_sig65[1], &overflow);
+        if(overflow) {
+            return 0;
+        }
+    }
+    if (sp != NULL) {
+        int overflow;
+        secp256k1_scalar_set_b32(sp, &adaptor_sig65[33], &overflow);
+        if(overflow) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static void secp256k1_ecdsa_adaptor_proof_serialize(unsigned char *adaptor_proof97, const secp256k1_ge *rp, const secp256k1_scalar *dleq_proof_s, const secp256k1_scalar *dleq_proof_e) {
+    secp256k1_dleq_serialize_point(adaptor_proof97, rp);
+    secp256k1_scalar_get_b32(&adaptor_proof97[33], dleq_proof_s);
+    secp256k1_scalar_get_b32(&adaptor_proof97[33+32], dleq_proof_e);
+}
+
+static int secp256k1_ecdsa_adaptor_proof_deserialize(secp256k1_ge *rp, secp256k1_scalar *dleq_proof_s, secp256k1_scalar *dleq_proof_e, const unsigned char *adaptor_proof97) {
+    int overflow;
+    if (!secp256k1_dleq_deserialize_point(rp, &adaptor_proof97[0])) {
+        return 0;
+    }
+    secp256k1_scalar_set_b32(dleq_proof_s, &adaptor_proof97[33], &overflow);
+    if (overflow) {
+        return 0;
+    }
+    secp256k1_scalar_set_b32(dleq_proof_e, &adaptor_proof97[33 + 32], &overflow);
+    if (overflow) {
+        return 0;
+    }
+    return 1;
+}
+
 /* 5. s' = k⁻¹(H(m) + x_coord(R)x) */
 int secp256k1_ecdsa_adaptor_sign_helper(secp256k1_scalar *sigs, secp256k1_scalar *message, secp256k1_scalar *k, secp256k1_ge *r, secp256k1_scalar *sk) {
     unsigned char b[32];
@@ -29,8 +82,6 @@ int secp256k1_ecdsa_adaptor_sign_helper(secp256k1_scalar *sigs, secp256k1_scalar
     secp256k1_scalar_mul(sigs, sigs, &n);
 
     secp256k1_scalar_clear(&n);
-
-
     return !secp256k1_scalar_is_zero(sigs);
 }
 
@@ -92,17 +143,14 @@ int secp256k1_ecdsa_adaptor_sign(const secp256k1_context* ctx,
 
     /* 6. return (R, R', s', proof) */
     secp256k1_ge_set_gej(&rp, &rpj);
-    secp256k1_dleq_serialize_point(adaptor_proof97, &rp);
-    secp256k1_scalar_get_b32(&adaptor_proof97[33], &dleq_proof_s);
-    secp256k1_scalar_get_b32(&adaptor_proof97[33+32], &dleq_proof_e);
-
-    secp256k1_dleq_serialize_point(adaptor_sig65, &r);
-    secp256k1_scalar_get_b32(&adaptor_sig65[33], &sp);
+    secp256k1_ecdsa_adaptor_proof_serialize(adaptor_proof97, &rp, &dleq_proof_s, &dleq_proof_e);
+    secp256k1_ecdsa_adaptor_sig_serialize(adaptor_sig65, &r, &sp);
 
     secp256k1_scalar_clear(&k);
     secp256k1_scalar_clear(&sk);
     return 1;
 }
+
 
 /* TODO: does x_coord have to be a scalar? */
 SECP256K1_API int secp256k1_ecdsa_adaptor_sig_verify_helper(const secp256k1_context* ctx, secp256k1_fe *x_coord, secp256k1_scalar *sigr, secp256k1_scalar *sigs, const secp256k1_ge *pubkey, const secp256k1_scalar *message) {
@@ -129,7 +177,6 @@ SECP256K1_API int secp256k1_ecdsa_adaptor_sig_verify_helper(const secp256k1_cont
     *x_coord = p.x;
     return 1;
 }
-
 
 int secp256k1_ecdsa_adaptor_sig_verify(const secp256k1_context* ctx, const unsigned char *adaptor_sig65, const secp256k1_pubkey *pubkey, const unsigned char *msg32, const secp256k1_pubkey *adaptor, const unsigned char *adaptor_proof97) {
     secp256k1_scalar dleq_proof_s, dleq_proof_e;
@@ -189,8 +236,7 @@ int secp256k1_ecdsa_adaptor_adapt(const secp256k1_context* ctx, secp256k1_ecdsa_
     secp256k1_scalar adaptor_secret;
     secp256k1_scalar sp;
     secp256k1_scalar s;
-    secp256k1_ge r;
-    secp256k1_scalar rx;
+    secp256k1_scalar sigr;
     int overflow;
     unsigned char buf32[32];
     int high;
@@ -204,20 +250,16 @@ int secp256k1_ecdsa_adaptor_adapt(const secp256k1_context* ctx, secp256k1_ecdsa_
     if (overflow) {
         return 0;
     }
-    secp256k1_scalar_set_b32(&sp, &adaptor_sig65[33], NULL);
+
+    if (!secp256k1_ecdsa_adaptor_sig_deserialize(NULL, &sigr, &sp, adaptor_sig65)) {
+        return 0;
+    }
     secp256k1_scalar_inverse(&s, &adaptor_secret);
     secp256k1_scalar_mul(&s, &s, &sp);
     high = secp256k1_scalar_is_high(&s);
     secp256k1_scalar_cond_negate(&s, high);
 
-    secp256k1_dleq_deserialize_point(&r, &adaptor_sig65[0]);
-    secp256k1_fe_get_b32(buf32, &r.x);
-    secp256k1_scalar_set_b32(&rx, buf32, &overflow);
-    if (overflow) {
-        return 0;
-    }
-
-    secp256k1_ecdsa_signature_save(sig, &rx, &s);
+    secp256k1_ecdsa_signature_save(sig, &sigr, &s);
 
     memset(buf32, 0, sizeof(buf32));
     secp256k1_scalar_clear(&adaptor_secret);
@@ -243,6 +285,10 @@ int secp256k1_ecdsa_adaptor_extract_secret(const secp256k1_context* ctx, unsigne
     ARG_CHECK(adaptor != NULL);
 
     secp256k1_scalar_set_b32(&sp, &adaptor_sig65[33], NULL);
+    if (!secp256k1_ecdsa_adaptor_sig_deserialize(NULL, NULL, &sp, adaptor_sig65)) {
+        return 0;
+    }
+
     secp256k1_ecdsa_signature_load(ctx, &r, &s, sig);
     secp256k1_scalar_inverse(&adaptor_secret, &s);
     secp256k1_scalar_mul(&adaptor_secret, &adaptor_secret, &sp);
