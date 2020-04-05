@@ -28,6 +28,7 @@ extern "C" {
  *    - allow using your own nonce function (noncefp, noncedata, synthetic
  *      nonces)
  *    - test module in travis
+ *    - add comments to ease review
  */
 
 /** Adaptor sign ("EncSign")
