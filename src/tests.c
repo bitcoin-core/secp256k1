@@ -5657,7 +5657,6 @@ int main(int argc, char **argv) {
         CHECK(secp256k1_context_randomize(ctx, secp256k1_testrand_bits(1) ? rand32 : NULL));
     }
 
-<<<<<<< HEAD
     run_rand_bits();
     run_rand_int();
 

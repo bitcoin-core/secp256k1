@@ -88,6 +88,7 @@ static void secp256k1_dleq_pair(const secp256k1_ecmult_gen_context *ecmult_gen_c
     secp256k1_ge_set_gej(p2, &p2j);
 }
 
+/* TODO: allow signing a message by including it in the challenge hash */
 static int secp256k1_dleq_proof(const secp256k1_ecmult_gen_context *ecmult_gen_ctx, secp256k1_scalar *s, secp256k1_scalar *e, const unsigned char *algo16, const secp256k1_scalar *sk, const secp256k1_ge *gen2) {
     unsigned char nonce32[32];
     unsigned char key32[32];
