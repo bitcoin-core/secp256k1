@@ -8,7 +8,8 @@ extern "C" {
 /** This module implements single signer ECDSA adaptor signatures following
  *  "One-Time Verifiably Encrypted Signatures A.K.A. Adaptor Signatures" by
  *  Lloyd Fournier
- *  (https://github.com/LLFourn/one-time-VES/blob/master/main.pdf).
+ *  (https://lists.linuxfoundation.org/pipermail/lightning-dev/2019-November/002316.html
+ *  and https://github.com/LLFourn/one-time-VES/blob/master/main.pdf).
  *
  *  Note that at this module is currently a work in progress. It's not secure
  *  nor stable. Let me repeat: IT IS EXTREMELY DANGEROUS AND RECKLESS TO USE
