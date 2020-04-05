@@ -5,8 +5,6 @@
 extern "C" {
 #endif
 
-/* note: adaptor_proof97 is 97 because 1*R' + 1*e + 1*s_dleq = 33 + 32 + 32 */
-
 /** Adaptor sign
  *  TODO: add nonce function
  *

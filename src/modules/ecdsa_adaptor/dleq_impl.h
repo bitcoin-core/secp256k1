@@ -1,31 +1,16 @@
 #ifndef _SECP256K1_DLEQ_IMPL_H_
 #define _SECP256K1_DLEQ_IMPL_H_
 
-/* TODO: it's not bip340, it's modified */
-static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo16, void *data, unsigned int counter) {
+/* Modified bip340 nonce function */
+static int nonce_function_dleq(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16) {
     secp256k1_sha256 sha;
-    unsigned char masked_key[32];
 
-    if (counter != 0) {
-        return 0;
-    }
     if (algo16 == NULL) {
         return 0;
     }
 
-    if (data != NULL) {
-        return 0;
-    }
-
     secp256k1_sha256_initialize_tagged(&sha, algo16, 16);
-
-    /* Hash (masked-)key||pk||msg using the tagged hash as per the spec */
-    if (data != NULL) {
-        secp256k1_sha256_write(&sha, masked_key, 32);
-    } else {
-        secp256k1_sha256_write(&sha, key32, 32);
-    }
-    secp256k1_sha256_write(&sha, xonly_pk32, 32);
+    secp256k1_sha256_write(&sha, key32, 32);
     secp256k1_sha256_write(&sha, msg32, 32);
     secp256k1_sha256_finalize(&sha, nonce32);
     return 1;
@@ -54,7 +39,7 @@ static int secp256k1_dleq_deserialize_point(secp256k1_ge *p, const unsigned char
     return 1;
 }
 
-/* TODO: remove */
+/* TODO: Remove these debuggin functions */
 static void print_buf(const unsigned char *buf, size_t n) {
     size_t i;
     for (i = 0; i < n; i++) {
@@ -84,9 +69,7 @@ static void secp256k1_dleq_challenge_hash(secp256k1_scalar *e, const unsigned ch
     secp256k1_sha256 sha;
     unsigned char buf32[32];
 
-    /* TODO: use tagged hash function */
-    secp256k1_sha256_initialize(&sha);
-    secp256k1_sha256_write(&sha, algo16, 16);
+    secp256k1_sha256_initialize_tagged(&sha, algo16, 16);
     secp256k1_dleq_hash_point(&sha, r1);
     secp256k1_dleq_hash_point(&sha, r2);
     secp256k1_dleq_hash_point(&sha, p1);
@@ -105,12 +88,7 @@ static void secp256k1_dleq_pair(const secp256k1_ecmult_gen_context *ecmult_gen_c
     secp256k1_ge_set_gej(p2, &p2j);
 }
 
-static int secp256k1_dleq_proof(const secp256k1_ecmult_gen_context *ecmult_gen_ctx,
-                                secp256k1_scalar *s,
-                                secp256k1_scalar *e,
-                                const unsigned char *algo16,
-                                const secp256k1_scalar *sk,
-                                const secp256k1_ge *gen2) {
+static int secp256k1_dleq_proof(const secp256k1_ecmult_gen_context *ecmult_gen_ctx, secp256k1_scalar *s, secp256k1_scalar *e, const unsigned char *algo16, const secp256k1_scalar *sk, const secp256k1_ge *gen2) {
     unsigned char nonce32[32];
     unsigned char key32[32];
     secp256k1_ge p1, p2;
@@ -128,8 +106,8 @@ static int secp256k1_dleq_proof(const secp256k1_ecmult_gen_context *ecmult_gen_c
     secp256k1_sha256_finalize(&sha, buf32);
 
     secp256k1_scalar_get_b32(key32, sk);
-    /* everything that goes into the challenge hash must go into the nonce as well... */
-    if (!nonce_function_bip340(nonce32, buf32, key32, buf32, algo16, NULL, 0)) {
+    /* Everything that goes into the challenge hash must go into the nonce as well... */
+    if (!nonce_function_dleq(nonce32, buf32, key32, algo16)) {
         return 0;
     }
     secp256k1_scalar_set_b32(&k, nonce32, NULL);

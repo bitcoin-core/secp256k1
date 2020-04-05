@@ -3,25 +3,6 @@
 
 #include "include/secp256k1_ecdsa_adaptor.h"
 
-/* struct agent { */
-/*     secp256k1_pubkey left_lock; */
-/*     secp256k1_pubkey right_lock; */
-/*     /\* adaptor secret for right_lock - left_lock *\/ */
-/*     unsigned char adaptor_secret[32]; */
-/*     secp256k1_pubkey pubkey; */
-/*     unsigned char secret[32]; */
-/* }; */
-
-/* void multi_hop_lock_test(void) { */
-/*     /\* TODO: initialize *\/ */
-/*     struct agent Sender; */
-/*     struct agent Intermediate; */
-/*     struct agent Receiver; */
-
-/*     /\* TODO everything *\/ */
-/* } */
-
-
 void rand_scalar(secp256k1_scalar *scalar) {
     unsigned char buf32[32];
     secp256k1_rand256(buf32);
@@ -90,6 +71,18 @@ void adaptor_tests(void) {
     CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, seckey) == 1);
     CHECK(secp256k1_ec_pubkey_create(ctx, &adaptor, adaptor_secret) == 1);
     CHECK(secp256k1_ecdsa_adaptor_sign(ctx, adaptor_sig, adaptor_proof, seckey, &adaptor, msg) == 1);
+    {
+        /* Test adaptor_sig_serialize roundtrip */
+        secp256k1_ge r;
+        secp256k1_scalar sigr;
+        secp256k1_scalar sp;
+        unsigned char adaptor_sig_tmp[65];
+        CHECK(secp256k1_ecdsa_adaptor_sig_deserialize(&r, &sigr, &sp, adaptor_sig) == 1);
+        secp256k1_ecdsa_adaptor_sig_serialize(adaptor_sig_tmp, &r, &sp);
+        CHECK(memcmp(adaptor_sig_tmp, adaptor_sig, sizeof(adaptor_sig_tmp)) == 0);
+    }
+
+    /* Test adaptor_sig_verify */
     CHECK(secp256k1_ecdsa_adaptor_sig_verify(ctx, adaptor_sig, &pubkey, msg, &adaptor, adaptor_proof) == 1);
     {
         unsigned char adaptor_sig_tmp[65];
@@ -112,15 +105,34 @@ void adaptor_tests(void) {
         CHECK(secp256k1_ecdsa_adaptor_sig_verify(ctx, adaptor_sig, &pubkey, msg, &adaptor, adaptor_proof_tmp) == 0);
     }
 
+    /* Test adaptor_adapt */
     CHECK(secp256k1_ecdsa_adaptor_adapt(ctx, &sig, adaptor_secret, adaptor_sig) == 1);
     CHECK(secp256k1_ecdsa_verify(ctx, &sig, msg, &pubkey) == 1);
 
     {
+        /* Test adaptor_extract_secret */
         unsigned char adaptor_secret_tmp[32];
         CHECK(secp256k1_ecdsa_adaptor_extract_secret(ctx, adaptor_secret_tmp, &sig, adaptor_sig, &adaptor) == 1);
         CHECK(memcmp(adaptor_secret, adaptor_secret_tmp, sizeof(adaptor_secret)) == 0);
     }
 }
+
+/*/\* TODO: test multi hop lock *\/ */
+/* struct agent { */
+/*     secp256k1_pubkey left_lock; */
+/*     secp256k1_pubkey right_lock; */
+/*     /\* adaptor secret for right_lock - left_lock *\/ */
+/*     unsigned char adaptor_secret[32]; */
+/*     secp256k1_pubkey pubkey; */
+/*     unsigned char secret[32]; */
+/* }; */
+
+/* void multi_hop_lock_test(void) { */
+/*     struct agent Sender; */
+/*     struct agent Intermediate; */
+/*     struct agent Receiver; */
+
+/* } */
 
 void run_ecdsa_adaptor_tests(void) {
     int i;
