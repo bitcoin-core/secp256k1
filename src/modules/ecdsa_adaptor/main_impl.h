@@ -227,5 +227,40 @@ int secp256k1_ecdsa_adaptor_adapt(const secp256k1_context* ctx, secp256k1_ecdsa_
     return 1;
 }
 
+int secp256k1_ecdsa_adaptor_extract_secret(const secp256k1_context* ctx, unsigned char *adaptor_secret32, const secp256k1_ecdsa_signature *sig, const unsigned char *adaptor_sig65, const secp256k1_pubkey *adaptor) {
+    secp256k1_scalar sp;
+    secp256k1_scalar s, r;
+    secp256k1_scalar adaptor_secret;
+    secp256k1_ge adaptor_expected_ge;
+    secp256k1_gej adaptor_expected_gej;
+    secp256k1_pubkey adaptor_expected;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    ARG_CHECK(adaptor_secret32 != NULL);
+    ARG_CHECK(sig != NULL);
+    ARG_CHECK(adaptor_sig65 != NULL);
+    ARG_CHECK(adaptor != NULL);
+
+    secp256k1_scalar_set_b32(&sp, &adaptor_sig65[33], NULL);
+    secp256k1_ecdsa_signature_load(ctx, &r, &s, sig);
+    secp256k1_scalar_inverse(&adaptor_secret, &s);
+    secp256k1_scalar_mul(&adaptor_secret, &adaptor_secret, &sp);
+
+    /* deal with malleability */
+    secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &adaptor_expected_gej, &adaptor_secret);
+    secp256k1_ge_set_gej(&adaptor_expected_ge, &adaptor_expected_gej);
+    secp256k1_pubkey_save(&adaptor_expected, &adaptor_expected_ge);
+    if (memcmp(&adaptor_expected, adaptor, sizeof(adaptor_expected)) != 0) {
+        secp256k1_scalar_negate(&adaptor_secret, &adaptor_secret);
+    }
+    secp256k1_scalar_get_b32(adaptor_secret32, &adaptor_secret);
+
+    secp256k1_scalar_clear(&adaptor_secret);
+    secp256k1_scalar_clear(&sp);
+    secp256k1_scalar_clear(&s);
+
+    return 1;
+}
 
 #endif /* SECP256K1_MODULE_ECDSA_ADAPTOR_MAIN_H */

@@ -114,12 +114,11 @@ void adaptor_tests(void) {
 
     CHECK(secp256k1_ecdsa_adaptor_adapt(ctx, &sig, adaptor_secret, adaptor_sig) == 1);
     CHECK(secp256k1_ecdsa_verify(ctx, &sig, msg, &pubkey) == 1);
-    if (!secp256k1_ecdsa_verify(ctx, &sig, msg, &pubkey)) {
-        secp256k1_scalar r, s;
-        secp256k1_ecdsa_signature_load(ctx, &r, &s, &sig);
-        secp256k1_scalar_negate(&s, &s);
-        secp256k1_ecdsa_signature_save(&sig, &r, &s);
-        CHECK(secp256k1_ecdsa_verify(ctx, &sig, msg, &pubkey) == 1);
+
+    {
+        unsigned char adaptor_secret_tmp[32];
+        CHECK(secp256k1_ecdsa_adaptor_extract_secret(ctx, adaptor_secret_tmp, &sig, adaptor_sig, &adaptor) == 1);
+        CHECK(memcmp(adaptor_secret, adaptor_secret_tmp, sizeof(adaptor_secret)) == 0);
     }
 }
 
