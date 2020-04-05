@@ -65,11 +65,12 @@ static void secp256k1_dleq_hash_point(secp256k1_sha256 *sha, const secp256k1_ge 
     secp256k1_sha256_write(sha, buf33, 33);
 }
 
-static void secp256k1_dleq_challenge_hash(secp256k1_scalar *e, const unsigned char *algo16, const secp256k1_ge *r1, const secp256k1_ge *r2, const secp256k1_ge *p1, const secp256k1_ge *p2) {
+static void secp256k1_dleq_challenge_hash(secp256k1_scalar *e, const unsigned char *algo16, const secp256k1_ge *gen2, const secp256k1_ge *r1, const secp256k1_ge *r2, const secp256k1_ge *p1, const secp256k1_ge *p2) {
     secp256k1_sha256 sha;
     unsigned char buf32[32];
 
     secp256k1_sha256_initialize_tagged(&sha, algo16, 16);
+    secp256k1_dleq_hash_point(&sha, gen2);
     secp256k1_dleq_hash_point(&sha, r1);
     secp256k1_dleq_hash_point(&sha, r2);
     secp256k1_dleq_hash_point(&sha, p1);
@@ -101,13 +102,13 @@ static int secp256k1_dleq_proof(const secp256k1_ecmult_gen_context *ecmult_gen_c
 
     secp256k1_dleq_pair(ecmult_gen_ctx, &p1, &p2, sk, gen2);
 
+    /* Everything that goes into the challenge hash must go into the nonce as well... */
     secp256k1_sha256_initialize(&sha);
+    secp256k1_dleq_hash_point(&sha, gen2);
     secp256k1_dleq_hash_point(&sha, &p1);
     secp256k1_dleq_hash_point(&sha, &p2);
     secp256k1_sha256_finalize(&sha, buf32);
-
     secp256k1_scalar_get_b32(key32, sk);
-    /* Everything that goes into the challenge hash must go into the nonce as well... */
     if (!nonce_function_dleq(nonce32, buf32, key32, algo16)) {
         return 0;
     }
@@ -121,7 +122,7 @@ static int secp256k1_dleq_proof(const secp256k1_ecmult_gen_context *ecmult_gen_c
     secp256k1_ecmult_const(&r2j, gen2, &k, 256);
     secp256k1_ge_set_gej(&r2, &r2j);
 
-    secp256k1_dleq_challenge_hash(e, algo16, &r1, &r2, &p1, &p2);
+    secp256k1_dleq_challenge_hash(e, algo16, gen2, &r1, &r2, &p1, &p2);
     secp256k1_scalar_mul(s, e, sk);
     secp256k1_scalar_add(s, s, &k);
 
@@ -152,7 +153,7 @@ static int secp256k1_dleq_verify(const secp256k1_ecmult_context *ecmult_ctx, con
 
     secp256k1_ge_set_gej(&r1, &r1j);
     secp256k1_ge_set_gej(&r2, &r2j);
-    secp256k1_dleq_challenge_hash(&e_expected, algo16, &r1, &r2, p1, p2);
+    secp256k1_dleq_challenge_hash(&e_expected, algo16, gen2, &r1, &r2, p1, p2);
 
     secp256k1_scalar_add(&e_expected, &e_expected, &e_neg);
     return secp256k1_scalar_is_zero(&e_expected);

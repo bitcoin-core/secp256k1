@@ -27,6 +27,7 @@ extern "C" {
  *      ecdsa_adaptor_extract_secret() to valgrind_ctime_test.c
  *    - allow using your own nonce function (noncefp, noncedata, synthetic
  *      nonces)
+ *    - test module in travis
  */
 
 /** Adaptor sign ("EncSign")
