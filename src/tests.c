@@ -32,6 +32,10 @@ void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 #include "contrib/lax_der_parsing.c"
 #include "contrib/lax_der_privatekey_parsing.c"
 
+#ifdef ENABLE_MICRO_ECC_TESTS
+#include "contrib/micro-ecc/uECC.h"
+#endif
+
 #if !defined(VG_CHECK)
 # if defined(VALGRIND)
 #  include <valgrind/memcheck.h>
@@ -139,6 +143,14 @@ void random_scalar_order(secp256k1_scalar *num) {
         break;
     } while(1);
 }
+
+#ifdef ENABLE_MODULE_ECDH
+# include "modules/ecdh/tests_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_RECOVERY
+# include "modules/recovery/tests_impl.h"
+#endif
 
 void run_context_tests(int use_prealloc) {
     secp256k1_pubkey pubkey;
@@ -5158,13 +5170,113 @@ void run_ecdsa_openssl(void) {
 }
 #endif
 
-#ifdef ENABLE_MODULE_ECDH
-# include "modules/ecdh/tests_impl.h"
-#endif
+#ifdef ENABLE_MICRO_ECC_TESTS
+static int uECC_rand(uint8_t *dest, unsigned size) {
+    secp256k1_rand_bytes_test(dest, size);
+    return 1;
+}
+typedef struct {
+    uECC_HashContext uECC_context;
+    secp256k1_sha256 hash;
+} uECC_wrap_context;
 
-#ifdef ENABLE_MODULE_RECOVERY
-# include "modules/recovery/tests_impl.h"
-#endif
+static void uECC_init_SHA256(const uECC_HashContext *base) {
+    uECC_wrap_context *context = (uECC_wrap_context *)base;
+    secp256k1_sha256_initialize(&context->hash);
+}
+
+static void uECC_update_SHA256(const uECC_HashContext *base,
+                   const uint8_t *message,
+                   unsigned message_size) {
+    uECC_wrap_context *context = (uECC_wrap_context *)base;
+    secp256k1_sha256_write(&context->hash, message, message_size);
+}
+
+static void uECC_finish_SHA256(const uECC_HashContext *base, uint8_t *hash_result) {
+    uECC_wrap_context *context = (uECC_wrap_context *)base;
+    secp256k1_sha256_finalize(&context->hash, hash_result);
+}
+
+void test_ecdsa_uECC(void) {
+#ifdef ENABLE_MODULE_ECDH
+    secp256k1_scalar scalar;
+    unsigned char ecdh65[65];
+    unsigned char ecdh_x_only[32];
+#endif /* ENABLE_MODULE_ECDH */
+    unsigned char privkey[32];
+    unsigned char uecc_pubkey[65];
+    unsigned char* uecc_pubkey64 = &uecc_pubkey[1];
+    unsigned char message[32];
+    unsigned char uecc_signature[64];
+    unsigned char serialized_signature[64];
+    unsigned char serialized_pubkey33[33];
+    unsigned char serialized_pubkey65[65];
+    uecc_pubkey[0] = 0x04;
+    size_t len;
+    secp256k1_pubkey pubkey_obj;
+    secp256k1_ecdsa_signature signature_obj;
+    const struct uECC_Curve_t* secp256k1 = uECC_secp256k1();
+    uint8_t tmp[32 + 32 + 64];
+    uECC_wrap_context uECC_sha2_ctx = {{&uECC_init_SHA256, &uECC_update_SHA256, &uECC_finish_SHA256, 64, 32, tmp}, {}};
+
+    /* Assert the constants */
+    CHECK(uECC_curve_private_key_size(secp256k1) == sizeof(privkey));
+    CHECK(uECC_curve_public_key_size(secp256k1) == 64);
+
+    /* Generate a KeyPair + Message */
+    CHECK(uECC_make_key(uecc_pubkey64, privkey, secp256k1) == 1);
+    CHECK(uECC_valid_public_key(uecc_pubkey64, secp256k1) == 1);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey_obj, privkey) == 1);
+    secp256k1_rand256_test(message);
+
+    /* Check uncompressed serialization is equal */
+    len = 33;
+    CHECK(secp256k1_ec_pubkey_serialize(ctx, serialized_pubkey65, &len, &pubkey_obj, SECP256K1_EC_COMPRESSED) == 1);
+    CHECK(len == 33);
+    uECC_compress(uecc_pubkey64, serialized_pubkey33, secp256k1);
+    CHECK(memcmp(&serialized_pubkey33, &serialized_pubkey65, len) == 0);
+
+    /* Check compressed serialization is equal*/
+    len = 65;
+    CHECK(secp256k1_ec_pubkey_serialize(ctx, serialized_pubkey65, &len, &pubkey_obj, SECP256K1_EC_UNCOMPRESSED) == 1);
+    CHECK(len == 65);
+    CHECK(memcmp(uecc_pubkey, &serialized_pubkey65, len) == 0);
+
+    /* Sign non-deterministic with uECC and verify with libsecp */
+    CHECK(uECC_sign(privkey, message, sizeof(message), uecc_signature, secp256k1) == 1);
+    CHECK(secp256k1_ecdsa_signature_parse_compact(ctx, &signature_obj, uecc_signature) == 1);
+    secp256k1_ecdsa_signature_normalize(ctx, &signature_obj, &signature_obj); /* uECC signatures aren't normalized */
+    CHECK(secp256k1_ecdsa_verify(ctx, &signature_obj, message, &pubkey_obj) == 1);
+
+    /* Sign deterministically ith uECC and compare with libsecp*/
+    CHECK(uECC_sign_deterministic(privkey, message, sizeof(message), &uECC_sha2_ctx.uECC_context, uecc_signature, secp256k1)  == 1);
+    CHECK(secp256k1_ecdsa_sign(ctx, &signature_obj, message, privkey, NULL, NULL) == 1);
+    CHECK(secp256k1_ecdsa_signature_serialize_compact(ctx, serialized_signature, &signature_obj) == 1);
+
+    /* Normalize uECC's signature. */
+    CHECK(secp256k1_ecdsa_signature_parse_compact(ctx, &signature_obj, uecc_signature) == 1);
+    secp256k1_ecdsa_signature_normalize(ctx, &signature_obj, &signature_obj);
+    CHECK(secp256k1_ecdsa_signature_serialize_compact(ctx, uecc_signature, &signature_obj) == 1);
+    CHECK(memcmp(uecc_signature, serialized_signature, sizeof(uecc_signature)) == 0);
+
+    /* Compare ECDH result, uECC returns the X coordinate so used dummy hash function and compare X coordinate*/
+#ifdef ENABLE_MODULE_ECDH
+    random_scalar_order_test(&scalar);
+    secp256k1_scalar_get_b32(message, &scalar);
+    CHECK(uECC_curve_private_key_size(secp256k1) == sizeof(message));
+    CHECK(secp256k1_ecdh(ctx, ecdh65, &pubkey_obj, message, ecdh_hash_function_custom, NULL) == 1);
+    CHECK(uECC_shared_secret(uecc_pubkey64, message, ecdh_x_only, secp256k1) == 1);
+    CHECK(memcmp(&ecdh65[1], ecdh_x_only, sizeof(ecdh_x_only)) == 0);
+#endif /* ENABLE_MODULE_ECDH */
+}
+
+void run_ecdsa_uECC(void) {
+    int i;
+    for (i = 0; i < 10*count; i++) {
+        test_ecdsa_uECC();
+    }
+}
+#endif /* ENABLE_MICRO_ECC_TESTS */
 
 void run_memczero_test(void) {
     unsigned char buf1[6] = {1, 2, 3, 4, 5, 6};
@@ -5307,6 +5419,11 @@ int main(int argc, char **argv) {
     run_ecdsa_edge_cases();
 #ifdef ENABLE_OPENSSL_TESTS
     run_ecdsa_openssl();
+#endif
+
+#ifdef ENABLE_MICRO_ECC_TESTS
+    uECC_set_rng(uECC_rand);
+    run_ecdsa_uECC();
 #endif
 
 #ifdef ENABLE_MODULE_RECOVERY
