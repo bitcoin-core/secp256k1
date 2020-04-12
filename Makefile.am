@@ -89,10 +89,33 @@ bench_ecmult_CPPFLAGS = -DSECP256K1_BUILD $(SECP_INCLUDES)
 endif
 
 TESTS =
+tests_LDADD =
 if USE_TESTS
 noinst_PROGRAMS += tests
 tests_SOURCES = src/tests.c
 tests_CPPFLAGS = -DSECP256K1_BUILD -I$(top_srcdir)/src -I$(top_srcdir)/include $(SECP_INCLUDES) $(SECP_TEST_INCLUDES)
+if ENABLE_MICRO_ECC_TESTS
+libuECC_a_SOURCES = contrib/micro-ecc/asm_arm.inc
+libuECC_a_SOURCES += contrib/micro-ecc/asm_arm_mult_square.inc
+libuECC_a_SOURCES += contrib/micro-ecc/asm_arm_mult_square_umaal.inc
+libuECC_a_SOURCES += contrib/micro-ecc/asm_avr.inc
+libuECC_a_SOURCES += contrib/micro-ecc/asm_avr_mult_square.inc
+libuECC_a_SOURCES += contrib/micro-ecc/curve-specific.inc
+libuECC_a_SOURCES += contrib/micro-ecc/platform-specific.inc
+libuECC_a_SOURCES += contrib/micro-ecc/types.h
+libuECC_a_SOURCES += contrib/micro-ecc/uECC.c
+libuECC_a_SOURCES += contrib/micro-ecc/uECC.h
+libuECC_a_SOURCES += contrib/micro-ecc/uECC_vli.h
+CFLAGS += -Wno-pedantic
+libuECC_a_CPPFLAGS = -DuECC_SUPPORTS_secp160r1=0
+libuECC_a_CPPFLAGS += -DuECC_SUPPORTS_secp192r1=0
+libuECC_a_CPPFLAGS += -DuECC_SUPPORTS_secp224r1=0
+libuECC_a_CPPFLAGS += -DuECC_SUPPORTS_secp160r1=0
+libuECC_a_CPPFLAGS += -DuECC_SUPPORTS_secp256r1=0
+noinst_LIBRARIES = libuECC.a
+libuECCdir = contrib/micro-ecc
+tests_LDADD += libuECC.a
+endif
 if VALGRIND_ENABLED
 tests_CPPFLAGS += -DVALGRIND
 noinst_PROGRAMS += valgrind_ctime_test
@@ -102,7 +125,7 @@ endif
 if !ENABLE_COVERAGE
 tests_CPPFLAGS += -DVERIFY
 endif
-tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB)
+tests_LDADD += $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB)
 tests_LDFLAGS = -static
 TESTS += tests
 endif

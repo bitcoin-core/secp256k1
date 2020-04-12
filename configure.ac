@@ -41,12 +41,7 @@ case $host_os in
          dnl in expected paths because they may conflict with system files. Ask
          dnl Homebrew where each one is located, then adjust paths accordingly.
 
-         openssl_prefix=`$BREW --prefix openssl 2>/dev/null`
          gmp_prefix=`$BREW --prefix gmp 2>/dev/null`
-         if test x$openssl_prefix != x; then
-           PKG_CONFIG_PATH="$openssl_prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
-           export PKG_CONFIG_PATH
-         fi
          if test x$gmp_prefix != x; then
            GMP_CPPFLAGS="-I$gmp_prefix/include"
            GMP_LIBS="-L$gmp_prefix/lib"
@@ -100,10 +95,10 @@ AC_ARG_ENABLE(tests,
     [use_tests=$enableval],
     [use_tests=yes])
 
-AC_ARG_ENABLE(openssl_tests,
-    AS_HELP_STRING([--enable-openssl-tests],[enable OpenSSL tests [default=auto]]),
-    [enable_openssl_tests=$enableval],
-    [enable_openssl_tests=auto])
+AC_ARG_ENABLE(micro_ecc_tests,
+    AS_HELP_STRING([--enable-micro-ecc],[enable uECC cross tests [default=yes]]),
+    [micro_ecc_tests=$enableval],
+    [micro_ecc_tests=yes])
 
 AC_ARG_ENABLE(experimental,
     AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]),
@@ -447,27 +442,8 @@ case $set_ecmult_gen_precision in
 esac
 
 if test x"$use_tests" = x"yes"; then
-  SECP_OPENSSL_CHECK
-  if test x"$has_openssl_ec" = x"yes"; then
-    if test x"$enable_openssl_tests" != x"no"; then
-      AC_DEFINE(ENABLE_OPENSSL_TESTS, 1, [Define this symbol if OpenSSL EC functions are available])
-      SECP_TEST_INCLUDES="$SSL_CFLAGS $CRYPTO_CFLAGS"
-      SECP_TEST_LIBS="$CRYPTO_LIBS"
-
-      case $host in
-      *mingw*)
-        SECP_TEST_LIBS="$SECP_TEST_LIBS -lgdi32"
-        ;;
-      esac
-    fi
-  else
-    if test x"$enable_openssl_tests" = x"yes"; then
-      AC_MSG_ERROR([OpenSSL tests requested but OpenSSL with EC support is not available])
-    fi
-  fi
-else
-  if test x"$enable_openssl_tests" = x"yes"; then
-    AC_MSG_ERROR([OpenSSL tests requested but tests are not enabled])
+  if test x"$micro_ecc_tests" != x"no"; then
+    AC_DEFINE(ENABLE_MICRO_ECC_TESTS, 1, [Define this symbol to enable cross tests with libμECC])
   fi
 fi
 
@@ -526,6 +502,7 @@ AC_SUBST(SECP_TEST_INCLUDES)
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"$enable_coverage" = x"yes"])
 AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])
 AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$use_exhaustive_tests" != x"no"])
+AM_CONDITIONAL([ENABLE_MICRO_ECC_TESTS], [test x"$micro_ecc_tests" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
 AM_CONDITIONAL([USE_ECMULT_STATIC_PRECOMPUTATION], [test x"$set_precomp" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
@@ -547,6 +524,7 @@ echo "  with ecmult precomp     = $set_precomp"
 echo "  with external callbacks = $use_external_default_callbacks"
 echo "  with benchmarks         = $use_benchmark"
 echo "  with coverage           = $enable_coverage"
+echo "  with μECC tests         = $micro_ecc_tests"
 echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
 echo
