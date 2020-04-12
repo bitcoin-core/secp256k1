@@ -105,6 +105,11 @@ AC_ARG_ENABLE(openssl_tests,
     [enable_openssl_tests=$enableval],
     [enable_openssl_tests=auto])
 
+AC_ARG_ENABLE(micro_ecc_tests,
+    AS_HELP_STRING([--enable-micro-ecc],[enable uECC cross tests [default=yes]]),
+    [micro_ecc_tests=$enableval],
+    [micro_ecc_tests=yes])
+
 AC_ARG_ENABLE(experimental,
     AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]),
     [use_experimental=$enableval],
@@ -465,6 +470,9 @@ if test x"$use_tests" = x"yes"; then
       AC_MSG_ERROR([OpenSSL tests requested but OpenSSL with EC support is not available])
     fi
   fi
+  if test x"$micro_ecc_tests" != x"no"; then
+    AC_DEFINE(ENABLE_MICRO_ECC_TESTS, 1, [Define this symbol to enable cross tests with libμECC])
+  fi
 else
   if test x"$enable_openssl_tests" = x"yes"; then
     AC_MSG_ERROR([OpenSSL tests requested but tests are not enabled])
@@ -526,6 +534,7 @@ AC_SUBST(SECP_TEST_INCLUDES)
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"$enable_coverage" = x"yes"])
 AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])
 AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$use_exhaustive_tests" != x"no"])
+AM_CONDITIONAL([ENABLE_MICRO_ECC_TESTS], [test x"$micro_ecc_tests" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
 AM_CONDITIONAL([USE_ECMULT_STATIC_PRECOMPUTATION], [test x"$set_precomp" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
@@ -547,6 +556,7 @@ echo "  with ecmult precomp     = $set_precomp"
 echo "  with external callbacks = $use_external_default_callbacks"
 echo "  with benchmarks         = $use_benchmark"
 echo "  with coverage           = $enable_coverage"
+echo "  with μECC tests         = $micro_ecc_tests"
 echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
 echo
