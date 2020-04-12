@@ -8,7 +8,7 @@
 #if (defined(_WIN32) || defined(_WIN64))
 /* Windows */
 
-// use pragma syntax to prevent tweaking the linker script for getting CryptXYZ function
+/* use pragma syntax to prevent tweaking the linker script for getting CryptXYZ function */
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "advapi32.lib")
 
@@ -53,7 +53,7 @@ static int default_RNG(uint8_t *dest, unsigned size) {
     size_t left = size;
     while (left > 0) {
         ssize_t bytes_read = read(fd, ptr, left);
-        if (bytes_read <= 0) { // read failed
+        if (bytes_read <= 0) { /* read failed */
             close(fd);
             return 0;
         }

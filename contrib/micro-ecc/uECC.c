@@ -1414,18 +1414,19 @@ int uECC_sign_deterministic(const uint8_t *private_key,
 
     for (tries = 0; tries < uECC_RNG_MAX_TRIES; ++tries) {
         uECC_word_t T[uECC_MAX_WORDS];
-        uint8_t *T_ptr = (uint8_t *)T;
+        uint8_t T_bits[sizeof(T)];
         wordcount_t T_bytes = 0;
         for (;;) {
             update_V(hash_context, K, V);
             for (i = 0; i < hash_context->result_size; ++i) {
-                T_ptr[T_bytes++] = V[i];
+                T_bits[T_bytes++] = V[i];
                 if (T_bytes >= num_n_words * uECC_WORD_SIZE) {
                     goto filled;
                 }
             }
         }
     filled:
+        bits2int(T, T_bits, T_bytes, curve);
         if ((bitcount_t)num_n_words * uECC_WORD_SIZE * 8 > num_n_bits) {
             uECC_word_t mask = (uECC_word_t)-1;
             T[num_n_words - 1] &=
