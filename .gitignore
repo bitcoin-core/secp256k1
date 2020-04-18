@@ -11,6 +11,8 @@ exhaustive_tests
 gen_context
 valgrind_ctime_test
 fuzz_public
+fuzz_recovery
+fuzz_ecdh
 *.exe
 *.so
 *.a
