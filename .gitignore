@@ -10,6 +10,7 @@ tests
 exhaustive_tests
 gen_context
 valgrind_ctime_test
+fuzz_public
 *.exe
 *.so
 *.a

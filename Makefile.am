@@ -90,6 +90,14 @@ bench_ecmult_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 bench_ecmult_CPPFLAGS = -DSECP256K1_BUILD $(SECP_INCLUDES)
 endif
 
+if ENABLE_FUZZ
+noinst_PROGRAMS += fuzz_public
+fuzz_public_SOURCES = src/fuzz/fuzz_public.c
+fuzz_public_SOURCES += src/fuzz/fuzz.c
+fuzz_public_LDADD = libsecp256k1.la $(SECP_LIBS) $(COMMON_LIB)
+endif
+
+
 TESTS =
 if USE_TESTS
 noinst_PROGRAMS += tests
