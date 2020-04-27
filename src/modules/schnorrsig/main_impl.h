@@ -93,6 +93,7 @@ static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *ms
     secp256k1_sha256_write(&sha, xonly_pk32, 32);
     secp256k1_sha256_write(&sha, msg, msglen);
     secp256k1_sha256_finalize(&sha, nonce32);
+    secp256k1_sha256_clear(&sha);
     return 1;
 }
 
@@ -124,6 +125,7 @@ static void secp256k1_schnorrsig_challenge(secp256k1_scalar* e, const unsigned c
     secp256k1_sha256_write(&sha, pubkey32, 32);
     secp256k1_sha256_write(&sha, msg, msglen);
     secp256k1_sha256_finalize(&sha, buf);
+    secp256k1_sha256_clear(&sha);
     /* Set scalar e to the challenge hash modulo the curve order as per
      * BIP340. */
     secp256k1_scalar_set_b32(e, buf, NULL);
