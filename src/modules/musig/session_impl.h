@@ -386,10 +386,10 @@ static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned c
 
         /* Attempt to erase secret data */
         secp256k1_memclear(buf, sizeof(buf));
-        secp256k1_memclear(&sha_tmp, sizeof(sha_tmp));
+        secp256k1_sha256_clear(&sha_tmp);
     }
     secp256k1_memclear(rand, sizeof(rand));
-    secp256k1_memclear(&sha, sizeof(sha));
+    secp256k1_sha256_clear(&sha);
 }
 
 int secp256k1_musig_nonce_gen_internal(const secp256k1_context* ctx, secp256k1_musig_secnonce *secnonce, secp256k1_musig_pubnonce *pubnonce, const unsigned char *input_nonce, const unsigned char *seckey, const secp256k1_pubkey *pubkey, const unsigned char *msg32, const secp256k1_musig_keyagg_cache *keyagg_cache, const unsigned char *extra_input32) {
