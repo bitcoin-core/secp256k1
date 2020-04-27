@@ -335,6 +335,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     secp256k1_scalar_clear(&b);
     secp256k1_gej_clear(&gb);
     secp256k1_fe_clear(&f);
+    secp256k1_rfc6979_hmac_sha256_clear(&rng);
 }
 
 #endif /* SECP256K1_ECMULT_GEN_IMPL_H */
