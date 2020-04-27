@@ -164,7 +164,10 @@ static void secp256k1_sha256_finalize(secp256k1_sha256 *hash, unsigned char *out
 
     memclear(sizedesc, sizeof(sizedesc));
     memclear(out, sizeof(out));
-    memclear(hash, sizeof(secp256k1_sha256));
+}
+
+static void secp256k1_sha256_clear(secp256k1_sha256 *hash) {
+    memclear(hash, sizeof(*hash));
 }
 
 static void secp256k1_hmac_sha256_initialize(secp256k1_hmac_sha256 *hash, const unsigned char *key, size_t keylen) {
@@ -207,6 +210,9 @@ static void secp256k1_hmac_sha256_finalize(secp256k1_hmac_sha256 *hash, unsigned
     secp256k1_sha256_finalize(&hash->outer, out32);
 }
 
+static void secp256k1_hmac_sha256_clear(secp256k1_hmac_sha256 *hash) {
+    memclear(hash, sizeof(*hash));
+}
 
 static void secp256k1_rfc6979_hmac_sha256_initialize(secp256k1_rfc6979_hmac_sha256 *rng, const unsigned char *key, size_t keylen) {
     secp256k1_hmac_sha256 hmac;
@@ -270,7 +276,11 @@ static void secp256k1_rfc6979_hmac_sha256_generate(secp256k1_rfc6979_hmac_sha256
 }
 
 static void secp256k1_rfc6979_hmac_sha256_finalize(secp256k1_rfc6979_hmac_sha256 *rng) {
-    memclear(rng, sizeof(secp256k1_rfc6979_hmac_sha256));
+    (void) rng;
+}
+
+static void secp256k1_rfc6979_hmac_sha256_clear(secp256k1_rfc6979_hmac_sha256 *rng) {
+    memclear(rng, sizeof(*rng));
 }
 
 #undef BE32
