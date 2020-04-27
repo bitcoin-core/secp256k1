@@ -19,6 +19,7 @@ static int ecdh_hash_function_sha256(unsigned char *output, const unsigned char 
     secp256k1_sha256_write(&sha, &version, 1);
     secp256k1_sha256_write(&sha, x32, 32);
     secp256k1_sha256_finalize(&sha, output);
+    secp256k1_sha256_clear(&sha);
 
     return 1;
 }

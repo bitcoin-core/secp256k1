@@ -494,11 +494,13 @@ static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *m
        buffer_append(keydata, &offset, algo16, 16);
    }
    secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, offset);
-   secp256k1_memclear(keydata, sizeof(keydata));
    for (i = 0; i <= counter; i++) {
        secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
    }
    secp256k1_rfc6979_hmac_sha256_finalize(&rng);
+
+   secp256k1_memclear(keydata, sizeof(keydata));
+   secp256k1_rfc6979_hmac_sha256_clear(&rng);
    return 1;
 }
 
@@ -799,6 +801,7 @@ int secp256k1_tagged_sha256(const secp256k1_context* ctx, unsigned char *hash32,
     secp256k1_sha256_initialize_tagged(&sha, tag, taglen);
     secp256k1_sha256_write(&sha, msg, msglen);
     secp256k1_sha256_finalize(&sha, hash32);
+    secp256k1_sha256_clear(&sha);
     return 1;
 }
 
