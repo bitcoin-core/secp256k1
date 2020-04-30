@@ -55,6 +55,12 @@ static void secp256k1_scalar_order_get_num(secp256k1_num *r) {
 }
 #endif
 
+static int secp256k1_scalar_set_b32_seckey(secp256k1_scalar *r, const unsigned char *bin) {
+    int overflow;
+    secp256k1_scalar_set_b32(r, bin, &overflow);
+    return (!overflow) & (!secp256k1_scalar_is_zero(r));
+}
+
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *x) {
 #if defined(EXHAUSTIVE_TEST_ORDER)
     int i;

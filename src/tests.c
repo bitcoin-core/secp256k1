@@ -140,6 +140,12 @@ void random_scalar_order(secp256k1_scalar *num) {
     } while(1);
 }
 
+void random_scalar_order_b32(unsigned char *b32) {
+    secp256k1_scalar num;
+    random_scalar_order(&num);
+    secp256k1_scalar_get_b32(b32, &num);
+}
+
 void run_context_tests(int use_prealloc) {
     secp256k1_pubkey pubkey;
     secp256k1_pubkey zero_pubkey;
@@ -1077,10 +1083,30 @@ void scalar_test(void) {
 
 }
 
+void run_scalar_set_b32_seckey_tests(void) {
+    unsigned char b32[32];
+    secp256k1_scalar s1;
+    secp256k1_scalar s2;
+
+    /* Usually set_b32 and set_b32_seckey give the same result */
+    random_scalar_order_b32(b32);
+    secp256k1_scalar_set_b32(&s1, b32, NULL);
+    CHECK(secp256k1_scalar_set_b32_seckey(&s2, b32) == 1);
+    CHECK(secp256k1_scalar_eq(&s1, &s2) == 1);
+
+    memset(b32, 0, sizeof(b32));
+    CHECK(secp256k1_scalar_set_b32_seckey(&s2, b32) == 0);
+    memset(b32, 0xFF, sizeof(b32));
+    CHECK(secp256k1_scalar_set_b32_seckey(&s2, b32) == 0);
+}
+
 void run_scalar_tests(void) {
     int i;
     for (i = 0; i < 128 * count; i++) {
         scalar_test();
+    }
+    for (i = 0; i < count; i++) {
+        run_scalar_set_b32_seckey_tests();
     }
 
     {
@@ -1097,16 +1123,43 @@ void run_scalar_tests(void) {
 
 #ifndef USE_NUM_NONE
     {
-        /* A scalar with value of the curve order should be 0. */
+        /* Test secp256k1_scalar_set_b32 boundary conditions */
         secp256k1_num order;
-        secp256k1_scalar zero;
+        secp256k1_scalar scalar;
         unsigned char bin[32];
+        unsigned char bin_tmp[32];
         int overflow = 0;
+        /* 2^256-1 - order */
+        static const secp256k1_scalar all_ones_minus_order = SECP256K1_SCALAR_CONST(
+            0x00000000UL, 0x00000000UL, 0x00000000UL, 0x00000001UL,
+            0x45512319UL, 0x50B75FC4UL, 0x402DA173UL, 0x2FC9BEBEUL
+        );
+
+        /* A scalar set to 0s should be 0. */
+        memset(bin, 0, 32);
+        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
+        CHECK(overflow == 0);
+        CHECK(secp256k1_scalar_is_zero(&scalar));
+
+        /* A scalar with value of the curve order should be 0. */
         secp256k1_scalar_order_get_num(&order);
         secp256k1_num_get_bin(bin, 32, &order);
-        secp256k1_scalar_set_b32(&zero, bin, &overflow);
+        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
         CHECK(overflow == 1);
-        CHECK(secp256k1_scalar_is_zero(&zero));
+        CHECK(secp256k1_scalar_is_zero(&scalar));
+
+        /* A scalar with value of the curve order minus one should not overflow. */
+        bin[31] -= 1;
+        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
+        CHECK(overflow == 0);
+        secp256k1_scalar_get_b32(bin_tmp, &scalar);
+        CHECK(memcmp(bin, bin_tmp, 32) == 0);
+
+        /* A scalar set to all 1s should overflow. */
+        memset(bin, 0xFF, 32);
+        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
+        CHECK(overflow == 1);
+        CHECK(secp256k1_scalar_eq(&scalar, &all_ones_minus_order));
     }
 #endif
 
@@ -3936,37 +3989,57 @@ void run_eckey_edge_case_test(void) {
     pubkey_negone = pubkey;
     /* Tweak of zero leaves the value unchanged. */
     memset(ctmp2, 0, 32);
-    CHECK(secp256k1_ec_privkey_tweak_add(ctx, ctmp, ctmp2) == 1);
+    CHECK(secp256k1_ec_seckey_tweak_add(ctx, ctmp, ctmp2) == 1);
     CHECK(memcmp(orderc, ctmp, 31) == 0 && ctmp[31] == 0x40);
     memcpy(&pubkey2, &pubkey, sizeof(pubkey));
     CHECK(secp256k1_ec_pubkey_tweak_add(ctx, &pubkey, ctmp2) == 1);
     CHECK(memcmp(&pubkey, &pubkey2, sizeof(pubkey)) == 0);
     /* Multiply tweak of zero zeroizes the output. */
-    CHECK(secp256k1_ec_privkey_tweak_mul(ctx, ctmp, ctmp2) == 0);
+    CHECK(secp256k1_ec_seckey_tweak_mul(ctx, ctmp, ctmp2) == 0);
     CHECK(memcmp(zeros, ctmp, 32) == 0);
     CHECK(secp256k1_ec_pubkey_tweak_mul(ctx, &pubkey, ctmp2) == 0);
     CHECK(memcmp(&pubkey, zeros, sizeof(pubkey)) == 0);
     memcpy(&pubkey, &pubkey2, sizeof(pubkey));
-    /* Overflowing key tweak zeroizes. */
+    /* If seckey_tweak_add or seckey_tweak_mul are called with an overflowing
+    seckey, the seckey is zeroized. */
+    memcpy(ctmp, orderc, 32);
+    memset(ctmp2, 0, 32);
+    ctmp2[31] = 0x01;
+    CHECK(secp256k1_ec_seckey_verify(ctx, ctmp2) == 1);
+    CHECK(secp256k1_ec_seckey_verify(ctx, ctmp) == 0);
+    CHECK(secp256k1_ec_seckey_tweak_add(ctx, ctmp, ctmp2) == 0);
+    CHECK(memcmp(zeros, ctmp, 32) == 0);
+    memcpy(ctmp, orderc, 32);
+    CHECK(secp256k1_ec_seckey_tweak_mul(ctx, ctmp, ctmp2) == 0);
+    CHECK(memcmp(zeros, ctmp, 32) == 0);
+    /* If seckey_tweak_add or seckey_tweak_mul are called with an overflowing
+    tweak, the seckey is zeroized. */
     memcpy(ctmp, orderc, 32);
     ctmp[31] = 0x40;
-    CHECK(secp256k1_ec_privkey_tweak_add(ctx, ctmp, orderc) == 0);
+    CHECK(secp256k1_ec_seckey_tweak_add(ctx, ctmp, orderc) == 0);
     CHECK(memcmp(zeros, ctmp, 32) == 0);
     memcpy(ctmp, orderc, 32);
     ctmp[31] = 0x40;
-    CHECK(secp256k1_ec_privkey_tweak_mul(ctx, ctmp, orderc) == 0);
+    CHECK(secp256k1_ec_seckey_tweak_mul(ctx, ctmp, orderc) == 0);
     CHECK(memcmp(zeros, ctmp, 32) == 0);
     memcpy(ctmp, orderc, 32);
     ctmp[31] = 0x40;
+    /* If pubkey_tweak_add or pubkey_tweak_mul are called with an overflowing
+    tweak, the pubkey is zeroized. */
     CHECK(secp256k1_ec_pubkey_tweak_add(ctx, &pubkey, orderc) == 0);
     CHECK(memcmp(&pubkey, zeros, sizeof(pubkey)) == 0);
     memcpy(&pubkey, &pubkey2, sizeof(pubkey));
     CHECK(secp256k1_ec_pubkey_tweak_mul(ctx, &pubkey, orderc) == 0);
     CHECK(memcmp(&pubkey, zeros, sizeof(pubkey)) == 0);
     memcpy(&pubkey, &pubkey2, sizeof(pubkey));
-    /* Private key tweaks results in a key of zero. */
+    /* If the resulting key in secp256k1_ec_seckey_tweak_add and
+     * secp256k1_ec_pubkey_tweak_add is 0 the functions fail and in the latter
+     * case the pubkey is zeroized. */
+    memcpy(ctmp, orderc, 32);
+    ctmp[31] = 0x40;
+    memset(ctmp2, 0, 32);
     ctmp2[31] = 1;
-    CHECK(secp256k1_ec_privkey_tweak_add(ctx, ctmp2, ctmp) == 0);
+    CHECK(secp256k1_ec_seckey_tweak_add(ctx, ctmp2, ctmp) == 0);
     CHECK(memcmp(zeros, ctmp2, 32) == 0);
     ctmp2[31] = 1;
     CHECK(secp256k1_ec_pubkey_tweak_add(ctx, &pubkey, ctmp2) == 0);
@@ -3974,7 +4047,7 @@ void run_eckey_edge_case_test(void) {
     memcpy(&pubkey, &pubkey2, sizeof(pubkey));
     /* Tweak computation wraps and results in a key of 1. */
     ctmp2[31] = 2;
-    CHECK(secp256k1_ec_privkey_tweak_add(ctx, ctmp2, ctmp) == 1);
+    CHECK(secp256k1_ec_seckey_tweak_add(ctx, ctmp2, ctmp) == 1);
     CHECK(memcmp(ctmp2, zeros, 31) == 0 && ctmp2[31] == 1);
     ctmp2[31] = 2;
     CHECK(secp256k1_ec_pubkey_tweak_add(ctx, &pubkey, ctmp2) == 1);
@@ -4022,16 +4095,16 @@ void run_eckey_edge_case_test(void) {
     CHECK(ecount == 2);
     ecount = 0;
     memset(ctmp2, 0, 32);
-    CHECK(secp256k1_ec_privkey_tweak_add(ctx, NULL, ctmp2) == 0);
+    CHECK(secp256k1_ec_seckey_tweak_add(ctx, NULL, ctmp2) == 0);
     CHECK(ecount == 1);
-    CHECK(secp256k1_ec_privkey_tweak_add(ctx, ctmp, NULL) == 0);
+    CHECK(secp256k1_ec_seckey_tweak_add(ctx, ctmp, NULL) == 0);
     CHECK(ecount == 2);
     ecount = 0;
     memset(ctmp2, 0, 32);
     ctmp2[31] = 1;
-    CHECK(secp256k1_ec_privkey_tweak_mul(ctx, NULL, ctmp2) == 0);
+    CHECK(secp256k1_ec_seckey_tweak_mul(ctx, NULL, ctmp2) == 0);
     CHECK(ecount == 1);
-    CHECK(secp256k1_ec_privkey_tweak_mul(ctx, ctmp, NULL) == 0);
+    CHECK(secp256k1_ec_seckey_tweak_mul(ctx, ctmp, NULL) == 0);
     CHECK(ecount == 2);
     ecount = 0;
     CHECK(secp256k1_ec_pubkey_create(ctx, NULL, ctmp) == 0);
@@ -4102,6 +4175,41 @@ void run_eckey_edge_case_test(void) {
     CHECK(memcmp(&pubkey, zeros, sizeof(secp256k1_pubkey)) > 0);
     CHECK(ecount == 3);
     secp256k1_context_set_illegal_callback(ctx, NULL, NULL);
+}
+
+void run_eckey_negate_test(void) {
+    unsigned char seckey[32];
+    unsigned char seckey_tmp[32];
+
+    random_scalar_order_b32(seckey);
+    memcpy(seckey_tmp, seckey, 32);
+
+    /* Verify negation changes the key and changes it back */
+    CHECK(secp256k1_ec_seckey_negate(ctx, seckey) == 1);
+    CHECK(memcmp(seckey, seckey_tmp, 32) != 0);
+    CHECK(secp256k1_ec_seckey_negate(ctx, seckey) == 1);
+    CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
+
+    /* Check that privkey alias gives same result */
+    CHECK(secp256k1_ec_seckey_negate(ctx, seckey) == 1);
+    CHECK(secp256k1_ec_privkey_negate(ctx, seckey_tmp) == 1);
+    CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
+
+    /* Negating all 0s fails */
+    memset(seckey, 0, 32);
+    memset(seckey_tmp, 0, 32);
+    CHECK(secp256k1_ec_seckey_negate(ctx, seckey) == 0);
+    /* Check that seckey is not modified */
+    CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
+
+    /* Negating an overflowing seckey fails and the seckey is zeroed. In this
+     * test, the seckey has 16 random bytes to ensure that ec_seckey_negate
+     * doesn't just set seckey to a constant value in case of failure. */
+    random_scalar_order_b32(seckey);
+    memset(seckey, 0xFF, 16);
+    memset(seckey_tmp, 0, 32);
+    CHECK(secp256k1_ec_seckey_negate(ctx, seckey) == 0);
+    CHECK(memcmp(seckey, seckey_tmp, 32) == 0);
 }
 
 void random_sign(secp256k1_scalar *sigr, secp256k1_scalar *sigs, const secp256k1_scalar *key, const secp256k1_scalar *msg, int *recid) {
@@ -4243,15 +4351,22 @@ void test_ecdsa_end_to_end(void) {
     if (secp256k1_rand_int(3) == 0) {
         int ret1;
         int ret2;
+        int ret3;
         unsigned char rnd[32];
+        unsigned char privkey_tmp[32];
         secp256k1_pubkey pubkey2;
         secp256k1_rand256_test(rnd);
-        ret1 = secp256k1_ec_privkey_tweak_add(ctx, privkey, rnd);
+        memcpy(privkey_tmp, privkey, 32);
+        ret1 = secp256k1_ec_seckey_tweak_add(ctx, privkey, rnd);
         ret2 = secp256k1_ec_pubkey_tweak_add(ctx, &pubkey, rnd);
+        /* Check that privkey alias gives same result */
+        ret3 = secp256k1_ec_privkey_tweak_add(ctx, privkey_tmp, rnd);
         CHECK(ret1 == ret2);
+        CHECK(ret2 == ret3);
         if (ret1 == 0) {
             return;
         }
+        CHECK(memcmp(privkey, privkey_tmp, 32) == 0);
         CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey2, privkey) == 1);
         CHECK(memcmp(&pubkey, &pubkey2, sizeof(pubkey)) == 0);
     }
@@ -4260,15 +4375,22 @@ void test_ecdsa_end_to_end(void) {
     if (secp256k1_rand_int(3) == 0) {
         int ret1;
         int ret2;
+        int ret3;
         unsigned char rnd[32];
+        unsigned char privkey_tmp[32];
         secp256k1_pubkey pubkey2;
         secp256k1_rand256_test(rnd);
-        ret1 = secp256k1_ec_privkey_tweak_mul(ctx, privkey, rnd);
+        memcpy(privkey_tmp, privkey, 32);
+        ret1 = secp256k1_ec_seckey_tweak_mul(ctx, privkey, rnd);
         ret2 = secp256k1_ec_pubkey_tweak_mul(ctx, &pubkey, rnd);
+        /* Check that privkey alias gives same result */
+        ret3 = secp256k1_ec_privkey_tweak_mul(ctx, privkey_tmp, rnd);
         CHECK(ret1 == ret2);
+        CHECK(ret2 == ret3);
         if (ret1 == 0) {
             return;
         }
+        CHECK(memcmp(privkey, privkey_tmp, 32) == 0);
         CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey2, privkey) == 1);
         CHECK(memcmp(&pubkey, &pubkey2, sizeof(pubkey)) == 0);
     }
@@ -5293,6 +5415,9 @@ int main(int argc, char **argv) {
 
     /* EC key edge cases */
     run_eckey_edge_case_test();
+
+    /* EC key arithmetic test */
+    run_eckey_negate_test();
 
 #ifdef ENABLE_MODULE_ECDH
     /* ecdh tests */
