@@ -3,6 +3,7 @@ os:
   - linux
   - osx
 
+dist: bionic
 # Valgrind currently supports upto macOS 10.13, the latest xcode of that version is 10.1
 osx_image: xcode10.1
 addons:
