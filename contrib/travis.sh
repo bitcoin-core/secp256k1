@@ -11,6 +11,10 @@ if [ "$HOST" = "i686-linux-gnu" ]
 then
     export CC="$CC -m32"
 fi
+if [ "$TRAVIS_OS_NAME" = "osx" ] && [ "$TRAVIS_COMPILER" = "gcc" ]
+then
+    export CC="gcc-9"
+fi
 
 ./configure \
     --enable-experimental="$EXPERIMENTAL" --enable-endomorphism="$ENDOMORPHISM" \
@@ -33,7 +37,8 @@ if [ -n "$BENCH" ]
 then
     if [ -n "$VALGRIND" ]
     then
-        EXEC='libtool --mode=execute valgrind --error-exitcode=42'
+        # Using the local `libtool` because on macOS the system's libtool has nothing to do with GNU libtool
+        EXEC='./libtool --mode=execute valgrind --error-exitcode=42'
     else
         EXEC=
     fi
@@ -54,5 +59,5 @@ then
 fi
 if [ -n "$CTIMETEST" ]
 then
-    libtool --mode=execute valgrind --error-exitcode=42 ./valgrind_ctime_test > valgrind_ctime_test.log 2>&1
+    ./libtool --mode=execute valgrind --error-exitcode=42 ./valgrind_ctime_test > valgrind_ctime_test.log 2>&1
 fi
