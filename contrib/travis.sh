@@ -42,6 +42,8 @@ then
     else
         EXEC=
     fi
+    # This limits the iterations in the benchmarks below to ITER(set in .travis.yml) iterations.
+    export SECP256K1_BENCH_ITERS="$ITERS"
     {
         $EXEC ./bench_ecmult
         $EXEC ./bench_internal
