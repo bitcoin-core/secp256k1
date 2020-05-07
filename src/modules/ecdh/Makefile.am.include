@@ -6,3 +6,10 @@ noinst_PROGRAMS += bench_ecdh
 bench_ecdh_SOURCES = src/bench_ecdh.c
 bench_ecdh_LDADD = libsecp256k1.la $(SECP_LIBS) $(COMMON_LIB)
 endif
+
+if ENABLE_FUZZ
+noinst_PROGRAMS += fuzz_ecdh
+fuzz_ecdh_SOURCES = src/modules/ecdh/fuzz_ecdh.c
+fuzz_ecdh_SOURCES += src/fuzz/fuzz.c
+fuzz_ecdh_LDADD = libsecp256k1.la $(SECP_LIBS) $(COMMON_LIB)
+endif

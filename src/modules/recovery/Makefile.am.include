@@ -6,3 +6,10 @@ noinst_PROGRAMS += bench_recover
 bench_recover_SOURCES = src/bench_recover.c
 bench_recover_LDADD = libsecp256k1.la $(SECP_LIBS) $(COMMON_LIB)
 endif
+
+if ENABLE_FUZZ
+noinst_PROGRAMS += fuzz_recovery
+fuzz_recovery_SOURCES = src/modules/recovery/fuzz_recovery.c
+fuzz_recovery_SOURCES += src/fuzz/fuzz.c
+fuzz_recovery_LDADD = libsecp256k1.la $(SECP_LIBS) $(COMMON_LIB)
+endif
