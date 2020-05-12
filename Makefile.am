@@ -157,3 +157,7 @@ endif
 if ENABLE_MODULE_EXTRAKEYS
 include src/modules/extrakeys/Makefile.am.include
 endif
+
+if ENABLE_MODULE_SCHNORRSIG
+include src/modules/schnorrsig/Makefile.am.include
+endif
