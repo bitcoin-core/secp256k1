@@ -309,12 +309,107 @@ void test_xonly_pubkey_tweak_recursive(void) {
 }
 #undef N_PUBKEYS
 
+void test_keypair(void) {
+    unsigned char sk[32];
+    unsigned char zeros96[96] = { 0 };
+    unsigned char overflows[32];
+    secp256k1_keypair keypair;
+    secp256k1_pubkey pk, pk_tmp;
+    secp256k1_xonly_pubkey xonly_pk, xonly_pk_tmp;
+    int pk_parity, pk_parity_tmp;
+    int ecount;
+    secp256k1_context *none = api_test_context(SECP256K1_CONTEXT_NONE, &ecount);
+    secp256k1_context *sign = api_test_context(SECP256K1_CONTEXT_SIGN, &ecount);
+    secp256k1_context *verify = api_test_context(SECP256K1_CONTEXT_VERIFY, &ecount);
+
+    CHECK(sizeof(zeros96) == sizeof(keypair));
+    memset(overflows, 0xFF, sizeof(overflows));
+
+    /* Test keypair_create */
+    ecount = 0;
+    secp256k1_rand256(sk);
+    CHECK(secp256k1_keypair_create(none, &keypair, sk) == 0);
+    CHECK(memcmp(zeros96, &keypair, sizeof(keypair)) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_keypair_create(verify, &keypair, sk) == 0);
+    CHECK(memcmp(zeros96, &keypair, sizeof(keypair)) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_keypair_create(sign, &keypair, sk) == 1);
+    CHECK(secp256k1_keypair_create(sign, NULL, sk) == 0);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_keypair_create(sign, &keypair, NULL) == 0);
+    CHECK(memcmp(zeros96, &keypair, sizeof(keypair)) == 0);
+    CHECK(ecount == 4);
+
+    /* Invalid secret key */
+    CHECK(secp256k1_keypair_create(sign, &keypair, zeros96) == 0);
+    CHECK(memcmp(zeros96, &keypair, sizeof(keypair)) == 0);
+    CHECK(secp256k1_keypair_create(sign, &keypair, overflows) == 0);
+    CHECK(memcmp(zeros96, &keypair, sizeof(keypair)) == 0);
+
+    /* Test keypair_pub */
+    ecount = 0;
+    secp256k1_rand256(sk);
+    CHECK(secp256k1_keypair_create(ctx, &keypair, sk) == 1);
+    CHECK(secp256k1_keypair_pub(none, &pk, &keypair) == 1);
+    CHECK(secp256k1_keypair_pub(none, NULL, &keypair) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_keypair_pub(none, &pk, NULL) == 0);
+    CHECK(ecount == 2);
+    CHECK(memcmp(zeros96, &pk, sizeof(pk)) == 0);
+
+    /* Using an invalid keypair is fine for keypair_pub */
+    memset(&keypair, 0, sizeof(keypair));
+    CHECK(secp256k1_keypair_pub(none, &pk, &keypair) == 1);
+    CHECK(memcmp(zeros96, &pk, sizeof(pk)) == 0);
+
+    /* keypair holds the same pubkey as pubkey_create */
+    CHECK(secp256k1_ec_pubkey_create(sign, &pk, sk) == 1);
+    CHECK(secp256k1_keypair_create(sign, &keypair, sk) == 1);
+    CHECK(secp256k1_keypair_pub(none, &pk_tmp, &keypair) == 1);
+    CHECK(memcmp(&pk, &pk_tmp, sizeof(pk)) == 0);
+
+    /** Test keypair_xonly_pub **/
+    ecount = 0;
+    secp256k1_rand256(sk);
+    CHECK(secp256k1_keypair_create(ctx, &keypair, sk) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk, &pk_parity, &keypair) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(none, NULL, &pk_parity, &keypair) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk, NULL, &keypair) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk, &pk_parity, NULL) == 0);
+    CHECK(ecount == 2);
+    CHECK(memcmp(zeros96, &xonly_pk, sizeof(xonly_pk)) == 0);
+    /* Using an invalid keypair will set the xonly_pk to 0 (first reset
+     * xonly_pk). */
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk, &pk_parity, &keypair) == 1);
+    memset(&keypair, 0, sizeof(keypair));
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk, &pk_parity, &keypair) == 0);
+    CHECK(memcmp(zeros96, &xonly_pk, sizeof(xonly_pk)) == 0);
+    CHECK(ecount == 3);
+
+    /** keypair holds the same xonly pubkey as pubkey_create **/
+    CHECK(secp256k1_ec_pubkey_create(sign, &pk, sk) == 1);
+    CHECK(secp256k1_xonly_pubkey_from_pubkey(none, &xonly_pk, &pk_parity, &pk) == 1);
+    CHECK(secp256k1_keypair_create(sign, &keypair, sk) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(none, &xonly_pk_tmp, &pk_parity_tmp, &keypair) == 1);
+    CHECK(memcmp(&xonly_pk, &xonly_pk_tmp, sizeof(pk)) == 0);
+    CHECK(pk_parity == pk_parity_tmp);
+
+    secp256k1_context_destroy(none);
+    secp256k1_context_destroy(sign);
+    secp256k1_context_destroy(verify);
+}
+
 void run_extrakeys_tests(void) {
     /* xonly key test cases */
     test_xonly_pubkey();
     test_xonly_pubkey_tweak();
     test_xonly_pubkey_tweak_check();
     test_xonly_pubkey_tweak_recursive();
+
+    /* keypair tests */
+    test_keypair();
 }
 
 #endif

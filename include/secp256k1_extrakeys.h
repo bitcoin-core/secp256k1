@@ -23,6 +23,17 @@ typedef struct {
     unsigned char data[64];
 } secp256k1_xonly_pubkey;
 
+/** Opaque data structure that holds a keypair consisting of a secret and a
+ *  public key.
+ *
+ *  The exact representation of data inside is implementation defined and not
+ *  guaranteed to be portable between different platforms or versions. It is
+ *  however guaranteed to be 96 bytes in size, and can be safely copied/moved.
+ */
+typedef struct {
+    unsigned char data[96];
+} secp256k1_keypair;
+
 /** Parse a 32-byte sequence into a xonly_pubkey object.
  *
  *  Returns: 1 if the public key was fully valid.
@@ -139,6 +150,57 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_tweak_add_
     const secp256k1_xonly_pubkey *internal_pubkey,
     const unsigned char *tweak32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
+
+/** Compute the keypair for a secret key.
+ *
+ *  Returns: 1: secret was valid, keypair is ready to use
+ *           0: secret was invalid, try again with a different secret
+ *  Args:    ctx: pointer to a context object, initialized for signing (cannot be NULL)
+ *  Out: keypair: pointer to the created keypair (cannot be NULL)
+ *  In:   seckey: pointer to a 32-byte secret key (cannot be NULL)
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_keypair_create(
+    const secp256k1_context* ctx,
+    secp256k1_keypair *keypair,
+    const unsigned char *seckey
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
+/** Get the public key from a keypair.
+ *
+ *  Returns: 0 if the arguments are invalid. 1 otherwise.
+ *  Args:    ctx: pointer to a context object (cannot be NULL)
+ *  Out: pubkey: pointer to a pubkey object. If 1 is returned, it is set to
+ *               the keypair public key. If not, it's set to an invalid value.
+ *               (cannot be NULL)
+ *  In: keypair: pointer to a keypair (cannot be NULL)
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_keypair_pub(
+    const secp256k1_context* ctx,
+    secp256k1_pubkey *pubkey,
+    const secp256k1_keypair *keypair
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
+/** Get the x-only public key from a keypair.
+ *
+ *  This is the same as calling secp256k1_keypair_pub and then
+ *  secp256k1_xonly_pubkey_from_pubkey.
+ *
+ *  Returns: 0 if the arguments are invalid. 1 otherwise.
+ *  Args:   ctx: pointer to a context object (cannot be NULL)
+ *  Out: pubkey: pointer to an xonly_pubkey object. If 1 is returned, it is set
+ *               to the keypair public key after converting it to an
+ *               xonly_pubkey. If not, it's set to an invalid value (cannot be
+ *               NULL).
+ *    pk_parity: pointer to an integer that will be set to the pk_parity
+ *               argument of secp256k1_xonly_pubkey_from_pubkey (can be NULL).
+ *  In: keypair: pointer to a keypair (cannot be NULL)
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_keypair_xonly_pub(
+    const secp256k1_context* ctx,
+    secp256k1_xonly_pubkey *pubkey,
+    int *pk_parity,
+    const secp256k1_keypair *keypair
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(4);
 
 #ifdef __cplusplus
 }

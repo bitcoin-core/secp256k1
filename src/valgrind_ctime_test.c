@@ -17,6 +17,10 @@
 # include "include/secp256k1_recovery.h"
 #endif
 
+#if ENABLE_MODULE_EXTRAKEYS
+# include "include/secp256k1_extrakeys.h"
+#endif
+
 int main(void) {
     secp256k1_context* ctx;
     secp256k1_ecdsa_signature signature;
@@ -32,6 +36,9 @@ int main(void) {
 #if ENABLE_MODULE_RECOVERY
     secp256k1_ecdsa_recoverable_signature recoverable_signature;
     int recid;
+#endif
+#if ENABLE_MODULE_EXTRAKEYS
+    secp256k1_keypair keypair;
 #endif
 
     if (!RUNNING_ON_VALGRIND) {
@@ -114,6 +121,13 @@ int main(void) {
     ret = secp256k1_context_randomize(ctx, key);
     VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
     CHECK(ret);
+
+#if ENABLE_MODULE_EXTRAKEYS
+    VALGRIND_MAKE_MEM_UNDEFINED(key, 32);
+    ret = secp256k1_keypair_create(ctx, &keypair, key);
+    VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
+    CHECK(ret == 1);
+#endif
 
     secp256k1_context_destroy(ctx);
     return 0;
