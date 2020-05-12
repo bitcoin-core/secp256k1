@@ -58,6 +58,52 @@ typedef int (*secp256k1_nonce_function_hardened)(
  */
 SECP256K1_API extern const secp256k1_nonce_function_hardened secp256k1_nonce_function_bip340;
 
+/** Create a Schnorr signature.
+ *
+ *  Does _not_ strictly follow BIP-340 because it does not verify the resulting
+ *  signature. Instead, you can manually use secp256k1_schnorrsig_verify and
+ *  abort if it fails.
+ *
+ *  Otherwise BIP-340 compliant if the noncefp argument is NULL or
+ *  secp256k1_nonce_function_bip340 and the ndata argument is 32-byte auxiliary
+ *  randomness.
+ *
+ *  Returns 1 on success, 0 on failure.
+ *  Args:    ctx: pointer to a context object, initialized for signing (cannot be NULL)
+ *  Out:   sig64: pointer to a 64-byte array to store the serialized signature (cannot be NULL)
+ *  In:    msg32: the 32-byte message being signed (cannot be NULL)
+ *       keypair: pointer to an initialized keypair (cannot be NULL)
+ *       noncefp: pointer to a nonce generation function. If NULL, secp256k1_nonce_function_bip340 is used
+ *         ndata: pointer to arbitrary data used by the nonce generation
+ *                function (can be NULL). If it is non-NULL and
+ *                secp256k1_nonce_function_bip340 is used, then ndata must be a
+ *                pointer to 32-byte auxiliary randomness as per BIP-340.
+ */
+SECP256K1_API int secp256k1_schnorrsig_sign(
+    const secp256k1_context* ctx,
+    unsigned char *sig64,
+    const unsigned char *msg32,
+    const secp256k1_keypair *keypair,
+    secp256k1_nonce_function_hardened noncefp,
+    void *ndata
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
+/** Verify a Schnorr signature.
+ *
+ *  Returns: 1: correct signature
+ *           0: incorrect signature
+ *  Args:    ctx: a secp256k1 context object, initialized for verification.
+ *  In:    sig64: pointer to the 64-byte signature to verify (cannot be NULL)
+ *         msg32: the 32-byte message being verified (cannot be NULL)
+ *        pubkey: pointer to an x-only public key to verify with (cannot be NULL)
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_verify(
+    const secp256k1_context* ctx,
+    const unsigned char *sig64,
+    const unsigned char *msg32,
+    const secp256k1_xonly_pubkey *pubkey
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
 #ifdef __cplusplus
 }
 #endif
