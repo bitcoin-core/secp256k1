@@ -631,25 +631,26 @@ int secp256k1_ec_privkey_tweak_add(const secp256k1_context* ctx, unsigned char *
     return secp256k1_ec_seckey_tweak_add(ctx, seckey, tweak);
 }
 
+static int secp256k1_ec_pubkey_tweak_add_helper(const secp256k1_ecmult_context* ecmult_ctx, secp256k1_ge *p, const unsigned char *tweak) {
+    secp256k1_scalar term;
+    int overflow = 0;
+    secp256k1_scalar_set_b32(&term, tweak, &overflow);
+    return !overflow && secp256k1_eckey_pubkey_tweak_add(ecmult_ctx, p, &term);
+}
+
 int secp256k1_ec_pubkey_tweak_add(const secp256k1_context* ctx, secp256k1_pubkey *pubkey, const unsigned char *tweak) {
     secp256k1_ge p;
-    secp256k1_scalar term;
     int ret = 0;
-    int overflow = 0;
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
     ARG_CHECK(pubkey != NULL);
     ARG_CHECK(tweak != NULL);
 
-    secp256k1_scalar_set_b32(&term, tweak, &overflow);
-    ret = !overflow && secp256k1_pubkey_load(ctx, &p, pubkey);
+    ret = secp256k1_pubkey_load(ctx, &p, pubkey);
     memset(pubkey, 0, sizeof(*pubkey));
+    ret = ret && secp256k1_ec_pubkey_tweak_add_helper(&ctx->ecmult_ctx, &p, tweak);
     if (ret) {
-        if (secp256k1_eckey_pubkey_tweak_add(&ctx->ecmult_ctx, &p, &term)) {
-            secp256k1_pubkey_save(pubkey, &p);
-        } else {
-            ret = 0;
-        }
+        secp256k1_pubkey_save(pubkey, &p);
     }
 
     return ret;
