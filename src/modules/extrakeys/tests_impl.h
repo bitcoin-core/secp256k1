@@ -137,9 +137,184 @@ void test_xonly_pubkey(void) {
     secp256k1_context_destroy(verify);
 }
 
+void test_xonly_pubkey_tweak(void) {
+    unsigned char zeros64[64] = { 0 };
+    unsigned char overflows[32];
+    unsigned char sk[32];
+    secp256k1_pubkey internal_pk;
+    secp256k1_xonly_pubkey internal_xonly_pk;
+    secp256k1_pubkey output_pk;
+    int pk_parity;
+    unsigned char tweak[32];
+    int i;
+
+    int ecount;
+    secp256k1_context *none = api_test_context(SECP256K1_CONTEXT_NONE, &ecount);
+    secp256k1_context *sign = api_test_context(SECP256K1_CONTEXT_SIGN, &ecount);
+    secp256k1_context *verify = api_test_context(SECP256K1_CONTEXT_VERIFY, &ecount);
+
+    memset(overflows, 0xff, sizeof(overflows));
+    secp256k1_rand256(tweak);
+    secp256k1_rand256(sk);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &internal_pk, sk) == 1);
+    CHECK(secp256k1_xonly_pubkey_from_pubkey(none, &internal_xonly_pk, &pk_parity, &internal_pk) == 1);
+
+    ecount = 0;
+    CHECK(secp256k1_xonly_pubkey_tweak_add(none, &output_pk, &internal_xonly_pk, tweak) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_xonly_pubkey_tweak_add(sign, &output_pk, &internal_xonly_pk, tweak) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, &internal_xonly_pk, tweak) == 1);
+    CHECK(secp256k1_xonly_pubkey_tweak_add(verify, NULL, &internal_xonly_pk, tweak) == 0);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, NULL, tweak) == 0);
+    CHECK(ecount == 4);
+    /* NULL internal_xonly_pk zeroes the output_pk */
+    CHECK(memcmp(&output_pk, zeros64, sizeof(output_pk)) == 0);
+    CHECK(secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, &internal_xonly_pk, NULL) == 0);
+    CHECK(ecount == 5);
+    /* NULL tweak zeroes the output_pk */
+    CHECK(memcmp(&output_pk, zeros64, sizeof(output_pk)) == 0);
+
+    /* Invalid tweak zeroes the output_pk */
+    CHECK(secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, &internal_xonly_pk, overflows) == 0);
+    CHECK(memcmp(&output_pk, zeros64, sizeof(output_pk))  == 0);
+
+    /* A zero tweak is fine */
+    CHECK(secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, &internal_xonly_pk, zeros64) == 1);
+
+    /* Fails if the resulting key was infinity */
+    for (i = 0; i < count; i++) {
+        secp256k1_scalar scalar_tweak;
+        /* Because sk may be negated before adding, we need to try with tweak =
+         * sk as well as tweak = -sk. */
+        secp256k1_scalar_set_b32(&scalar_tweak, sk, NULL);
+        secp256k1_scalar_negate(&scalar_tweak, &scalar_tweak);
+        secp256k1_scalar_get_b32(tweak, &scalar_tweak);
+        CHECK((secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, &internal_xonly_pk, sk) == 0)
+              || (secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, &internal_xonly_pk, tweak) == 0));
+        CHECK(memcmp(&output_pk, zeros64, sizeof(output_pk)) == 0);
+    }
+
+    /* Invalid pk with a valid tweak */
+    memset(&internal_xonly_pk, 0, sizeof(internal_xonly_pk));
+    secp256k1_rand256(tweak);
+    ecount = 0;
+    CHECK(secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, &internal_xonly_pk, tweak) == 0);
+    CHECK(ecount == 1);
+    CHECK(memcmp(&output_pk, zeros64, sizeof(output_pk))  == 0);
+
+    secp256k1_context_destroy(none);
+    secp256k1_context_destroy(sign);
+    secp256k1_context_destroy(verify);
+}
+
+void test_xonly_pubkey_tweak_check(void) {
+    unsigned char zeros64[64] = { 0 };
+    unsigned char overflows[32];
+    unsigned char sk[32];
+    secp256k1_pubkey internal_pk;
+    secp256k1_xonly_pubkey internal_xonly_pk;
+    secp256k1_pubkey output_pk;
+    secp256k1_xonly_pubkey output_xonly_pk;
+    unsigned char output_pk32[32];
+    unsigned char buf32[32];
+    int pk_parity;
+    unsigned char tweak[32];
+
+    int ecount;
+    secp256k1_context *none = api_test_context(SECP256K1_CONTEXT_NONE, &ecount);
+    secp256k1_context *sign = api_test_context(SECP256K1_CONTEXT_SIGN, &ecount);
+    secp256k1_context *verify = api_test_context(SECP256K1_CONTEXT_VERIFY, &ecount);
+
+    memset(overflows, 0xff, sizeof(overflows));
+    secp256k1_rand256(tweak);
+    secp256k1_rand256(sk);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &internal_pk, sk) == 1);
+    CHECK(secp256k1_xonly_pubkey_from_pubkey(none, &internal_xonly_pk, &pk_parity, &internal_pk) == 1);
+
+    ecount = 0;
+    CHECK(secp256k1_xonly_pubkey_tweak_add(verify, &output_pk, &internal_xonly_pk, tweak) == 1);
+    CHECK(secp256k1_xonly_pubkey_from_pubkey(verify, &output_xonly_pk, &pk_parity, &output_pk) == 1);
+    CHECK(secp256k1_xonly_pubkey_serialize(ctx, buf32, &output_xonly_pk) == 1);
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(none, buf32, pk_parity, &internal_xonly_pk, tweak) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(sign, buf32, pk_parity, &internal_xonly_pk, tweak) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(verify, buf32, pk_parity, &internal_xonly_pk, tweak) == 1);
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(verify, NULL, pk_parity, &internal_xonly_pk, tweak) == 0);
+    CHECK(ecount == 3);
+    /* invalid pk_parity value */
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(verify, buf32, 2, &internal_xonly_pk, tweak) == 0);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(verify, buf32, pk_parity, NULL, tweak) == 0);
+    CHECK(ecount == 4);
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(verify, buf32, pk_parity, &internal_xonly_pk, NULL) == 0);
+    CHECK(ecount == 5);
+
+    memset(tweak, 1, sizeof(tweak));
+    CHECK(secp256k1_xonly_pubkey_from_pubkey(ctx, &internal_xonly_pk, NULL, &internal_pk) == 1);
+    CHECK(secp256k1_xonly_pubkey_tweak_add(ctx, &output_pk, &internal_xonly_pk, tweak) == 1);
+    CHECK(secp256k1_xonly_pubkey_from_pubkey(ctx, &output_xonly_pk, &pk_parity, &output_pk) == 1);
+    CHECK(secp256k1_xonly_pubkey_serialize(ctx, output_pk32, &output_xonly_pk) == 1);
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(ctx, output_pk32, pk_parity, &internal_xonly_pk, tweak) == 1);
+
+    /* Wrong pk_parity */
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(ctx, output_pk32, !pk_parity, &internal_xonly_pk, tweak) == 0);
+    /* Wrong public key */
+    CHECK(secp256k1_xonly_pubkey_serialize(ctx, buf32, &internal_xonly_pk) == 1);
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(ctx, buf32, pk_parity, &internal_xonly_pk, tweak) == 0);
+
+    /* Overflowing tweak not allowed */
+    CHECK(secp256k1_xonly_pubkey_tweak_add_check(ctx, output_pk32, pk_parity, &internal_xonly_pk, overflows) == 0);
+    CHECK(secp256k1_xonly_pubkey_tweak_add(ctx, &output_pk, &internal_xonly_pk, overflows) == 0);
+    CHECK(memcmp(&output_pk, zeros64, sizeof(output_pk)) == 0);
+    CHECK(ecount == 5);
+
+    secp256k1_context_destroy(none);
+    secp256k1_context_destroy(sign);
+    secp256k1_context_destroy(verify);
+}
+
+/* Starts with an initial pubkey and recursively creates N_PUBKEYS - 1
+ * additional pubkeys by calling tweak_add. Then verifies every tweak starting
+ * from the last pubkey. */
+#define N_PUBKEYS 32
+void test_xonly_pubkey_tweak_recursive(void) {
+    unsigned char sk[32];
+    secp256k1_pubkey pk[N_PUBKEYS];
+    unsigned char pk_serialized[32];
+    unsigned char tweak[N_PUBKEYS - 1][32];
+    int i;
+
+    secp256k1_rand256(sk);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pk[0], sk) == 1);
+    /* Add tweaks */
+    for (i = 0; i < N_PUBKEYS - 1; i++) {
+        secp256k1_xonly_pubkey xonly_pk;
+        memset(tweak[i], i + 1, sizeof(tweak[i]));
+        CHECK(secp256k1_xonly_pubkey_from_pubkey(ctx, &xonly_pk, NULL, &pk[i]) == 1);
+        CHECK(secp256k1_xonly_pubkey_tweak_add(ctx, &pk[i + 1], &xonly_pk, tweak[i]) == 1);
+    }
+
+    /* Verify tweaks */
+    for (i = N_PUBKEYS - 1; i > 0; i--) {
+        secp256k1_xonly_pubkey xonly_pk;
+        int pk_parity;
+        CHECK(secp256k1_xonly_pubkey_from_pubkey(ctx, &xonly_pk, &pk_parity, &pk[i]) == 1);
+        CHECK(secp256k1_xonly_pubkey_serialize(ctx, pk_serialized, &xonly_pk) == 1);
+        CHECK(secp256k1_xonly_pubkey_from_pubkey(ctx, &xonly_pk, NULL, &pk[i - 1]) == 1);
+        CHECK(secp256k1_xonly_pubkey_tweak_add_check(ctx, pk_serialized, pk_parity, &xonly_pk, tweak[i - 1]) == 1);
+    }
+}
+#undef N_PUBKEYS
+
 void run_extrakeys_tests(void) {
     /* xonly key test cases */
     test_xonly_pubkey();
+    test_xonly_pubkey_tweak();
+    test_xonly_pubkey_tweak_check();
+    test_xonly_pubkey_tweak_recursive();
 }
 
 #endif
