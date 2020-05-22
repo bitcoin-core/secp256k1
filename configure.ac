@@ -210,7 +210,7 @@ if test x"$use_ecmult_static_precomputation" != x"no"; then
   AC_RUN_IFELSE(
     [AC_LANG_PROGRAM([], [])],
     [working_native_cc=yes],
-    [working_native_cc=no],[dnl])
+    [working_native_cc=no],[:])
 
   CFLAGS_FOR_BUILD="$CFLAGS"
 
