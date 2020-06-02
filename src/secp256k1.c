@@ -468,7 +468,8 @@ const secp256k1_nonce_function secp256k1_nonce_function_rfc6979 = nonce_function
 const secp256k1_nonce_function secp256k1_nonce_function_default = nonce_function_rfc6979;
 
 int secp256k1_ecdsa_sign(const secp256k1_context* ctx, secp256k1_ecdsa_signature *signature, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, const void* noncedata) {
-    secp256k1_scalar r, s;
+    /* Default initialization here is important so we won't pass uninit values to the cmov in the end */
+    secp256k1_scalar r = secp256k1_scalar_zero, s = secp256k1_scalar_zero;
     secp256k1_scalar sec, non, msg;
     int ret = 0;
     int is_sec_valid;

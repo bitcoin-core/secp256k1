@@ -14,7 +14,7 @@
 
 /* This is like `ECMULT_TABLE_GET_GE` but is constant time */
 #define ECMULT_CONST_TABLE_GET_GE(r,pre,n,w) do { \
-    int m; \
+    int m = 0; \
     /* Extract the sign-bit for a constant time absolute-value. */ \
     int mask = (n) >> (sizeof(n) * CHAR_BIT - 1); \
     int abs_n = ((n) + mask) ^ mask; \
@@ -25,7 +25,11 @@
     VERIFY_CHECK((n) <=  ((1 << ((w)-1)) - 1)); \
     VERIFY_SETUP(secp256k1_fe_clear(&(r)->x)); \
     VERIFY_SETUP(secp256k1_fe_clear(&(r)->y)); \
-    for (m = 0; m < ECMULT_TABLE_SIZE(w); m++) { \
+    /* Unconditionally set r->x = (pre)[m].x. r->y = (pre)[m].y. because it's either the correct one \
+     * or will get replaced in the later iterations, this is needed to make sure `r` is initialized. */ \
+    (r)->x = (pre)[m].x; \
+    (r)->y = (pre)[m].y; \
+    for (m = 1; m < ECMULT_TABLE_SIZE(w); m++) { \
         /* This loop is used to avoid secret data in array indices. See
          * the comment in ecmult_gen_impl.h for rationale. */ \
         secp256k1_fe_cmov(&(r)->x, &(pre)[m].x, m == idx_n); \
