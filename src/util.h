@@ -194,4 +194,18 @@ static SECP256K1_INLINE void memczero(void *s, size_t len, int flag) {
     }
 }
 
+/** If flag is true, set *r equal to *a; otherwise leave it. Constant-time.  Both *r and *a must be initialized and non-negative.*/
+static SECP256K1_INLINE void secp256k1_int_cmov(int *r, const int *a, int flag) {
+    unsigned int mask0, mask1, r_masked, a_masked;
+    /* Casting a negative int to unsigned and back to int is implementation defined behavior */
+    VERIFY_CHECK(*r >= 0 && *a >= 0);
+
+    mask0 = (unsigned int)flag + ~0u;
+    mask1 = ~mask0;
+    r_masked = ((unsigned int)*r & mask0);
+    a_masked = ((unsigned int)*a & mask1);
+
+    *r = (int)(r_masked | a_masked);
+}
+
 #endif /* SECP256K1_UTIL_H */
