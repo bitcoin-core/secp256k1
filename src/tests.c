@@ -2967,14 +2967,16 @@ void test_ecmult_multi(secp256k1_scratch *scratch, secp256k1_ecmult_multi_func e
 
 void test_ecmult_multi_batch_single(secp256k1_ecmult_multi_func ecmult_multi) {
     secp256k1_scalar szero;
-    secp256k1_scalar sc[32];
-    secp256k1_ge pt[32];
+    secp256k1_scalar sc;
+    secp256k1_ge pt;
     secp256k1_gej r;
     ecmult_multi_data data;
     secp256k1_scratch *scratch_empty;
 
-    data.sc = sc;
-    data.pt = pt;
+    random_group_element_test(&pt);
+    random_scalar_order(&sc);
+    data.sc = &sc;
+    data.pt = &pt;
     secp256k1_scalar_set_int(&szero, 0);
 
     /* Try to multiply 1 point, but scratch space is empty.*/
