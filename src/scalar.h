@@ -102,4 +102,7 @@ static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r, const secp256k1_
 /** If flag is true, set *r equal to *a; otherwise leave it. Constant-time.  Both *r and *a must be initialized.*/
 static void secp256k1_scalar_cmov(secp256k1_scalar *r, const secp256k1_scalar *a, int flag);
 
+/** Generate two scalars from a 32-byte seed and an integer using the chacha20 stream cipher */
+static void secp256k1_scalar_chacha20(secp256k1_scalar *r1, secp256k1_scalar *r2, const unsigned char *seed, uint64_t idx);
+
 #endif /* SECP256K1_SCALAR_H */
