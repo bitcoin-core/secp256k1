@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 3.5)
-project(secp256k1)
-
-enable_language(CXX)
+cmake_minimum_required(VERSION 3.12)
+project(secp256k1 VERSION 1.0.0 LANGUAGES C CXX)
 
 # Add path for custom modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
@@ -34,7 +32,11 @@ include_directories(
 
 # The library
 add_library(secp256k1 src/secp256k1.c)
-target_include_directories(secp256k1 PUBLIC include)
+target_include_directories(
+		${PROJECT_NAME} INTERFACE
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+#target_include_directories(secp256k1 PUBLIC include)
 
 # We need to link in GMP
 find_package(GMP)
@@ -164,7 +166,7 @@ if(SECP256K1_BUILD_TEST)
 	create_test_suite(secp256k1)
 
 	function(create_secp256k1_test NAME FILES)
-		add_test_to_suite(secp256k1 ${NAME} EXCLUDE_FROM_ALL ${FILES})
+		add_test_to_suite(secp256k1 ${NAME} ${FILES})
 		link_secp256k1_internal(${NAME})
 	endfunction()
 
@@ -176,6 +178,37 @@ if(SECP256K1_BUILD_TEST)
 	# TODO: support coverage.
 	target_compile_definitions(exhaustive_tests PRIVATE VERIFY)
 endif(SECP256K1_BUILD_TEST)
+
+include(GNUInstallDirs)
+
+function(install_target targets config)
+	install(TARGETS ${targets} EXPORT ${config}
+			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+			INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+			PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+			FRAMEWORK DESTINATION ${CMAKE_INSTALL_PREFIX}
+			)
+endfunction()
+
+set(CONFIG_NAME "${PROJECT_NAME}Config")
+install_target(${PROJECT_NAME} ${CONFIG_NAME})
+
+install(
+		DIRECTORY ${CMAKE_SOURCE_DIR}/include/
+		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+set(CONFIG_DESTINATION_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+install(
+		EXPORT ${CONFIG_NAME}
+		NAMESPACE secp256k1::
+		DESTINATION ${CONFIG_DESTINATION_DIR}
+)
+
+
+
 
 # Benchmarks
 add_secp256k1_bench(bench_verify src/bench_verify.c)
