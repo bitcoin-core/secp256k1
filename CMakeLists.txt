@@ -109,11 +109,11 @@ if(SECP256K1_ENABLE_MODULE_ECDH)
 endif()
 
 ## MultiSet module
-#option(SECP256K1_ENABLE_MODULE_MULTISET "Build libsecp256k1's MULTISET module" ON)
-#if(SECP256K1_ENABLE_MODULE_MULTISET)
-#    set(ENABLE_MODULE_MULTISET 1)
-#	add_secp256k1_bench(bench_multiset src/bench_multiset.c)
-#endif()
+option(SECP256K1_ENABLE_MODULE_MULTISET "Build libsecp256k1's MULTISET module" OFF)
+if(SECP256K1_ENABLE_MODULE_MULTISET)
+	set(ENABLE_MODULE_MULTISET 1)
+	add_secp256k1_bench(bench_multiset src/bench_multiset.c)
+endif()
 
 # Recovery module
 option(SECP256K1_ENABLE_MODULE_RECOVERY "Build libsecp256k1's recovery module" ON)
