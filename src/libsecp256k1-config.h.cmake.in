@@ -1,0 +1,42 @@
+/* Copyright (c) 2017 The Bitcoin developers */
+
+#pragma once
+
+#cmakedefine HAVE___INT128
+
+#cmakedefine USE_NUM_GMP
+#cmakedefine USE_FIELD_INV_NUM
+#cmakedefine USE_SCALAR_INV_NUM
+
+#cmakedefine USE_NUM_NONE
+#cmakedefine USE_FIELD_INV_BUILTIN
+#cmakedefine USE_SCALAR_INV_BUILTIN
+
+#cmakedefine USE_SCALAR_4X64
+#cmakedefine USE_FIELD_5X52
+
+#cmakedefine USE_SCALAR_8X32
+#cmakedefine USE_FIELD_10X26
+
+#cmakedefine USE_ASM_X86_64
+
+#cmakedefine USE_ECMULT_STATIC_PRECOMPUTATION
+
+#cmakedefine ECMULT_GEN_PREC_BITS
+#if defined(ECMULT_GEN_PREC_BITS)
+	#define ECMULT_GEN_PREC_BITS ${CLIENT_BUILD_SUFFIX}
+#else
+	#define ECMULT_GEN_PREC_BITS 4
+#endif
+
+#cmakedefine ECMULT_WINDOW_SIZE
+#if defined(ECMULT_WINDOW_SIZE)
+	#define ECMULT_WINDOW_SIZE ${ECMULT_WINDOW_SIZE}
+#else
+	#define ECMULT_WINDOW_SIZE 15
+#endif
+
+#cmakedefine ENABLE_MODULE_ECDH
+#cmakedefine ENABLE_MODULE_MULTISET
+#cmakedefine ENABLE_MODULE_RECOVERY
+#cmakedefine ENABLE_MODULE_SCHNORR
