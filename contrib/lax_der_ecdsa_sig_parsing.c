@@ -7,7 +7,7 @@
 #include <string.h>
 #include <secp256k1.h>
 
-#include "lax_der_parsing.h"
+#include "lax_der_ecdsa_sig_parsing.h"
 
 int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1_ecdsa_signature* sig, const unsigned char *input, size_t inputlen) {
     size_t rpos, rlen, spos, slen;

@@ -9,55 +9,55 @@
 
 #include "lax_der_seckey_parsing.h"
 
-int ec_seckey_import_der(const secp256k1_context* ctx, unsigned char *out32, const unsigned char *seckey, size_t seckeylen) {
-    const unsigned char *end = seckey + seckeylen;
+int ec_seckey_import_der(const secp256k1_context* ctx, unsigned char *seckey32, const unsigned char *seckeyder, size_t seckeyderlen) {
+    const unsigned char *end = seckeyder + seckeyderlen;
     int lenb = 0;
     int len = 0;
-    memset(out32, 0, 32);
+    memset(seckey32, 0, 32);
     /* sequence header */
-    if (end < seckey+1 || *seckey != 0x30) {
+    if (end < seckeyder+1 || *seckeyder != 0x30) {
         return 0;
     }
-    seckey++;
+    seckeyder++;
     /* sequence length constructor */
-    if (end < seckey+1 || !(*seckey & 0x80)) {
+    if (end < seckeyder+1 || !(*seckeyder & 0x80)) {
         return 0;
     }
-    lenb = *seckey & ~0x80; seckey++;
+    lenb = *seckeyder & ~0x80; seckeyder++;
     if (lenb < 1 || lenb > 2) {
         return 0;
     }
-    if (end < seckey+lenb) {
+    if (end < seckeyder+lenb) {
         return 0;
     }
     /* sequence length */
-    len = seckey[lenb-1] | (lenb > 1 ? seckey[lenb-2] << 8 : 0);
-    seckey += lenb;
-    if (end < seckey+len) {
+    len = seckeyder[lenb-1] | (lenb > 1 ? seckeyder[lenb-2] << 8 : 0);
+    seckeyder += lenb;
+    if (end < seckeyder+len) {
         return 0;
     }
     /* sequence element 0: version number (=1) */
-    if (end < seckey+3 || seckey[0] != 0x02 || seckey[1] != 0x01 || seckey[2] != 0x01) {
+    if (end < seckeyder+3 || seckeyder[0] != 0x02 || seckeyder[1] != 0x01 || seckeyder[2] != 0x01) {
         return 0;
     }
-    seckey += 3;
+    seckeyder += 3;
     /* sequence element 1: octet string, up to 32 bytes */
-    if (end < seckey+2 || seckey[0] != 0x04 || seckey[1] > 0x20 || end < seckey+2+seckey[1]) {
+    if (end < seckeyder+2 || seckeyder[0] != 0x04 || seckeyder[1] > 0x20 || end < seckeyder+2+seckeyder[1]) {
         return 0;
     }
-    memcpy(out32 + 32 - seckey[1], seckey + 2, seckey[1]);
-    if (!secp256k1_ec_seckey_verify(ctx, out32)) {
-        memset(out32, 0, 32);
+    memcpy(seckey32 + 32 - seckeyder[1], seckeyder + 2, seckeyder[1]);
+    if (!secp256k1_ec_seckey_verify(ctx, seckey32)) {
+        memset(seckey32, 0, 32);
         return 0;
     }
     return 1;
 }
 
-int ec_seckey_export_der(const secp256k1_context *ctx, unsigned char *seckey, size_t *seckeylen, const unsigned char *key32, int compressed) {
+int ec_seckey_export_der(const secp256k1_context *ctx, unsigned char *seckeyder, size_t *seckeyderlen, const unsigned char *seckey32, int compressed) {
     secp256k1_pubkey pubkey;
     size_t pubkeylen = 0;
-    if (!secp256k1_ec_pubkey_create(ctx, &pubkey, key32)) {
-        *seckeylen = 0;
+    if (!secp256k1_ec_pubkey_create(ctx, &pubkey, seckey32)) {
+        *seckeyderlen = 0;
         return 0;
     }
     if (compressed) {
@@ -75,14 +75,14 @@ int ec_seckey_export_der(const secp256k1_context *ctx, unsigned char *seckey, si
             0xFF,0xFF,0xFF,0xFF,0xFE,0xBA,0xAE,0xDC,0xE6,0xAF,0x48,0xA0,0x3B,0xBF,0xD2,0x5E,
             0x8C,0xD0,0x36,0x41,0x41,0x02,0x01,0x01,0xA1,0x24,0x03,0x22,0x00
         };
-        unsigned char *ptr = seckey;
+        unsigned char *ptr = seckeyder;
         memcpy(ptr, begin, sizeof(begin)); ptr += sizeof(begin);
-        memcpy(ptr, key32, 32); ptr += 32;
+        memcpy(ptr, seckey32, 32); ptr += 32;
         memcpy(ptr, middle, sizeof(middle)); ptr += sizeof(middle);
         pubkeylen = 33;
         secp256k1_ec_pubkey_serialize(ctx, ptr, &pubkeylen, &pubkey, SECP256K1_EC_COMPRESSED);
         ptr += pubkeylen;
-        *seckeylen = ptr - seckey;
+        *seckeyderlen = ptr - seckeyder;
     } else {
         static const unsigned char begin[] = {
             0x30,0x82,0x01,0x13,0x02,0x01,0x01,0x04,0x20
@@ -100,14 +100,14 @@ int ec_seckey_export_der(const secp256k1_context *ctx, unsigned char *seckey, si
             0xFF,0xFF,0xFF,0xFF,0xFE,0xBA,0xAE,0xDC,0xE6,0xAF,0x48,0xA0,0x3B,0xBF,0xD2,0x5E,
             0x8C,0xD0,0x36,0x41,0x41,0x02,0x01,0x01,0xA1,0x44,0x03,0x42,0x00
         };
-        unsigned char *ptr = seckey;
+        unsigned char *ptr = seckeyder;
         memcpy(ptr, begin, sizeof(begin)); ptr += sizeof(begin);
-        memcpy(ptr, key32, 32); ptr += 32;
+        memcpy(ptr, seckey32, 32); ptr += 32;
         memcpy(ptr, middle, sizeof(middle)); ptr += sizeof(middle);
         pubkeylen = 65;
         secp256k1_ec_pubkey_serialize(ctx, ptr, &pubkeylen, &pubkey, SECP256K1_EC_UNCOMPRESSED);
         ptr += pubkeylen;
-        *seckeylen = ptr - seckey;
+        *seckeyderlen = ptr - seckeyder;
     }
     return 1;
 }

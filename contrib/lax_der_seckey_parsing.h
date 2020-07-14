@@ -37,18 +37,18 @@ extern "C" {
 /** Export a secret key in DER format.
  *
  *  Returns: 1 if the secret key was valid.
- *  Args: ctx:         pointer to a context object, initialized for signing
- *                     (cannot be NULL).
- *  Out: seckeyder:    pointer to an array for storing the secret key in BER
- *                     (should have space for 279 bytes, and cannot be NULL).
- *       seckeyderlen: pointer to an int where the length of the secret key in
- *                     seckeyder will be stored.
- *  In:  seckey32:     pointer to a 32-byte secret key to export.
- *       compressed:   1 if the key should be exported in compressed format,
- *                     0 otherwise.
+ *  Args: ctx:          pointer to a context object, initialized for signing
+ *                      (cannot be NULL).
+ *  Out:  seckeyder:    pointer to an array for storing the secret key in DER
+ *                      (should have space for 279 bytes, and cannot be NULL).
+ *        seckeyderlen: pointer to a size_t in which the length of the exported
+ *                      secret key will be stored (cannot be NULL).
+ *  In:   seckey32:     pointer to a 32-byte secret key to export.
+ *        compressed:   1 if the key should be exported in compressed format,
+ *                      0 otherwise.
  *
  *  This function is purely meant for compatibility with applications that
- *  require BER encoded keys. When working with secp256k1-specific code, the
+ *  require DER encoded keys. When working with secp256k1-specific code, the
  *  simple 32-byte secret keys are sufficient.
  *
  *  Note that this function does not guarantee correct DER output. It is
@@ -56,8 +56,8 @@ extern "C" {
  */
 SECP256K1_WARN_UNUSED_RESULT int ec_seckey_export_der(
     const secp256k1_context* ctx,
-    unsigned char *seckey,
-    size_t *seckeylen,
+    unsigned char *seckeyder,
+    size_t *seckeyderlen,
     const unsigned char *seckey32,
     int compressed
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
@@ -68,7 +68,7 @@ SECP256K1_WARN_UNUSED_RESULT int ec_seckey_export_der(
  * Out:  seckey32:     pointer to a 32-byte array for storing the secret key
  *                     (cannot be NULL).
  * In:   seckeyder:    pointer to a secret key in DER format (cannot be NULL).
- *       seckeyderlen: length of the DER secret key pointed to be seckey.
+ *       seckeyderlen: length of the DER secret key pointed to by seckeyder.
  *
  * This function will accept more than just strict DER, and even allow some BER
  * violations. The public key stored inside the DER-encoded secret key is not
@@ -77,7 +77,7 @@ SECP256K1_WARN_UNUSED_RESULT int ec_seckey_export_der(
  */
 SECP256K1_WARN_UNUSED_RESULT int ec_seckey_import_der(
     const secp256k1_context* ctx,
-    unsigned char *seckey,
+    unsigned char *seckey32,
     const unsigned char *seckeyder,
     size_t seckeyderlen
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);

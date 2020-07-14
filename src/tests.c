@@ -29,7 +29,7 @@ void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 # endif
 #endif
 
-#include "contrib/lax_der_parsing.c"
+#include "contrib/lax_der_ecdsa_sig_parsing.c"
 #include "contrib/lax_der_seckey_parsing.c"
 
 static int count = 64;
