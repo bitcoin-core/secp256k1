@@ -1179,7 +1179,6 @@ static void secp256k1_scalar_update_fg(int len, int64_t *f, int64_t *g, int64_t 
 }
 
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *x) {
-
 #if defined(EXHAUSTIVE_TEST_ORDER)
     int i;
     *r = 0;
@@ -1258,6 +1257,10 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
     secp256k1_scalar_cond_negate(&b0, sign);
 
     *r = b0;
+}
+
+SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
+    return !(a->d[0] & 1);
 }
 #else
     secp256k1_scalar *t;
@@ -1411,6 +1414,10 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
         secp256k1_scalar_sqr(t, t);
     }
     secp256k1_scalar_mul(r, t, &x6); /* 111111 */
+}
+
+SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
+    return !(a->d[0] & 1);
 }
 #endif
 
