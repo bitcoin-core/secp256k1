@@ -176,6 +176,7 @@ static SECP256K1_INLINE void *manual_alloc(void** prealloc_ptr, size_t alloc_siz
 # else
 #  define SECP256K1_GNUC_EXT
 # endif
+SECP256K1_GNUC_EXT typedef __int128 int128_t;
 SECP256K1_GNUC_EXT typedef unsigned __int128 uint128_t;
 #endif
 

@@ -16,4 +16,6 @@ typedef struct {
 
 #define SECP256K1_SCALAR_CONST(d7, d6, d5, d4, d3, d2, d1, d0) {{(d0), (d1), (d2), (d3), (d4), (d5), (d6), (d7)}}
 
+#define SECP256K1_SCALAR_INV_DEFAULT
+
 #endif /* SECP256K1_SCALAR_REPR_H */
