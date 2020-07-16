@@ -505,6 +505,11 @@ static const secp256k1_fe SECP256K1_FE_TWO_POW_744 = SECP256K1_FE_CONST(
 
 static void secp256k1_fe_mul_add(int64_t a0, int64_t a1, int64_t b0, int64_t b1, int64_t c0, int64_t c1, int64_t d0, int64_t d1, int64_t *t) {
 
+    /*  Each [a0,a1], etc. pair is a 126-bit signed value e.g. a0 + a1 * 2^64.
+     *  This method calculates ([a0,a1] * [c0,c1]) + ([b0,b1] * [d0,d1]), and
+     *  writes the 252-bit signed result to [t[0],t[1],t[2],t[3]].
+     */
+
     int64_t z0, z1, z2, z3;
     int128_t tt;
 
@@ -568,15 +573,21 @@ static void secp256k1_fe_decode_matrix(secp256k1_fe *r, int64_t *t) {
 
     uint64_t u0, u1, u2, u3, u4;
     uint64_t r0, r1, r2, r3, r4;
+    int128_t cc;
 
-    /* TODO Need proper carry chain */
+    cc  = t[0];
+    u0  = (uint64_t)cc; cc >>= 64;
+    cc += t[1];
+    u1  = (uint64_t)cc; cc >>= 64;
+    cc += t[2];
+    u2  = (uint64_t)cc; cc >>= 64;
+    cc += t[3];
+    u3  = (uint64_t)cc; cc >>= 64;
+    u4  = (uint64_t)cc;
 
-    u0 = (uint64_t)t[0];
-    u1 = (uint64_t)t[1] - (u0 >> 63);
-    u2 = (uint64_t)t[2] - (u1 >> 63);
-    u3 = (uint64_t)t[3] - (u2 >> 63);
-    u4 =                - (u3 >> 63);
+    VERIFY_CHECK(u4 == 0 || u4 == UINT64_MAX);
 
+    /* Add twice the field prime in case u4 is non-zero (which represents -2^256). */
     r0 = 0xFFFFEFFFFFC2FULL * 2;
     r1 = 0xFFFFFFFFFFFFFULL * 2;
     r2 = 0xFFFFFFFFFFFFFULL * 2;
@@ -596,8 +607,7 @@ static void secp256k1_fe_decode_matrix(secp256k1_fe *r, int64_t *t) {
     r->n[4] = r4;
 
 #ifdef VERIFY
-    /* TODO Probably 2 is enough? */
-    r->magnitude = 3;
+    r->magnitude = 2;
     r->normalized = 0;
     secp256k1_fe_verify(r);
 #endif

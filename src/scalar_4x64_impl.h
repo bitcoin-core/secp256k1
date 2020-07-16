@@ -969,6 +969,11 @@ static const secp256k1_scalar SECP256K1_SCALAR_TWO_POW_744 = SECP256K1_SCALAR_CO
 
 static void secp256k1_scalar_mul_add(int64_t a0, int64_t a1, int64_t b0, int64_t b1, int64_t c0, int64_t c1, int64_t d0, int64_t d1, int64_t *t) {
 
+    /*  Each [a0,a1], etc. pair is a 126-bit signed value e.g. a0 + a1 * 2^64.
+     *  This method calculates ([a0,a1] * [c0,c1]) + ([b0,b1] * [d0,d1]), and
+     *  writes the 252-bit signed result to [t[0],t[1],t[2],t[3]].
+     */
+
     int64_t z0, z1, z2, z3;
     int128_t tt;
 
@@ -1030,19 +1035,23 @@ static void secp256k1_scalar_combine_2s(int64_t *t) {
 
 static void secp256k1_scalar_decode_matrix(secp256k1_scalar *r, int64_t *t) {
 
-#if 1
-
     uint64_t r0, r1, r2, r3;
     int flag;
     secp256k1_scalar u;
+    int128_t cc;
 
-    /* TODO Need proper carry chain */
-    r0 = (uint64_t)t[0];
-    r1 = (uint64_t)t[1] - (r0 >> 63);
-    r2 = (uint64_t)t[2] - (r1 >> 63);
-    r3 = (uint64_t)t[3] - (r2 >> 63);
+    cc  = t[0];
+    r0 = (uint64_t)cc; cc >>= 64;
+    cc += t[1];
+    r1 = (uint64_t)cc; cc >>= 64;
+    cc += t[2];
+    r2 = (uint64_t)cc; cc >>= 64;
+    cc += t[3];
+    r3 = (uint64_t)cc; cc >>= 64;
 
-    flag = (int)(r3 >> 63);
+    VERIFY_CHECK(cc == 0 || cc == -1);
+
+    flag = (int)cc & 1;
 
     r->d[0] = r0;
     r->d[1] = r1;
@@ -1051,37 +1060,6 @@ static void secp256k1_scalar_decode_matrix(secp256k1_scalar *r, int64_t *t) {
 
     secp256k1_scalar_add(&u, r, &SECP256K1_SCALAR_NEG_TWO_POW_256);
     secp256k1_scalar_cmov(r, &u, flag);
-
-#else
-
-    uint64_t u0, u1, u2, u3, u4;
-    uint64_t r0, r1, r2, r3, r4;
-
-    u0 = (uint64_t)t[0];
-    u1 = (uint64_t)t[1] - (u0 >> 63);
-    u2 = (uint64_t)t[2] - (u1 >> 63);
-    u3 = (uint64_t)t[3] - (u2 >> 63);
-    u4 =                - (u3 >> 63);
-
-    r0 = 0xFFFFEFFFFFC2FULL * 2;
-    r1 = 0xFFFFFFFFFFFFFULL * 2;
-    r2 = 0xFFFFFFFFFFFFFULL * 2;
-    r3 = 0xFFFFFFFFFFFFFULL * 2;
-    r4 = 0x0FFFFFFFFFFFFULL * 2;
-
-    r0 += u0 & 0xFFFFFFFFFFFFFULL;
-    r1 += u0 >> 52 | ((u1 << 12) & 0xFFFFFFFFFFFFFULL);
-    r2 += u1 >> 40 | ((u2 << 24) & 0xFFFFFFFFFFFFFULL);
-    r3 += u2 >> 28 | ((u3 << 36) & 0xFFFFFFFFFFFFFULL);
-    r4 += u3 >> 16 |  (u4 << 48);
-
-    r->n[0] = r0;
-    r->n[1] = r1;
-    r->n[2] = r2;
-    r->n[3] = r3;
-    r->n[4] = r4;
-
-#endif
 }
 
 static void secp256k1_scalar_encode_62(int64_t *r, const secp256k1_scalar *a) {
