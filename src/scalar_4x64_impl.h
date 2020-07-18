@@ -1083,13 +1083,16 @@ static void secp256k1_scalar_encode_62(int64_t *r, const secp256k1_scalar *a) {
 #endif
 }
 
-static int secp256k1_scalar_divsteps_62(uint16_t eta, uint64_t f, uint64_t g, int64_t *t) {
+static int secp256k1_scalar_divsteps_62(uint16_t eta, uint64_t f0, uint64_t g0, int64_t *t) {
 
     uint64_t u = -(uint64_t)1, v = 0, q = 0, r = -(uint64_t)1;
-    uint64_t c1, c2, x, y, z;
+    uint64_t c1, c2, f = f0, g = g0, x, y, z;
     int i;
 
     for (i = 0; i < 62; ++i) {
+
+        VERIFY_CHECK((u * f0 + v * g0) == -f << i);
+        VERIFY_CHECK((q * f0 + r * g0) == -g << i);
 
         c1 = -(g & (eta >> 15));
 
