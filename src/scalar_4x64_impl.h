@@ -1123,14 +1123,12 @@ static int secp256k1_scalar_divsteps_62(uint16_t eta, uint64_t f0, uint64_t g0, 
     return eta;
 }
 
-static void secp256k1_scalar_update_fg(int len, int64_t *f, int64_t *g, int64_t *t) {
+static void secp256k1_scalar_update_fg(int64_t *f, int64_t *g, int64_t *t) {
 
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
     int64_t u = t[0], v = t[1], q = t[2], r = t[3], fi, gi;
     int128_t cf = 0, cg = 0;
     int i;
-
-    VERIFY_CHECK(len > 0);
 
     fi = f[0];
     gi = g[0];
@@ -1144,7 +1142,7 @@ static void secp256k1_scalar_update_fg(int len, int64_t *f, int64_t *g, int64_t 
     cf >>= 62;
     cg >>= 62;
 
-    for (i = 1; i < len; ++i) {
+    for (i = 1; i < 5; ++i) {
 
         fi = f[i];
         gi = g[i];
@@ -1156,8 +1154,8 @@ static void secp256k1_scalar_update_fg(int len, int64_t *f, int64_t *g, int64_t 
         g[i - 1] = (int64_t)cg & M62; cg >>= 62;
     }
 
-    f[i - 1] = (int64_t)cf;
-    g[i - 1] = (int64_t)cg;
+    f[4] = (int64_t)cf;
+    g[4] = (int64_t)cg;
 }
 
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *x) {
@@ -1182,7 +1180,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
         0x3FFFFFFFFFFFFFFFLL, 0xFFLL };
     int64_t g[5];
     secp256k1_scalar b0, d0, a1, b1, c1, d1;
-    int i, len, sign;
+    int i, sign;
     int16_t eta;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
@@ -1197,8 +1195,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 
     for (i = 0; i < 12; ++i) {
         eta = secp256k1_scalar_divsteps_62(eta, f[0], g[0], &t[i * 4]);
-        len = i <= 6 ? 5 : i >= 10 ? 1 : 11 - i;
-        secp256k1_scalar_update_fg(len, f, g, &t[i * 4]);
+        secp256k1_scalar_update_fg(f, g, &t[i * 4]);
     }
 
     /* At this point sufficient iterations have been performed that g must have reached 0
