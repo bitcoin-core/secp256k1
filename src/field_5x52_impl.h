@@ -503,7 +503,7 @@ static const secp256k1_fe SECP256K1_FE_TWO_POW_744 = SECP256K1_FE_CONST(
     0x00000000UL, 0x00000100UL, 0x000B7300UL, 0x1D214200UL
 );
 
-static void secp256k1_fe_mul_add(int64_t a0, int64_t a1, int64_t b0, int64_t b1, int64_t c0, int64_t c1, int64_t d0, int64_t d1, int64_t *t) {
+static void secp256k1_fe_mul_add_2(int64_t a0, int64_t a1, int64_t b0, int64_t b1, int64_t c0, int64_t c1, int64_t d0, int64_t d1, int64_t *t) {
 
     /*  Each [a0,a1], etc. pair is a 126-bit signed value e.g. a0 + a1 * 2^64.
      *  This method calculates ([a0,a1] * [c0,c1]) + ([b0,b1] * [d0,d1]), and
@@ -563,10 +563,10 @@ static void secp256k1_fe_combine_2s(int64_t *t) {
     int64_t g0 = t[12], g1 = t[13];
     int64_t h0 = t[14], h1 = t[15];
 
-    secp256k1_fe_mul_add(e0, e1, a0, a1, f0, f1, c0, c1, &t[0]);
-    secp256k1_fe_mul_add(e0, e1, b0, b1, f0, f1, d0, d1, &t[4]);
-    secp256k1_fe_mul_add(g0, g1, a0, a1, h0, h1, c0, c1, &t[8]);
-    secp256k1_fe_mul_add(g0, g1, b0, b1, h0, h1, d0, d1, &t[12]);
+    secp256k1_fe_mul_add_2(e0, e1, a0, a1, f0, f1, c0, c1, &t[0]);
+    secp256k1_fe_mul_add_2(e0, e1, b0, b1, f0, f1, d0, d1, &t[4]);
+    secp256k1_fe_mul_add_2(g0, g1, a0, a1, h0, h1, c0, c1, &t[8]);
+    secp256k1_fe_mul_add_2(g0, g1, b0, b1, h0, h1, d0, d1, &t[12]);
 }
 
 static void secp256k1_fe_decode_matrix(secp256k1_fe *r, int64_t *t) {
@@ -595,10 +595,10 @@ static void secp256k1_fe_decode_matrix(secp256k1_fe *r, int64_t *t) {
     r4 = 0x0FFFFFFFFFFFFULL * 2;
 
     r0 += u0 & 0xFFFFFFFFFFFFFULL;
-    r1 += u0 >> 52 | ((u1 << 12) & 0xFFFFFFFFFFFFFULL);
-    r2 += u1 >> 40 | ((u2 << 24) & 0xFFFFFFFFFFFFFULL);
-    r3 += u2 >> 28 | ((u3 << 36) & 0xFFFFFFFFFFFFFULL);
-    r4 += u3 >> 16 |  (u4 << 48);
+    r1 += (u0 >> 52 | u1 << 12) & 0xFFFFFFFFFFFFFULL;
+    r2 += (u1 >> 40 | u2 << 24) & 0xFFFFFFFFFFFFFULL;
+    r3 += (u2 >> 28 | u3 << 36) & 0xFFFFFFFFFFFFFULL;
+    r4 += (u3 >> 16 | u4 << 48);
 
     r->n[0] = r0;
     r->n[1] = r1;

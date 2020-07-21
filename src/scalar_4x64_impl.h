@@ -967,7 +967,7 @@ static const secp256k1_scalar SECP256K1_SCALAR_TWO_POW_744 = SECP256K1_SCALAR_CO
     0x6D77C2DCUL, 0x0E3E8029UL, 0x59BA208FUL, 0xFD01F4F7UL
 );
 
-static void secp256k1_scalar_mul_add(int64_t a0, int64_t a1, int64_t b0, int64_t b1, int64_t c0, int64_t c1, int64_t d0, int64_t d1, int64_t *t) {
+static void secp256k1_scalar_mul_add_2(int64_t a0, int64_t a1, int64_t b0, int64_t b1, int64_t c0, int64_t c1, int64_t d0, int64_t d1, int64_t *t) {
 
     /*  Each [a0,a1], etc. pair is a 126-bit signed value e.g. a0 + a1 * 2^64.
      *  This method calculates ([a0,a1] * [c0,c1]) + ([b0,b1] * [d0,d1]), and
@@ -1027,10 +1027,10 @@ static void secp256k1_scalar_combine_2s(int64_t *t) {
     int64_t g0 = t[12], g1 = t[13];
     int64_t h0 = t[14], h1 = t[15];
 
-    secp256k1_scalar_mul_add(e0, e1, a0, a1, f0, f1, c0, c1, &t[0]);
-    secp256k1_scalar_mul_add(e0, e1, b0, b1, f0, f1, d0, d1, &t[4]);
-    secp256k1_scalar_mul_add(g0, g1, a0, a1, h0, h1, c0, c1, &t[8]);
-    secp256k1_scalar_mul_add(g0, g1, b0, b1, h0, h1, d0, d1, &t[12]);
+    secp256k1_scalar_mul_add_2(e0, e1, a0, a1, f0, f1, c0, c1, &t[0]);
+    secp256k1_scalar_mul_add_2(e0, e1, b0, b1, f0, f1, d0, d1, &t[4]);
+    secp256k1_scalar_mul_add_2(g0, g1, a0, a1, h0, h1, c0, c1, &t[8]);
+    secp256k1_scalar_mul_add_2(g0, g1, b0, b1, h0, h1, d0, d1, &t[12]);
 }
 
 static void secp256k1_scalar_decode_matrix(secp256k1_scalar *r, int64_t *t) {
@@ -1041,13 +1041,13 @@ static void secp256k1_scalar_decode_matrix(secp256k1_scalar *r, int64_t *t) {
     int128_t cc;
 
     cc  = t[0];
-    r0 = (uint64_t)cc; cc >>= 64;
+    r0  = (uint64_t)cc; cc >>= 64;
     cc += t[1];
-    r1 = (uint64_t)cc; cc >>= 64;
+    r1  = (uint64_t)cc; cc >>= 64;
     cc += t[2];
-    r2 = (uint64_t)cc; cc >>= 64;
+    r2  = (uint64_t)cc; cc >>= 64;
     cc += t[3];
-    r3 = (uint64_t)cc; cc >>= 64;
+    r3  = (uint64_t)cc; cc >>= 64;
 
     VERIFY_CHECK(cc == 0 || cc == -1);
 
@@ -1188,7 +1188,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 
     /* Instead of dividing the output by 2^744, scale the input. */
     secp256k1_scalar_mul(&b0, x, &SECP256K1_SCALAR_TWO_POW_744);
-    secp256k1_scalar_encode_62(&g[0], &b0);
+    secp256k1_scalar_encode_62(g, &b0);
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak). */
     eta = -1;
