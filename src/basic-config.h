@@ -25,6 +25,7 @@
 #undef USE_SCALAR_INV_BUILTIN
 #undef USE_SCALAR_INV_NUM
 #undef ECMULT_WINDOW_SIZE
+#undef HAVE___INT128 /* used in util.h */
 
 #define USE_NUM_NONE 1
 #define USE_FIELD_INV_BUILTIN 1
