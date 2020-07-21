@@ -179,6 +179,20 @@ static SECP256K1_INLINE void *manual_alloc(void** prealloc_ptr, size_t alloc_siz
 SECP256K1_GNUC_EXT typedef unsigned __int128 uint128_t;
 #endif
 
+#if defined(__BYTE_ORDER__)
+# if defined(__ORDER_LITTLE_ENDIAN__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ && !defined(SECP256K1_LITTLE_ENDIAN)
+#  define SECP256K1_LITTLE_ENDIAN
+# elif defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ && !defined(SECP256K1_BIG_ENDIAN)
+#  define SECP256K1_BIG_ENDIAN
+# endif
+#endif
+#if defined(_MSC_VER) && defined(_WIN32) && !defined(SECP256K1_LITTLE_ENDIAN)
+# define SECP256K1_LITTLE_ENDIAN
+#endif
+#if defined(SECP256K1_LITTLE_ENDIAN) == defined(SECP256K1_BIG_ENDIAN)
+# error Please make sure that either SECP256K1_LITTLE_ENDIAN or SECP256K1_BIG_ENDIAN is set, see src/util.h.
+#endif
+
 /* Zero memory if flag == 1. Flag must be 0 or 1. Constant time. */
 static SECP256K1_INLINE void memczero(void *s, size_t len, int flag) {
     unsigned char *p = (unsigned char *)s;
