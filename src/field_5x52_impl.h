@@ -638,6 +638,7 @@ static int secp256k1_fe_divsteps_62(uint16_t eta, uint64_t f0, uint64_t g0, int6
 
     for (i = 0; i < 62; ++i) {
 
+        VERIFY_CHECK((f & 1) == 1);
         VERIFY_CHECK((u * f0 + v * g0) == -f << i);
         VERIFY_CHECK((q * f0 + r * g0) == -g << i);
 
@@ -710,7 +711,9 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
 #if 1
 
-    /* TODO Check for a == 0? */
+    /* Modular inversion based on the paper "Fast constant-time gcd computation and
+     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang.
+     */
 
     int64_t t[12 * 4];
     int64_t f[5] = { 0x3FFFFFFEFFFFFC2FLL, 0x3FFFFFFFFFFFFFFFLL, 0x3FFFFFFFFFFFFFFFLL,
@@ -719,14 +722,22 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
     secp256k1_fe b0, d0, a1, b1, c1, d1;
     int i, len, sign;
     int16_t eta;
+#ifdef VERIFY
+    int zero_in;
+#endif
 
     /* TODO 2^256 (mod p) is small, so it could be faster to multiply the input
      * by 2^768, and then the output by 2^24. */
-    /* Instead of dividing the output by 2^744, we scale the input. */
+    /* Instead of dividing the output by 2^744, scale the input. */
     secp256k1_fe_mul(&b0, a, &SECP256K1_FE_TWO_POW_744);
     secp256k1_fe_normalize(&b0);
     secp256k1_fe_encode_62(&g[0], &b0);
 
+#ifdef VERIFY
+    zero_in = secp256k1_fe_is_zero(&b0);
+#endif
+
+    /* The paper uses 'delta'; eta == -delta (a performance tweak). */
     eta = -1;
 
     for (i = 0; i < 12; ++i) {
@@ -735,7 +746,16 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
         secp256k1_fe_update_fg(len, f, g, &t[i * 4]);
     }
 
-    /* At this point, f must equal +/- 1 (the GCD). */
+    /* At this point sufficient iterations have been performed that g must have reached 0
+     * and (if g was not originally 0) f must now equal +/- GCD of the initial f, g
+     * values i.e. +/- 1. The matrix outputs from each _divstep_62 are combined to get the
+     * Bézout coefficients, and thus the modular inverse. The matrix outputs of
+     * _divstep_62 introduce an extra factor of 2^62 each, so there is a total extra
+     * factor of 2^744 to account for (by scaling the input and/or output accordingly).
+     */
+
+    VERIFY_CHECK(g[0] == 0);
+
     sign = (f[0] >> 1) & 1;
 
     for (i = 0; i < 3; ++i) {
@@ -779,6 +799,10 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
     secp256k1_fe_negate(&b1, &b0, 2);
     secp256k1_fe_cmov(&b0, &b1, sign);
     secp256k1_fe_normalize_weak(&b0);
+
+#ifdef VERIFY
+    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(&b0) == !zero_in);
+#endif
 
     *r = b0;
 
