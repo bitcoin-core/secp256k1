@@ -1200,9 +1200,9 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 
     /* At this point sufficient iterations have been performed that g must have reached 0
      * and (if g was not originally 0) f must now equal +/- GCD of the initial f, g
-     * values i.e. +/- 1. The matrix outputs from each _divstep_62 are combined to get the
-     * Bézout coefficients, and thus the modular inverse. The matrix outputs of
-     * _divstep_62 introduce an extra factor of 2^62 each, so there is a total extra
+     * values i.e. +/- 1. The matrix outputs from each _divsteps_62 are combined to get
+     * the Bézout coefficients, and thus the modular inverse. The matrix outputs of
+     * _divsteps_62 introduce an extra factor of 2^62 each, so there is a total extra
      * factor of 2^744 to account for (by scaling the input and/or output accordingly).
      */
 

@@ -1537,7 +1537,7 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
     /* Instead of dividing the output by 2^744, scale the input. */
     secp256k1_fe_mul(&b0, a, &SECP256K1_FE_TWO_POW_744);
     secp256k1_fe_normalize(&b0);
-    secp256k1_fe_encode_31(&g[0], &b0);
+    secp256k1_fe_encode_31(g, &b0);
 
 #ifdef VERIFY
     zero_in = secp256k1_fe_is_zero(&b0);
@@ -1553,9 +1553,9 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
     /* At this point sufficient iterations have been performed that g must have reached 0
      * and (if g was not originally 0) f must now equal +/- GCD of the initial f, g
-     * values i.e. +/- 1. The matrix outputs from each _divstep_31 are combined to get the
-     * Bézout coefficients, and thus the modular inverse. The matrix outputs of
-     * _divstep_31 introduce an extra factor of 2^31 each, so there is a total extra
+     * values i.e. +/- 1. The matrix outputs from each _divsteps_31 are combined to get
+     * the Bézout coefficients, and thus the modular inverse. The matrix outputs of
+     * _divsteps_31 introduce an extra factor of 2^31 each, so there is a total extra
      * factor of 2^744 to account for (by scaling the input and/or output accordingly).
      */
 
