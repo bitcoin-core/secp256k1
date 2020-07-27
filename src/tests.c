@@ -182,8 +182,10 @@ void run_context_tests(int use_prealloc) {
     ecount2 = 10;
     secp256k1_context_set_illegal_callback(vrfy, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(sign, counting_illegal_callback_fn, &ecount2);
-    secp256k1_context_set_error_callback(sign, counting_illegal_callback_fn, NULL);
-    CHECK(vrfy->error_callback.fn != sign->error_callback.fn);
+    /* set error callback (to a function that still aborts in case malloc() fails in secp256k1_context_clone() below) */
+    secp256k1_context_set_error_callback(sign, secp256k1_default_illegal_callback_fn, NULL);
+    CHECK(sign->error_callback.fn != vrfy->error_callback.fn);
+    CHECK(sign->error_callback.fn == secp256k1_default_illegal_callback_fn);
 
     /* check if sizes for cloning are consistent */
     CHECK(secp256k1_context_preallocated_clone_size(none) == secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
@@ -239,7 +241,8 @@ void run_context_tests(int use_prealloc) {
     }
 
     /* Verify that the error callback makes it across the clone. */
-    CHECK(vrfy->error_callback.fn != sign->error_callback.fn);
+    CHECK(sign->error_callback.fn != vrfy->error_callback.fn);
+    CHECK(sign->error_callback.fn == secp256k1_default_illegal_callback_fn);
     /* And that it resets back to default. */
     secp256k1_context_set_error_callback(sign, NULL, NULL);
     CHECK(vrfy->error_callback.fn == sign->error_callback.fn);
