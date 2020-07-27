@@ -1478,6 +1478,58 @@ static int secp256k1_fe_divsteps_31(uint16_t eta, uint32_t f0, uint32_t g0, int3
     return eta;
 }
 
+static int secp256k1_fe_divsteps_31_var(uint16_t eta, uint32_t f0, uint32_t g0, int32_t *t) {
+
+    uint32_t u = -(uint32_t)1, v = 0, q = 0, r = -(uint32_t)1;
+    uint32_t f = f0, g = g0, m, w, x, y, z;
+    int i = 31, limit, zeros;
+
+    for (;;) {
+
+        /* Use a sentinel bit to count zeros only up to i. */
+        zeros = __builtin_ctzl(g | (UINT32_MAX << i));
+
+        g >>= zeros;
+        u <<= zeros;
+        v <<= zeros;
+        eta -= zeros;
+        i -= zeros;
+
+        if (i <= 0) {
+            break;
+        }
+
+        VERIFY_CHECK((f & 1) == 1);
+        VERIFY_CHECK((g & 1) == 1);
+        VERIFY_CHECK((u * f0 + v * g0) == -f << (31 - i));
+        VERIFY_CHECK((q * f0 + r * g0) == -g << (31 - i));
+
+        if ((int16_t)eta < 0) {
+            eta = -eta;
+            x = f; f = g; g = -x;
+            y = u; u = q; q = -y;
+            z = v; v = r; r = -z;
+        }
+
+        /* Handle up to 3 divsteps at once, subject to eta and i. */
+        limit = (eta + 1) > i ? i : (eta + 1);
+        m = (UINT32_MAX >> (32 - limit)) & 7U;
+
+        /* Note that f * f == 1 mod 8, for any f. */
+        w = (-f * g) & m;
+        g += f * w;
+        q += u * w;
+        r += v * w;
+    }
+
+    t[0] = (int32_t)u;
+    t[1] = (int32_t)v;
+    t[2] = (int32_t)q;
+    t[3] = (int32_t)r;
+
+    return eta;
+}
+
 static void secp256k1_fe_update_fg(int32_t *f, int32_t *g, int32_t *t) {
 
     const int32_t M31 = (int32_t)(UINT32_MAX >> 1);
@@ -1514,8 +1566,6 @@ static void secp256k1_fe_update_fg(int32_t *f, int32_t *g, int32_t *t) {
 }
 
 static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
-
-#if 1
 
     /* Modular inversion based on the paper "Fast constant-time gcd computation and
      * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang.
@@ -1614,97 +1664,107 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 #endif
 
     *r = b0;
+}
 
-#else
+static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 
-    secp256k1_fe x2, x3, x6, x9, x11, x22, x44, x88, x176, x220, x223, t1;
-    int j;
-
-    /** The binary representation of (p - 2) has 5 blocks of 1s, with lengths in
-     *  { 1, 2, 22, 223 }. Use an addition chain to calculate 2^n - 1 for each block:
-     *  [1], [2], 3, 6, 9, 11, [22], 44, 88, 176, 220, [223]
+    /* Modular inversion based on the paper "Fast constant-time gcd computation and
+     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang.
      */
 
-    secp256k1_fe_sqr(&x2, a);
-    secp256k1_fe_mul(&x2, &x2, a);
-
-    secp256k1_fe_sqr(&x3, &x2);
-    secp256k1_fe_mul(&x3, &x3, a);
-
-    x6 = x3;
-    for (j=0; j<3; j++) {
-        secp256k1_fe_sqr(&x6, &x6);
-    }
-    secp256k1_fe_mul(&x6, &x6, &x3);
-
-    x9 = x6;
-    for (j=0; j<3; j++) {
-        secp256k1_fe_sqr(&x9, &x9);
-    }
-    secp256k1_fe_mul(&x9, &x9, &x3);
-
-    x11 = x9;
-    for (j=0; j<2; j++) {
-        secp256k1_fe_sqr(&x11, &x11);
-    }
-    secp256k1_fe_mul(&x11, &x11, &x2);
-
-    x22 = x11;
-    for (j=0; j<11; j++) {
-        secp256k1_fe_sqr(&x22, &x22);
-    }
-    secp256k1_fe_mul(&x22, &x22, &x11);
-
-    x44 = x22;
-    for (j=0; j<22; j++) {
-        secp256k1_fe_sqr(&x44, &x44);
-    }
-    secp256k1_fe_mul(&x44, &x44, &x22);
-
-    x88 = x44;
-    for (j=0; j<44; j++) {
-        secp256k1_fe_sqr(&x88, &x88);
-    }
-    secp256k1_fe_mul(&x88, &x88, &x44);
-
-    x176 = x88;
-    for (j=0; j<88; j++) {
-        secp256k1_fe_sqr(&x176, &x176);
-    }
-    secp256k1_fe_mul(&x176, &x176, &x88);
-
-    x220 = x176;
-    for (j=0; j<44; j++) {
-        secp256k1_fe_sqr(&x220, &x220);
-    }
-    secp256k1_fe_mul(&x220, &x220, &x44);
-
-    x223 = x220;
-    for (j=0; j<3; j++) {
-        secp256k1_fe_sqr(&x223, &x223);
-    }
-    secp256k1_fe_mul(&x223, &x223, &x3);
-
-    /* The final result is then assembled using a sliding window over the blocks. */
-
-    t1 = x223;
-    for (j=0; j<23; j++) {
-        secp256k1_fe_sqr(&t1, &t1);
-    }
-    secp256k1_fe_mul(&t1, &t1, &x22);
-    for (j=0; j<5; j++) {
-        secp256k1_fe_sqr(&t1, &t1);
-    }
-    secp256k1_fe_mul(&t1, &t1, a);
-    for (j=0; j<3; j++) {
-        secp256k1_fe_sqr(&t1, &t1);
-    }
-    secp256k1_fe_mul(&t1, &t1, &x2);
-    for (j=0; j<2; j++) {
-        secp256k1_fe_sqr(&t1, &t1);
-    }
-    secp256k1_fe_mul(r, a, &t1);
+    int32_t t[24 * 4];
+    int32_t f[9] = { 0x7FFFFC2FL, 0x7FFFFFFDL, 0x7FFFFFFFL, 0x7FFFFFFFL, 0x7FFFFFFFL,
+        0x7FFFFFFFL, 0x7FFFFFFFL, 0x7FFFFFFFL, 0xFFL };
+    int32_t g[9];
+    secp256k1_fe b0, d0, a1, b1, c1, d1;
+    int i, sign;
+    int16_t eta;
+#ifdef VERIFY
+    int zero_in;
 #endif
+
+    /* TODO 2^256 (mod p) is small, so it could be faster to multiply the input
+     * by 2^768, and then the output by 2^24. */
+    /* Instead of dividing the output by 2^744, scale the input. */
+    secp256k1_fe_mul(&b0, a, &SECP256K1_FE_TWO_POW_744);
+    secp256k1_fe_normalize(&b0);
+    secp256k1_fe_encode_31(g, &b0);
+
+#ifdef VERIFY
+    zero_in = secp256k1_fe_is_zero(&b0);
+#endif
+
+    /* The paper uses 'delta'; eta == -delta (a performance tweak). */
+    eta = -1;
+
+    for (i = 0; i < 24; ++i) {
+        eta = secp256k1_fe_divsteps_31_var(eta, f[0], g[0], &t[i * 4]);
+        secp256k1_fe_update_fg(f, g, &t[i * 4]);
+    }
+
+    /* At this point sufficient iterations have been performed that g must have reached 0
+     * and (if g was not originally 0) f must now equal +/- GCD of the initial f, g
+     * values i.e. +/- 1. The matrix outputs from each _divsteps_31_var are combined to
+     * get the Bézout coefficients, and thus the modular inverse. The matrix outputs of
+     * _divsteps_31_var introduce an extra factor of 2^31 each, so there is a total extra
+     * factor of 2^744 to account for (by scaling the input and/or output accordingly).
+     */
+
+    VERIFY_CHECK(g[0] == 0);
+
+    sign = (f[0] >> 1) & 1;
+
+    for (i = 0; i < 3; ++i) {
+        int tOff = i * 32;
+        secp256k1_fe_combine_1s(&t[tOff +  0]);
+        secp256k1_fe_combine_1s(&t[tOff +  8]);
+        secp256k1_fe_combine_1s(&t[tOff + 16]);
+        secp256k1_fe_combine_1s(&t[tOff + 24]);
+        secp256k1_fe_combine_2s(&t[tOff +  0]);
+        secp256k1_fe_combine_2s(&t[tOff + 16]);
+        secp256k1_fe_combine_4s(&t[tOff +  0]);
+    }
+
+    /* secp256k1_fe_decode_matrix(&a0, &t[0]); */
+    secp256k1_fe_decode_matrix(&b0, &t[8]);
+    /* secp256k1_fe_decode_matrix(&c0, &t[16]); */
+    secp256k1_fe_decode_matrix(&d0, &t[24]);
+
+    secp256k1_fe_decode_matrix(&a1, &t[32]);
+    secp256k1_fe_decode_matrix(&b1, &t[40]);
+    secp256k1_fe_decode_matrix(&c1, &t[48]);
+    secp256k1_fe_decode_matrix(&d1, &t[56]);
+
+    secp256k1_fe_mul(&a1, &a1, &b0);
+    secp256k1_fe_mul(&b1, &b1, &d0);
+    secp256k1_fe_mul(&c1, &c1, &b0);
+    secp256k1_fe_mul(&d1, &d1, &d0);
+
+    b0 = a1; secp256k1_fe_add(&b0, &b1);
+    d0 = c1; secp256k1_fe_add(&d0, &d1);
+
+    secp256k1_fe_decode_matrix(&a1, &t[64]);
+    secp256k1_fe_decode_matrix(&b1, &t[72]);
+    /* secp256k1_fe_decode_matrix(&c1, &t[80]); */
+    /* secp256k1_fe_decode_matrix(&d1, &t[88]); */
+
+    secp256k1_fe_mul(&a1, &a1, &b0);
+    secp256k1_fe_mul(&b1, &b1, &d0);
+    /* secp256k1_fe_mul(&c1, &c1, &b0); */
+    /* secp256k1_fe_mul(&d1, &d1, &d0); */
+
+    b0 = a1; secp256k1_fe_add(&b0, &b1);
+    /* d0 = c1; secp256k1_fe_add(&d0, &d1); */
+
+    secp256k1_fe_negate(&b1, &b0, 2);
+    secp256k1_fe_cmov(&b0, &b1, sign);
+    secp256k1_fe_normalize_weak(&b0);
+
+#ifdef VERIFY
+    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(&b0) == !zero_in);
+#endif
+
+    *r = b0;
 }
 
 #endif /* SECP256K1_FIELD_REPR_IMPL_H */

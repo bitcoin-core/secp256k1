@@ -233,6 +233,7 @@ SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) 
 #endif
 #endif
 
+#if defined(SECP256K1_SCALAR_INV_VAR_DEFAULT)
 static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
 #if defined(USE_SCALAR_INV_BUILTIN)
     secp256k1_scalar_inverse(r, x);
@@ -253,6 +254,7 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
 #error "Please select scalar inverse implementation"
 #endif
 }
+#endif
 
 #ifdef USE_ENDOMORPHISM
 #if defined(EXHAUSTIVE_TEST_ORDER)

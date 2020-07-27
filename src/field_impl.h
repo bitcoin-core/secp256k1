@@ -228,6 +228,7 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 }
 #endif
 
+#if defined(SECP256K1_FE_INV_VAR_DEFAULT)
 static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 #if defined(USE_FIELD_INV_BUILTIN)
     secp256k1_fe_inv(r, a);
@@ -264,6 +265,7 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 #error "Please select field inverse implementation"
 #endif
 }
+#endif
 
 static void secp256k1_fe_inv_all_var(secp256k1_fe *r, const secp256k1_fe *a, size_t len) {
     secp256k1_fe u;

@@ -1123,6 +1123,58 @@ static int secp256k1_scalar_divsteps_62(uint16_t eta, uint64_t f0, uint64_t g0, 
     return eta;
 }
 
+static int secp256k1_scalar_divsteps_62_var(uint16_t eta, uint64_t f0, uint64_t g0, int64_t *t) {
+
+    uint64_t u = -(uint64_t)1, v = 0, q = 0, r = -(uint64_t)1;
+    uint64_t f = f0, g = g0, m, w, x, y, z;
+    int i = 62, limit, zeros;
+
+    for (;;) {
+
+        /* Use a sentinel bit to count zeros only up to i. */
+        zeros = __builtin_ctzll(g | (UINT64_MAX << i));
+
+        g >>= zeros;
+        u <<= zeros;
+        v <<= zeros;
+        eta -= zeros;
+        i -= zeros;
+
+        if (i <= 0) {
+            break;
+        }
+
+        VERIFY_CHECK((f & 1) == 1);
+        VERIFY_CHECK((g & 1) == 1);
+        VERIFY_CHECK((u * f0 + v * g0) == -f << (62 - i));
+        VERIFY_CHECK((q * f0 + r * g0) == -g << (62 - i));
+
+        if ((int16_t)eta < 0) {
+            eta = -eta;
+            x = f; f = g; g = -x;
+            y = u; u = q; q = -y;
+            z = v; v = r; r = -z;
+        }
+
+        /* Handle up to 3 divsteps at once, subject to eta and i. */
+        limit = (eta + 1) > i ? i : (eta + 1);
+        m = (UINT64_MAX >> (64 - limit)) & 7U;
+
+        /* Note that f * f == 1 mod 8, for any f. */
+        w = (-f * g) & m;
+        g += f * w;
+        q += u * w;
+        r += v * w;
+    }
+
+    t[0] = (int64_t)u;
+    t[1] = (int64_t)v;
+    t[2] = (int64_t)q;
+    t[3] = (int64_t)r;
+
+    return eta;
+}
+
 static void secp256k1_scalar_update_fg(int64_t *f, int64_t *g, int64_t *t) {
 
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
@@ -1169,7 +1221,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
      * have a composite group order; fix it in exhaustive_tests.c). */
     VERIFY_CHECK(*r != 0);
 }
-#elif 1
+#else
 
     /* Modular inversion based on the paper "Fast constant-time gcd computation and
      * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang.
@@ -1260,163 +1312,94 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
     return !(a->d[0] & 1);
 }
-#else
-    secp256k1_scalar *t;
-    int i;
-    /* First compute xN as x ^ (2^N - 1) for some values of N,
-     * and uM as x ^ M for some values of M. */
-    secp256k1_scalar x2, x3, x6, x8, x14, x28, x56, x112, x126;
-    secp256k1_scalar u2, u5, u9, u11, u13;
-
-    secp256k1_scalar_sqr(&u2, x);
-    secp256k1_scalar_mul(&x2, &u2,  x);
-    secp256k1_scalar_mul(&u5, &u2, &x2);
-    secp256k1_scalar_mul(&x3, &u5,  &u2);
-    secp256k1_scalar_mul(&u9, &x3, &u2);
-    secp256k1_scalar_mul(&u11, &u9, &u2);
-    secp256k1_scalar_mul(&u13, &u11, &u2);
-
-    secp256k1_scalar_sqr(&x6, &u13);
-    secp256k1_scalar_sqr(&x6, &x6);
-    secp256k1_scalar_mul(&x6, &x6, &u11);
-
-    secp256k1_scalar_sqr(&x8, &x6);
-    secp256k1_scalar_sqr(&x8, &x8);
-    secp256k1_scalar_mul(&x8, &x8,  &x2);
-
-    secp256k1_scalar_sqr(&x14, &x8);
-    for (i = 0; i < 5; i++) {
-        secp256k1_scalar_sqr(&x14, &x14);
-    }
-    secp256k1_scalar_mul(&x14, &x14, &x6);
-
-    secp256k1_scalar_sqr(&x28, &x14);
-    for (i = 0; i < 13; i++) {
-        secp256k1_scalar_sqr(&x28, &x28);
-    }
-    secp256k1_scalar_mul(&x28, &x28, &x14);
-
-    secp256k1_scalar_sqr(&x56, &x28);
-    for (i = 0; i < 27; i++) {
-        secp256k1_scalar_sqr(&x56, &x56);
-    }
-    secp256k1_scalar_mul(&x56, &x56, &x28);
-
-    secp256k1_scalar_sqr(&x112, &x56);
-    for (i = 0; i < 55; i++) {
-        secp256k1_scalar_sqr(&x112, &x112);
-    }
-    secp256k1_scalar_mul(&x112, &x112, &x56);
-
-    secp256k1_scalar_sqr(&x126, &x112);
-    for (i = 0; i < 13; i++) {
-        secp256k1_scalar_sqr(&x126, &x126);
-    }
-    secp256k1_scalar_mul(&x126, &x126, &x14);
-
-    /* Then accumulate the final result (t starts at x126). */
-    t = &x126;
-    for (i = 0; i < 3; i++) {
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u5); /* 101 */
-    for (i = 0; i < 4; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x3); /* 111 */
-    for (i = 0; i < 4; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u5); /* 101 */
-    for (i = 0; i < 5; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u11); /* 1011 */
-    for (i = 0; i < 4; i++) {
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u11); /* 1011 */
-    for (i = 0; i < 4; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x3); /* 111 */
-    for (i = 0; i < 5; i++) { /* 00 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x3); /* 111 */
-    for (i = 0; i < 6; i++) { /* 00 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u13); /* 1101 */
-    for (i = 0; i < 4; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u5); /* 101 */
-    for (i = 0; i < 3; i++) {
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x3); /* 111 */
-    for (i = 0; i < 5; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u9); /* 1001 */
-    for (i = 0; i < 6; i++) { /* 000 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u5); /* 101 */
-    for (i = 0; i < 10; i++) { /* 0000000 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x3); /* 111 */
-    for (i = 0; i < 4; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x3); /* 111 */
-    for (i = 0; i < 9; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x8); /* 11111111 */
-    for (i = 0; i < 5; i++) { /* 0 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u9); /* 1001 */
-    for (i = 0; i < 6; i++) { /* 00 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u11); /* 1011 */
-    for (i = 0; i < 4; i++) {
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u13); /* 1101 */
-    for (i = 0; i < 5; i++) {
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &x2); /* 11 */
-    for (i = 0; i < 6; i++) { /* 00 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u13); /* 1101 */
-    for (i = 0; i < 10; i++) { /* 000000 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u13); /* 1101 */
-    for (i = 0; i < 4; i++) {
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, &u9); /* 1001 */
-    for (i = 0; i < 6; i++) { /* 00000 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(t, t, x); /* 1 */
-    for (i = 0; i < 8; i++) { /* 00 */
-        secp256k1_scalar_sqr(t, t);
-    }
-    secp256k1_scalar_mul(r, t, &x6); /* 111111 */
-}
-
-SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
-    return !(a->d[0] & 1);
-}
 #endif
+
+static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
+
+    /* Modular inversion based on the paper "Fast constant-time gcd computation and
+     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang.
+     */
+
+    int64_t t[12 * 4];
+    int64_t f[5] = { 0x3FD25E8CD0364141LL, 0x2ABB739ABD2280EELL, 0x3FFFFFFFFFFFFFEBLL,
+        0x3FFFFFFFFFFFFFFFLL, 0xFFLL };
+    int64_t g[5];
+    secp256k1_scalar b0, d0, a1, b1, c1, d1;
+    int i, sign;
+    int16_t eta;
+#ifdef VERIFY
+    int zero_in = secp256k1_scalar_is_zero(x);
+#endif
+
+    /* Instead of dividing the output by 2^744, scale the input. */
+    secp256k1_scalar_mul(&b0, x, &SECP256K1_SCALAR_TWO_POW_744);
+    secp256k1_scalar_encode_62(g, &b0);
+
+    /* The paper uses 'delta'; eta == -delta (a performance tweak). */
+    eta = -1;
+
+    for (i = 0; i < 12; ++i) {
+        eta = secp256k1_scalar_divsteps_62_var(eta, f[0], g[0], &t[i * 4]);
+        secp256k1_scalar_update_fg(f, g, &t[i * 4]);
+    }
+
+    /* At this point sufficient iterations have been performed that g must have reached 0
+     * and (if g was not originally 0) f must now equal +/- GCD of the initial f, g
+     * values i.e. +/- 1. The matrix outputs from each _divsteps_62 are combined to get
+     * the Bézout coefficients, and thus the modular inverse. The matrix outputs of
+     * _divsteps_62 introduce an extra factor of 2^62 each, so there is a total extra
+     * factor of 2^744 to account for (by scaling the input and/or output accordingly).
+     */
+
+    VERIFY_CHECK(g[0] == 0);
+
+    sign = (f[0] >> 1) & 1;
+
+    for (i = 0; i < 3; ++i) {
+        int tOff = i * 16;
+        secp256k1_scalar_combine_1s(&t[tOff + 0]);
+        secp256k1_scalar_combine_1s(&t[tOff + 8]);
+        secp256k1_scalar_combine_2s(&t[tOff + 0]);
+    }
+
+    /* secp256k1_scalar_decode_matrix(&a0, &t[0]); */
+    secp256k1_scalar_decode_matrix(&b0, &t[4]);
+    /* secp256k1_scalar_decode_matrix(&c0, &t[8]); */
+    secp256k1_scalar_decode_matrix(&d0, &t[12]);
+
+    secp256k1_scalar_decode_matrix(&a1, &t[16]);
+    secp256k1_scalar_decode_matrix(&b1, &t[20]);
+    secp256k1_scalar_decode_matrix(&c1, &t[24]);
+    secp256k1_scalar_decode_matrix(&d1, &t[28]);
+
+    secp256k1_scalar_mul(&a1, &a1, &b0);
+    secp256k1_scalar_mul(&b1, &b1, &d0);
+    secp256k1_scalar_mul(&c1, &c1, &b0);
+    secp256k1_scalar_mul(&d1, &d1, &d0);
+
+    secp256k1_scalar_add(&b0, &a1, &b1);
+    secp256k1_scalar_add(&d0, &c1, &d1);
+
+    secp256k1_scalar_decode_matrix(&a1, &t[32]);
+    secp256k1_scalar_decode_matrix(&b1, &t[36]);
+    /* secp256k1_scalar_decode_matrix(&c1, &t[40]); */
+    /* secp256k1_scalar_decode_matrix(&d1, &t[44]); */
+
+    secp256k1_scalar_mul(&a1, &a1, &b0);
+    secp256k1_scalar_mul(&b1, &b1, &d0);
+    /* secp256k1_scalar_mul(&c1, &c1, &b0); */
+    /* secp256k1_scalar_mul(&d1, &d1, &d0); */
+
+    secp256k1_scalar_add(&b0, &a1, &b1);
+    /* secp256k1_scalar_add(&d0, &c1, &d1); */
+
+    secp256k1_scalar_cond_negate(&b0, sign);
+
+#ifdef VERIFY
+    VERIFY_CHECK(!secp256k1_scalar_is_zero(&b0) == !zero_in);
+#endif
+
+    *r = b0;
+}
 
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */
