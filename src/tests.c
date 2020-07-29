@@ -29,8 +29,8 @@ void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 # endif
 #endif
 
-#include "contrib/lax_der_parsing.c"
-#include "contrib/lax_der_privatekey_parsing.c"
+#include "contrib/lax_der_ecdsa_sig_parsing.c"
+#include "contrib/lax_der_seckey_parsing.c"
 
 static int count = 64;
 static secp256k1_context *ctx = NULL;
@@ -4358,8 +4358,8 @@ void test_ecdsa_end_to_end(void) {
     CHECK(memcmp(&pubkey_tmp, &pubkey, sizeof(pubkey)) == 0);
 
     /* Verify private key import and export. */
-    CHECK(ec_privkey_export_der(ctx, seckey, &seckeylen, privkey, secp256k1_rand_bits(1) == 1));
-    CHECK(ec_privkey_import_der(ctx, privkey2, seckey, seckeylen) == 1);
+    CHECK(ec_seckey_export_der(ctx, seckey, &seckeylen, privkey, secp256k1_rand_bits(1) == 1));
+    CHECK(ec_seckey_import_der(ctx, privkey2, seckey, seckeylen) == 1);
     CHECK(memcmp(privkey, privkey2, 32) == 0);
 
     /* Optionally tweak the keys using addition. */
@@ -5229,9 +5229,9 @@ void test_ecdsa_edge_cases(void) {
             0xbf, 0xd2, 0x5e, 0x8c, 0xd0, 0x36, 0x41, 0x41,
         };
         size_t outlen = 300;
-        CHECK(!ec_privkey_export_der(ctx, privkey, &outlen, seckey, 0));
+        CHECK(!ec_seckey_export_der(ctx, privkey, &outlen, seckey, 0));
         outlen = 300;
-        CHECK(!ec_privkey_export_der(ctx, privkey, &outlen, seckey, 1));
+        CHECK(!ec_seckey_export_der(ctx, privkey, &outlen, seckey, 1));
     }
 }
 
@@ -5246,7 +5246,7 @@ EC_KEY *get_openssl_key(const unsigned char *key32) {
     const unsigned char* pbegin = privkey;
     int compr = secp256k1_rand_bits(1);
     EC_KEY *ec_key = EC_KEY_new_by_curve_name(NID_secp256k1);
-    CHECK(ec_privkey_export_der(ctx, privkey, &privkeylen, key32, compr));
+    CHECK(ec_seckey_export_der(ctx, privkey, &privkeylen, key32, compr));
     CHECK(d2i_ECPrivateKey(&ec_key, &pbegin, privkeylen));
     CHECK(EC_KEY_check_key(ec_key));
     return ec_key;

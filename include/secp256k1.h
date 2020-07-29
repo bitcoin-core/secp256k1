@@ -400,11 +400,20 @@ SECP256K1_API int secp256k1_ecdsa_signature_parse_compact(
  *        inputlen: the length of the array pointed to be input
  *
  *  This function will accept any valid DER encoded signature, even if the
- *  encoded numbers are out of range.
+ *  encoded numbers are out of range. This function enforces DER encoding
+ *  strictly, i.e., invalidly encoded signatures will be rejected.
  *
  *  After the call, sig will always be initialized. If parsing failed or the
  *  encoded numbers are out of range, signature validation with it is
  *  guaranteed to fail for every message and public key.
+ *
+ *  Note:
+ *  A parsing function which allows deviations from strict DER encoding is not
+ *  part of this API. A standalone C implementation of non-strict DER parsing
+ *  of ECDSA transactions (as for example present in historical blocks of the
+ *  Bitcoin blockchain) of ECDSA signatures can be found for example in the
+ *  Bitcoin Core project, see the function ecdsa_signature_parse_der_lax in
+ *  https://github.com/bitcoin/bitcoin/blob/master/src/pubkey.cpp .
  */
 SECP256K1_API int secp256k1_ecdsa_signature_parse_der(
     const secp256k1_context* ctx,
@@ -562,6 +571,13 @@ SECP256K1_API int secp256k1_ecdsa_sign(
  *           0: secret key is invalid
  *  Args:    ctx: pointer to a context object (cannot be NULL)
  *  In:      seckey: pointer to a 32-byte secret key (cannot be NULL)
+ *
+ *  Note:
+ *  A function to parse a DER encoded secret key is not part of this API but
+ *  a standalone C implementation of non-strict DER parsing of secret keys can
+ *  be found for example in the Bitcoin Core project, see
+ *  the function ec_seckey_import_der in
+ *  https://github.com/bitcoin/bitcoin/blob/master/src/key.cpp .
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_seckey_verify(
     const secp256k1_context* ctx,
