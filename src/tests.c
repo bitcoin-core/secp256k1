@@ -2218,6 +2218,9 @@ void test_ge(void) {
                 /* Normal doubling. */
                 secp256k1_gej_double_var(&resj, &gej[i2], NULL);
                 ge_equals_gej(&ref, &resj);
+                /* Constant-time doubling. */
+                secp256k1_gej_double(&resj, &gej[i2]);
+                ge_equals_gej(&ref, &resj);
             }
 
             /* Test adding opposites. */
