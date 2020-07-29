@@ -208,7 +208,7 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
         int n;
         int j;
         for (j = 0; j < WINDOW_A - 1; ++j) {
-            secp256k1_gej_double_nonzero(r, r);
+            secp256k1_gej_double(r, r);
         }
 
         n = wnaf_1[i];
