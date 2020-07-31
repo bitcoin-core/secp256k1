@@ -1083,7 +1083,7 @@ static void secp256k1_scalar_encode_62(int64_t *r, const secp256k1_scalar *a) {
 #endif
 }
 
-static int secp256k1_scalar_divsteps_62(uint16_t eta, uint64_t f0, uint64_t g0, int64_t *t) {
+static uint64_t secp256k1_scalar_divsteps_62(uint64_t eta, uint64_t f0, uint64_t g0, int64_t *t) {
 
     uint64_t u = -(uint64_t)1, v = 0, q = 0, r = -(uint64_t)1;
     uint64_t c1, c2, f = f0, g = g0, x, y, z;
@@ -1095,7 +1095,7 @@ static int secp256k1_scalar_divsteps_62(uint16_t eta, uint64_t f0, uint64_t g0, 
         VERIFY_CHECK((u * f0 + v * g0) == -f << i);
         VERIFY_CHECK((q * f0 + r * g0) == -g << i);
 
-        c1 = -(g & (eta >> 15));
+        c1 = -(g & (eta >> 63));
 
         x = (f ^ g) & c1;
         f ^= x; g ^= x; g ^= c1; g -= c1;
@@ -1106,7 +1106,7 @@ static int secp256k1_scalar_divsteps_62(uint16_t eta, uint64_t f0, uint64_t g0, 
         z = (v ^ r) & c1;
         v ^= z; r ^= z; r ^= c1; r -= c1;
 
-        eta = (eta ^ (uint16_t)c1) - (uint16_t)c1 - 1;
+        eta = (eta ^ c1) - c1 - 1;
 
         c2 = -(g & 1);
 
@@ -1123,7 +1123,7 @@ static int secp256k1_scalar_divsteps_62(uint16_t eta, uint64_t f0, uint64_t g0, 
     return eta;
 }
 
-static int secp256k1_scalar_divsteps_62_var(uint16_t eta, uint64_t f0, uint64_t g0, int64_t *t) {
+static uint64_t secp256k1_scalar_divsteps_62_var(uint64_t eta, uint64_t f0, uint64_t g0, int64_t *t) {
 
     uint64_t u = -(uint64_t)1, v = 0, q = 0, r = -(uint64_t)1;
     uint64_t f = f0, g = g0, m, w, x, y, z;
@@ -1149,7 +1149,7 @@ static int secp256k1_scalar_divsteps_62_var(uint16_t eta, uint64_t f0, uint64_t 
         VERIFY_CHECK((u * f0 + v * g0) == -f << (62 - i));
         VERIFY_CHECK((q * f0 + r * g0) == -g << (62 - i));
 
-        if ((int16_t)eta < 0) {
+        if ((int64_t)eta < 0) {
             eta = -eta;
             x = f; f = g; g = -x;
             y = u; u = q; q = -y;
@@ -1157,7 +1157,7 @@ static int secp256k1_scalar_divsteps_62_var(uint16_t eta, uint64_t f0, uint64_t 
         }
 
         /* Handle up to 3 divsteps at once, subject to eta and i. */
-        limit = (eta + 1) > i ? i : (eta + 1);
+        limit = ((int)eta + 1) > i ? i : ((int)eta + 1);
         m = (UINT64_MAX >> (64 - limit)) & 7U;
 
         /* Note that f * f == 1 mod 8, for any f. */
@@ -1233,7 +1233,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
     int64_t g[5];
     secp256k1_scalar b0, d0, a1, b1, c1, d1;
     int i, sign;
-    int16_t eta;
+    uint64_t eta;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
@@ -1243,7 +1243,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
     secp256k1_scalar_encode_62(g, &b0);
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak). */
-    eta = -1;
+    eta = -(uint64_t)1;
 
     for (i = 0; i < 12; ++i) {
         eta = secp256k1_scalar_divsteps_62(eta, f[0], g[0], &t[i * 4]);
@@ -1326,7 +1326,7 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     int64_t g[5];
     secp256k1_scalar b0, d0, a1, b1, c1, d1;
     int i, sign;
-    int16_t eta;
+    uint64_t eta;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
@@ -1336,7 +1336,7 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     secp256k1_scalar_encode_62(g, &b0);
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak). */
-    eta = -1;
+    eta = -(uint64_t)1;
 
     for (i = 0; i < 12; ++i) {
         eta = secp256k1_scalar_divsteps_62_var(eta, f[0], g[0], &t[i * 4]);
