@@ -135,7 +135,9 @@ int secp256k1_ecdsa_adaptor_sign(const secp256k1_context* ctx, unsigned char *ad
     secp256k1_ecmult_const(&rj, &adaptor_ge, &k, 256);
 
     /* 4. [sic] proof = DLEQ_prove((G,R'),(Y, R)) */
-    secp256k1_dleq_proof(&ctx->ecmult_gen_ctx, &dleq_proof_s, &dleq_proof_e, (unsigned char *)"ECDSAAdaptorSig", &k, &adaptor_ge);
+    if (!secp256k1_dleq_proof(&ctx->ecmult_gen_ctx, &dleq_proof_s, &dleq_proof_e, (unsigned char *)"ECDSAAdaptorSig", &k, &adaptor_ge)) {
+        return 0;
+    }
 
     /* 5. s' = k⁻¹(H(m) + x_coord(R)x) */
     secp256k1_ge_set_gej(&r, &rj);
