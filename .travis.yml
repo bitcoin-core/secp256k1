@@ -15,6 +15,9 @@ addons:
 compiler:
   - clang
   - gcc
+arch:
+  - AMD64
+  - arm64
 env:
   global:
     - FIELD=auto  BIGNUM=auto  SCALAR=auto  ENDOMORPHISM=no  STATICPRECOMPUTATION=yes  ECMULTGENPRECISION=auto  ASM=no  BUILD=check  EXTRAFLAGS=  HOST=  ECDH=no  RECOVERY=no  EXPERIMENTAL=no CTIMETEST=yes BENCH=yes ITERS=2
@@ -38,8 +41,21 @@ env:
     - ECMULTGENPRECISION=8
     - VALGRIND=yes ENDOMORPHISM=yes BIGNUM=no ASM=x86_64 EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes EXTRAFLAGS="--disable-openssl-tests" CPPFLAGS=-DVALGRIND BUILD=
     - VALGRIND=yes                  BIGNUM=no ASM=x86_64 EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes EXTRAFLAGS="--disable-openssl-tests" CPPFLAGS=-DVALGRIND BUILD=
+    - VALGRIND=yes ENDOMORPHISM=yes BIGNUM=no ASM=no EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes EXTRAFLAGS="--disable-openssl-tests" CPPFLAGS=-DVALGRIND BUILD=
+    - VALGRIND=yes                  BIGNUM=no ASM=no EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes EXTRAFLAGS="--disable-openssl-tests" CPPFLAGS=-DVALGRIND BUILD=
 matrix:
   fast_finish: true
+  exclude:
+    - arch: arm64
+      os: osx
+    - arch: arm64
+      env: FIELD=64bit                       ASM=x86_64
+    - arch: arm64
+      env: FIELD=64bit     ENDOMORPHISM=yes  ASM=x86_64
+    - arch: arm64
+      env: VALGRIND=yes ENDOMORPHISM=yes BIGNUM=no ASM=x86_64 EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes EXTRAFLAGS="--disable-openssl-tests" CPPFLAGS=-DVALGRIND BUILD=
+    - arch: arm64
+      env: VALGRIND=yes                  BIGNUM=no ASM=x86_64 EXPERIMENTAL=yes ECDH=yes  RECOVERY=yes EXTRAFLAGS="--disable-openssl-tests" CPPFLAGS=-DVALGRIND BUILD=
   include:
     - compiler: clang
       os: linux
