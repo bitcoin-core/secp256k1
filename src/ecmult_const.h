@@ -12,9 +12,10 @@
 
 /**
  * Multiply: R = q*A (in constant-time)
+ * A must not be the point at infinity.
  * Here `bits` should be set to the maximum bitlength of the _absolute value_ of `q`, plus
  * one because we internally sometimes add 2 to the number during the WNAF conversion.
  */
-static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, const secp256k1_scalar *q, int bits);
+static void secp256k1_ecmult_const_no_infinity(secp256k1_gej *r, const secp256k1_ge *a, const secp256k1_scalar *q, int bits);
 
 #endif /* SECP256K1_ECMULT_CONST_H */
