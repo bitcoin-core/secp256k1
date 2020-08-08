@@ -644,11 +644,11 @@ static uint64_t secp256k1_fe_divsteps_62_var(uint64_t eta, uint64_t f0, uint64_t
     return eta;
 }
 
-static void secp256k1_fe_update_de(int64_t *d, int64_t *e, int64_t *t) {
+static void secp256k1_fe_update_de_62(int64_t *d, int64_t *e, int64_t *t) {
 
-    /* I64 == -P^-1 mod 2^64 */
-    const int64_t I64 = 0xD838091DD2253531LL;
-    const int64_t C64 = 0x1000003D1LL;
+    /* I62 == -P^-1 mod 2^62 */
+    const int64_t I62 = 0x1838091DD2253531LL;
+    const int64_t C62 = 0x1000003D1LL;
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
     int64_t u = t[0], v = t[1], q = t[2], r = t[3], di, ei, md, me;
     int128_t cd = 0, ce = 0;
@@ -661,12 +661,12 @@ static void secp256k1_fe_update_de(int64_t *d, int64_t *e, int64_t *t) {
     ce -= (int128_t)q * di + (int128_t)r * ei;
 
     /* Calculate the multiples of P to add, to zero the 62 bottom bits. */
-    md = ((int128_t)I64 * (int64_t)cd) & M62;
-    me = ((int128_t)I64 * (int64_t)ce) & M62;
+    md = ((int128_t)I62 * (int64_t)cd) & M62;
+    me = ((int128_t)I62 * (int64_t)ce) & M62;
 
-    /* P == 2^256 - C64; subtract C64 products here. */
-    cd -= (int128_t)C64 * md;
-    ce -= (int128_t)C64 * me;
+    /* P == 2^256 - C62; subtract products of C62 here. */
+    cd -= (int128_t)C62 * md;
+    ce -= (int128_t)C62 * me;
 
     VERIFY_CHECK(((int64_t)cd & M62) == 0);
     VERIFY_CHECK(((int64_t)ce & M62) == 0);
@@ -686,16 +686,16 @@ static void secp256k1_fe_update_de(int64_t *d, int64_t *e, int64_t *t) {
         e[i - 1] = (int64_t)ce & M62; ce >>= 62;
     }
 
+    /* Add products of 2^256. */
+    cd += (int128_t)md << 8;
+    ce += (int128_t)me << 8;
+
     {
         di = d[4];
         ei = e[4];
 
         cd -= (int128_t)u * di + (int128_t)v * ei;
         ce -= (int128_t)q * di + (int128_t)r * ei;
-
-        /* In the final iteration, add the 2^256 products. */
-        cd += (int128_t)md << 8;
-        ce += (int128_t)me << 8;
 
         d[3] = (int64_t)cd & M62; cd >>= 62;
         e[3] = (int64_t)ce & M62; ce >>= 62;
@@ -705,7 +705,7 @@ static void secp256k1_fe_update_de(int64_t *d, int64_t *e, int64_t *t) {
     e[4] = (int64_t)ce;
 }
 
-static void secp256k1_fe_update_fg(int64_t *f, int64_t *g, int64_t *t) {
+static void secp256k1_fe_update_fg_62(int64_t *f, int64_t *g, int64_t *t) {
 
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
     int64_t u = t[0], v = t[1], q = t[2], r = t[3], fi, gi;
@@ -743,8 +743,7 @@ static void secp256k1_fe_update_fg(int64_t *f, int64_t *g, int64_t *t) {
 static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
     /* Modular inversion based on the paper "Fast constant-time gcd computation and
-     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang.
-     */
+     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang. */
 
     int64_t t[4];
     int64_t d[5] = { 0, 0, 0, 0, 0 };
@@ -772,14 +771,13 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
     for (i = 0; i < 12; ++i) {
         eta = secp256k1_fe_divsteps_62(eta, f[0], g[0], t);
-        secp256k1_fe_update_de(d, e, t);
-        secp256k1_fe_update_fg(f, g, t);
+        secp256k1_fe_update_de_62(d, e, t);
+        secp256k1_fe_update_fg_62(f, g, t);
     }
 
     /* At this point sufficient iterations have been performed that g must have reached 0
      * and (if g was not originally 0) f must now equal +/- GCD of the initial f, g
-     * values i.e. +/- 1, and d now contains +/- the modular inverse.
-     */
+     * values i.e. +/- 1, and d now contains +/- the modular inverse. */
 
     VERIFY_CHECK((g[0] | g[1] | g[2] | g[3] | g[4]) == 0);
 
@@ -801,8 +799,7 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 
     /* Modular inversion based on the paper "Fast constant-time gcd computation and
-     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang.
-     */
+     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang. */
 
     int64_t t[4];
     int64_t d[5] = { 0, 0, 0, 0, 0 };
@@ -830,8 +827,8 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 
     for (i = 0; i < 12; ++i) {
         eta = secp256k1_fe_divsteps_62_var(eta, f[0], g[0], t);
-        secp256k1_fe_update_de(d, e, t);
-        secp256k1_fe_update_fg(f, g, t);
+        secp256k1_fe_update_de_62(d, e, t);
+        secp256k1_fe_update_fg_62(f, g, t);
 
         if (g[0] == 0) {
             if ((g[1] | g[2] | g[3] | g[4]) == 0) {
@@ -843,8 +840,7 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
     VERIFY_CHECK(i < 12);
 
     /* At this point g is 0 and (if g was not originally 0) f must now equal +/- GCD of
-     * the initial f, g values i.e. +/- 1, and d now contains +/- the modular inverse.
-     */
+     * the initial f, g values i.e. +/- 1, and d now contains +/- the modular inverse. */
 
     sign = (f[0] >> 1) & 1;
 
