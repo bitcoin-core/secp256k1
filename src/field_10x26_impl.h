@@ -1353,8 +1353,8 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
     ce -= (int64_t)q * di + (int64_t)r * ei;
 
     /* Calculate the multiples of P to add, to zero the 30 bottom bits. */
-    md = ((int64_t)I30 * (int32_t)cd) & M30;
-    me = ((int64_t)I30 * (int32_t)ce) & M30;
+    md = (I30 * (int32_t)cd) & M30;
+    me = (I30 * (int32_t)ce) & M30;
 
     /* P == 2^256 - 2^32 - C30; subtract products of C30 here. */
     cd -= (int64_t)C30 * md;

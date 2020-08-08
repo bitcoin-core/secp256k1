@@ -661,8 +661,8 @@ static void secp256k1_fe_update_de_62(int64_t *d, int64_t *e, int64_t *t) {
     ce -= (int128_t)q * di + (int128_t)r * ei;
 
     /* Calculate the multiples of P to add, to zero the 62 bottom bits. */
-    md = ((int128_t)I62 * (int64_t)cd) & M62;
-    me = ((int128_t)I62 * (int64_t)ce) & M62;
+    md = (I62 * (int64_t)cd) & M62;
+    me = (I62 * (int64_t)ce) & M62;
 
     /* P == 2^256 - C62; subtract products of C62 here. */
     cd -= (int128_t)C62 * md;

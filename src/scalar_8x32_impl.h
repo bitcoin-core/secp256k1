@@ -983,10 +983,6 @@ static void secp256k1_scalar_encode_31(int32_t *r, const secp256k1_scalar *a) {
     r[6] = (a5 >> 26 | a6 <<  6) & M31;
     r[7] = (a6 >> 25 | a7 <<  7) & M31;
     r[8] =  a7 >> 24;
-
-#ifdef VERIFY
-    VERIFY_CHECK(secp256k1_scalar_check_overflow(a) == 0);
-#endif
 }
 
 static uint32_t secp256k1_scalar_divsteps_31(uint32_t eta, uint32_t f0, uint32_t g0, int32_t *t) {
