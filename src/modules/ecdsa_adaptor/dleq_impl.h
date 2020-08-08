@@ -1,20 +1,25 @@
 #ifndef _SECP256K1_DLEQ_IMPL_H_
 #define _SECP256K1_DLEQ_IMPL_H_
 
-/* Modified bip340 nonce function */
-static int nonce_function_dleq(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16) {
-    secp256k1_sha256 sha;
+/* Remove terminating NUL bytes */
+static int algo16_len(const unsigned char *algo16) {
     int algo16_len = 16;
 
-    if (algo16 == NULL) {
-        return 0;
-    }
     /* Remove terminating null bytes */
     while (algo16_len > 0 && !algo16[algo16_len - 1]) {
         algo16_len--;
     }
+    return algo16_len;
+}
 
-    secp256k1_sha256_initialize_tagged(&sha, algo16, algo16_len);
+/* Modified bip340 nonce function */
+static int nonce_function_dleq(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16) {
+    secp256k1_sha256 sha;
+
+    if (algo16 == NULL) {
+        return 0;
+    }
+    secp256k1_sha256_initialize_tagged(&sha, algo16, algo16_len(algo16));
     secp256k1_sha256_write(&sha, key32, 32);
     secp256k1_sha256_write(&sha, msg32, 32);
     secp256k1_sha256_finalize(&sha, nonce32);
@@ -74,7 +79,7 @@ static void secp256k1_dleq_challenge_hash(secp256k1_scalar *e, const unsigned ch
     secp256k1_sha256 sha;
     unsigned char buf32[32];
 
-    secp256k1_sha256_initialize_tagged(&sha, algo16, 16);
+    secp256k1_sha256_initialize_tagged(&sha, algo16, algo16_len(algo16));
     secp256k1_dleq_hash_point(&sha, gen2);
     secp256k1_dleq_hash_point(&sha, r1);
     secp256k1_dleq_hash_point(&sha, r2);
