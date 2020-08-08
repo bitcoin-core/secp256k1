@@ -738,217 +738,31 @@ static const secp256k1_scalar SECP256K1_SCALAR_NEG_TWO_POW_256 = SECP256K1_SCALA
     0x755DB9CDUL, 0x5E914077UL, 0x7FA4BD19UL, 0xA06C8282UL
 );
 
-static const secp256k1_scalar SECP256K1_SCALAR_TWO_POW_744 = SECP256K1_SCALAR_CONST(
-    0x4E165355UL, 0x5D800C18UL, 0xEF116DB1UL, 0xB31347F1UL,
-    0x6D77C2DCUL, 0x0E3E8029UL, 0x59BA208FUL, 0xFD01F4F7UL
-);
+static void secp256k1_scalar_decode_30(secp256k1_scalar *r, const int32_t *a) {
 
-static void secp256k1_scalar_mul_add_2(int32_t a0, int32_t a1, int32_t b0, int32_t b1, int32_t c0, int32_t c1, int32_t d0, int32_t d1, int32_t *t) {
-
-    /*  Each [a0,a1], etc. pair is a ??-bit signed value e.g. a0 + a1 * 2^32.
-     *  This method calculates ([a0,a1] * [c0,c1]) + ([b0,b1] * [d0,d1]), and
-     *  writes the ???-bit signed result to [t[0],t[1],t[2],t[3]].
-     */
-
-    int32_t z0, z1, z2, z3;
-    int64_t tt;
-
-    tt  = (int64_t)a0 * b0
-        + (int64_t)c0 * d0;
-    z0  = (int32_t)tt; tt -= z0; tt >>= 32;
-
-    tt += (int64_t)a0 * b1
-        + (int64_t)a1 * b0
-        + (int64_t)c0 * d1
-        + (int64_t)c1 * d0;
-    z1  = (int32_t)tt; tt -= z1; tt >>= 32;
-
-    tt += (int64_t)a1 * b1
-        + (int64_t)c1 * d1;
-    z2  = (int32_t)tt; tt -= z2; tt >>= 32;
-
-    z3 = (int32_t)tt;
-
-    t[0] = z0; t[1] = z1; t[2] = z2; t[3] = z3;
-}
-
-static void secp256k1_scalar_mul_add_4(int32_t* tIn, int xPos, int yPos, int uPos, int vPos, int32_t *tOut, int zzPos) {
-    int32_t y0 = tIn[yPos + 0];
-    int32_t y1 = tIn[yPos + 1];
-    int32_t y2 = tIn[yPos + 2];
-    int32_t y3 = tIn[yPos + 3];
-    int32_t v0 = tIn[vPos + 0];
-    int32_t v1 = tIn[vPos + 1];
-    int32_t v2 = tIn[vPos + 2];
-    int32_t v3 = tIn[vPos + 3];
-    int32_t xVal, uVal;
-    int32_t z0, z1, z2, z3, z4, z5, z6, z7;
-    int64_t c;
-
-    xVal = tIn[xPos];
-    uVal = tIn[uPos];
-
-    c  = (int64_t)xVal * y0 + (int64_t)uVal * v0;
-    z0 = (int32_t)c; c -= z0; c >>= 32;
-
-    c += (int64_t)xVal * y1 + (int64_t)uVal * v1;
-    z1 = (int32_t)c; c -= z1; c >>= 32;
-
-    c += (int64_t)xVal * y2 + (int64_t)uVal * v2;
-    z2 = (int32_t)c; c -= z2; c >>= 32;
-
-    c += (int64_t)xVal * y3 + (int64_t)uVal * v3;
-    z3 = (int32_t)c; c -= z3; c >>= 32;
-    z4 = (int32_t)c;
-
-    xVal = tIn[xPos + 1];
-    uVal = tIn[uPos + 1];
-
-    c  = (int64_t)xVal * y0 + (int64_t)uVal * v0 + z1;
-    z1 = (int32_t)c; c -= z1; c >>= 32;
-
-    c += (int64_t)xVal * y1 + (int64_t)uVal * v1 + z2;
-    z2 = (int32_t)c; c -= z2; c >>= 32;
-
-    c += (int64_t)xVal * y2 + (int64_t)uVal * v2 + z3;
-    z3 = (int32_t)c; c -= z3; c >>= 32;
-
-    c += (int64_t)xVal * y3 + (int64_t)uVal * v3 + z4;
-    z4 = (int32_t)c; c -= z4; c >>= 32;
-    z5 = (int32_t)c;
-
-    xVal = tIn[xPos + 2];
-    uVal = tIn[uPos + 2];
-
-    c  = (int64_t)xVal * y0 + (int64_t)uVal * v0 + z2;
-    z2 = (int32_t)c; c -= z2; c >>= 32;
-
-    c += (int64_t)xVal * y1 + (int64_t)uVal * v1 + z3;
-    z3 = (int32_t)c; c -= z3; c >>= 32;
-
-    c += (int64_t)xVal * y2 + (int64_t)uVal * v2 + z4;
-    z4 = (int32_t)c; c -= z4; c >>= 32;
-
-    c += (int64_t)xVal * y3 + (int64_t)uVal * v3 + z5;
-    z5 = (int32_t)c; c -= z5; c >>= 32;
-    z6 = (int32_t)c;
-
-    xVal = tIn[xPos + 3];
-    uVal = tIn[uPos + 3];
-
-    c  = (int64_t)xVal * y0 + (int64_t)uVal * v0 + z3;
-    z3 = (int32_t)c; c -= z3; c >>= 32;
-
-    c += (int64_t)xVal * y1 + (int64_t)uVal * v1 + z4;
-    z4 = (int32_t)c; c -= z4; c >>= 32;
-
-    c += (int64_t)xVal * y2 + (int64_t)uVal * v2 + z5;
-    z5 = (int32_t)c; c -= z5; c >>= 32;
-
-    c += (int64_t)xVal * y3 + (int64_t)uVal * v3 + z6;
-    z6 = (int32_t)c; c -= z6; c >>= 32;
-    z7 = (int32_t)c;
-
-    tOut[zzPos + 0] = z0;
-    tOut[zzPos + 1] = z1;
-    tOut[zzPos + 2] = z2;
-    tOut[zzPos + 3] = z3;
-    tOut[zzPos + 4] = z4;
-    tOut[zzPos + 5] = z5;
-    tOut[zzPos + 6] = z6;
-    tOut[zzPos + 7] = z7;
-}
-
-static void secp256k1_scalar_combine_1s(int32_t *t) {
-
-    int32_t a = t[0], b = t[1], c = t[2], d = t[3],
-            e = t[4], f = t[5], g = t[6], h = t[7];
-    int64_t I, J, K, L;
-
-    I = (int64_t)e * a + (int64_t)f * c;
-    J = (int64_t)e * b + (int64_t)f * d;
-    K = (int64_t)g * a + (int64_t)h * c;
-    L = (int64_t)g * b + (int64_t)h * d;
-
-    a = (int32_t)I; I -= a; I >>= 32; b = (int32_t)I;
-    c = (int32_t)J; J -= c; J >>= 32; d = (int32_t)J;
-    e = (int32_t)K; K -= e; K >>= 32; f = (int32_t)K;
-    g = (int32_t)L; L -= g; L >>= 32; h = (int32_t)L;
-
-    t[0] = a; t[1] = b; t[2] = c; t[3] = d;
-    t[4] = e; t[5] = f; t[6] = g; t[7] = h;
-}
-
-static void secp256k1_scalar_combine_2s(int32_t *t) {
-
-    int32_t a0 = t[ 0], a1 = t[ 1];
-    int32_t b0 = t[ 2], b1 = t[ 3];
-    int32_t c0 = t[ 4], c1 = t[ 5];
-    int32_t d0 = t[ 6], d1 = t[ 7];
-    int32_t e0 = t[ 8], e1 = t[ 9];
-    int32_t f0 = t[10], f1 = t[11];
-    int32_t g0 = t[12], g1 = t[13];
-    int32_t h0 = t[14], h1 = t[15];
-
-    secp256k1_scalar_mul_add_2(e0, e1, a0, a1, f0, f1, c0, c1, &t[0]);
-    secp256k1_scalar_mul_add_2(e0, e1, b0, b1, f0, f1, d0, d1, &t[4]);
-    secp256k1_scalar_mul_add_2(g0, g1, a0, a1, h0, h1, c0, c1, &t[8]);
-    secp256k1_scalar_mul_add_2(g0, g1, b0, b1, h0, h1, d0, d1, &t[12]);
-}
-
-static void secp256k1_scalar_combine_4s(int32_t *t)
-{
-    int32_t tmp[32];
-
-    int aPos = 0;
-    int bPos = 4;
-    int cPos = 8;
-    int dPos = 12;
-    int ePos = 16;
-    int fPos = 20;
-    int gPos = 24;
-    int hPos = 28;
-
-    int IPos = 0;
-    int JPos = 8;
-    int KPos = 16;
-    int LPos = 24;
-
-    secp256k1_scalar_mul_add_4(t, ePos, aPos, fPos, cPos, tmp, IPos);
-    secp256k1_scalar_mul_add_4(t, ePos, bPos, fPos, dPos, tmp, JPos);
-    secp256k1_scalar_mul_add_4(t, gPos, aPos, hPos, cPos, tmp, KPos);
-    secp256k1_scalar_mul_add_4(t, gPos, bPos, hPos, dPos, tmp, LPos);
-
-    memcpy(t, tmp, 32 * sizeof(int32_t));
-}
-
-static void secp256k1_scalar_decode_matrix(secp256k1_scalar *r, int32_t *t) {
-
+    uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4],
+             a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
     uint32_t r0, r1, r2, r3, r4, r5, r6, r7;
-    int flag;
+    int32_t t;
     secp256k1_scalar u;
-    int64_t cc;
 
-    cc  = t[0];
-    r0  = (uint32_t)cc; cc >>= 32;
-    cc += t[1];
-    r1  = (uint32_t)cc; cc >>= 32;
-    cc += t[2];
-    r2  = (uint32_t)cc; cc >>= 32;
-    cc += t[3];
-    r3  = (uint32_t)cc; cc >>= 32;
-    cc += t[4];
-    r4  = (uint32_t)cc; cc >>= 32;
-    cc += t[5];
-    r5  = (uint32_t)cc; cc >>= 32;
-    cc += t[6];
-    r6  = (uint32_t)cc; cc >>= 32;
-    cc += t[7];
-    r7  = (uint32_t)cc; cc >>= 32;
+    VERIFY_CHECK(a0 >> 30 == 0);
+    VERIFY_CHECK(a1 >> 30 == 0);
+    VERIFY_CHECK(a2 >> 30 == 0);
+    VERIFY_CHECK(a3 >> 30 == 0);
+    VERIFY_CHECK(a4 >> 30 == 0);
+    VERIFY_CHECK(a5 >> 30 == 0);
+    VERIFY_CHECK(a6 >> 30 == 0);
+    VERIFY_CHECK(a7 >> 30 == 0);
 
-    VERIFY_CHECK(cc == 0 || cc == -1);
-
-    flag = (int)cc & 1;
+    r0 = a0       | a1 << 30;
+    r1 = a1 >>  2 | a2 << 28;
+    r2 = a2 >>  4 | a3 << 26;
+    r3 = a3 >>  6 | a4 << 24;
+    r4 = a4 >>  8 | a5 << 22;
+    r5 = a5 >> 10 | a6 << 20;
+    r6 = a6 >> 12 | a7 << 18;
+    r7 = a7 >> 14 | a8 << 16;
 
     r->d[0] = r0;
     r->d[1] = r1;
@@ -959,13 +773,23 @@ static void secp256k1_scalar_decode_matrix(secp256k1_scalar *r, int32_t *t) {
     r->d[6] = r6;
     r->d[7] = r7;
 
+    secp256k1_scalar_reduce(r, secp256k1_scalar_check_overflow(r));
+
+    t = (int32_t)a8 >> 16;
+
+    VERIFY_CHECK(t == 1 || t == 0 || t == -1);
+
     secp256k1_scalar_add(&u, r, &SECP256K1_SCALAR_NEG_TWO_POW_256);
-    secp256k1_scalar_cmov(r, &u, flag);
+    secp256k1_scalar_cmov(r, &u, a8 >> 31);
+
+    t += a8 >> 31;
+
+    secp256k1_scalar_reduce(r, t);
 }
 
-static void secp256k1_scalar_encode_31(int32_t *r, const secp256k1_scalar *a) {
+static void secp256k1_scalar_encode_30(int32_t *r, const secp256k1_scalar *a) {
 
-    const uint32_t M31 = UINT32_MAX >> 1;
+    const uint32_t M30 = UINT32_MAX >> 2;
     const uint32_t *d = &a->d[0];
     uint32_t a0 = d[0], a1 = d[1], a2 = d[2], a3 = d[3],
              a4 = d[4], a5 = d[5], a6 = d[6], a7 = d[7];
@@ -974,24 +798,24 @@ static void secp256k1_scalar_encode_31(int32_t *r, const secp256k1_scalar *a) {
     VERIFY_CHECK(secp256k1_scalar_check_overflow(a) == 0);
 #endif
 
-    r[0] =  a0                   & M31;
-    r[1] = (a0 >> 31 | a1 <<  1) & M31;
-    r[2] = (a1 >> 30 | a2 <<  2) & M31;
-    r[3] = (a2 >> 29 | a3 <<  3) & M31;
-    r[4] = (a3 >> 28 | a4 <<  4) & M31;
-    r[5] = (a4 >> 27 | a5 <<  5) & M31;
-    r[6] = (a5 >> 26 | a6 <<  6) & M31;
-    r[7] = (a6 >> 25 | a7 <<  7) & M31;
-    r[8] =  a7 >> 24;
+    r[0] =  a0                   & M30;
+    r[1] = (a0 >> 30 | a1 <<  2) & M30;
+    r[2] = (a1 >> 28 | a2 <<  4) & M30;
+    r[3] = (a2 >> 26 | a3 <<  6) & M30;
+    r[4] = (a3 >> 24 | a4 <<  8) & M30;
+    r[5] = (a4 >> 22 | a5 << 10) & M30;
+    r[6] = (a5 >> 20 | a6 << 12) & M30;
+    r[7] = (a6 >> 18 | a7 << 14) & M30;
+    r[8] =  a7 >> 16;
 }
 
-static uint32_t secp256k1_scalar_divsteps_31(uint32_t eta, uint32_t f0, uint32_t g0, int32_t *t) {
+static uint32_t secp256k1_scalar_divsteps_30(uint32_t eta, uint32_t f0, uint32_t g0, int32_t *t) {
 
     uint32_t u = -(uint32_t)1, v = 0, q = 0, r = -(uint32_t)1;
     uint32_t c1, c2, f = f0, g = g0, x, y, z;
     int i;
 
-    for (i = 0; i < 31; ++i) {
+    for (i = 0; i < 30; ++i) {
 
         VERIFY_CHECK((f & 1) == 1);
         VERIFY_CHECK((u * f0 + v * g0) == -f << i);
@@ -1025,11 +849,11 @@ static uint32_t secp256k1_scalar_divsteps_31(uint32_t eta, uint32_t f0, uint32_t
     return eta;
 }
 
-static uint32_t secp256k1_scalar_divsteps_31_var(uint32_t eta, uint32_t f0, uint32_t g0, int32_t *t) {
+static uint32_t secp256k1_scalar_divsteps_30_var(uint32_t eta, uint32_t f0, uint32_t g0, int32_t *t) {
 
     uint32_t u = -(uint32_t)1, v = 0, q = 0, r = -(uint32_t)1;
     uint32_t f = f0, g = g0, m, w, x, y, z;
-    int i = 31, limit, zeros;
+    int i = 30, limit, zeros;
 
     for (;;) {
 
@@ -1048,8 +872,8 @@ static uint32_t secp256k1_scalar_divsteps_31_var(uint32_t eta, uint32_t f0, uint
 
         VERIFY_CHECK((f & 1) == 1);
         VERIFY_CHECK((g & 1) == 1);
-        VERIFY_CHECK((u * f0 + v * g0) == -f << (31 - i));
-        VERIFY_CHECK((q * f0 + r * g0) == -g << (31 - i));
+        VERIFY_CHECK((u * f0 + v * g0) == -f << (30 - i));
+        VERIFY_CHECK((q * f0 + r * g0) == -g << (30 - i));
 
         if ((int32_t)eta < 0) {
             eta = -eta;
@@ -1077,9 +901,58 @@ static uint32_t secp256k1_scalar_divsteps_31_var(uint32_t eta, uint32_t f0, uint
     return eta;
 }
 
-static void secp256k1_scalar_update_fg(int32_t *f, int32_t *g, int32_t *t) {
+static void secp256k1_scalar_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
 
-    const int32_t M31 = (int32_t)(UINT32_MAX >> 1);
+    /* I30 == -P^-1 mod 2^30 */
+    const int32_t I30 = 0x1588B13FL;
+    const int32_t P[9] = { 0x10364141L, 0x3F497A33L, 0x348A03BBL, 0x2BB739ABL,
+        0x3FFFFEBAL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0xFFFFL };
+    const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
+    int32_t u = t[0], v = t[1], q = t[2], r = t[3], di, ei, md, me;
+    int64_t cd = 0, ce = 0;
+    int i;
+
+    di = d[0];
+    ei = e[0];
+
+    cd -= (int64_t)u * di + (int64_t)v * ei;
+    ce -= (int64_t)q * di + (int64_t)r * ei;
+
+    /* Calculate the multiples of P to add, to zero the 30 bottom bits. */
+    md = (I30 * (int32_t)cd) & M30;
+    me = (I30 * (int32_t)ce) & M30;
+
+    cd += (int64_t)P[0] * md;
+    ce += (int64_t)P[0] * me;
+
+    VERIFY_CHECK(((int32_t)cd & M30) == 0);
+    VERIFY_CHECK(((int32_t)ce & M30) == 0);
+
+    cd >>= 30;
+    ce >>= 30;
+
+    for (i = 1; i < 9; ++i) {
+
+        di = d[i];
+        ei = e[i];
+
+        cd -= (int64_t)u * di + (int64_t)v * ei;
+        ce -= (int64_t)q * di + (int64_t)r * ei;
+
+        cd += (int64_t)P[i] * md;
+        ce += (int64_t)P[i] * me;
+
+        d[i - 1] = (int32_t)cd & M30; cd >>= 30;
+        e[i - 1] = (int32_t)ce & M30; ce >>= 30;
+    }
+
+    d[8] = (int32_t)cd;
+    e[8] = (int32_t)ce;
+}
+
+static void secp256k1_scalar_update_fg_30(int32_t *f, int32_t *g, int32_t *t) {
+
+    const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
     int32_t u = t[0], v = t[1], q = t[2], r = t[3], fi, gi;
     int64_t cf = 0, cg = 0;
     int i;
@@ -1090,11 +963,11 @@ static void secp256k1_scalar_update_fg(int32_t *f, int32_t *g, int32_t *t) {
     cf -= (int64_t)u * fi + (int64_t)v * gi;
     cg -= (int64_t)q * fi + (int64_t)r * gi;
 
-    VERIFY_CHECK(((int32_t)cf & M31) == 0);
-    VERIFY_CHECK(((int32_t)cg & M31) == 0);
+    VERIFY_CHECK(((int32_t)cf & M30) == 0);
+    VERIFY_CHECK(((int32_t)cg & M30) == 0);
 
-    cf >>= 31;
-    cg >>= 31;
+    cf >>= 30;
+    cg >>= 30;
 
     for (i = 1; i < 9; ++i) {
 
@@ -1104,8 +977,8 @@ static void secp256k1_scalar_update_fg(int32_t *f, int32_t *g, int32_t *t) {
         cf -= (int64_t)u * fi + (int64_t)v * gi;
         cg -= (int64_t)q * fi + (int64_t)r * gi;
 
-        f[i - 1] = (int32_t)cf & M31; cf >>= 31;
-        g[i - 1] = (int32_t)cg & M31; cg >>= 31;
+        f[i - 1] = (int32_t)cf & M30; cf >>= 30;
+        g[i - 1] = (int32_t)cg & M30; cg >>= 30;
     }
 
     f[8] = (int32_t)cf;
@@ -1126,86 +999,42 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 #else
 
     /* Modular inversion based on the paper "Fast constant-time gcd computation and
-     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang.
-     */
+     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang. */
 
-    int32_t t[24 * 4];
-    int32_t f[9] = { 0x50364141L, 0x7FA4BD19L, 0x3D2280EEL, 0x5576E735L, 0x7FFFFFEBL,
-        0x7FFFFFFFL, 0x7FFFFFFFL, 0x7FFFFFFFL, 0xFFL };
+    int32_t t[4];
+    int32_t d[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    int32_t e[9] = { 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+    int32_t f[9] = { 0x10364141L, 0x3F497A33L, 0x348A03BBL, 0x2BB739ABL,
+        0x3FFFFEBAL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0xFFFFL };
     int32_t g[9];
-    secp256k1_scalar b0, d0, a1, b1, c1, d1;
+    secp256k1_scalar b0;
     int i, sign;
     uint32_t eta;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
 
-    /* Instead of dividing the output by 2^744, scale the input. */
-    secp256k1_scalar_mul(&b0, x, &SECP256K1_SCALAR_TWO_POW_744);
-    secp256k1_scalar_encode_31(g, &b0);
+    b0 = *x;
+    secp256k1_scalar_encode_30(g, &b0);
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak). */
     eta = -(uint32_t)1;
 
-    for (i = 0; i < 24; ++i) {
-        eta = secp256k1_scalar_divsteps_31(eta, f[0], g[0], &t[i * 4]);
-        secp256k1_scalar_update_fg(f, g, &t[i * 4]);
+    for (i = 0; i < 25; ++i) {
+        eta = secp256k1_scalar_divsteps_30(eta, f[0], g[0], t);
+        secp256k1_scalar_update_de_30(d, e, t);
+        secp256k1_scalar_update_fg_30(f, g, t);
     }
 
     /* At this point sufficient iterations have been performed that g must have reached 0
      * and (if g was not originally 0) f must now equal +/- GCD of the initial f, g
-     * values i.e. +/- 1. The matrix outputs from each _divsteps_31 are combined to get
-     * the Bézout coefficients, and thus the modular inverse. The matrix outputs of
-     * _divsteps_31 introduce an extra factor of 2^31 each, so there is a total extra
-     * factor of 2^744 to account for (by scaling the input and/or output accordingly).
-     */
+     * values i.e. +/- 1, and d now contains +/- the modular inverse. */
 
-    VERIFY_CHECK(g[0] == 0);
+    VERIFY_CHECK((g[0] | g[1] | g[2] | g[3] | g[4] | g[5] | g[6] | g[7] | g[8]) == 0);
 
     sign = (f[0] >> 1) & 1;
 
-    for (i = 0; i < 3; ++i) {
-        int tOff = i * 32;
-        secp256k1_scalar_combine_1s(&t[tOff +  0]);
-        secp256k1_scalar_combine_1s(&t[tOff +  8]);
-        secp256k1_scalar_combine_1s(&t[tOff + 16]);
-        secp256k1_scalar_combine_1s(&t[tOff + 24]);
-        secp256k1_scalar_combine_2s(&t[tOff +  0]);
-        secp256k1_scalar_combine_2s(&t[tOff + 16]);
-        secp256k1_scalar_combine_4s(&t[tOff +  0]);
-    }
-
-    /* secp256k1_scalar_decode_matrix(&a0, &t[0]); */
-    secp256k1_scalar_decode_matrix(&b0, &t[8]);
-    /* secp256k1_scalar_decode_matrix(&c0, &t[16]); */
-    secp256k1_scalar_decode_matrix(&d0, &t[24]);
-
-    secp256k1_scalar_decode_matrix(&a1, &t[32]);
-    secp256k1_scalar_decode_matrix(&b1, &t[40]);
-    secp256k1_scalar_decode_matrix(&c1, &t[48]);
-    secp256k1_scalar_decode_matrix(&d1, &t[56]);
-
-    secp256k1_scalar_mul(&a1, &a1, &b0);
-    secp256k1_scalar_mul(&b1, &b1, &d0);
-    secp256k1_scalar_mul(&c1, &c1, &b0);
-    secp256k1_scalar_mul(&d1, &d1, &d0);
-
-    secp256k1_scalar_add(&b0, &a1, &b1);
-    secp256k1_scalar_add(&d0, &c1, &d1);
-
-    secp256k1_scalar_decode_matrix(&a1, &t[64]);
-    secp256k1_scalar_decode_matrix(&b1, &t[72]);
-    /* secp256k1_scalar_decode_matrix(&c1, &t[80]); */
-    /* secp256k1_scalar_decode_matrix(&d1, &t[88]); */
-
-    secp256k1_scalar_mul(&a1, &a1, &b0);
-    secp256k1_scalar_mul(&b1, &b1, &d0);
-    /* secp256k1_scalar_mul(&c1, &c1, &b0); */
-    /* secp256k1_scalar_mul(&d1, &d1, &d0); */
-
-    secp256k1_scalar_add(&b0, &a1, &b1);
-    /* secp256k1_scalar_add(&d0, &c1, &d1); */
-
+    secp256k1_scalar_decode_30(&b0, d);
     secp256k1_scalar_cond_negate(&b0, sign);
 
 #ifdef VERIFY
@@ -1223,86 +1052,47 @@ SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) 
 static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
 
     /* Modular inversion based on the paper "Fast constant-time gcd computation and
-     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang.
-     */
+     * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang. */
 
-    int32_t t[24 * 4];
-    int32_t f[9] = { 0x50364141L, 0x7FA4BD19L, 0x3D2280EEL, 0x5576E735L, 0x7FFFFFEBL,
-        0x7FFFFFFFL, 0x7FFFFFFFL, 0x7FFFFFFFL, 0xFFL };
+    int32_t t[4];
+    int32_t d[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    int32_t e[9] = { 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+    int32_t f[9] = { 0x10364141L, 0x3F497A33L, 0x348A03BBL, 0x2BB739ABL,
+        0x3FFFFEBAL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0xFFFFL };
     int32_t g[9];
-    secp256k1_scalar b0, d0, a1, b1, c1, d1;
+    secp256k1_scalar b0;
     int i, sign;
     uint32_t eta;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
 
-    /* Instead of dividing the output by 2^744, scale the input. */
-    secp256k1_scalar_mul(&b0, x, &SECP256K1_SCALAR_TWO_POW_744);
-    secp256k1_scalar_encode_31(g, &b0);
+    b0 = *x;
+    secp256k1_scalar_encode_30(g, &b0);
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak). */
     eta = -(uint32_t)1;
 
-    for (i = 0; i < 24; ++i) {
-        eta = secp256k1_scalar_divsteps_31_var(eta, f[0], g[0], &t[i * 4]);
-        secp256k1_scalar_update_fg(f, g, &t[i * 4]);
+    for (i = 0; i < 25; ++i) {
+        eta = secp256k1_scalar_divsteps_30_var(eta, f[0], g[0], t);
+        secp256k1_scalar_update_de_30(d, e, t);
+        secp256k1_scalar_update_fg_30(f, g, t);
+
+        if (g[0] == 0) {
+            if ((g[1] | g[2] | g[3] | g[4] | g[5] | g[6] | g[7] | g[8]) == 0) {
+                break;
+            }
+        }
     }
 
-    /* At this point sufficient iterations have been performed that g must have reached 0
-     * and (if g was not originally 0) f must now equal +/- GCD of the initial f, g
-     * values i.e. +/- 1. The matrix outputs from each _divsteps_31_var are combined to
-     * get the Bézout coefficients, and thus the modular inverse. The matrix outputs of
-     * _divsteps_31_var introduce an extra factor of 2^31 each, so there is a total extra
-     * factor of 2^744 to account for (by scaling the input and/or output accordingly).
-     */
+    VERIFY_CHECK(i < 25);
 
-    VERIFY_CHECK(g[0] == 0);
+    /* At this point g is 0 and (if g was not originally 0) f must now equal +/- GCD of
+     * the initial f, g values i.e. +/- 1, and d now contains +/- the modular inverse. */
 
     sign = (f[0] >> 1) & 1;
 
-    for (i = 0; i < 3; ++i) {
-        int tOff = i * 32;
-        secp256k1_scalar_combine_1s(&t[tOff +  0]);
-        secp256k1_scalar_combine_1s(&t[tOff +  8]);
-        secp256k1_scalar_combine_1s(&t[tOff + 16]);
-        secp256k1_scalar_combine_1s(&t[tOff + 24]);
-        secp256k1_scalar_combine_2s(&t[tOff +  0]);
-        secp256k1_scalar_combine_2s(&t[tOff + 16]);
-        secp256k1_scalar_combine_4s(&t[tOff +  0]);
-    }
-
-    /* secp256k1_scalar_decode_matrix(&a0, &t[0]); */
-    secp256k1_scalar_decode_matrix(&b0, &t[8]);
-    /* secp256k1_scalar_decode_matrix(&c0, &t[16]); */
-    secp256k1_scalar_decode_matrix(&d0, &t[24]);
-
-    secp256k1_scalar_decode_matrix(&a1, &t[32]);
-    secp256k1_scalar_decode_matrix(&b1, &t[40]);
-    secp256k1_scalar_decode_matrix(&c1, &t[48]);
-    secp256k1_scalar_decode_matrix(&d1, &t[56]);
-
-    secp256k1_scalar_mul(&a1, &a1, &b0);
-    secp256k1_scalar_mul(&b1, &b1, &d0);
-    secp256k1_scalar_mul(&c1, &c1, &b0);
-    secp256k1_scalar_mul(&d1, &d1, &d0);
-
-    secp256k1_scalar_add(&b0, &a1, &b1);
-    secp256k1_scalar_add(&d0, &c1, &d1);
-
-    secp256k1_scalar_decode_matrix(&a1, &t[64]);
-    secp256k1_scalar_decode_matrix(&b1, &t[72]);
-    /* secp256k1_scalar_decode_matrix(&c1, &t[80]); */
-    /* secp256k1_scalar_decode_matrix(&d1, &t[88]); */
-
-    secp256k1_scalar_mul(&a1, &a1, &b0);
-    secp256k1_scalar_mul(&b1, &b1, &d0);
-    /* secp256k1_scalar_mul(&c1, &c1, &b0); */
-    /* secp256k1_scalar_mul(&d1, &d1, &d0); */
-
-    secp256k1_scalar_add(&b0, &a1, &b1);
-    /* secp256k1_scalar_add(&d0, &c1, &d1); */
-
+    secp256k1_scalar_decode_30(&b0, d);
     secp256k1_scalar_cond_negate(&b0, sign);
 
 #ifdef VERIFY
