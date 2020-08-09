@@ -1132,8 +1132,7 @@ static void secp256k1_scalar_update_de_62(int64_t *d, int64_t *e, int64_t *t) {
 
     /* I62 == -P^-1 mod 2^62 */
     const int64_t I62 = 0x0B0DFF665588B13FLL;
-    const int64_t P[5] = { 0x3FD25E8CD0364141LL, 0x2ABB739ABD2280EELL, 0x3FFFFFFFFFFFFFEBLL,
-        0x3FFFFFFFFFFFFFFFLL, 0xFFLL };
+    const int64_t P[5] = { 0x3FD25E8CD0364141LL, 0x2ABB739ABD2280EELL, -0x15LL, 0, 256 };
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
     int64_t u = t[0], v = t[1], q = t[2], r = t[3], di, ei, md, me;
     int128_t cd = 0, ce = 0;
