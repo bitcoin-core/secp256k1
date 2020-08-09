@@ -1373,8 +1373,8 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
     ce >>= 30;
 
     /* Subtract products of 2^32. */
-    cd -= (int64_t)md << 2;
-    ce -= (int64_t)me << 2;
+    cd -= (int64_t)4 * md;
+    ce -= (int64_t)4 * me;
 
     for (i = 1; i < 8; ++i) {
 
@@ -1389,8 +1389,8 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
     }
 
     /* Add products of 2^256. */
-    cd += (int64_t)md << 16;
-    ce += (int64_t)me << 16;
+    cd += (int64_t)65536 * md;
+    ce += (int64_t)65536 * me;
 
     {
         di = d[8];

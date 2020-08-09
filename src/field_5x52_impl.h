@@ -693,8 +693,8 @@ static void secp256k1_fe_update_de_62(int64_t *d, int64_t *e, int64_t *t) {
     }
 
     /* Add products of 2^256. */
-    cd += (int128_t)md << 8;
-    ce += (int128_t)me << 8;
+    cd += (int128_t)256 * md;
+    ce += (int128_t)256 * me;
 
     {
         di = d[4];
