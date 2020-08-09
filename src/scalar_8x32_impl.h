@@ -925,7 +925,6 @@ static void secp256k1_scalar_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
     const int32_t I30 = 0x1588B13FL;
     const int32_t P[9] = { 0x10364141L, 0x3F497A33L, 0x348A03BBL, 0x2BB739ABL, -0x146L,
         0, 0, 0, 65536 };
-
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
     int32_t u = t[0], v = t[1], q = t[2], r = t[3], di, ei, md, me;
     int64_t cd = 0, ce = 0;

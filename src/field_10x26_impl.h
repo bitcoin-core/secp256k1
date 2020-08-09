@@ -1358,7 +1358,7 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
 
     /* I30 == -P^-1 mod 2^30 */
     const int32_t I30 = 0x12253531L;
-    const int32_t C30 = 0x3D1L;
+    const int32_t P[9] = { -0x3D1L, -4L, 0, 0, 0, 0, 0, 0, 65536 };
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
     int32_t u = t[0], v = t[1], q = t[2], r = t[3], di, ei, md, me;
     int64_t cd = 0, ce = 0;
@@ -1374,9 +1374,8 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
     md = (I30 * (int32_t)cd) & M30;
     me = (I30 * (int32_t)ce) & M30;
 
-    /* P == 2^256 - 2^32 - C30; subtract products of C30 here. */
-    cd -= (int64_t)C30 * md;
-    ce -= (int64_t)C30 * me;
+    cd += (int64_t)P[0] * md;
+    ce += (int64_t)P[0] * me;
 
     VERIFY_CHECK(((int32_t)cd & M30) == 0);
     VERIFY_CHECK(((int32_t)ce & M30) == 0);
@@ -1384,11 +1383,7 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
     cd >>= 30;
     ce >>= 30;
 
-    /* Subtract products of 2^32. */
-    cd -= (int64_t)4 * md;
-    ce -= (int64_t)4 * me;
-
-    for (i = 1; i < 8; ++i) {
+    for (i = 1; i < 9; ++i) {
 
         di = d[i];
         ei = e[i];
@@ -1396,23 +1391,11 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
         cd -= (int64_t)u * di + (int64_t)v * ei;
         ce -= (int64_t)q * di + (int64_t)r * ei;
 
+        cd += (int64_t)P[i] * md;
+        ce += (int64_t)P[i] * me;
+
         d[i - 1] = (int32_t)cd & M30; cd >>= 30;
         e[i - 1] = (int32_t)ce & M30; ce >>= 30;
-    }
-
-    /* Add products of 2^256. */
-    cd += (int64_t)65536 * md;
-    ce += (int64_t)65536 * me;
-
-    {
-        di = d[8];
-        ei = e[8];
-
-        cd -= (int64_t)u * di + (int64_t)v * ei;
-        ce -= (int64_t)q * di + (int64_t)r * ei;
-
-        d[7] = (int32_t)cd & M30; cd >>= 30;
-        e[7] = (int32_t)ce & M30; ce >>= 30;
     }
 
     d[8] = (int32_t)cd;

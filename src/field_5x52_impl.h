@@ -669,7 +669,7 @@ static void secp256k1_fe_update_de_62(int64_t *d, int64_t *e, int64_t *t) {
 
     /* I62 == -P^-1 mod 2^62 */
     const int64_t I62 = 0x1838091DD2253531LL;
-    const int64_t C62 = 0x1000003D1LL;
+    int64_t P[5] = { -0x1000003D1LL, 0, 0, 0, 256 }; 
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
     int64_t u = t[0], v = t[1], q = t[2], r = t[3], di, ei, md, me;
     int128_t cd = 0, ce = 0;
@@ -686,8 +686,8 @@ static void secp256k1_fe_update_de_62(int64_t *d, int64_t *e, int64_t *t) {
     me = (I62 * (int64_t)ce) & M62;
 
     /* P == 2^256 - C62; subtract products of C62 here. */
-    cd -= (int128_t)C62 * md;
-    ce -= (int128_t)C62 * me;
+    cd += (int128_t)P[0] * md;
+    ce += (int128_t)P[0] * me;
 
     VERIFY_CHECK(((int64_t)cd & M62) == 0);
     VERIFY_CHECK(((int64_t)ce & M62) == 0);
@@ -695,7 +695,7 @@ static void secp256k1_fe_update_de_62(int64_t *d, int64_t *e, int64_t *t) {
     cd >>= 62;
     ce >>= 62;
 
-    for (i = 1; i < 4; ++i) {
+    for (i = 1; i < 5; ++i) {
 
         di = d[i];
         ei = e[i];
@@ -703,23 +703,11 @@ static void secp256k1_fe_update_de_62(int64_t *d, int64_t *e, int64_t *t) {
         cd -= (int128_t)u * di + (int128_t)v * ei;
         ce -= (int128_t)q * di + (int128_t)r * ei;
 
+        cd += (int128_t)P[i] * md;
+        ce += (int128_t)P[i] * me;
+
         d[i - 1] = (int64_t)cd & M62; cd >>= 62;
         e[i - 1] = (int64_t)ce & M62; ce >>= 62;
-    }
-
-    /* Add products of 2^256. */
-    cd += (int128_t)256 * md;
-    ce += (int128_t)256 * me;
-
-    {
-        di = d[4];
-        ei = e[4];
-
-        cd -= (int128_t)u * di + (int128_t)v * ei;
-        ce -= (int128_t)q * di + (int128_t)r * ei;
-
-        d[3] = (int64_t)cd & M62; cd >>= 62;
-        e[3] = (int64_t)ce & M62; ce >>= 62;
     }
 
     d[4] = (int64_t)cd;
