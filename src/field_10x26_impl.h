@@ -1317,6 +1317,7 @@ static uint32_t secp256k1_fe_divsteps_30_var(uint32_t eta, uint32_t f0, uint32_t
             z = v; v = r; r = -z;
         }
 
+#if 1
         /* Handle up to 3 divsteps at once, subject to eta and i. */
         limit = ((int)eta + 1) > i ? i : ((int)eta + 1);
         m = (UINT32_MAX >> (32 - limit)) & 7U;
@@ -1326,6 +1327,11 @@ static uint32_t secp256k1_fe_divsteps_30_var(uint32_t eta, uint32_t f0, uint32_t
         g += f * w;
         q += u * w;
         r += v * w;
+#else
+        g += f;
+        q += u;
+        r += v;
+#endif
     }
 
     t[0] = (int32_t)u;
