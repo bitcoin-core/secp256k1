@@ -851,6 +851,12 @@ static uint32_t secp256k1_scalar_divsteps_30(uint32_t eta, uint32_t f0, uint32_t
 
 static uint32_t secp256k1_scalar_divsteps_30_var(uint32_t eta, uint32_t f0, uint32_t g0, int32_t *t) {
 
+#if 1
+    static const uint8_t debruijn[32] = {
+        0, 1, 2, 24, 3, 19, 6, 25, 22, 4, 20, 10, 16, 7, 12, 26,
+        31, 23, 18, 5, 21, 9, 15, 11, 30, 17, 8, 14, 29, 13, 28, 27 };
+#endif
+
     uint32_t u = -(uint32_t)1, v = 0, q = 0, r = -(uint32_t)1;
     uint32_t f = f0, g = g0, m, w, x, y, z;
     int i = 30, limit, zeros;
@@ -858,7 +864,13 @@ static uint32_t secp256k1_scalar_divsteps_30_var(uint32_t eta, uint32_t f0, uint
     for (;;) {
 
         /* Use a sentinel bit to count zeros only up to i. */
-        zeros = __builtin_ctzl(g | (UINT32_MAX << i));
+        x = g | (UINT32_MAX << i);
+
+#if 0
+        zeros = __builtin_ctzl(x);
+#else
+        zeros = debruijn[((x & -x) * 0x04D7651F) >> 27];
+#endif
 
         g >>= zeros;
         u <<= zeros;

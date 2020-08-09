@@ -594,14 +594,29 @@ static uint64_t secp256k1_fe_divsteps_62(uint64_t eta, uint64_t f0, uint64_t g0,
 
 static uint64_t secp256k1_fe_divsteps_62_var(uint64_t eta, uint64_t f0, uint64_t g0, int64_t *t) {
 
+#if 1
+    static const uint8_t debruijn[64] = {
+        0, 1, 2, 53, 3, 7, 54, 27, 4, 38, 41, 8, 34, 55, 48, 28,
+        62, 5, 39, 46, 44, 42, 22, 9, 24, 35, 59, 56, 49, 18, 29, 11,
+        63, 52, 6, 26, 37, 40, 33, 47, 61, 45, 43, 21, 23, 58, 17, 10,
+        51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12
+    };
+#endif
+
     uint64_t u = -(uint64_t)1, v = 0, q = 0, r = -(uint64_t)1;
     uint64_t f = f0, g = g0, m, w, x, y, z;
     int i = 62, limit, zeros;
 
     for (;;) {
 
+        x = g | (UINT64_MAX << i);
+
         /* Use a sentinel bit to count zeros only up to i. */
-        zeros = __builtin_ctzll(g | (UINT64_MAX << i));
+#if 0
+        zeros = __builtin_ctzll(x);
+#else
+        zeros = debruijn[((x & -x) * 0x022FDD63CC95386D) >> 58];
+#endif
 
         g >>= zeros;
         u <<= zeros;
