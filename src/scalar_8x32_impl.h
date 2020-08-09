@@ -1023,7 +1023,11 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
     b0 = *x;
     secp256k1_scalar_encode_30(g, &b0);
 
-    /* The paper uses 'delta'; eta == -delta (a performance tweak). */
+    /* The paper uses 'delta'; eta == -delta (a performance tweak).
+     *
+     * If the maximum bitlength of g is known to be less than 256, then eta can be set
+     * initially to -(1 + (256 - maxlen(g))), and only (741 - (256 - maxlen(g))) total
+     * divsteps are needed. */
     eta = -(uint32_t)1;
 
     for (i = 0; i < 25; ++i) {
@@ -1076,7 +1080,10 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     b0 = *x;
     secp256k1_scalar_encode_30(g, &b0);
 
-    /* The paper uses 'delta'; eta == -delta (a performance tweak). */
+    /* The paper uses 'delta'; eta == -delta (a performance tweak).
+     *
+     * If g has leading zeros (w.r.t 256 bits), then eta can be set initially to
+     * -(1 + clz(g)), and the worst-case divstep count would be only (741 - clz(g)). */
     eta = -(uint32_t)1;
 
     for (i = 0; i < 25; ++i) {
