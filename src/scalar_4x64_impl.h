@@ -964,7 +964,7 @@ static const secp256k1_scalar SECP256K1_SCALAR_NEG_TWO_POW_256 = SECP256K1_SCALA
 
 static void secp256k1_scalar_decode_62(secp256k1_scalar *r, const int64_t *a) {
 
-    uint64_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4];
+    const uint64_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4];
     uint64_t r0, r1, r2, r3;
     int64_t t;
     secp256k1_scalar u;
@@ -1002,7 +1002,7 @@ static void secp256k1_scalar_encode_62(int64_t *r, const secp256k1_scalar *a) {
 
     const uint64_t M62 = UINT64_MAX >> 2;
     const uint64_t *d = &a->d[0];
-    uint64_t a0 = d[0], a1 = d[1], a2 = d[2], a3 = d[3];
+    const uint64_t a0 = d[0], a1 = d[1], a2 = d[2], a3 = d[3];
 
 #ifdef VERIFY
     VERIFY_CHECK(secp256k1_scalar_check_overflow(a) == 0);
@@ -1128,21 +1128,20 @@ static uint64_t secp256k1_scalar_divsteps_62_var(uint64_t eta, uint64_t f0, uint
     return eta;
 }
 
-static void secp256k1_scalar_update_de_62(int64_t *d, int64_t *e, int64_t *t) {
+static void secp256k1_scalar_update_de_62(int64_t *d, int64_t *e, const int64_t *t) {
 
     /* I62 == -P^-1 mod 2^62 */
     const int64_t I62 = 0x0B0DFF665588B13FLL;
-    const int64_t P[5] = { 0x3FD25E8CD0364141LL, 0x2ABB739ABD2280EELL, -0x15LL, 0, 256 };
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
-    int64_t u = t[0], v = t[1], q = t[2], r = t[3], di, ei, md, me;
+    const int64_t P[5] = { 0x3FD25E8CD0364141LL, 0x2ABB739ABD2280EELL, -0x15LL, 0, 256 };
+    const int64_t d0 = d[0], d1 = d[1], d2 = d[2], d3 = d[3], d4 = d[4];
+    const int64_t e0 = e[0], e1 = e[1], e2 = e[2], e3 = e[3], e4 = e[4];
+    const int64_t u = t[0], v = t[1], q = t[2], r = t[3];
+    int64_t md, me;
     int128_t cd = 0, ce = 0;
-    int i;
 
-    di = d[0];
-    ei = e[0];
-
-    cd -= (int128_t)u * di + (int128_t)v * ei;
-    ce -= (int128_t)q * di + (int128_t)r * ei;
+    cd -= (int128_t)u * d0 + (int128_t)v * e0;
+    ce -= (int128_t)q * d0 + (int128_t)r * e0;
 
     /* Calculate the multiples of P to add, to zero the 62 bottom bits. */
     md = (I62 * (int64_t)cd) & M62;
@@ -1151,61 +1150,83 @@ static void secp256k1_scalar_update_de_62(int64_t *d, int64_t *e, int64_t *t) {
     cd += (int128_t)P[0] * md;
     ce += (int128_t)P[0] * me;
 
-    VERIFY_CHECK(((int64_t)cd & M62) == 0);
-    VERIFY_CHECK(((int64_t)ce & M62) == 0);
+    VERIFY_CHECK(((int64_t)cd & M62) == 0); cd >>= 62;
+    VERIFY_CHECK(((int64_t)ce & M62) == 0); ce >>= 62;
 
-    cd >>= 62;
-    ce >>= 62;
+    cd -= (int128_t)u * d1 + (int128_t)v * e1;
+    ce -= (int128_t)q * d1 + (int128_t)r * e1;
 
-    for (i = 1; i < 5; ++i) {
+    cd += (int128_t)P[1] * md;
+    ce += (int128_t)P[1] * me;
 
-        di = d[i];
-        ei = e[i];
+    d[0] = (int64_t)cd & M62; cd >>= 62;
+    e[0] = (int64_t)ce & M62; ce >>= 62;
 
-        cd -= (int128_t)u * di + (int128_t)v * ei;
-        ce -= (int128_t)q * di + (int128_t)r * ei;
+    cd -= (int128_t)u * d2 + (int128_t)v * e2;
+    ce -= (int128_t)q * d2 + (int128_t)r * e2;
 
-        cd += (int128_t)P[i] * md;
-        ce += (int128_t)P[i] * me;
+    cd += (int128_t)P[2] * md;
+    ce += (int128_t)P[2] * me;
 
-        d[i - 1] = (int64_t)cd & M62; cd >>= 62;
-        e[i - 1] = (int64_t)ce & M62; ce >>= 62;
-    }
+    d[1] = (int64_t)cd & M62; cd >>= 62;
+    e[1] = (int64_t)ce & M62; ce >>= 62;
+
+    cd -= (int128_t)u * d3 + (int128_t)v * e3;
+    ce -= (int128_t)q * d3 + (int128_t)r * e3;
+
+    d[2] = (int64_t)cd & M62; cd >>= 62;
+    e[2] = (int64_t)ce & M62; ce >>= 62;
+
+    cd -= (int128_t)u * d4 + (int128_t)v * e4;
+    ce -= (int128_t)q * d4 + (int128_t)r * e4;
+
+    cd += (int128_t)P[4] * md;
+    ce += (int128_t)P[4] * me;
+
+    d[3] = (int64_t)cd & M62; cd >>= 62;
+    e[3] = (int64_t)ce & M62; ce >>= 62;
 
     d[4] = (int64_t)cd;
     e[4] = (int64_t)ce;
 }
 
-static void secp256k1_scalar_update_fg_62(int64_t *f, int64_t *g, int64_t *t) {
+static void secp256k1_scalar_update_fg_62(int64_t *f, int64_t *g, const int64_t *t) {
 
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
-    int64_t u = t[0], v = t[1], q = t[2], r = t[3], fi, gi;
+    const int64_t f0 = f[0], f1 = f[1], f2 = f[2], f3 = f[3], f4 = f[4];
+    const int64_t g0 = g[0], g1 = g[1], g2 = g[2], g3 = g[3], g4 = g[4];
+    const int64_t u = t[0], v = t[1], q = t[2], r = t[3];
     int128_t cf = 0, cg = 0;
-    int i;
 
-    fi = f[0];
-    gi = g[0];
+    cf -= (int128_t)u * f0 + (int128_t)v * g0;
+    cg -= (int128_t)q * f0 + (int128_t)r * g0;
 
-    cf -= (int128_t)u * fi + (int128_t)v * gi;
-    cg -= (int128_t)q * fi + (int128_t)r * gi;
+    VERIFY_CHECK(((int64_t)cf & M62) == 0); cf >>= 62;
+    VERIFY_CHECK(((int64_t)cg & M62) == 0); cg >>= 62;
 
-    VERIFY_CHECK(((int64_t)cf & M62) == 0);
-    VERIFY_CHECK(((int64_t)cg & M62) == 0);
+    cf -= (int128_t)u * f1 + (int128_t)v * g1;
+    cg -= (int128_t)q * f1 + (int128_t)r * g1;
 
-    cf >>= 62;
-    cg >>= 62;
+    f[0] = (int64_t)cf & M62; cf >>= 62;
+    g[0] = (int64_t)cg & M62; cg >>= 62;
 
-    for (i = 1; i < 5; ++i) {
+    cf -= (int128_t)u * f2 + (int128_t)v * g2;
+    cg -= (int128_t)q * f2 + (int128_t)r * g2;
 
-        fi = f[i];
-        gi = g[i];
+    f[1] = (int64_t)cf & M62; cf >>= 62;
+    g[1] = (int64_t)cg & M62; cg >>= 62;
 
-        cf -= (int128_t)u * fi + (int128_t)v * gi;
-        cg -= (int128_t)q * fi + (int128_t)r * gi;
+    cf -= (int128_t)u * f3 + (int128_t)v * g3;
+    cg -= (int128_t)q * f3 + (int128_t)r * g3;
 
-        f[i - 1] = (int64_t)cf & M62; cf >>= 62;
-        g[i - 1] = (int64_t)cg & M62; cg >>= 62;
-    }
+    f[2] = (int64_t)cf & M62; cf >>= 62;
+    g[2] = (int64_t)cg & M62; cg >>= 62;
+
+    cf -= (int128_t)u * f4 + (int128_t)v * g4;
+    cg -= (int128_t)q * f4 + (int128_t)r * g4;
+
+    f[3] = (int64_t)cf & M62; cf >>= 62;
+    g[3] = (int64_t)cg & M62; cg >>= 62;
 
     f[4] = (int64_t)cf;
     g[4] = (int64_t)cg;

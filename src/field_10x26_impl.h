@@ -1167,8 +1167,8 @@ static SECP256K1_INLINE void secp256k1_fe_from_storage(secp256k1_fe *r, const se
 static void secp256k1_fe_decode_30(secp256k1_fe *r, const int32_t *a) {
 
     const uint32_t M26 = UINT32_MAX >> 6;
-    uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4],
-             a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
+    const uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4],
+                   a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
     uint32_t r0, r1, r2, r3, r4, r5, r6, r7, r8, r9;
 
     VERIFY_CHECK(a0 >> 30 == 0);
@@ -1225,8 +1225,8 @@ static void secp256k1_fe_encode_30(int32_t *r, const secp256k1_fe *a) {
 
     const uint32_t M30 = UINT32_MAX >> 2;
     const uint32_t *n = &a->n[0];
-    uint64_t a0 = n[0], a1 = n[1], a2 = n[2], a3 = n[3], a4 = n[4],
-             a5 = n[5], a6 = n[6], a7 = n[7], a8 = n[8], a9 = n[9];
+    const uint64_t a0 = n[0], a1 = n[1], a2 = n[2], a3 = n[3], a4 = n[4],
+                   a5 = n[5], a6 = n[6], a7 = n[7], a8 = n[8], a9 = n[9];
 
 #ifdef VERIFY
     VERIFY_CHECK(a->normalized);
@@ -1354,13 +1354,15 @@ static uint32_t secp256k1_fe_divsteps_30_var(uint32_t eta, uint32_t f0, uint32_t
     return eta;
 }
 
-static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
+static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, const int32_t *t) {
 
+    /* P == 2^256 - 2^32 - C30 */
+    const int64_t C30 = 0x3D1L;
     /* I30 == -P^-1 mod 2^30 */
     const int32_t I30 = 0x12253531L;
-    const int32_t P[9] = { -0x3D1L, -4L, 0, 0, 0, 0, 0, 0, 65536 };
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
-    int32_t u = t[0], v = t[1], q = t[2], r = t[3], di, ei, md, me;
+    const int32_t u = t[0], v = t[1], q = t[2], r = t[3];
+    int32_t di, ei, md, me;
     int64_t cd = 0, ce = 0;
     int i;
 
@@ -1374,16 +1376,16 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
     md = (I30 * (int32_t)cd) & M30;
     me = (I30 * (int32_t)ce) & M30;
 
-    cd += (int64_t)P[0] * md;
-    ce += (int64_t)P[0] * me;
+    cd -= (int64_t)C30 * md;
+    ce -= (int64_t)C30 * me;
 
-    VERIFY_CHECK(((int32_t)cd & M30) == 0);
-    VERIFY_CHECK(((int32_t)ce & M30) == 0);
+    VERIFY_CHECK(((int32_t)cd & M30) == 0); cd >>= 30;
+    VERIFY_CHECK(((int32_t)ce & M30) == 0); ce >>= 30;
 
-    cd >>= 30;
-    ce >>= 30;
+    cd -= (int64_t)4 * md;
+    ce -= (int64_t)4 * me;
 
-    for (i = 1; i < 9; ++i) {
+    for (i = 1; i < 8; ++i) {
 
         di = d[i];
         ei = e[i];
@@ -1391,21 +1393,33 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
         cd -= (int64_t)u * di + (int64_t)v * ei;
         ce -= (int64_t)q * di + (int64_t)r * ei;
 
-        cd += (int64_t)P[i] * md;
-        ce += (int64_t)P[i] * me;
-
         d[i - 1] = (int32_t)cd & M30; cd >>= 30;
         e[i - 1] = (int32_t)ce & M30; ce >>= 30;
+    }
+
+    {
+        di = d[8];
+        ei = e[8];
+
+        cd -= (int64_t)u * di + (int64_t)v * ei;
+        ce -= (int64_t)q * di + (int64_t)r * ei;
+
+        cd += (int64_t)65536 * md;
+        ce += (int64_t)65536 * me;
+
+        d[7] = (int32_t)cd & M30; cd >>= 30;
+        e[7] = (int32_t)ce & M30; ce >>= 30;
     }
 
     d[8] = (int32_t)cd;
     e[8] = (int32_t)ce;
 }
 
-static void secp256k1_fe_update_fg_30(int32_t *f, int32_t *g, int32_t *t) {
+static void secp256k1_fe_update_fg_30(int32_t *f, int32_t *g, const int32_t *t) {
 
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
-    int32_t u = t[0], v = t[1], q = t[2], r = t[3], fi, gi;
+    const int32_t u = t[0], v = t[1], q = t[2], r = t[3];
+    int32_t fi, gi;
     int64_t cf = 0, cg = 0;
     int i;
 
@@ -1415,11 +1429,8 @@ static void secp256k1_fe_update_fg_30(int32_t *f, int32_t *g, int32_t *t) {
     cf -= (int64_t)u * fi + (int64_t)v * gi;
     cg -= (int64_t)q * fi + (int64_t)r * gi;
 
-    VERIFY_CHECK(((int32_t)cf & M30) == 0);
-    VERIFY_CHECK(((int32_t)cg & M30) == 0);
-
-    cf >>= 30;
-    cg >>= 30;
+    VERIFY_CHECK(((int32_t)cf & M30) == 0); cf >>= 30;
+    VERIFY_CHECK(((int32_t)cg & M30) == 0); cg >>= 30;
 
     for (i = 1; i < 9; ++i) {
 

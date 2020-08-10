@@ -740,8 +740,8 @@ static const secp256k1_scalar SECP256K1_SCALAR_NEG_TWO_POW_256 = SECP256K1_SCALA
 
 static void secp256k1_scalar_decode_30(secp256k1_scalar *r, const int32_t *a) {
 
-    uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4],
-             a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
+    const uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4],
+                   a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
     uint32_t r0, r1, r2, r3, r4, r5, r6, r7;
     int32_t t;
     secp256k1_scalar u;
@@ -791,8 +791,8 @@ static void secp256k1_scalar_encode_30(int32_t *r, const secp256k1_scalar *a) {
 
     const uint32_t M30 = UINT32_MAX >> 2;
     const uint32_t *d = &a->d[0];
-    uint32_t a0 = d[0], a1 = d[1], a2 = d[2], a3 = d[3],
-             a4 = d[4], a5 = d[5], a6 = d[6], a7 = d[7];
+    const uint32_t a0 = d[0], a1 = d[1], a2 = d[2], a3 = d[3],
+                   a4 = d[4], a5 = d[5], a6 = d[6], a7 = d[7];
 
 #ifdef VERIFY
     VERIFY_CHECK(secp256k1_scalar_check_overflow(a) == 0);
@@ -919,7 +919,7 @@ static uint32_t secp256k1_scalar_divsteps_30_var(uint32_t eta, uint32_t f0, uint
     return eta;
 }
 
-static void secp256k1_scalar_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
+static void secp256k1_scalar_update_de_30(int32_t *d, int32_t *e, const int32_t *t) {
 
     /* I30 == -P^-1 mod 2^30 */
     const int32_t I30 = 0x1588B13FL;
@@ -943,11 +943,8 @@ static void secp256k1_scalar_update_de_30(int32_t *d, int32_t *e, int32_t *t) {
     cd += (int64_t)P[0] * md;
     ce += (int64_t)P[0] * me;
 
-    VERIFY_CHECK(((int32_t)cd & M30) == 0);
-    VERIFY_CHECK(((int32_t)ce & M30) == 0);
-
-    cd >>= 30;
-    ce >>= 30;
+    VERIFY_CHECK(((int32_t)cd & M30) == 0); cd >>= 30;
+    VERIFY_CHECK(((int32_t)ce & M30) == 0); ce >>= 30;
 
     for (i = 1; i < 9; ++i) {
 
