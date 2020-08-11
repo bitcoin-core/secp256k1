@@ -263,8 +263,18 @@ void bench_group_jacobi_var(void* arg, int iters) {
 
     for (i = 0; i < iters; i++) {
         j += secp256k1_gej_has_quad_y_var(&data->gej[0]);
+        /* Vary the Y and Z coordinates of the input (the X coordinate doesn't matter to
+           secp256k1_gej_has_quad_y_var). Note that the resulting coordinates will
+           generally not correspond to a point on the curve, but this is not a problem
+           for the code being benchmarked here. Adding and normalizing have less
+           overhead than EC operations (which could guarantee the point remains on the
+           curve). */
+        secp256k1_fe_add(&data->gej[0].y, &data->fe[1]);
+        secp256k1_fe_add(&data->gej[0].z, &data->fe[2]);
+        secp256k1_fe_normalize_var(&data->gej[0].y);
+        secp256k1_fe_normalize_var(&data->gej[0].z);
     }
-    CHECK(j == iters);
+    CHECK(j <= iters);
 }
 
 void bench_ecmult_wnaf(void* arg, int iters) {
@@ -347,14 +357,15 @@ void bench_context_sign(void* arg, int iters) {
 void bench_num_jacobi(void* arg, int iters) {
     int i, j = 0;
     bench_inv *data = (bench_inv*)arg;
-    secp256k1_num nx, norder;
+    secp256k1_num nx, na, norder;
 
     secp256k1_scalar_get_num(&nx, &data->scalar[0]);
     secp256k1_scalar_order_get_num(&norder);
-    secp256k1_scalar_get_num(&norder, &data->scalar[1]);
+    secp256k1_scalar_get_num(&na, &data->scalar[1]);
 
     for (i = 0; i < iters; i++) {
         j += secp256k1_num_jacobi(&nx, &norder);
+        secp256k1_num_add(&nx, &nx, &na);
     }
     CHECK(j <= iters);
 }
