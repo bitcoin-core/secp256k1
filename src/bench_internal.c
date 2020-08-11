@@ -277,6 +277,24 @@ void bench_group_jacobi_var(void* arg, int iters) {
     CHECK(j <= iters);
 }
 
+void bench_group_to_affine_var(void* arg, int iters) {
+    int i;
+    bench_inv *data = (bench_inv*)arg;
+
+    for (i = 0; i < iters; ++i) {
+        secp256k1_ge_set_gej_var(&data->ge[1], &data->gej[0]);
+        /* Use the output affine X/Y coordinates to vary the input X/Y/Z coordinates.
+           Similar to bench_group_jacobi_var, this approach does not result in
+           coordinates of points on the curve. */
+        secp256k1_fe_add(&data->gej[0].x, &data->ge[1].y);
+        secp256k1_fe_add(&data->gej[0].y, &data->fe[2]);
+        secp256k1_fe_add(&data->gej[0].z, &data->ge[1].x);
+        secp256k1_fe_normalize_var(&data->gej[0].x);
+        secp256k1_fe_normalize_var(&data->gej[0].y);
+        secp256k1_fe_normalize_var(&data->gej[0].z);
+    }
+}
+
 void bench_ecmult_wnaf(void* arg, int iters) {
     int i, bits = 0, overflow = 0;
     bench_inv *data = (bench_inv*)arg;
@@ -398,6 +416,7 @@ int main(int argc, char **argv) {
     if (have_flag(argc, argv, "group") || have_flag(argc, argv, "add")) run_benchmark("group_add_affine", bench_group_add_affine, bench_setup, NULL, &data, 10, iters*10);
     if (have_flag(argc, argv, "group") || have_flag(argc, argv, "add")) run_benchmark("group_add_affine_var", bench_group_add_affine_var, bench_setup, NULL, &data, 10, iters*10);
     if (have_flag(argc, argv, "group") || have_flag(argc, argv, "jacobi")) run_benchmark("group_jacobi_var", bench_group_jacobi_var, bench_setup, NULL, &data, 10, iters);
+    if (have_flag(argc, argv, "group") || have_flag(argc, argv, "to_affine")) run_benchmark("group_to_affine_var", bench_group_to_affine_var, bench_setup, NULL, &data, 10, iters);
 
     if (have_flag(argc, argv, "ecmult") || have_flag(argc, argv, "wnaf")) run_benchmark("wnaf_const", bench_wnaf_const, bench_setup, NULL, &data, 10, iters);
     if (have_flag(argc, argv, "ecmult") || have_flag(argc, argv, "wnaf")) run_benchmark("ecmult_wnaf", bench_ecmult_wnaf, bench_setup, NULL, &data, 10, iters);
