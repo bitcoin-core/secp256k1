@@ -20,10 +20,10 @@
 #include "secp256k1.c"
 
 typedef struct {
-    secp256k1_scalar scalar_x, scalar_y;
-    secp256k1_fe fe_x, fe_y;
-    secp256k1_ge ge_x, ge_y;
-    secp256k1_gej gej_x, gej_y;
+    secp256k1_scalar scalar[2];
+    secp256k1_fe fe[2];
+    secp256k1_ge ge[2];
+    secp256k1_gej gej[2];
     unsigned char data[64];
     int wnaf[256];
 } bench_inv;
@@ -31,30 +31,31 @@ typedef struct {
 void bench_setup(void* arg) {
     bench_inv *data = (bench_inv*)arg;
 
-    static const unsigned char init_x[32] = {
-        0x02, 0x03, 0x05, 0x07, 0x0b, 0x0d, 0x11, 0x13,
-        0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f, 0x35,
-        0x3b, 0x3d, 0x43, 0x47, 0x49, 0x4f, 0x53, 0x59,
-        0x61, 0x65, 0x67, 0x6b, 0x6d, 0x71, 0x7f, 0x83
+    static const unsigned char init[2][32] = {
+        {
+            0x02, 0x03, 0x05, 0x07, 0x0b, 0x0d, 0x11, 0x13,
+            0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f, 0x35,
+            0x3b, 0x3d, 0x43, 0x47, 0x49, 0x4f, 0x53, 0x59,
+            0x61, 0x65, 0x67, 0x6b, 0x6d, 0x71, 0x7f, 0x83
+        },
+        {
+            0x82, 0x83, 0x85, 0x87, 0x8b, 0x8d, 0x81, 0x83,
+            0x97, 0xad, 0xaf, 0xb5, 0xb9, 0xbb, 0xbf, 0xc5,
+            0xdb, 0xdd, 0xe3, 0xe7, 0xe9, 0xef, 0xf3, 0xf9,
+            0x11, 0x15, 0x17, 0x1b, 0x1d, 0xb1, 0xbf, 0xd3
+        }
     };
 
-    static const unsigned char init_y[32] = {
-        0x82, 0x83, 0x85, 0x87, 0x8b, 0x8d, 0x81, 0x83,
-        0x97, 0xad, 0xaf, 0xb5, 0xb9, 0xbb, 0xbf, 0xc5,
-        0xdb, 0xdd, 0xe3, 0xe7, 0xe9, 0xef, 0xf3, 0xf9,
-        0x11, 0x15, 0x17, 0x1b, 0x1d, 0xb1, 0xbf, 0xd3
-    };
-
-    secp256k1_scalar_set_b32(&data->scalar_x, init_x, NULL);
-    secp256k1_scalar_set_b32(&data->scalar_y, init_y, NULL);
-    secp256k1_fe_set_b32(&data->fe_x, init_x);
-    secp256k1_fe_set_b32(&data->fe_y, init_y);
-    CHECK(secp256k1_ge_set_xo_var(&data->ge_x, &data->fe_x, 0));
-    CHECK(secp256k1_ge_set_xo_var(&data->ge_y, &data->fe_y, 1));
-    secp256k1_gej_set_ge(&data->gej_x, &data->ge_x);
-    secp256k1_gej_set_ge(&data->gej_y, &data->ge_y);
-    memcpy(data->data, init_x, 32);
-    memcpy(data->data + 32, init_y, 32);
+    secp256k1_scalar_set_b32(&data->scalar[0], init[0], NULL);
+    secp256k1_scalar_set_b32(&data->scalar[1], init[1], NULL);
+    secp256k1_fe_set_b32(&data->fe[0], init[0]);
+    secp256k1_fe_set_b32(&data->fe[1], init[1]);
+    CHECK(secp256k1_ge_set_xo_var(&data->ge[0], &data->fe[0], 0));
+    CHECK(secp256k1_ge_set_xo_var(&data->ge[1], &data->fe[1], 1));
+    secp256k1_gej_set_ge(&data->gej[0], &data->ge[0]);
+    secp256k1_gej_set_ge(&data->gej[1], &data->ge[1]);
+    memcpy(data->data, init[0], 32);
+    memcpy(data->data + 32, init[1], 32);
 }
 
 void bench_scalar_add(void* arg, int iters) {
@@ -62,7 +63,7 @@ void bench_scalar_add(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        j += secp256k1_scalar_add(&data->scalar_x, &data->scalar_x, &data->scalar_y);
+        j += secp256k1_scalar_add(&data->scalar[0], &data->scalar[0], &data->scalar[1]);
     }
     CHECK(j <= iters);
 }
@@ -72,7 +73,7 @@ void bench_scalar_negate(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_scalar_negate(&data->scalar_x, &data->scalar_x);
+        secp256k1_scalar_negate(&data->scalar[0], &data->scalar[0]);
     }
 }
 
@@ -81,7 +82,7 @@ void bench_scalar_sqr(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_scalar_sqr(&data->scalar_x, &data->scalar_x);
+        secp256k1_scalar_sqr(&data->scalar[0], &data->scalar[0]);
     }
 }
 
@@ -90,7 +91,7 @@ void bench_scalar_mul(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_scalar_mul(&data->scalar_x, &data->scalar_x, &data->scalar_y);
+        secp256k1_scalar_mul(&data->scalar[0], &data->scalar[0], &data->scalar[1]);
     }
 }
 
@@ -100,8 +101,8 @@ void bench_scalar_split(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_scalar_split_lambda(&data->scalar_x, &data->scalar_y, &data->scalar_x);
-        j += secp256k1_scalar_add(&data->scalar_x, &data->scalar_x, &data->scalar_y);
+        secp256k1_scalar_split_lambda(&data->scalar[0], &data->scalar[1], &data->scalar[0]);
+        j += secp256k1_scalar_add(&data->scalar[0], &data->scalar[0], &data->scalar[1]);
     }
     CHECK(j <= iters);
 }
@@ -112,8 +113,8 @@ void bench_scalar_inverse(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_scalar_inverse(&data->scalar_x, &data->scalar_x);
-        j += secp256k1_scalar_add(&data->scalar_x, &data->scalar_x, &data->scalar_y);
+        secp256k1_scalar_inverse(&data->scalar[0], &data->scalar[0]);
+        j += secp256k1_scalar_add(&data->scalar[0], &data->scalar[0], &data->scalar[1]);
     }
     CHECK(j <= iters);
 }
@@ -123,8 +124,8 @@ void bench_scalar_inverse_var(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_scalar_inverse_var(&data->scalar_x, &data->scalar_x);
-        j += secp256k1_scalar_add(&data->scalar_x, &data->scalar_x, &data->scalar_y);
+        secp256k1_scalar_inverse_var(&data->scalar[0], &data->scalar[0]);
+        j += secp256k1_scalar_add(&data->scalar[0], &data->scalar[0], &data->scalar[1]);
     }
     CHECK(j <= iters);
 }
@@ -134,7 +135,7 @@ void bench_field_normalize(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_fe_normalize(&data->fe_x);
+        secp256k1_fe_normalize(&data->fe[0]);
     }
 }
 
@@ -143,7 +144,7 @@ void bench_field_normalize_weak(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_fe_normalize_weak(&data->fe_x);
+        secp256k1_fe_normalize_weak(&data->fe[0]);
     }
 }
 
@@ -152,7 +153,7 @@ void bench_field_mul(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_fe_mul(&data->fe_x, &data->fe_x, &data->fe_y);
+        secp256k1_fe_mul(&data->fe[0], &data->fe[0], &data->fe[1]);
     }
 }
 
@@ -161,7 +162,7 @@ void bench_field_sqr(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_fe_sqr(&data->fe_x, &data->fe_x);
+        secp256k1_fe_sqr(&data->fe[0], &data->fe[0]);
     }
 }
 
@@ -170,8 +171,8 @@ void bench_field_inverse(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_fe_inv(&data->fe_x, &data->fe_x);
-        secp256k1_fe_add(&data->fe_x, &data->fe_y);
+        secp256k1_fe_inv(&data->fe[0], &data->fe[0]);
+        secp256k1_fe_add(&data->fe[0], &data->fe[1]);
     }
 }
 
@@ -180,8 +181,8 @@ void bench_field_inverse_var(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_fe_inv_var(&data->fe_x, &data->fe_x);
-        secp256k1_fe_add(&data->fe_x, &data->fe_y);
+        secp256k1_fe_inv_var(&data->fe[0], &data->fe[0]);
+        secp256k1_fe_add(&data->fe[0], &data->fe[1]);
     }
 }
 
@@ -191,9 +192,9 @@ void bench_field_sqrt(void* arg, int iters) {
     secp256k1_fe t;
 
     for (i = 0; i < iters; i++) {
-        t = data->fe_x;
-        j += secp256k1_fe_sqrt(&data->fe_x, &t);
-        secp256k1_fe_add(&data->fe_x, &data->fe_y);
+        t = data->fe[0];
+        j += secp256k1_fe_sqrt(&data->fe[0], &t);
+        secp256k1_fe_add(&data->fe[0], &data->fe[1]);
     }
     CHECK(j <= iters);
 }
@@ -203,7 +204,7 @@ void bench_group_double_var(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_gej_double_var(&data->gej_x, &data->gej_x, NULL);
+        secp256k1_gej_double_var(&data->gej[0], &data->gej[0], NULL);
     }
 }
 
@@ -212,7 +213,7 @@ void bench_group_add_var(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_gej_add_var(&data->gej_x, &data->gej_x, &data->gej_y, NULL);
+        secp256k1_gej_add_var(&data->gej[0], &data->gej[0], &data->gej[1], NULL);
     }
 }
 
@@ -221,7 +222,7 @@ void bench_group_add_affine(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_gej_add_ge(&data->gej_x, &data->gej_x, &data->ge_y);
+        secp256k1_gej_add_ge(&data->gej[0], &data->gej[0], &data->ge[1]);
     }
 }
 
@@ -230,7 +231,7 @@ void bench_group_add_affine_var(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_gej_add_ge_var(&data->gej_x, &data->gej_x, &data->ge_y, NULL);
+        secp256k1_gej_add_ge_var(&data->gej[0], &data->gej[0], &data->ge[1], NULL);
     }
 }
 
@@ -239,7 +240,7 @@ void bench_group_jacobi_var(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        j += secp256k1_gej_has_quad_y_var(&data->gej_x);
+        j += secp256k1_gej_has_quad_y_var(&data->gej[0]);
     }
     CHECK(j == iters);
 }
@@ -249,8 +250,8 @@ void bench_ecmult_wnaf(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        bits += secp256k1_ecmult_wnaf(data->wnaf, 256, &data->scalar_x, WINDOW_A);
-        overflow += secp256k1_scalar_add(&data->scalar_x, &data->scalar_x, &data->scalar_y);
+        bits += secp256k1_ecmult_wnaf(data->wnaf, 256, &data->scalar[0], WINDOW_A);
+        overflow += secp256k1_scalar_add(&data->scalar[0], &data->scalar[0], &data->scalar[1]);
     }
     CHECK(overflow >= 0);
     CHECK(bits <= 256*iters);
@@ -261,8 +262,8 @@ void bench_wnaf_const(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
-        bits += secp256k1_wnaf_const(data->wnaf, &data->scalar_x, WINDOW_A, 256);
-        overflow += secp256k1_scalar_add(&data->scalar_x, &data->scalar_x, &data->scalar_y);
+        bits += secp256k1_wnaf_const(data->wnaf, &data->scalar[0], WINDOW_A, 256);
+        overflow += secp256k1_scalar_add(&data->scalar[0], &data->scalar[0], &data->scalar[1]);
     }
     CHECK(overflow >= 0);
     CHECK(bits <= 256*iters);
@@ -326,9 +327,9 @@ void bench_num_jacobi(void* arg, int iters) {
     bench_inv *data = (bench_inv*)arg;
     secp256k1_num nx, norder;
 
-    secp256k1_scalar_get_num(&nx, &data->scalar_x);
+    secp256k1_scalar_get_num(&nx, &data->scalar[0]);
     secp256k1_scalar_order_get_num(&norder);
-    secp256k1_scalar_get_num(&norder, &data->scalar_y);
+    secp256k1_scalar_get_num(&norder, &data->scalar[1]);
 
     for (i = 0; i < iters; i++) {
         j += secp256k1_num_jacobi(&nx, &norder);
