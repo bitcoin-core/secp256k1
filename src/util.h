@@ -170,13 +170,10 @@ static SECP256K1_INLINE void *manual_alloc(void** prealloc_ptr, size_t alloc_siz
 # define I64uFORMAT "llu"
 #endif
 
-#if defined(HAVE___INT128)
-# if defined(__GNUC__)
-#  define SECP256K1_GNUC_EXT __extension__
-# else
-#  define SECP256K1_GNUC_EXT
-# endif
-SECP256K1_GNUC_EXT typedef unsigned __int128 uint128_t;
+#if defined(__GNUC__)
+# define SECP256K1_GNUC_EXT __extension__
+#else
+# define SECP256K1_GNUC_EXT
 #endif
 
 /* Zero memory if flag == 1. Flag must be 0 or 1. Constant time. */
@@ -212,5 +209,21 @@ static SECP256K1_INLINE void secp256k1_int_cmov(int *r, const int *a, int flag) 
 
     *r = (int)(r_masked | a_masked);
 }
+
+/* If USE_FORCE_WIDEMUL_{INT128,INT64} is set, use that wide multiplication implementation.
+ * Otherwise use the presence of __SIZEOF_INT128__ to decide.
+ */
+#if defined(USE_FORCE_WIDEMUL_INT128)
+# define SECP256K1_WIDEMUL_INT128 1
+#elif defined(USE_FORCE_WIDEMUL_INT64)
+# define SECP256K1_WIDEMUL_INT64 1
+#elif defined(__SIZEOF_INT128__)
+# define SECP256K1_WIDEMUL_INT128 1
+#else
+# define SECP256K1_WIDEMUL_INT64 1
+#endif
+#if defined(SECP256K1_WIDEMUL_INT128)
+SECP256K1_GNUC_EXT typedef unsigned __int128 uint128_t;
+#endif
 
 #endif /* SECP256K1_UTIL_H */
