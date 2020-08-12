@@ -966,13 +966,14 @@ static void secp256k1_scalar_decode_62(secp256k1_scalar *r, const int64_t *a) {
 
     const uint64_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4];
     uint64_t r0, r1, r2, r3;
-    int64_t t;
     secp256k1_scalar u;
 
+    /* a must be in the range [-2^256, 2^256). */
     VERIFY_CHECK(a0 >> 62 == 0);
     VERIFY_CHECK(a1 >> 62 == 0);
     VERIFY_CHECK(a2 >> 62 == 0);
     VERIFY_CHECK(a3 >> 62 == 0);
+    VERIFY_CHECK((int64_t)a4 >> 8 == 0 || (int64_t)a4 >> 8 == -(int64_t)1);
 
     r0 = a0      | a1 << 62;
     r1 = a1 >> 2 | a2 << 60;
@@ -986,16 +987,8 @@ static void secp256k1_scalar_decode_62(secp256k1_scalar *r, const int64_t *a) {
 
     secp256k1_scalar_reduce(r, secp256k1_scalar_check_overflow(r));
 
-    t = (int64_t)a4 >> 8;
-
-    VERIFY_CHECK(t == 1 || t == 0 || t == -1);
-
     secp256k1_scalar_add(&u, r, &SECP256K1_SCALAR_NEG_TWO_POW_256);
     secp256k1_scalar_cmov(r, &u, a4 >> 63);
-
-    t += a4 >> 63;
-
-    secp256k1_scalar_reduce(r, t);
 }
 
 static void secp256k1_scalar_encode_62(int64_t *r, const secp256k1_scalar *a) {
@@ -1144,9 +1137,10 @@ static void secp256k1_scalar_update_de_62(int64_t *d, int64_t *e, const int64_t 
     cd -= (int128_t)u * d0 + (int128_t)v * e0;
     ce -= (int128_t)q * d0 + (int128_t)r * e0;
 
-    /* Calculate the multiples of P to add, to zero the 62 bottom bits. */
-    md = (I62 * (int64_t)cd) & M62;
-    me = (I62 * (int64_t)ce) & M62;
+    /* Calculate the multiples of P to add, to zero the 62 bottom bits. We choose md, me
+     * from the centred range [-2^61, 2^61) to keep d, e within [-2^256, 2^256). */
+    md = (I62 * 4 * (int64_t)cd) >> 2;
+    me = (I62 * 4 * (int64_t)ce) >> 2;
 
     cd += (int128_t)P[0] * md;
     ce += (int128_t)P[0] * me;

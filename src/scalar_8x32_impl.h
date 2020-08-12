@@ -743,9 +743,9 @@ static void secp256k1_scalar_decode_30(secp256k1_scalar *r, const int32_t *a) {
     const uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4],
                    a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
     uint32_t r0, r1, r2, r3, r4, r5, r6, r7;
-    int32_t t;
     secp256k1_scalar u;
 
+    /* a must be in the range [-2^256, 2^256). */
     VERIFY_CHECK(a0 >> 30 == 0);
     VERIFY_CHECK(a1 >> 30 == 0);
     VERIFY_CHECK(a2 >> 30 == 0);
@@ -754,6 +754,7 @@ static void secp256k1_scalar_decode_30(secp256k1_scalar *r, const int32_t *a) {
     VERIFY_CHECK(a5 >> 30 == 0);
     VERIFY_CHECK(a6 >> 30 == 0);
     VERIFY_CHECK(a7 >> 30 == 0);
+    VERIFY_CHECK((int32_t)a8 >> 16 == 0 || (int32_t)a8 >> 16 == -(int32_t)1);
 
     r0 = a0       | a1 << 30;
     r1 = a1 >>  2 | a2 << 28;
@@ -775,16 +776,8 @@ static void secp256k1_scalar_decode_30(secp256k1_scalar *r, const int32_t *a) {
 
     secp256k1_scalar_reduce(r, secp256k1_scalar_check_overflow(r));
 
-    t = (int32_t)a8 >> 16;
-
-    VERIFY_CHECK(t == 1 || t == 0 || t == -1);
-
     secp256k1_scalar_add(&u, r, &SECP256K1_SCALAR_NEG_TWO_POW_256);
     secp256k1_scalar_cmov(r, &u, a8 >> 31);
-
-    t += a8 >> 31;
-
-    secp256k1_scalar_reduce(r, t);
 }
 
 static void secp256k1_scalar_encode_30(int32_t *r, const secp256k1_scalar *a) {
@@ -936,9 +929,10 @@ static void secp256k1_scalar_update_de_30(int32_t *d, int32_t *e, const int32_t 
     cd -= (int64_t)u * di + (int64_t)v * ei;
     ce -= (int64_t)q * di + (int64_t)r * ei;
 
-    /* Calculate the multiples of P to add, to zero the 30 bottom bits. */
-    md = (I30 * (int32_t)cd) & M30;
-    me = (I30 * (int32_t)ce) & M30;
+    /* Calculate the multiples of P to add, to zero the 30 bottom bits. We choose md, me
+     * from the centred range [-2^29, 2^29) to keep d, e within [-2^256, 2^256). */
+    md = (I30 * 4 * (int32_t)cd) >> 2;
+    me = (I30 * 4 * (int32_t)ce) >> 2;
 
     cd += (int64_t)P[0] * md;
     ce += (int64_t)P[0] * me;

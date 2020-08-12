@@ -504,17 +504,19 @@ static void secp256k1_fe_decode_62(secp256k1_fe *r, const int64_t *a) {
     const uint64_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4];
     uint64_t r0, r1, r2, r3, r4;
 
+    /* a must be in the range [-2^256, 2^256). */
     VERIFY_CHECK(a0 >> 62 == 0);
     VERIFY_CHECK(a1 >> 62 == 0);
     VERIFY_CHECK(a2 >> 62 == 0);
     VERIFY_CHECK(a3 >> 62 == 0);
+    VERIFY_CHECK((int64_t)a4 >> 8 == 0 || (int64_t)a4 >> 8 == -(int64_t)1);
 
-    /* Add a multiple of the field prime in case u4 is "negative". */
-    r0  = 0xFFFFEFFFFFC2FULL * 8;
-    r1  = 0xFFFFFFFFFFFFFULL * 8;
-    r2  = 0xFFFFFFFFFFFFFULL * 8;
-    r3  = 0xFFFFFFFFFFFFFULL * 8;
-    r4  = 0x0FFFFFFFFFFFFULL * 8;
+    /* Add a multiple of the field prime in case a4 is "negative". */
+    r0  = 0xFFFFEFFFFFC2FULL * 2;
+    r1  = 0xFFFFFFFFFFFFFULL * 2;
+    r2  = 0xFFFFFFFFFFFFFULL * 2;
+    r3  = 0xFFFFFFFFFFFFFULL * 2;
+    r4  = 0x0FFFFFFFFFFFFULL * 2;
 
     r0 +=  a0                   & M52;
     r1 += (a0 >> 52 | a1 << 10) & M52;
@@ -529,7 +531,7 @@ static void secp256k1_fe_decode_62(secp256k1_fe *r, const int64_t *a) {
     r->n[4] = r4;
 
 #ifdef VERIFY
-    r->magnitude = 7;
+    r->magnitude = 2;
     r->normalized = 0;
     secp256k1_fe_verify(r);
 #endif
@@ -682,9 +684,10 @@ static void secp256k1_fe_update_de_62(int64_t *d, int64_t *e, const int64_t *t) 
     cd -= (int128_t)u * d0 + (int128_t)v * e0;
     ce -= (int128_t)q * d0 + (int128_t)r * e0;
 
-    /* Calculate the multiples of P to add, to zero the 62 bottom bits. */
-    md = (I62 * (int64_t)cd) & M62;
-    me = (I62 * (int64_t)ce) & M62;
+    /* Calculate the multiples of P to add, to zero the 62 bottom bits. We choose md, me
+     * from the centred range [-2^61, 2^61) to keep d, e within [-2^256, 2^256). */
+    md = (I62 * 4 * (int64_t)cd) >> 2;
+    me = (I62 * 4 * (int64_t)ce) >> 2;
 
     cd -= (int128_t)C62 * md;
     ce -= (int128_t)C62 * me;
@@ -814,7 +817,7 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
     secp256k1_fe_decode_62(&b0, d);
 
-    secp256k1_fe_negate(&b1, &b0, 7);
+    secp256k1_fe_negate(&b1, &b0, 2);
     secp256k1_fe_cmov(&b0, &b1, sign);
     secp256k1_fe_normalize_weak(&b0);
 
@@ -878,7 +881,7 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 
     secp256k1_fe_decode_62(&b0, d);
 
-    secp256k1_fe_negate(&b1, &b0, 7);
+    secp256k1_fe_negate(&b1, &b0, 2);
     secp256k1_fe_cmov(&b0, &b1, sign);
     secp256k1_fe_normalize_weak(&b0);
 

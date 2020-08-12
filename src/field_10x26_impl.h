@@ -1171,6 +1171,7 @@ static void secp256k1_fe_decode_30(secp256k1_fe *r, const int32_t *a) {
                    a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
     uint32_t r0, r1, r2, r3, r4, r5, r6, r7, r8, r9;
 
+    /* a must be in the range [-2^256, 2^256). */
     VERIFY_CHECK(a0 >> 30 == 0);
     VERIFY_CHECK(a1 >> 30 == 0);
     VERIFY_CHECK(a2 >> 30 == 0);
@@ -1179,18 +1180,19 @@ static void secp256k1_fe_decode_30(secp256k1_fe *r, const int32_t *a) {
     VERIFY_CHECK(a5 >> 30 == 0);
     VERIFY_CHECK(a6 >> 30 == 0);
     VERIFY_CHECK(a7 >> 30 == 0);
+    VERIFY_CHECK((int32_t)a8 >> 16 == 0 || (int32_t)a8 >> 16 == -(int32_t)1);
 
-    /* Add a multiple of the field prime in case u4 is "negative". */
-    r0  = 0x3FFFC2FUL * 8;
-    r1  = 0x3FFFFBFUL * 8;
-    r2  = 0x3FFFFFFUL * 8;
-    r3  = 0x3FFFFFFUL * 8;
-    r4  = 0x3FFFFFFUL * 8;
-    r5  = 0x3FFFFFFUL * 8;
-    r6  = 0x3FFFFFFUL * 8;
-    r7  = 0x3FFFFFFUL * 8;
-    r8  = 0x3FFFFFFUL * 8;
-    r9  = 0x03FFFFFUL * 8;
+    /* Add a multiple of the field prime in case a8 is "negative". */
+    r0  = 0x3FFFC2FUL * 2;
+    r1  = 0x3FFFFBFUL * 2;
+    r2  = 0x3FFFFFFUL * 2;
+    r3  = 0x3FFFFFFUL * 2;
+    r4  = 0x3FFFFFFUL * 2;
+    r5  = 0x3FFFFFFUL * 2;
+    r6  = 0x3FFFFFFUL * 2;
+    r7  = 0x3FFFFFFUL * 2;
+    r8  = 0x3FFFFFFUL * 2;
+    r9  = 0x03FFFFFUL * 2;
 
     r0 +=  a0                   & M26;
     r1 += (a0 >> 26 | a1 <<  4) & M26;
@@ -1215,7 +1217,7 @@ static void secp256k1_fe_decode_30(secp256k1_fe *r, const int32_t *a) {
     r->n[9] = r9;
 
 #ifdef VERIFY
-    r->magnitude = 7;
+    r->magnitude = 2;
     r->normalized = 0;
     secp256k1_fe_verify(r);
 #endif
@@ -1372,9 +1374,10 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, const int32_t *t) 
     cd -= (int64_t)u * di + (int64_t)v * ei;
     ce -= (int64_t)q * di + (int64_t)r * ei;
 
-    /* Calculate the multiples of P to add, to zero the 30 bottom bits. */
-    md = (I30 * (int32_t)cd) & M30;
-    me = (I30 * (int32_t)ce) & M30;
+    /* Calculate the multiples of P to add, to zero the 30 bottom bits. We choose md, me
+     * from the centred range [-2^29, 2^29) to keep d, e within [-2^256, 2^256). */
+    md = (I30 * 4 * (int32_t)cd) >> 2;
+    me = (I30 * 4 * (int32_t)ce) >> 2;
 
     cd -= (int64_t)C30 * md;
     ce -= (int64_t)C30 * me;
@@ -1497,7 +1500,7 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
     secp256k1_fe_decode_30(&b0, d);
 
-    secp256k1_fe_negate(&b1, &b0, 7);
+    secp256k1_fe_negate(&b1, &b0, 2);
     secp256k1_fe_cmov(&b0, &b1, sign);
     secp256k1_fe_normalize_weak(&b0);
 
@@ -1561,7 +1564,7 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 
     secp256k1_fe_decode_30(&b0, d);
 
-    secp256k1_fe_negate(&b1, &b0, 7);
+    secp256k1_fe_negate(&b1, &b0, 2);
     secp256k1_fe_cmov(&b0, &b1, sign);
     secp256k1_fe_normalize_weak(&b0);
 
