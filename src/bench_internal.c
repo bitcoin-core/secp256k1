@@ -7,6 +7,7 @@
 
 #include "include/secp256k1.h"
 
+#include "assumptions.h"
 #include "util.h"
 #include "hash_impl.h"
 #include "num_impl.h"
