@@ -238,6 +238,7 @@ static SECP256K1_INLINE void secp256k1_int_cmov(int *r, const int *a, int flag) 
 #endif
 #if defined(SECP256K1_WIDEMUL_INT128)
 SECP256K1_GNUC_EXT typedef unsigned __int128 uint128_t;
+SECP256K1_GNUC_EXT typedef __int128 int128_t;
 #endif
 
 #endif /* SECP256K1_UTIL_H */
