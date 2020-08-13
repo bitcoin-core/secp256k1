@@ -897,10 +897,14 @@ static uint32_t secp256k1_scalar_divsteps_30_var(uint32_t eta, uint32_t f0, uint
         g += f * w;
         q += u * w;
         r += v * w;
+
+        VERIFY_CHECK((g & m) == 0);
 #else
         g += f;
         q += u;
         r += v;
+
+        VERIFY_CHECK((g & 1) == 0);
 #endif
     }
 

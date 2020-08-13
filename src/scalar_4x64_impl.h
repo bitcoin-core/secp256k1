@@ -1112,6 +1112,8 @@ static uint64_t secp256k1_scalar_divsteps_62_var(uint64_t eta, uint64_t f0, uint
         g += f * w;
         q += u * w;
         r += v * w;
+
+        VERIFY_CHECK((g & m) == 0);
     }
 
     t[0] = (int64_t)u;
