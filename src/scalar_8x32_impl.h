@@ -1077,15 +1077,15 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     int32_t f[9] = { 0x10364141L, 0x3F497A33L, 0x348A03BBL, 0x2BB739ABL,
         0x3FFFFEBAL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0xFFFFL };
     int32_t g[9];
-    secp256k1_scalar b0;
+    secp256k1_scalar b;
     int i, sign;
     uint32_t eta;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
 
-    b0 = *x;
-    secp256k1_scalar_encode_30(g, &b0);
+    b = *x;
+    secp256k1_scalar_encode_30(g, &b);
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak).
      *
@@ -1112,14 +1112,17 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
 
     sign = (f[0] >> 1) & 1;
 
-    secp256k1_scalar_decode_30(&b0, d);
-    secp256k1_scalar_cond_negate(&b0, sign);
+    secp256k1_scalar_decode_30(&b, d);
+
+    if (sign) {
+        secp256k1_scalar_negate(&b, &b);
+    }
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_scalar_is_zero(&b0) == !zero_in);
+    VERIFY_CHECK(!secp256k1_scalar_is_zero(&b) == !zero_in);
 #endif
 
-    *r = b0;
+    *r = b;
 }
 
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */

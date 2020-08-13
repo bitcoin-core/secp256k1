@@ -1169,7 +1169,9 @@ static void secp256k1_fe_decode_30(secp256k1_fe *r, const int32_t *a) {
     const uint32_t M26 = UINT32_MAX >> 6;
     const uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4],
                    a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
-    uint32_t r0, r1, r2, r3, r4, r5, r6, r7, r8, r9;
+    uint32_t r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, t;
+
+    t = (int32_t)a8 >> 16;
 
     /* a must be in the range [-2^256, 2^256). */
     VERIFY_CHECK(a0 >> 30 == 0);
@@ -1180,19 +1182,19 @@ static void secp256k1_fe_decode_30(secp256k1_fe *r, const int32_t *a) {
     VERIFY_CHECK(a5 >> 30 == 0);
     VERIFY_CHECK(a6 >> 30 == 0);
     VERIFY_CHECK(a7 >> 30 == 0);
-    VERIFY_CHECK((int32_t)a8 >> 16 == 0 || (int32_t)a8 >> 16 == -(int32_t)1);
+    VERIFY_CHECK(t == 0 || t == -(uint32_t)1);
 
-    /* Add a multiple of the field prime in case a8 is "negative". */
-    r0  = 0x3FFFC2FUL * 2;
-    r1  = 0x3FFFFBFUL * 2;
-    r2  = 0x3FFFFFFUL * 2;
-    r3  = 0x3FFFFFFUL * 2;
-    r4  = 0x3FFFFFFUL * 2;
-    r5  = 0x3FFFFFFUL * 2;
-    r6  = 0x3FFFFFFUL * 2;
-    r7  = 0x3FFFFFFUL * 2;
-    r8  = 0x3FFFFFFUL * 2;
-    r9  = 0x03FFFFFUL * 2;
+    /* Add 2P if a8 is "negative". */
+    r0  = 0x3FFF85EUL & t;
+    r1  = 0x3FFFF7FUL & t;
+    r2  = 0x3FFFFFFUL & t;
+    r3  = 0x3FFFFFFUL & t;
+    r4  = 0x3FFFFFFUL & t;
+    r5  = 0x3FFFFFFUL & t;
+    r6  = 0x3FFFFFFUL & t;
+    r7  = 0x3FFFFFFUL & t;
+    r8  = 0x3FFFFFFUL & t;
+    r9  = 0x07FFFFFUL & t;
 
     r0 +=  a0                   & M26;
     r1 += (a0 >> 26 | a1 <<  4) & M26;
@@ -1217,7 +1219,7 @@ static void secp256k1_fe_decode_30(secp256k1_fe *r, const int32_t *a) {
     r->n[9] = r9;
 
 #ifdef VERIFY
-    r->magnitude = 2;
+    r->magnitude = 1;
     r->normalized = 0;
     secp256k1_fe_verify(r);
 #endif
@@ -1526,19 +1528,19 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
     int32_t f[9] = { 0x3FFFFC2F, 0x3FFFFFFB, 0x3FFFFFFF, 0x3FFFFFFF, 0x3FFFFFFF,
         0x3FFFFFFF, 0x3FFFFFFF, 0x3FFFFFFF, 0xFFFF };
     int32_t g[9];
-    secp256k1_fe b0, b1;
+    secp256k1_fe b;
     int i, sign;
     uint32_t eta;
 #ifdef VERIFY
     int zero_in;
 #endif
 
-    b0 = *a;
-    secp256k1_fe_normalize(&b0);
-    secp256k1_fe_encode_30(g, &b0);
+    b = *a;
+    secp256k1_fe_normalize(&b);
+    secp256k1_fe_encode_30(g, &b);
 
 #ifdef VERIFY
-    zero_in = secp256k1_fe_is_zero(&b0);
+    zero_in = secp256k1_fe_is_zero(&b);
 #endif
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak).
@@ -1566,17 +1568,18 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 
     sign = (f[0] >> 1) & 1;
 
-    secp256k1_fe_decode_30(&b0, d);
+    secp256k1_fe_decode_30(&b, d);
 
-    secp256k1_fe_negate(&b1, &b0, 2);
-    secp256k1_fe_cmov(&b0, &b1, sign);
-    secp256k1_fe_normalize_weak(&b0);
+    if (sign) {
+        secp256k1_fe_negate(&b, &b, 1);
+        secp256k1_fe_normalize_weak(&b);
+    }
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(&b0) == !zero_in);
+    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(&b) == !zero_in);
 #endif
 
-    *r = b0;
+    *r = b;
 }
 
 #endif /* SECP256K1_FIELD_REPR_IMPL_H */

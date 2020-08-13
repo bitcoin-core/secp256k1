@@ -502,21 +502,23 @@ static void secp256k1_fe_decode_62(secp256k1_fe *r, const int64_t *a) {
 
     const uint64_t M52 = UINT64_MAX >> 12;
     const uint64_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4];
-    uint64_t r0, r1, r2, r3, r4;
+    uint64_t r0, r1, r2, r3, r4, t;
+
+    t = (int64_t)a4 >> 8;
 
     /* a must be in the range [-2^256, 2^256). */
     VERIFY_CHECK(a0 >> 62 == 0);
     VERIFY_CHECK(a1 >> 62 == 0);
     VERIFY_CHECK(a2 >> 62 == 0);
     VERIFY_CHECK(a3 >> 62 == 0);
-    VERIFY_CHECK((int64_t)a4 >> 8 == 0 || (int64_t)a4 >> 8 == -(int64_t)1);
+    VERIFY_CHECK(t == 0 || t == -(uint64_t)1);
 
-    /* Add a multiple of the field prime in case a4 is "negative". */
-    r0  = 0xFFFFEFFFFFC2FULL * 2;
-    r1  = 0xFFFFFFFFFFFFFULL * 2;
-    r2  = 0xFFFFFFFFFFFFFULL * 2;
-    r3  = 0xFFFFFFFFFFFFFULL * 2;
-    r4  = 0x0FFFFFFFFFFFFULL * 2;
+    /* Add 2P if a4 is "negative". */
+    r0  = 0xFFFFDFFFFF85EULL & t;
+    r1  = 0xFFFFFFFFFFFFFULL & t;
+    r2  = 0xFFFFFFFFFFFFFULL & t;
+    r3  = 0xFFFFFFFFFFFFFULL & t;
+    r4  = 0x1FFFFFFFFFFFFULL & t;
 
     r0 +=  a0                   & M52;
     r1 += (a0 >> 52 | a1 << 10) & M52;
@@ -531,7 +533,7 @@ static void secp256k1_fe_decode_62(secp256k1_fe *r, const int64_t *a) {
     r->n[4] = r4;
 
 #ifdef VERIFY
-    r->magnitude = 2;
+    r->magnitude = 1;
     r->normalized = 0;
     secp256k1_fe_verify(r);
 #endif
@@ -819,7 +821,7 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
     secp256k1_fe_decode_62(&b0, d);
 
-    secp256k1_fe_negate(&b1, &b0, 2);
+    secp256k1_fe_negate(&b1, &b0, 1);
     secp256k1_fe_cmov(&b0, &b1, sign);
     secp256k1_fe_normalize_weak(&b0);
 
@@ -841,19 +843,19 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
     int64_t f[5] = { 0x3FFFFFFEFFFFFC2FLL, 0x3FFFFFFFFFFFFFFFLL, 0x3FFFFFFFFFFFFFFFLL,
         0x3FFFFFFFFFFFFFFFLL, 0xFFLL };
     int64_t g[5];
-    secp256k1_fe b0, b1;
+    secp256k1_fe b;
     int i, sign;
     uint64_t eta;
 #ifdef VERIFY
     int zero_in;
 #endif
 
-    b0 = *a;
-    secp256k1_fe_normalize(&b0);
-    secp256k1_fe_encode_62(g, &b0);
+    b = *a;
+    secp256k1_fe_normalize(&b);
+    secp256k1_fe_encode_62(g, &b);
 
 #ifdef VERIFY
-    zero_in = secp256k1_fe_is_zero(&b0);
+    zero_in = secp256k1_fe_is_zero(&b);
 #endif
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak).
@@ -881,17 +883,18 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 
     sign = (f[0] >> 1) & 1;
 
-    secp256k1_fe_decode_62(&b0, d);
+    secp256k1_fe_decode_62(&b, d);
 
-    secp256k1_fe_negate(&b1, &b0, 2);
-    secp256k1_fe_cmov(&b0, &b1, sign);
-    secp256k1_fe_normalize_weak(&b0);
+    if (sign) {
+        secp256k1_fe_negate(&b, &b, 1);
+        secp256k1_fe_normalize_weak(&b);
+    }
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(&b0) == !zero_in);
+    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(&b) == !zero_in);
 #endif
 
-    *r = b0;
+    *r = b;
 }
 
 #endif /* SECP256K1_FIELD_REPR_IMPL_H */
