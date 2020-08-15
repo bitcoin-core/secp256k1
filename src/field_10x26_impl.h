@@ -1457,6 +1457,41 @@ static void secp256k1_fe_update_fg_30(int32_t *f, int32_t *g, const int32_t *t) 
     g[8] = (int32_t)cg;
 }
 
+static void secp256k1_fe_update_fg_30_var(int len, int32_t *f, int32_t *g, const int32_t *t) {
+
+    const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
+    const int32_t u = t[0], v = t[1], q = t[2], r = t[3];
+    int32_t fi, gi;
+    int64_t cf = 0, cg = 0;
+    int i;
+
+    VERIFY_CHECK(len > 0);
+
+    fi = f[0];
+    gi = g[0];
+
+    cf -= (int64_t)u * fi + (int64_t)v * gi;
+    cg -= (int64_t)q * fi + (int64_t)r * gi;
+
+    VERIFY_CHECK(((int32_t)cf & M30) == 0); cf >>= 30;
+    VERIFY_CHECK(((int32_t)cg & M30) == 0); cg >>= 30;
+
+    for (i = 1; i < len; ++i) {
+
+        fi = f[i];
+        gi = g[i];
+
+        cf -= (int64_t)u * fi + (int64_t)v * gi;
+        cg -= (int64_t)q * fi + (int64_t)r * gi;
+
+        f[i - 1] = (int32_t)cf & M30; cf >>= 30;
+        g[i - 1] = (int32_t)cg & M30; cg >>= 30;
+    }
+
+    f[len - 1] = (int32_t)cf;
+    g[len - 1] = (int32_t)cg;
+}
+
 static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
     /* Modular inversion based on the paper "Fast constant-time gcd computation and
@@ -1519,6 +1554,8 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
 static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 
+#define IS_THIS_FASTER 1
+
     /* Modular inversion based on the paper "Fast constant-time gcd computation and
      * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang. */
 
@@ -1531,6 +1568,10 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
     secp256k1_fe b;
     int i, sign;
     uint32_t eta;
+#if IS_THIS_FASTER
+    int j, len = 9;
+    int32_t cond, fn, gn;
+#endif
 #ifdef VERIFY
     int zero_in;
 #endif
@@ -1550,6 +1591,35 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
     eta = -(uint32_t)1;
 
     for (i = 0; i < 25; ++i) {
+#if IS_THIS_FASTER
+        eta = secp256k1_fe_divsteps_30_var(eta, f[0], g[0], t);
+        secp256k1_fe_update_de_30(d, e, t);
+        secp256k1_fe_update_fg_30_var(len, f, g, t);
+
+        if (g[0] == 0) {
+            cond = 0;
+            for (j = 1; j < len; ++j) {
+                cond |= g[j];
+            }
+            if (cond == 0) {
+                break;
+            }
+        }
+
+        fn = f[len - 1];
+        gn = g[len - 1];
+
+        cond = ((int32_t)len - 2) >> 31;
+        cond |= fn ^ (fn >> 31);
+        cond |= gn ^ (gn >> 31);
+
+        if (cond == 0)
+        {
+            f[len - 2] |= (uint32_t)fn << 30;
+            g[len - 2] |= (uint32_t)gn << 30;
+            --len;
+        }
+#else
         eta = secp256k1_fe_divsteps_30_var(eta, f[0], g[0], t);
         secp256k1_fe_update_de_30(d, e, t);
         secp256k1_fe_update_fg_30(f, g, t);
@@ -1559,6 +1629,7 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
                 break;
             }
         }
+#endif
     }
 
     VERIFY_CHECK(i < 25);
