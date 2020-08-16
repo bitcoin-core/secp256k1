@@ -1010,15 +1010,15 @@ static void secp256k1_scalar_encode_62(int64_t *r, const secp256k1_scalar *a) {
 
 static uint64_t secp256k1_scalar_divsteps_62(uint64_t eta, uint64_t f0, uint64_t g0, int64_t *t) {
 
-    uint64_t u = -(uint64_t)1, v = 0, q = 0, r = -(uint64_t)1;
+    uint64_t u = 1, v = 0, q = 0, r = 1;
     uint64_t c1, c2, f = f0, g = g0, x, y, z;
     int i;
 
     for (i = 0; i < 62; ++i) {
 
         VERIFY_CHECK((f & 1) == 1);
-        VERIFY_CHECK((u * f0 + v * g0) == -f << i);
-        VERIFY_CHECK((q * f0 + r * g0) == -g << i);
+        VERIFY_CHECK((u * f0 + v * g0) == f << i);
+        VERIFY_CHECK((q * f0 + r * g0) == g << i);
 
         c1 = -(g & (eta >> 63));
 
@@ -1059,7 +1059,7 @@ static uint64_t secp256k1_scalar_divsteps_62_var(uint64_t eta, uint64_t f0, uint
     };
 #endif
 
-    uint64_t u = -(uint64_t)1, v = 0, q = 0, r = -(uint64_t)1;
+    uint64_t u = 1, v = 0, q = 0, r = 1;
     uint64_t f = f0, g = g0, m, w, x, y, z;
     int i = 62, limit, zeros;
 
@@ -1086,8 +1086,8 @@ static uint64_t secp256k1_scalar_divsteps_62_var(uint64_t eta, uint64_t f0, uint
 
         VERIFY_CHECK((f & 1) == 1);
         VERIFY_CHECK((g & 1) == 1);
-        VERIFY_CHECK((u * f0 + v * g0) == -f << (62 - i));
-        VERIFY_CHECK((q * f0 + r * g0) == -g << (62 - i));
+        VERIFY_CHECK((u * f0 + v * g0) == f << (62 - i));
+        VERIFY_CHECK((q * f0 + r * g0) == g << (62 - i));
 
         if ((int64_t)eta < 0) {
             eta = -eta;
@@ -1134,10 +1134,10 @@ static void secp256k1_scalar_update_de_62(int64_t *d, int64_t *e, const int64_t 
     const int64_t e0 = e[0], e1 = e[1], e2 = e[2], e3 = e[3], e4 = e[4];
     const int64_t u = t[0], v = t[1], q = t[2], r = t[3];
     int64_t md, me;
-    int128_t cd = 0, ce = 0;
+    int128_t cd, ce;
 
-    cd -= (int128_t)u * d0 + (int128_t)v * e0;
-    ce -= (int128_t)q * d0 + (int128_t)r * e0;
+    cd = (int128_t)u * d0 + (int128_t)v * e0;
+    ce = (int128_t)q * d0 + (int128_t)r * e0;
 
     /* Calculate the multiples of P to add, to zero the 62 bottom bits. We choose md, me
      * from the centred range [-2^61, 2^61) to keep d, e within [-2^256, 2^256). */
@@ -1150,8 +1150,8 @@ static void secp256k1_scalar_update_de_62(int64_t *d, int64_t *e, const int64_t 
     VERIFY_CHECK(((int64_t)cd & M62) == 0); cd >>= 62;
     VERIFY_CHECK(((int64_t)ce & M62) == 0); ce >>= 62;
 
-    cd -= (int128_t)u * d1 + (int128_t)v * e1;
-    ce -= (int128_t)q * d1 + (int128_t)r * e1;
+    cd += (int128_t)u * d1 + (int128_t)v * e1;
+    ce += (int128_t)q * d1 + (int128_t)r * e1;
 
     cd += (int128_t)P[1] * md;
     ce += (int128_t)P[1] * me;
@@ -1159,8 +1159,8 @@ static void secp256k1_scalar_update_de_62(int64_t *d, int64_t *e, const int64_t 
     d[0] = (int64_t)cd & M62; cd >>= 62;
     e[0] = (int64_t)ce & M62; ce >>= 62;
 
-    cd -= (int128_t)u * d2 + (int128_t)v * e2;
-    ce -= (int128_t)q * d2 + (int128_t)r * e2;
+    cd += (int128_t)u * d2 + (int128_t)v * e2;
+    ce += (int128_t)q * d2 + (int128_t)r * e2;
 
     cd += (int128_t)P[2] * md;
     ce += (int128_t)P[2] * me;
@@ -1168,14 +1168,14 @@ static void secp256k1_scalar_update_de_62(int64_t *d, int64_t *e, const int64_t 
     d[1] = (int64_t)cd & M62; cd >>= 62;
     e[1] = (int64_t)ce & M62; ce >>= 62;
 
-    cd -= (int128_t)u * d3 + (int128_t)v * e3;
-    ce -= (int128_t)q * d3 + (int128_t)r * e3;
+    cd += (int128_t)u * d3 + (int128_t)v * e3;
+    ce += (int128_t)q * d3 + (int128_t)r * e3;
 
     d[2] = (int64_t)cd & M62; cd >>= 62;
     e[2] = (int64_t)ce & M62; ce >>= 62;
 
-    cd -= (int128_t)u * d4 + (int128_t)v * e4;
-    ce -= (int128_t)q * d4 + (int128_t)r * e4;
+    cd += (int128_t)u * d4 + (int128_t)v * e4;
+    ce += (int128_t)q * d4 + (int128_t)r * e4;
 
     cd += (int128_t)P[4] * md;
     ce += (int128_t)P[4] * me;
@@ -1193,34 +1193,34 @@ static void secp256k1_scalar_update_fg_62(int64_t *f, int64_t *g, const int64_t 
     const int64_t f0 = f[0], f1 = f[1], f2 = f[2], f3 = f[3], f4 = f[4];
     const int64_t g0 = g[0], g1 = g[1], g2 = g[2], g3 = g[3], g4 = g[4];
     const int64_t u = t[0], v = t[1], q = t[2], r = t[3];
-    int128_t cf = 0, cg = 0;
+    int128_t cf, cg;
 
-    cf -= (int128_t)u * f0 + (int128_t)v * g0;
-    cg -= (int128_t)q * f0 + (int128_t)r * g0;
+    cf = (int128_t)u * f0 + (int128_t)v * g0;
+    cg = (int128_t)q * f0 + (int128_t)r * g0;
 
     VERIFY_CHECK(((int64_t)cf & M62) == 0); cf >>= 62;
     VERIFY_CHECK(((int64_t)cg & M62) == 0); cg >>= 62;
 
-    cf -= (int128_t)u * f1 + (int128_t)v * g1;
-    cg -= (int128_t)q * f1 + (int128_t)r * g1;
+    cf += (int128_t)u * f1 + (int128_t)v * g1;
+    cg += (int128_t)q * f1 + (int128_t)r * g1;
 
     f[0] = (int64_t)cf & M62; cf >>= 62;
     g[0] = (int64_t)cg & M62; cg >>= 62;
 
-    cf -= (int128_t)u * f2 + (int128_t)v * g2;
-    cg -= (int128_t)q * f2 + (int128_t)r * g2;
+    cf += (int128_t)u * f2 + (int128_t)v * g2;
+    cg += (int128_t)q * f2 + (int128_t)r * g2;
 
     f[1] = (int64_t)cf & M62; cf >>= 62;
     g[1] = (int64_t)cg & M62; cg >>= 62;
 
-    cf -= (int128_t)u * f3 + (int128_t)v * g3;
-    cg -= (int128_t)q * f3 + (int128_t)r * g3;
+    cf += (int128_t)u * f3 + (int128_t)v * g3;
+    cg += (int128_t)q * f3 + (int128_t)r * g3;
 
     f[2] = (int64_t)cf & M62; cf >>= 62;
     g[2] = (int64_t)cg & M62; cg >>= 62;
 
-    cf -= (int128_t)u * f4 + (int128_t)v * g4;
-    cg -= (int128_t)q * f4 + (int128_t)r * g4;
+    cf += (int128_t)u * f4 + (int128_t)v * g4;
+    cg += (int128_t)q * f4 + (int128_t)r * g4;
 
     f[3] = (int64_t)cf & M62; cf >>= 62;
     g[3] = (int64_t)cg & M62; cg >>= 62;
@@ -1234,7 +1234,7 @@ static void secp256k1_scalar_update_fg_62_var(int len, int64_t *f, int64_t *g, c
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
     const int64_t u = t[0], v = t[1], q = t[2], r = t[3];
     int64_t fi, gi;
-    int128_t cf = 0, cg = 0;
+    int128_t cf, cg;
     int i;
 
     VERIFY_CHECK(len > 0);
@@ -1242,8 +1242,8 @@ static void secp256k1_scalar_update_fg_62_var(int len, int64_t *f, int64_t *g, c
     fi = f[0];
     gi = g[0];
 
-    cf -= (int128_t)u * fi + (int128_t)v * gi;
-    cg -= (int128_t)q * fi + (int128_t)r * gi;
+    cf = (int128_t)u * fi + (int128_t)v * gi;
+    cg = (int128_t)q * fi + (int128_t)r * gi;
 
     VERIFY_CHECK(((int64_t)cf & M62) == 0); cf >>= 62;
     VERIFY_CHECK(((int64_t)cg & M62) == 0); cg >>= 62;
@@ -1253,8 +1253,8 @@ static void secp256k1_scalar_update_fg_62_var(int len, int64_t *f, int64_t *g, c
         fi = f[i];
         gi = g[i];
 
-        cf -= (int128_t)u * fi + (int128_t)v * gi;
-        cg -= (int128_t)q * fi + (int128_t)r * gi;
+        cf += (int128_t)u * fi + (int128_t)v * gi;
+        cg += (int128_t)q * fi + (int128_t)r * gi;
 
         f[i - 1] = (int64_t)cf & M62; cf >>= 62;
         g[i - 1] = (int64_t)cg & M62; cg >>= 62;

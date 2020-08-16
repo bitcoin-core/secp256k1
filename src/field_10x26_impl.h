@@ -1250,15 +1250,15 @@ static void secp256k1_fe_encode_30(int32_t *r, const secp256k1_fe *a) {
 
 static uint32_t secp256k1_fe_divsteps_30(uint32_t eta, uint32_t f0, uint32_t g0, int32_t *t) {
 
-    uint32_t u = -(uint32_t)1, v = 0, q = 0, r = -(uint32_t)1;
+    uint32_t u = 1, v = 0, q = 0, r = 1;
     uint32_t c1, c2, f = f0, g = g0, x, y, z;
     int i;
 
     for (i = 0; i < 30; ++i) {
 
         VERIFY_CHECK((f & 1) == 1);
-        VERIFY_CHECK((u * f0 + v * g0) == -f << i);
-        VERIFY_CHECK((q * f0 + r * g0) == -g << i);
+        VERIFY_CHECK((u * f0 + v * g0) == f << i);
+        VERIFY_CHECK((q * f0 + r * g0) == g << i);
 
         c1 = -(g & (eta >> 31));
 
@@ -1296,7 +1296,7 @@ static uint32_t secp256k1_fe_divsteps_30_var(uint32_t eta, uint32_t f0, uint32_t
         31, 23, 18, 5, 21, 9, 15, 11, 30, 17, 8, 14, 29, 13, 28, 27 };
 #endif
 
-    uint32_t u = -(uint32_t)1, v = 0, q = 0, r = -(uint32_t)1;
+    uint32_t u = 1, v = 0, q = 0, r = 1;
     uint32_t f = f0, g = g0, m, w, x, y, z;
     int i = 30, limit, zeros;
 
@@ -1323,8 +1323,8 @@ static uint32_t secp256k1_fe_divsteps_30_var(uint32_t eta, uint32_t f0, uint32_t
 
         VERIFY_CHECK((f & 1) == 1);
         VERIFY_CHECK((g & 1) == 1);
-        VERIFY_CHECK((u * f0 + v * g0) == -f << (30 - i));
-        VERIFY_CHECK((q * f0 + r * g0) == -g << (30 - i));
+        VERIFY_CHECK((u * f0 + v * g0) == f << (30 - i));
+        VERIFY_CHECK((q * f0 + r * g0) == g << (30 - i));
 
         if ((int32_t)eta < 0) {
             eta = -eta;
@@ -1371,14 +1371,14 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, const int32_t *t) 
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
     const int32_t u = t[0], v = t[1], q = t[2], r = t[3];
     int32_t di, ei, md, me;
-    int64_t cd = 0, ce = 0;
+    int64_t cd, ce;
     int i;
 
     di = d[0];
     ei = e[0];
 
-    cd -= (int64_t)u * di + (int64_t)v * ei;
-    ce -= (int64_t)q * di + (int64_t)r * ei;
+    cd = (int64_t)u * di + (int64_t)v * ei;
+    ce = (int64_t)q * di + (int64_t)r * ei;
 
     /* Calculate the multiples of P to add, to zero the 30 bottom bits. We choose md, me
      * from the centred range [-2^29, 2^29) to keep d, e within [-2^256, 2^256). */
@@ -1399,8 +1399,8 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, const int32_t *t) 
         di = d[i];
         ei = e[i];
 
-        cd -= (int64_t)u * di + (int64_t)v * ei;
-        ce -= (int64_t)q * di + (int64_t)r * ei;
+        cd += (int64_t)u * di + (int64_t)v * ei;
+        ce += (int64_t)q * di + (int64_t)r * ei;
 
         d[i - 1] = (int32_t)cd & M30; cd >>= 30;
         e[i - 1] = (int32_t)ce & M30; ce >>= 30;
@@ -1410,8 +1410,8 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, const int32_t *t) 
         di = d[8];
         ei = e[8];
 
-        cd -= (int64_t)u * di + (int64_t)v * ei;
-        ce -= (int64_t)q * di + (int64_t)r * ei;
+        cd += (int64_t)u * di + (int64_t)v * ei;
+        ce += (int64_t)q * di + (int64_t)r * ei;
 
         cd += (int64_t)65536 * md;
         ce += (int64_t)65536 * me;
@@ -1429,14 +1429,14 @@ static void secp256k1_fe_update_fg_30(int32_t *f, int32_t *g, const int32_t *t) 
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
     const int32_t u = t[0], v = t[1], q = t[2], r = t[3];
     int32_t fi, gi;
-    int64_t cf = 0, cg = 0;
+    int64_t cf, cg;
     int i;
 
     fi = f[0];
     gi = g[0];
 
-    cf -= (int64_t)u * fi + (int64_t)v * gi;
-    cg -= (int64_t)q * fi + (int64_t)r * gi;
+    cf = (int64_t)u * fi + (int64_t)v * gi;
+    cg = (int64_t)q * fi + (int64_t)r * gi;
 
     VERIFY_CHECK(((int32_t)cf & M30) == 0); cf >>= 30;
     VERIFY_CHECK(((int32_t)cg & M30) == 0); cg >>= 30;
@@ -1446,8 +1446,8 @@ static void secp256k1_fe_update_fg_30(int32_t *f, int32_t *g, const int32_t *t) 
         fi = f[i];
         gi = g[i];
 
-        cf -= (int64_t)u * fi + (int64_t)v * gi;
-        cg -= (int64_t)q * fi + (int64_t)r * gi;
+        cf += (int64_t)u * fi + (int64_t)v * gi;
+        cg += (int64_t)q * fi + (int64_t)r * gi;
 
         f[i - 1] = (int32_t)cf & M30; cf >>= 30;
         g[i - 1] = (int32_t)cg & M30; cg >>= 30;
@@ -1462,7 +1462,7 @@ static void secp256k1_fe_update_fg_30_var(int len, int32_t *f, int32_t *g, const
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
     const int32_t u = t[0], v = t[1], q = t[2], r = t[3];
     int32_t fi, gi;
-    int64_t cf = 0, cg = 0;
+    int64_t cf, cg;
     int i;
 
     VERIFY_CHECK(len > 0);
@@ -1470,8 +1470,8 @@ static void secp256k1_fe_update_fg_30_var(int len, int32_t *f, int32_t *g, const
     fi = f[0];
     gi = g[0];
 
-    cf -= (int64_t)u * fi + (int64_t)v * gi;
-    cg -= (int64_t)q * fi + (int64_t)r * gi;
+    cf = (int64_t)u * fi + (int64_t)v * gi;
+    cg = (int64_t)q * fi + (int64_t)r * gi;
 
     VERIFY_CHECK(((int32_t)cf & M30) == 0); cf >>= 30;
     VERIFY_CHECK(((int32_t)cg & M30) == 0); cg >>= 30;
@@ -1481,8 +1481,8 @@ static void secp256k1_fe_update_fg_30_var(int len, int32_t *f, int32_t *g, const
         fi = f[i];
         gi = g[i];
 
-        cf -= (int64_t)u * fi + (int64_t)v * gi;
-        cg -= (int64_t)q * fi + (int64_t)r * gi;
+        cf += (int64_t)u * fi + (int64_t)v * gi;
+        cg += (int64_t)q * fi + (int64_t)r * gi;
 
         f[i - 1] = (int32_t)cf & M30; cf >>= 30;
         g[i - 1] = (int32_t)cg & M30; cg >>= 30;
