@@ -1554,8 +1554,6 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
 static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
 
-#define IS_THIS_FASTER 1
-
     /* Modular inversion based on the paper "Fast constant-time gcd computation and
      * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang. */
 
@@ -1566,12 +1564,9 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
         0x3FFFFFFF, 0x3FFFFFFF, 0x3FFFFFFF, 0xFFFF };
     int32_t g[9];
     secp256k1_fe b;
-    int i, sign;
+    int i, j, len = 9, sign;
     uint32_t eta;
-#if IS_THIS_FASTER
-    int j, len = 9;
     int32_t cond, fn, gn;
-#endif
 #ifdef VERIFY
     int zero_in;
 #endif
@@ -1591,7 +1586,7 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
     eta = -(uint32_t)1;
 
     for (i = 0; i < 25; ++i) {
-#if IS_THIS_FASTER
+
         eta = secp256k1_fe_divsteps_30_var(eta, f[0], g[0], t);
         secp256k1_fe_update_de_30(d, e, t);
         secp256k1_fe_update_fg_30_var(len, f, g, t);
@@ -1613,23 +1608,11 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
         cond |= fn ^ (fn >> 31);
         cond |= gn ^ (gn >> 31);
 
-        if (cond == 0)
-        {
+        if (cond == 0) {
             f[len - 2] |= (uint32_t)fn << 30;
             g[len - 2] |= (uint32_t)gn << 30;
             --len;
         }
-#else
-        eta = secp256k1_fe_divsteps_30_var(eta, f[0], g[0], t);
-        secp256k1_fe_update_de_30(d, e, t);
-        secp256k1_fe_update_fg_30(f, g, t);
-
-        if (g[0] == 0) {
-            if ((g[1] | g[2] | g[3] | g[4] | g[5] | g[6] | g[7] | g[8]) == 0) {
-                break;
-            }
-        }
-#endif
     }
 
     VERIFY_CHECK(i < 25);

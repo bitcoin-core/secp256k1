@@ -1229,6 +1229,41 @@ static void secp256k1_scalar_update_fg_62(int64_t *f, int64_t *g, const int64_t 
     g[4] = (int64_t)cg;
 }
 
+static void secp256k1_scalar_update_fg_62_var(int len, int64_t *f, int64_t *g, const int64_t *t) {
+
+    const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
+    const int64_t u = t[0], v = t[1], q = t[2], r = t[3];
+    int64_t fi, gi;
+    int128_t cf = 0, cg = 0;
+    int i;
+
+    VERIFY_CHECK(len > 0);
+
+    fi = f[0];
+    gi = g[0];
+
+    cf -= (int128_t)u * fi + (int128_t)v * gi;
+    cg -= (int128_t)q * fi + (int128_t)r * gi;
+
+    VERIFY_CHECK(((int64_t)cf & M62) == 0); cf >>= 62;
+    VERIFY_CHECK(((int64_t)cg & M62) == 0); cg >>= 62;
+
+    for (i = 1; i < len; ++i) {
+
+        fi = f[i];
+        gi = g[i];
+
+        cf -= (int128_t)u * fi + (int128_t)v * gi;
+        cg -= (int128_t)q * fi + (int128_t)r * gi;
+
+        f[i - 1] = (int64_t)cf & M62; cf >>= 62;
+        g[i - 1] = (int64_t)cg & M62; cg >>= 62;
+    }
+
+    f[len - 1] = (int64_t)cf;
+    g[len - 1] = (int64_t)cg;
+}
+
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *x) {
 #if defined(EXHAUSTIVE_TEST_ORDER)
     int i;
@@ -1309,8 +1344,9 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
         0x3FFFFFFFFFFFFFFFLL, 0xFFLL };
     int64_t g[5];
     secp256k1_scalar b;
-    int i, sign;
+    int i, j, len = 5, sign;
     uint64_t eta;
+    int64_t cond, fn, gn;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
@@ -1325,14 +1361,32 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     eta = -(uint64_t)1;
 
     for (i = 0; i < 12; ++i) {
+
         eta = secp256k1_scalar_divsteps_62_var(eta, f[0], g[0], t);
         secp256k1_scalar_update_de_62(d, e, t);
-        secp256k1_scalar_update_fg_62(f, g, t);
+        secp256k1_scalar_update_fg_62_var(len, f, g, t);
 
         if (g[0] == 0) {
-            if ((g[1] | g[2] | g[3] | g[4]) == 0) {
+            cond = 0;
+            for (j = 1; j < len; ++j) {
+                cond |= g[j];
+            }
+            if (cond == 0) {
                 break;
             }
+        }
+
+        fn = f[len - 1];
+        gn = g[len - 1];
+
+        cond = ((int64_t)len - 2) >> 63;
+        cond |= fn ^ (fn >> 63);
+        cond |= gn ^ (gn >> 63);
+
+        if (cond == 0) {
+            f[len - 2] |= fn << 62;
+            g[len - 2] |= gn << 62;
+            --len;
         }
     }
 
