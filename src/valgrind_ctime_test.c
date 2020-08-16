@@ -6,6 +6,7 @@
 
 #include <valgrind/memcheck.h>
 #include "include/secp256k1.h"
+#include "assumptions.h"
 #include "util.h"
 
 #if ENABLE_MODULE_ECDH

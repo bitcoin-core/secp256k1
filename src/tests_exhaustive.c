@@ -22,6 +22,7 @@
 #endif
 
 #include "include/secp256k1.h"
+#include "assumptions.h"
 #include "group.h"
 #include "secp256k1.c"
 #include "testrand_impl.h"
