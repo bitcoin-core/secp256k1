@@ -37,6 +37,7 @@ noinst_HEADERS += src/field_5x52_asm_impl.h
 noinst_HEADERS += src/util.h
 noinst_HEADERS += src/scratch.h
 noinst_HEADERS += src/scratch_impl.h
+noinst_HEADERS += src/selftest.h
 noinst_HEADERS += src/testrand.h
 noinst_HEADERS += src/testrand_impl.h
 noinst_HEADERS += src/hash.h
