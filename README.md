@@ -68,6 +68,13 @@ libsecp256k1 is built using autotools:
     $ make check
     $ sudo make install  # optional
 
+Platform-specific installation
+-----------
+
+An installation script is provided for the following platforms:
+
+- [Alpine](contrib/alpine_install.sh)
+
 Exhaustive tests
 -----------
 
