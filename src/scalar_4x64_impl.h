@@ -1020,7 +1020,8 @@ static uint64_t secp256k1_scalar_divsteps_62(uint64_t eta, uint64_t f0, uint64_t
         VERIFY_CHECK((u * f0 + v * g0) == f << i);
         VERIFY_CHECK((q * f0 + r * g0) == g << i);
 
-        c1 = -(g & (eta >> 63));
+        c2 = -(g & 1);
+        c1 = c2 & ((int64_t)eta >> 63);
 
         x = (f ^ g) & c1;
         f ^= x; g ^= x; g ^= c1; g -= c1;
@@ -1032,8 +1033,6 @@ static uint64_t secp256k1_scalar_divsteps_62(uint64_t eta, uint64_t f0, uint64_t
         v ^= z; r ^= z; r ^= c1; r -= c1;
 
         eta = (eta ^ c1) - c1 - 1;
-
-        c2 = -(g & 1);
 
         g += (f & c2); g >>= 1;
         q += (u & c2); u <<= 1;
