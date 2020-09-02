@@ -364,8 +364,8 @@ void run_scratch_tests(void) {
     CHECK(scratch->alloc_size != 0);
     CHECK(scratch->alloc_size % ALIGNMENT == 0);
 
-    /* Allocating another 500 bytes fails */
-    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) == NULL);
+    /* Allocating another 501 bytes fails */
+    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 501) == NULL);
     CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000 - adj_alloc);
     CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) == 1000 - adj_alloc - (ALIGNMENT - 1));
     CHECK(scratch->alloc_size != 0);
@@ -397,6 +397,18 @@ void run_scratch_tests(void) {
     CHECK(ecount == 4);
     secp256k1_scratch_space_destroy(none, scratch);
     CHECK(ecount == 5);
+
+    /* Test that large integers do not wrap around in a bad way */
+    scratch = secp256k1_scratch_space_create(none, 1000);
+    /* Try max allocation with a large number of objects. Only makes sense if
+     * ALIGNMENT is greater than 1 because otherwise the objects take no extra
+     * space. */
+    CHECK(ALIGNMENT <= 1 || !secp256k1_scratch_max_allocation(&none->error_callback, scratch, (SIZE_MAX / (ALIGNMENT - 1)) + 1));
+    /* Try allocating SIZE_MAX to test wrap around which only happens if
+     * ALIGNMENT > 1, otherwise it returns NULL anyway because the scratch
+     * space is too small. */
+    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, SIZE_MAX) == NULL);
+    secp256k1_scratch_space_destroy(none, scratch);
 
     /* cleanup */
     secp256k1_scratch_space_destroy(none, NULL); /* no-op */
