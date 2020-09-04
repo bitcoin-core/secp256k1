@@ -271,7 +271,7 @@ int secp256k1_ecdsa_adaptor_adapt(const secp256k1_context* ctx, secp256k1_ecdsa_
 }
 
 int secp256k1_ecdsa_adaptor_extract_secret(const secp256k1_context* ctx, unsigned char *adaptor_secret32, const secp256k1_ecdsa_signature *sig, const unsigned char *adaptor_sig65, const secp256k1_pubkey *adaptor) {
-    secp256k1_scalar sp;
+    secp256k1_scalar sp, adaptor_sigr;
     secp256k1_scalar s, r;
     secp256k1_scalar adaptor_secret;
     secp256k1_ge adaptor_expected_ge;
@@ -285,10 +285,14 @@ int secp256k1_ecdsa_adaptor_extract_secret(const secp256k1_context* ctx, unsigne
     ARG_CHECK(adaptor_sig65 != NULL);
     ARG_CHECK(adaptor != NULL);
 
-    if (!secp256k1_ecdsa_adaptor_sig_deserialize(NULL, NULL, &sp, adaptor_sig65)) {
+    if (!secp256k1_ecdsa_adaptor_sig_deserialize(NULL, &adaptor_sigr, &sp, adaptor_sig65)) {
         return 0;
     }
     secp256k1_ecdsa_signature_load(ctx, &r, &s, sig);
+    /* Check that we're not looking at some unrelated signature */
+    if (!secp256k1_scalar_eq(&adaptor_sigr, &r)) {
+        return 0;
+    }
     secp256k1_scalar_inverse(&adaptor_secret, &s);
     secp256k1_scalar_mul(&adaptor_secret, &adaptor_secret, &sp);
 
