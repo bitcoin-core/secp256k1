@@ -91,9 +91,9 @@ int secp256k1_nonce_function_smallint(unsigned char *nonce32, const unsigned cha
 }
 
 #ifdef USE_ENDOMORPHISM
-void test_exhaustive_endomorphism(const secp256k1_ge *group, int order) {
+void test_exhaustive_endomorphism(const secp256k1_ge *group) {
     int i;
-    for (i = 0; i < order; i++) {
+    for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++) {
         secp256k1_ge res;
         secp256k1_ge_mul_lambda(&res, &group[i]);
         ge_equals_ge(&group[i * EXHAUSTIVE_TEST_LAMBDA % EXHAUSTIVE_TEST_ORDER], &res);
@@ -101,80 +101,80 @@ void test_exhaustive_endomorphism(const secp256k1_ge *group, int order) {
 }
 #endif
 
-void test_exhaustive_addition(const secp256k1_ge *group, const secp256k1_gej *groupj, int order) {
+void test_exhaustive_addition(const secp256k1_ge *group, const secp256k1_gej *groupj) {
     int i, j;
 
     /* Sanity-check (and check infinity functions) */
     CHECK(secp256k1_ge_is_infinity(&group[0]));
     CHECK(secp256k1_gej_is_infinity(&groupj[0]));
-    for (i = 1; i < order; i++) {
+    for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {
         CHECK(!secp256k1_ge_is_infinity(&group[i]));
         CHECK(!secp256k1_gej_is_infinity(&groupj[i]));
     }
 
     /* Check all addition formulae */
-    for (j = 0; j < order; j++) {
+    for (j = 0; j < EXHAUSTIVE_TEST_ORDER; j++) {
         secp256k1_fe fe_inv;
         secp256k1_fe_inv(&fe_inv, &groupj[j].z);
-        for (i = 0; i < order; i++) {
+        for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++) {
             secp256k1_ge zless_gej;
             secp256k1_gej tmp;
             /* add_var */
             secp256k1_gej_add_var(&tmp, &groupj[i], &groupj[j], NULL);
-            ge_equals_gej(&group[(i + j) % order], &tmp);
+            ge_equals_gej(&group[(i + j) % EXHAUSTIVE_TEST_ORDER], &tmp);
             /* add_ge */
             if (j > 0) {
                 secp256k1_gej_add_ge(&tmp, &groupj[i], &group[j]);
-                ge_equals_gej(&group[(i + j) % order], &tmp);
+                ge_equals_gej(&group[(i + j) % EXHAUSTIVE_TEST_ORDER], &tmp);
             }
             /* add_ge_var */
             secp256k1_gej_add_ge_var(&tmp, &groupj[i], &group[j], NULL);
-            ge_equals_gej(&group[(i + j) % order], &tmp);
+            ge_equals_gej(&group[(i + j) % EXHAUSTIVE_TEST_ORDER], &tmp);
             /* add_zinv_var */
             zless_gej.infinity = groupj[j].infinity;
             zless_gej.x = groupj[j].x;
             zless_gej.y = groupj[j].y;
             secp256k1_gej_add_zinv_var(&tmp, &groupj[i], &zless_gej, &fe_inv);
-            ge_equals_gej(&group[(i + j) % order], &tmp);
+            ge_equals_gej(&group[(i + j) % EXHAUSTIVE_TEST_ORDER], &tmp);
         }
     }
 
     /* Check doubling */
-    for (i = 0; i < order; i++) {
+    for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++) {
         secp256k1_gej tmp;
         secp256k1_gej_double(&tmp, &groupj[i]);
-        ge_equals_gej(&group[(2 * i) % order], &tmp);
+        ge_equals_gej(&group[(2 * i) % EXHAUSTIVE_TEST_ORDER], &tmp);
         secp256k1_gej_double_var(&tmp, &groupj[i], NULL);
-        ge_equals_gej(&group[(2 * i) % order], &tmp);
+        ge_equals_gej(&group[(2 * i) % EXHAUSTIVE_TEST_ORDER], &tmp);
     }
 
     /* Check negation */
-    for (i = 1; i < order; i++) {
+    for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {
         secp256k1_ge tmp;
         secp256k1_gej tmpj;
         secp256k1_ge_neg(&tmp, &group[i]);
-        ge_equals_ge(&group[order - i], &tmp);
+        ge_equals_ge(&group[EXHAUSTIVE_TEST_ORDER - i], &tmp);
         secp256k1_gej_neg(&tmpj, &groupj[i]);
-        ge_equals_gej(&group[order - i], &tmpj);
+        ge_equals_gej(&group[EXHAUSTIVE_TEST_ORDER - i], &tmpj);
     }
 }
 
-void test_exhaustive_ecmult(const secp256k1_context *ctx, const secp256k1_ge *group, const secp256k1_gej *groupj, int order) {
+void test_exhaustive_ecmult(const secp256k1_context *ctx, const secp256k1_ge *group, const secp256k1_gej *groupj) {
     int i, j, r_log;
-    for (r_log = 1; r_log < order; r_log++) {
-        for (j = 0; j < order; j++) {
-            for (i = 0; i < order; i++) {
+    for (r_log = 1; r_log < EXHAUSTIVE_TEST_ORDER; r_log++) {
+        for (j = 0; j < EXHAUSTIVE_TEST_ORDER; j++) {
+            for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++) {
                 secp256k1_gej tmp;
                 secp256k1_scalar na, ng;
                 secp256k1_scalar_set_int(&na, i);
                 secp256k1_scalar_set_int(&ng, j);
 
                 secp256k1_ecmult(&ctx->ecmult_ctx, &tmp, &groupj[r_log], &na, &ng);
-                ge_equals_gej(&group[(i * r_log + j) % order], &tmp);
+                ge_equals_gej(&group[(i * r_log + j) % EXHAUSTIVE_TEST_ORDER], &tmp);
 
                 if (i > 0) {
                     secp256k1_ecmult_const(&tmp, &group[i], &ng, 256);
-                    ge_equals_gej(&group[(i * j) % order], &tmp);
+                    ge_equals_gej(&group[(i * j) % EXHAUSTIVE_TEST_ORDER], &tmp);
                 }
             }
         }
@@ -193,14 +193,14 @@ static int ecmult_multi_callback(secp256k1_scalar *sc, secp256k1_ge *pt, size_t 
     return 1;
 }
 
-void test_exhaustive_ecmult_multi(const secp256k1_context *ctx, const secp256k1_ge *group, int order) {
+void test_exhaustive_ecmult_multi(const secp256k1_context *ctx, const secp256k1_ge *group) {
     int i, j, k, x, y;
     secp256k1_scratch *scratch = secp256k1_scratch_create(&ctx->error_callback, 4096);
-    for (i = 0; i < order; i++) {
-        for (j = 0; j < order; j++) {
-            for (k = 0; k < order; k++) {
-                for (x = 0; x < order; x++) {
-                    for (y = 0; y < order; y++) {
+    for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++) {
+        for (j = 0; j < EXHAUSTIVE_TEST_ORDER; j++) {
+            for (k = 0; k < EXHAUSTIVE_TEST_ORDER; k++) {
+                for (x = 0; x < EXHAUSTIVE_TEST_ORDER; x++) {
+                    for (y = 0; y < EXHAUSTIVE_TEST_ORDER; y++) {
                         secp256k1_gej tmp;
                         secp256k1_scalar g_sc;
                         ecmult_multi_data data;
@@ -212,7 +212,7 @@ void test_exhaustive_ecmult_multi(const secp256k1_context *ctx, const secp256k1_
                         data.pt[1] = group[y];
 
                         secp256k1_ecmult_multi_var(&ctx->error_callback, &ctx->ecmult_ctx, scratch, &tmp, &g_sc, ecmult_multi_callback, &data, 2);
-                        ge_equals_gej(&group[(i * x + j * y + k) % order], &tmp);
+                        ge_equals_gej(&group[(i * x + j * y + k) % EXHAUSTIVE_TEST_ORDER], &tmp);
                     }
                 }
             }
@@ -231,12 +231,12 @@ void r_from_k(secp256k1_scalar *r, const secp256k1_ge *group, int k) {
     secp256k1_scalar_set_b32(r, x_bin, NULL);
 }
 
-void test_exhaustive_verify(const secp256k1_context *ctx, const secp256k1_ge *group, int order) {
+void test_exhaustive_verify(const secp256k1_context *ctx, const secp256k1_ge *group) {
     int s, r, msg, key;
-    for (s = 1; s < order; s++) {
-        for (r = 1; r < order; r++) {
-            for (msg = 1; msg < order; msg++) {
-                for (key = 1; key < order; key++) {
+    for (s = 1; s < EXHAUSTIVE_TEST_ORDER; s++) {
+        for (r = 1; r < EXHAUSTIVE_TEST_ORDER; r++) {
+            for (msg = 1; msg < EXHAUSTIVE_TEST_ORDER; msg++) {
+                for (key = 1; key < EXHAUSTIVE_TEST_ORDER; key++) {
                     secp256k1_ge nonconst_ge;
                     secp256k1_ecdsa_signature sig;
                     secp256k1_pubkey pk;
@@ -254,7 +254,7 @@ void test_exhaustive_verify(const secp256k1_context *ctx, const secp256k1_ge *gr
                     /* Run through every k value that gives us this r and check that *one* works.
                      * Note there could be none, there could be multiple, ECDSA is weird. */
                     should_verify = 0;
-                    for (k = 0; k < order; k++) {
+                    for (k = 0; k < EXHAUSTIVE_TEST_ORDER; k++) {
                         secp256k1_scalar check_x_s;
                         r_from_k(&check_x_s, group, k);
                         if (r_s == check_x_s) {
@@ -281,13 +281,13 @@ void test_exhaustive_verify(const secp256k1_context *ctx, const secp256k1_ge *gr
     }
 }
 
-void test_exhaustive_sign(const secp256k1_context *ctx, const secp256k1_ge *group, int order) {
+void test_exhaustive_sign(const secp256k1_context *ctx, const secp256k1_ge *group) {
     int i, j, k;
 
     /* Loop */
-    for (i = 1; i < order; i++) {  /* message */
-        for (j = 1; j < order; j++) {  /* key */
-            for (k = 1; k < order; k++) {  /* nonce */
+    for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {  /* message */
+        for (j = 1; j < EXHAUSTIVE_TEST_ORDER; j++) {  /* key */
+            for (k = 1; k < EXHAUSTIVE_TEST_ORDER; k++) {  /* nonce */
                 const int starting_k = k;
                 secp256k1_ecdsa_signature sig;
                 secp256k1_scalar sk, msg, r, s, expected_r;
@@ -305,8 +305,8 @@ void test_exhaustive_sign(const secp256k1_context *ctx, const secp256k1_ge *grou
                  * signing. */
                 r_from_k(&expected_r, group, k);
                 CHECK(r == expected_r);
-                CHECK((k * s) % order == (i + r * j) % order ||
-                      (k * (EXHAUSTIVE_TEST_ORDER - s)) % order == (i + r * j) % order);
+                CHECK((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER ||
+                      (k * (EXHAUSTIVE_TEST_ORDER - s)) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER);
 
                 /* Overflow means we've tried every possible nonce */
                 if (k < starting_k) {
@@ -327,13 +327,13 @@ void test_exhaustive_sign(const secp256k1_context *ctx, const secp256k1_ge *grou
 }
 
 #ifdef ENABLE_MODULE_RECOVERY
-void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1_ge *group, int order) {
+void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1_ge *group) {
     int i, j, k;
 
     /* Loop */
-    for (i = 1; i < order; i++) {  /* message */
-        for (j = 1; j < order; j++) {  /* key */
-            for (k = 1; k < order; k++) {  /* nonce */
+    for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {  /* message */
+        for (j = 1; j < EXHAUSTIVE_TEST_ORDER; j++) {  /* key */
+            for (k = 1; k < EXHAUSTIVE_TEST_ORDER; k++) {  /* nonce */
                 const int starting_k = k;
                 secp256k1_fe r_dot_y_normalized;
                 secp256k1_ecdsa_recoverable_signature rsig;
@@ -353,8 +353,8 @@ void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1
                 secp256k1_ecdsa_recoverable_signature_load(ctx, &r, &s, &recid, &rsig);
                 r_from_k(&expected_r, group, k);
                 CHECK(r == expected_r);
-                CHECK((k * s) % order == (i + r * j) % order ||
-                      (k * (EXHAUSTIVE_TEST_ORDER - s)) % order == (i + r * j) % order);
+                CHECK((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER ||
+                      (k * (EXHAUSTIVE_TEST_ORDER - s)) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER);
                 /* In computing the recid, there is an overflow condition that is disabled in
                  * scalar_low_impl.h `secp256k1_scalar_set_b32` because almost every r.y value
                  * will exceed the group order, and our signing code always holds out for r
@@ -363,7 +363,7 @@ void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1
                 r_dot_y_normalized = group[k].y;
                 secp256k1_fe_normalize(&r_dot_y_normalized);
                 /* Also the recovery id is flipped depending if we hit the low-s branch */
-                if ((k * s) % order == (i + r * j) % order) {
+                if ((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER) {
                     expected_recid = secp256k1_fe_is_odd(&r_dot_y_normalized) ? 1 : 0;
                 } else {
                     expected_recid = secp256k1_fe_is_odd(&r_dot_y_normalized) ? 0 : 1;
@@ -378,8 +378,8 @@ void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1
                  * signing. */
                 r_from_k(&expected_r, group, k);
                 CHECK(r == expected_r);
-                CHECK((k * s) % order == (i + r * j) % order ||
-                      (k * (EXHAUSTIVE_TEST_ORDER - s)) % order == (i + r * j) % order);
+                CHECK((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER ||
+                      (k * (EXHAUSTIVE_TEST_ORDER - s)) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER);
 
                 /* Overflow means we've tried every possible nonce */
                 if (k < starting_k) {
@@ -390,13 +390,13 @@ void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1
     }
 }
 
-void test_exhaustive_recovery_verify(const secp256k1_context *ctx, const secp256k1_ge *group, int order) {
+void test_exhaustive_recovery_verify(const secp256k1_context *ctx, const secp256k1_ge *group) {
     /* This is essentially a copy of test_exhaustive_verify, with recovery added */
     int s, r, msg, key;
-    for (s = 1; s < order; s++) {
-        for (r = 1; r < order; r++) {
-            for (msg = 1; msg < order; msg++) {
-                for (key = 1; key < order; key++) {
+    for (s = 1; s < EXHAUSTIVE_TEST_ORDER; s++) {
+        for (r = 1; r < EXHAUSTIVE_TEST_ORDER; r++) {
+            for (msg = 1; msg < EXHAUSTIVE_TEST_ORDER; msg++) {
+                for (key = 1; key < EXHAUSTIVE_TEST_ORDER; key++) {
                     secp256k1_ge nonconst_ge;
                     secp256k1_ecdsa_recoverable_signature rsig;
                     secp256k1_ecdsa_signature sig;
@@ -417,7 +417,7 @@ void test_exhaustive_recovery_verify(const secp256k1_context *ctx, const secp256
                     /* Run through every k value that gives us this r and check that *one* works.
                      * Note there could be none, there could be multiple, ECDSA is weird. */
                     should_verify = 0;
-                    for (k = 0; k < order; k++) {
+                    for (k = 0; k < EXHAUSTIVE_TEST_ORDER; k++) {
                         secp256k1_scalar check_x_s;
                         r_from_k(&check_x_s, group, k);
                         if (r_s == check_x_s) {
@@ -491,20 +491,19 @@ int main(void) {
 
     /* Run the tests */
 #ifdef USE_ENDOMORPHISM
-    test_exhaustive_endomorphism(group, EXHAUSTIVE_TEST_ORDER);
+    test_exhaustive_endomorphism(group);
 #endif
-    test_exhaustive_addition(group, groupj, EXHAUSTIVE_TEST_ORDER);
-    test_exhaustive_ecmult(ctx, group, groupj, EXHAUSTIVE_TEST_ORDER);
-    test_exhaustive_ecmult_multi(ctx, group, EXHAUSTIVE_TEST_ORDER);
-    test_exhaustive_sign(ctx, group, EXHAUSTIVE_TEST_ORDER);
-    test_exhaustive_verify(ctx, group, EXHAUSTIVE_TEST_ORDER);
+    test_exhaustive_addition(group, groupj);
+    test_exhaustive_ecmult(ctx, group, groupj);
+    test_exhaustive_ecmult_multi(ctx, group);
+    test_exhaustive_sign(ctx, group);
+    test_exhaustive_verify(ctx, group);
 
 #ifdef ENABLE_MODULE_RECOVERY
-    test_exhaustive_recovery_sign(ctx, group, EXHAUSTIVE_TEST_ORDER);
-    test_exhaustive_recovery_verify(ctx, group, EXHAUSTIVE_TEST_ORDER);
+    test_exhaustive_recovery_sign(ctx, group);
+    test_exhaustive_recovery_verify(ctx, group);
 #endif
 
     secp256k1_context_destroy(ctx);
     return 0;
 }
-
