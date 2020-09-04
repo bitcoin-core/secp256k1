@@ -45,8 +45,7 @@ static int secp256k1_dleq_deserialize_point(secp256k1_ge *p, const unsigned char
     if (buf33[0] > 1) {
         return 0;
     }
-    secp256k1_ge_set_xo_var(p, &x, buf33[0]);
-    return 1;
+    return secp256k1_ge_set_xo_var(p, &x, buf33[0]);
 }
 
 /* TODO: Remove these debuggin functions */
