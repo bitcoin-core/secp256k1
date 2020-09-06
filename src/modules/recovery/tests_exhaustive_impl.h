@@ -38,18 +38,20 @@ void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1
                 CHECK(r == expected_r);
                 CHECK((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER ||
                       (k * (EXHAUSTIVE_TEST_ORDER - s)) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER);
-                /* In computing the recid, there is an overflow condition that is disabled in
-                 * scalar_low_impl.h `secp256k1_scalar_set_b32` because almost every r.y value
-                 * will exceed the group order, and our signing code always holds out for r
-                 * values that don't overflow, so with a proper overflow check the tests would
-                 * loop indefinitely. */
+                /* The recid's second bit is for conveying overflow (R.x value >= group order).
+                 * In the actual secp256k1 this is an astronomically unlikely event, but in the
+                 * small group used here, it will always be the case.
+                 * Note that this isn't actually useful; full recovery would need to convey
+                 * floor(R.x / group_order), but only one bit is used as that is sufficient
+                 * in the real group. */
+                expected_recid = 2;
                 r_dot_y_normalized = group[k].y;
                 secp256k1_fe_normalize(&r_dot_y_normalized);
                 /* Also the recovery id is flipped depending if we hit the low-s branch */
                 if ((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER) {
-                    expected_recid = secp256k1_fe_is_odd(&r_dot_y_normalized) ? 1 : 0;
+                    expected_recid |= secp256k1_fe_is_odd(&r_dot_y_normalized);
                 } else {
-                    expected_recid = secp256k1_fe_is_odd(&r_dot_y_normalized) ? 0 : 1;
+                    expected_recid |= !secp256k1_fe_is_odd(&r_dot_y_normalized);
                 }
                 CHECK(recid == expected_recid);
 
