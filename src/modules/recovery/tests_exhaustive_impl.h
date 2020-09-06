@@ -25,6 +25,7 @@ void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1
                 unsigned char sk32[32], msg32[32];
                 int expected_recid;
                 int recid;
+                int overflow;
                 secp256k1_scalar_set_int(&msg, i);
                 secp256k1_scalar_set_int(&sk, j);
                 secp256k1_scalar_get_b32(sk32, &sk);
@@ -34,17 +35,18 @@ void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1
 
                 /* Check directly */
                 secp256k1_ecdsa_recoverable_signature_load(ctx, &r, &s, &recid, &rsig);
-                r_from_k(&expected_r, group, k);
+                r_from_k(&expected_r, group, k, &overflow);
                 CHECK(r == expected_r);
                 CHECK((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER ||
                       (k * (EXHAUSTIVE_TEST_ORDER - s)) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER);
                 /* The recid's second bit is for conveying overflow (R.x value >= group order).
                  * In the actual secp256k1 this is an astronomically unlikely event, but in the
-                 * small group used here, it will always be the case.
+                 * small group used here, it will be the case for all points except the ones where
+                 * R.x=1 (which the group is specifically selected to have).
                  * Note that this isn't actually useful; full recovery would need to convey
                  * floor(R.x / group_order), but only one bit is used as that is sufficient
                  * in the real group. */
-                expected_recid = 2;
+                expected_recid = overflow ? 2 : 0;
                 r_dot_y_normalized = group[k].y;
                 secp256k1_fe_normalize(&r_dot_y_normalized);
                 /* Also the recovery id is flipped depending if we hit the low-s branch */
@@ -61,7 +63,7 @@ void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1
                 /* Note that we compute expected_r *after* signing -- this is important
                  * because our nonce-computing function function might change k during
                  * signing. */
-                r_from_k(&expected_r, group, k);
+                r_from_k(&expected_r, group, k, NULL);
                 CHECK(r == expected_r);
                 CHECK((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER ||
                       (k * (EXHAUSTIVE_TEST_ORDER - s)) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER);
@@ -104,7 +106,7 @@ void test_exhaustive_recovery_verify(const secp256k1_context *ctx, const secp256
                     should_verify = 0;
                     for (k = 0; k < EXHAUSTIVE_TEST_ORDER; k++) {
                         secp256k1_scalar check_x_s;
-                        r_from_k(&check_x_s, group, k);
+                        r_from_k(&check_x_s, group, k, NULL);
                         if (r_s == check_x_s) {
                             secp256k1_scalar_set_int(&s_times_k_s, k);
                             secp256k1_scalar_mul(&s_times_k_s, &s_times_k_s, &s_s);

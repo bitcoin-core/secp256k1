@@ -215,14 +215,14 @@ void test_exhaustive_ecmult_multi(const secp256k1_context *ctx, const secp256k1_
     secp256k1_scratch_destroy(&ctx->error_callback, scratch);
 }
 
-void r_from_k(secp256k1_scalar *r, const secp256k1_ge *group, int k) {
+void r_from_k(secp256k1_scalar *r, const secp256k1_ge *group, int k, int* overflow) {
     secp256k1_fe x;
     unsigned char x_bin[32];
     k %= EXHAUSTIVE_TEST_ORDER;
     x = group[k].x;
     secp256k1_fe_normalize(&x);
     secp256k1_fe_get_b32(x_bin, &x);
-    secp256k1_scalar_set_b32(r, x_bin, NULL);
+    secp256k1_scalar_set_b32(r, x_bin, overflow);
 }
 
 void test_exhaustive_verify(const secp256k1_context *ctx, const secp256k1_ge *group) {
@@ -250,7 +250,7 @@ void test_exhaustive_verify(const secp256k1_context *ctx, const secp256k1_ge *gr
                     should_verify = 0;
                     for (k = 0; k < EXHAUSTIVE_TEST_ORDER; k++) {
                         secp256k1_scalar check_x_s;
-                        r_from_k(&check_x_s, group, k);
+                        r_from_k(&check_x_s, group, k, NULL);
                         if (r_s == check_x_s) {
                             secp256k1_scalar_set_int(&s_times_k_s, k);
                             secp256k1_scalar_mul(&s_times_k_s, &s_times_k_s, &s_s);
@@ -297,7 +297,7 @@ void test_exhaustive_sign(const secp256k1_context *ctx, const secp256k1_ge *grou
                 /* Note that we compute expected_r *after* signing -- this is important
                  * because our nonce-computing function function might change k during
                  * signing. */
-                r_from_k(&expected_r, group, k);
+                r_from_k(&expected_r, group, k, NULL);
                 CHECK(r == expected_r);
                 CHECK((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER ||
                       (k * (EXHAUSTIVE_TEST_ORDER - s)) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER);

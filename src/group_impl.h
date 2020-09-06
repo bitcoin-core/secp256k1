@@ -11,52 +11,38 @@
 #include "field.h"
 #include "group.h"
 
-/* These points can be generated in sage as follows:
+/* These exhaustive group test orders and generators are chosen such that:
+ * - The field size is equal to that of secp256k1, so field code is the same.
+ * - The curve equation is of the form y^2=x^3+B for some constant B.
+ * - The subgroup has a generator 2*P, where P.x=1.
+ * - The subgroup has size less than 1000 to permit exhaustive testing.
+ * - The subgroup admits an endomorphism of the form lambda*(x,y) == (beta*x,y).
  *
- * 0. Setup a worksheet with the following parameters.
- *   b = 4  # whatever secp256k1_fe_const_b will be set to
- *   F = FiniteField (0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F)
- *   C = EllipticCurve ([F (0), F (b)])
- *
- * 1. Determine all the small orders available to you. (If there are
- *    no satisfactory ones, go back and change b.)
- *   print C.order().factor(limit=1000)
- *
- * 2. Choose an order as one of the prime factors listed in the above step.
- *    (You can also multiply some to get a composite order, though the
- *    tests will crash trying to invert scalars during signing.) We take a
- *    random point and scale it to drop its order to the desired value.
- *    There is some probability this won't work; just try again.
- *   order = 199
- *   P = C.random_point()
- *   P = (int(P.order()) / int(order)) * P
- *   assert(P.order() == order)
- *
- * 3. Print the values. You'll need to use a vim macro or something to
- *    split the hex output into 4-byte chunks.
- *   print "%x %x" % P.xy()
+ * These parameters are generated using sage/gen_exhaustive_groups.sage.
  */
 #if defined(EXHAUSTIVE_TEST_ORDER)
-#  if EXHAUSTIVE_TEST_ORDER == 199
+#  if EXHAUSTIVE_TEST_ORDER == 13
 static const secp256k1_ge secp256k1_ge_const_g = SECP256K1_GE_CONST(
-    0xFA7CC9A7, 0x0737F2DB, 0xA749DD39, 0x2B4FB069,
-    0x3B017A7D, 0xA808C2F1, 0xFB12940C, 0x9EA66C18,
-    0x78AC123A, 0x5ED8AEF3, 0x8732BC91, 0x1F3A2868,
-    0x48DF246C, 0x808DAE72, 0xCFE52572, 0x7F0501ED
+    0xc3459c3d, 0x35326167, 0xcd86cce8, 0x07a2417f,
+    0x5b8bd567, 0xde8538ee, 0x0d507b0c, 0xd128f5bb,
+    0x8e467fec, 0xcd30000a, 0x6cc1184e, 0x25d382c2,
+    0xa2f4494e, 0x2fbe9abc, 0x8b64abac, 0xd005fb24
 );
-
-static const secp256k1_fe secp256k1_fe_const_b = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 4);
-
-#  elif EXHAUSTIVE_TEST_ORDER == 13
+static const secp256k1_fe secp256k1_fe_const_b = SECP256K1_FE_CONST(
+    0x3d3486b2, 0x159a9ca5, 0xc75638be, 0xb23a69bc,
+    0x946a45ab, 0x24801247, 0xb4ed2b8e, 0x26b6a417
+);
+#  elif EXHAUSTIVE_TEST_ORDER == 199
 static const secp256k1_ge secp256k1_ge_const_g = SECP256K1_GE_CONST(
-    0xedc60018, 0xa51a786b, 0x2ea91f4d, 0x4c9416c0,
-    0x9de54c3b, 0xa1316554, 0x6cf4345c, 0x7277ef15,
-    0x54cb1b6b, 0xdc8c1273, 0x087844ea, 0x43f4603e,
-    0x0eaf9a43, 0xf6effe55, 0x939f806d, 0x37adf8ac
+    0x226e653f, 0xc8df7744, 0x9bacbf12, 0x7d1dcbf9,
+    0x87f05b2a, 0xe7edbd28, 0x1f564575, 0xc48dcf18,
+    0xa13872c2, 0xe933bb17, 0x5d9ffd5b, 0xb5b6e10c,
+    0x57fe3c00, 0xbaaaa15a, 0xe003ec3e, 0x9c269bae
 );
-
-static const secp256k1_fe secp256k1_fe_const_b = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 2);
-
+static const secp256k1_fe secp256k1_fe_const_b = SECP256K1_FE_CONST(
+    0x2cca28fa, 0xfc614b80, 0x2a3db42b, 0x00ba00b1,
+    0xbea8d943, 0xdace9ab2, 0x9536daea, 0x0074defb
+);
 #  else
 #    error No known generator for the specified exhaustive test group order.
 #  endif
