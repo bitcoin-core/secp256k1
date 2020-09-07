@@ -2615,7 +2615,6 @@ void test_point_times_order(const secp256k1_gej *point) {
     secp256k1_ecmult(&ctx->ecmult_ctx, &res2, point, &nx, &nx); /* calc res2 = (order - x) * point + (order - x) * G; */
     secp256k1_gej_add_var(&res1, &res1, &res2, NULL);
     CHECK(secp256k1_gej_is_infinity(&res1));
-    CHECK(secp256k1_gej_is_valid_var(&res1) == 0);
     secp256k1_ge_set_gej(&res3, &res1);
     CHECK(secp256k1_ge_is_infinity(&res3));
     CHECK(secp256k1_ge_is_valid_var(&res3) == 0);
@@ -2647,7 +2646,6 @@ void run_point_times_order(void) {
             secp256k1_gej j;
             CHECK(secp256k1_ge_is_valid_var(&p));
             secp256k1_gej_set_ge(&j, &p);
-            CHECK(secp256k1_gej_is_valid_var(&j));
             test_point_times_order(&j);
         }
         secp256k1_fe_sqr(&x, &x);
