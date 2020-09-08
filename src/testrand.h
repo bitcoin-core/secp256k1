@@ -38,4 +38,10 @@ static void secp256k1_rand_bytes_test(unsigned char *bytes, size_t len);
 /** Flip a single random bit in a byte array */
 static void secp256k1_rand_flip(unsigned char *b, size_t len);
 
+/** Initialize the test RNG using (hex encoded) array up to 16 bytes, or randomly if hexseed is NULL. */
+static void secp256k1_rand_init(const char* hexseed);
+
+/** Print final test information. */
+static void secp256k1_rand_finish(void);
+
 #endif /* SECP256K1_TESTRAND_H */
