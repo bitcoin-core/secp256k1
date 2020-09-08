@@ -671,4 +671,25 @@ static int secp256k1_gej_has_quad_y_var(const secp256k1_gej *a) {
     return secp256k1_fe_is_quad_var(&yz);
 }
 
+static int secp256k1_ge_is_in_correct_subgroup(const secp256k1_ge* ge) {
+#ifdef EXHAUSTIVE_TEST_ORDER
+    secp256k1_gej out;
+    int i;
+
+    /* A very simple EC multiplication ladder that avoids a dependecy on ecmult. */
+    secp256k1_gej_set_infinity(&out);
+    for (i = 0; i < 32; ++i) {
+        secp256k1_gej_double_var(&out, &out, NULL);
+        if ((((uint32_t)EXHAUSTIVE_TEST_ORDER) >> (31 - i)) & 1) {
+            secp256k1_gej_add_ge_var(&out, &out, ge, NULL);
+        }
+    }
+    return secp256k1_gej_is_infinity(&out);
+#else
+    (void)ge;
+    /* The real secp256k1 group has cofactor 1, so the subgroup is the entire curve. */
+    return 1;
+#endif
+}
+
 #endif /* SECP256K1_GROUP_IMPL_H */

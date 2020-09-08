@@ -139,4 +139,15 @@ static void secp256k1_ge_storage_cmov(secp256k1_ge_storage *r, const secp256k1_g
 /** Rescale a jacobian point by b which must be non-zero. Constant-time. */
 static void secp256k1_gej_rescale(secp256k1_gej *r, const secp256k1_fe *b);
 
+/** Determine if a point (which is assumed to be on the curve) is in the correct (sub)group of the curve.
+ *
+ * In normal mode, the used group is secp256k1, which has cofactor=1 meaning that every point on the curve is in the
+ * group, and this function returns always true.
+ *
+ * When compiling in exhaustive test mode, a slightly different curve equation is used, leading to a group with a
+ * (very) small subgroup, and that subgroup is what is used for all cryptographic operations. In that mode, this
+ * function checks whether a point that is on the curve is in fact also in that subgroup.
+ */
+static int secp256k1_ge_is_in_correct_subgroup(const secp256k1_ge* ge);
+
 #endif /* SECP256K1_GROUP_H */
