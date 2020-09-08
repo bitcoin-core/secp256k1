@@ -12,10 +12,12 @@
 
 void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1_ge *group) {
     int i, j, k;
+    uint64_t iter = 0;
 
     /* Loop */
     for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {  /* message */
         for (j = 1; j < EXHAUSTIVE_TEST_ORDER; j++) {  /* key */
+            if (skip_section(&iter)) continue;
             for (k = 1; k < EXHAUSTIVE_TEST_ORDER; k++) {  /* nonce */
                 const int starting_k = k;
                 secp256k1_fe r_dot_y_normalized;
@@ -80,6 +82,7 @@ void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1
 void test_exhaustive_recovery_verify(const secp256k1_context *ctx, const secp256k1_ge *group) {
     /* This is essentially a copy of test_exhaustive_verify, with recovery added */
     int s, r, msg, key;
+    uint64_t iter = 0;
     for (s = 1; s < EXHAUSTIVE_TEST_ORDER; s++) {
         for (r = 1; r < EXHAUSTIVE_TEST_ORDER; r++) {
             for (msg = 1; msg < EXHAUSTIVE_TEST_ORDER; msg++) {
@@ -93,6 +96,8 @@ void test_exhaustive_recovery_verify(const secp256k1_context *ctx, const secp256
                     int recid = 0;
                     int k, should_verify;
                     unsigned char msg32[32];
+
+                    if (skip_section(&iter)) continue;
 
                     secp256k1_scalar_set_int(&s_s, s);
                     secp256k1_scalar_set_int(&r_s, r);
