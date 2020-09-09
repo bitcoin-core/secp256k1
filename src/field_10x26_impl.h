@@ -1260,23 +1260,27 @@ static uint32_t secp256k1_fe_divsteps_30(uint32_t eta, uint32_t f0, uint32_t g0,
         VERIFY_CHECK((u * f0 + v * g0) == f << i);
         VERIFY_CHECK((q * f0 + r * g0) == g << i);
 
+        c1 = (int32_t)eta >> 31;
         c2 = -(g & 1);
-        c1 = c2 & ((int32_t)eta >> 31);
 
-        x = (f ^ g) & c1;
-        f ^= x; g ^= x; g ^= c1; g -= c1;
+        x = (f ^ c1) - c1;
+        y = (u ^ c1) - c1;
+        z = (v ^ c1) - c1;
 
-        y = (u ^ q) & c1;
-        u ^= y; q ^= y; q ^= c1; q -= c1;
+        g += x & c2;
+        q += y & c2;
+        r += z & c2;
 
-        z = (v ^ r) & c1;
-        v ^= z; r ^= z; r ^= c1; r -= c1;
+        c1 &= c2;
+        eta = (eta ^ c1) - (c1 + 1);
 
-        eta = (eta ^ c1) - c1 - 1;
+        f += g & c1;
+        u += q & c1;
+        v += r & c1;
 
-        g += (f & c2); g >>= 1;
-        q += (u & c2); u <<= 1;
-        r += (v & c2); v <<= 1;
+        g >>= 1;
+        u <<= 1;
+        v <<= 1;
     }
 
     t[0] = (int32_t)u;
