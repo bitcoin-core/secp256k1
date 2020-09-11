@@ -56,6 +56,10 @@ then
     then
         $EXEC ./bench_ecdh >> bench.log 2>&1
     fi
+    if [ "$SCHNORRSIG" = "yes" ]
+    then
+        $EXEC ./bench_schnorrsig >> bench.log 2>&1
+    fi
 fi
 if [ -n "$CTIMETEST" ]
 then
