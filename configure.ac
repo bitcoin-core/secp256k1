@@ -168,7 +168,21 @@ AC_ARG_WITH([ecmult-gen-precision], [AS_HELP_STRING([--with-ecmult-gen-precision
 )],
 [req_ecmult_gen_precision=$withval], [req_ecmult_gen_precision=auto])
 
-AC_CHECK_HEADER([valgrind/memcheck.h], [enable_valgrind=yes], [enable_valgrind=no], [])
+AC_ARG_WITH([valgrind], [AS_HELP_STRING([--with-valgrind=yes|no|auto],
+[Build with extra checks for running inside Valgrind [default=auto]]
+)],
+[req_valgrind=$withval], [req_valgrind=auto])
+
+if test x"$req_valgrind" = x"no"; then
+  enable_valgrind=no
+else
+  AC_CHECK_HEADER([valgrind/memcheck.h], [enable_valgrind=yes], [
+    if test x"$req_valgrind" = x"yes"; then
+      AC_MSG_ERROR([Valgrind support explicitly requested but valgrind/memcheck.h header not available])
+    fi
+    enable_valgrind=no
+  ], [])
+fi
 AM_CONDITIONAL([VALGRIND_ENABLED],[test "$enable_valgrind" = "yes"])
 
 if test x"$enable_coverage" = x"yes"; then
