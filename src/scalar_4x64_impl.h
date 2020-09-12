@@ -874,9 +874,9 @@ SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) 
   a += b; d = ROTL32(d ^ a, 8); \
   c += d; b = ROTL32(b ^ c, 7);
 
-#ifdef WORDS_BIGENDIAN
+#if defined(SECP256K1_BIG_ENDIAN)
 #define LE32(p) ((((p) & 0xFF) << 24) | (((p) & 0xFF00) << 8) | (((p) & 0xFF0000) >> 8) | (((p) & 0xFF000000) >> 24))
-#else
+#elif defined(SECP256K1_LITTLE_ENDIAN)
 #define LE32(p) (p)
 #endif
 
