@@ -86,6 +86,7 @@ void random_group_element_test(secp256k1_ge *ge) {
             break;
         }
     } while(1);
+    ge->infinity = 0;
 }
 
 void random_group_element_jacobian_test(secp256k1_gej *gej, const secp256k1_ge *ge) {
