@@ -775,15 +775,12 @@ SECP256K1_INLINE static void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t 
 
 SECP256K1_INLINE static void secp256k1_fe_sqr_inner(uint32_t *r, const uint32_t *a) {
 
-    uint64_t c, d;
-
+    const uint32_t M = 0x3FFFFFFUL, R0 = 0x3D10UL, R1 = 0x400UL;
+    uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4],
+             a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8], a9 = a[9];
     uint32_t u0, u1, u2, u3, u4, u5, u6, u7, u8, u9;
     uint32_t t7, t8, t9, tx;
-
-    uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4];
-    uint32_t a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8], a9 = a[9];
-
-    const uint32_t M = 0x3FFFFFFUL, R0 = 0x3D10UL, R1 = 0x400UL;
+    uint64_t c, d;
 
     VERIFY_BITS(a[0], 30);
     VERIFY_BITS(a[1], 30);
