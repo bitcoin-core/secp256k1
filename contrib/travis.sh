@@ -24,16 +24,16 @@ if [ -n "$BUILD" ]
 then
     make -j2 "$BUILD"
 fi
-if [ -n "$VALGRIND" ]
+if [ "$VALGRIND" = "yes" ]
 then
     make -j2
     # the `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (http://valgrind.org/docs/manual/manual-core.html)
     valgrind --error-exitcode=42 ./tests 16
     valgrind --error-exitcode=42 ./exhaustive_tests
 fi
-if [ -n "$BENCH" ]
+if [ "$BENCH" = "yes" ]
 then
-    if [ -n "$VALGRIND" ]
+    if [ "$VALGRIND" = "yes" ]
     then
         # Using the local `libtool` because on macOS the system's libtool has nothing to do with GNU libtool
         EXEC='./libtool --mode=execute valgrind --error-exitcode=42'
@@ -61,7 +61,7 @@ then
         $EXEC ./bench_schnorrsig >> bench.log 2>&1
     fi
 fi
-if [ -n "$CTIMETEST" ]
+if [ "$CTIMETEST" = "yes" ]
 then
     ./libtool --mode=execute valgrind --error-exitcode=42 ./valgrind_ctime_test > valgrind_ctime_test.log 2>&1
 fi
