@@ -303,8 +303,8 @@ static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar
  * Cryptography on Sensor Networks Using the MSP430X Microcontroller" (Gouvea, Oliveira, Lopez),
  * Section 4.3 (here we use a somewhat higher-precision estimate):
  * d = a1*b2 - b1*a2
- * g1 = round((2^272)*b2/d)
- * g2 = round((2^272)*b1/d)
+ * g1 = round((2^384)*b2/d)
+ * g2 = round((2^384)*(-b1)/d)
  *
  * (Note that 'd' is also equal to the curve order here because [a1,b1] and [a2,b2] are found
  * as outputs of the Extended Euclidean Algorithm on inputs 'order' and 'lambda').
@@ -327,18 +327,18 @@ static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar
         0x8A280AC5UL, 0x0774346DUL, 0xD765CDA8UL, 0x3DB1562CUL
     );
     static const secp256k1_scalar g1 = SECP256K1_SCALAR_CONST(
-        0x00000000UL, 0x00000000UL, 0x00000000UL, 0x00003086UL,
-        0xD221A7D4UL, 0x6BCDE86CUL, 0x90E49284UL, 0xEB153DABUL
+        0x3086D221UL, 0xA7D46BCDUL, 0xE86C90E4UL, 0x9284EB15UL,
+        0x3DAA8A14UL, 0x71E8CA7FUL, 0xE893209AUL, 0x45DBB031UL
     );
     static const secp256k1_scalar g2 = SECP256K1_SCALAR_CONST(
-        0x00000000UL, 0x00000000UL, 0x00000000UL, 0x0000E443UL,
-        0x7ED6010EUL, 0x88286F54UL, 0x7FA90ABFUL, 0xE4C42212UL
+        0xE4437ED6UL, 0x010E8828UL, 0x6F547FA9UL, 0x0ABFE4C4UL,
+        0x221208ACUL, 0x9DF506C6UL, 0x1571B4AEUL, 0x8AC47F71UL
     );
     VERIFY_CHECK(r1 != a);
     VERIFY_CHECK(r2 != a);
     /* these _var calls are constant time since the shift amount is constant */
-    secp256k1_scalar_mul_shift_var(&c1, a, &g1, 272);
-    secp256k1_scalar_mul_shift_var(&c2, a, &g2, 272);
+    secp256k1_scalar_mul_shift_var(&c1, a, &g1, 384);
+    secp256k1_scalar_mul_shift_var(&c2, a, &g2, 384);
     secp256k1_scalar_mul(&c1, &c1, &minus_b1);
     secp256k1_scalar_mul(&c2, &c2, &minus_b2);
     secp256k1_scalar_add(r2, &c1, &c2);
