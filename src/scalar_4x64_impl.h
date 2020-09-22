@@ -913,13 +913,13 @@ static void secp256k1_scalar_sqr(secp256k1_scalar *r, const secp256k1_scalar *a)
 }
 
 #ifdef USE_ENDOMORPHISM
-static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *a) {
-    r1->d[0] = a->d[0];
-    r1->d[1] = a->d[1];
+static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k) {
+    r1->d[0] = k->d[0];
+    r1->d[1] = k->d[1];
     r1->d[2] = 0;
     r1->d[3] = 0;
-    r2->d[0] = a->d[2];
-    r2->d[1] = a->d[3];
+    r2->d[0] = k->d[2];
+    r2->d[1] = k->d[3];
     r2->d[2] = 0;
     r2->d[3] = 0;
 }
