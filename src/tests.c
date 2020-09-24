@@ -2419,6 +2419,12 @@ void test_add_neg_y_diff_x(void) {
     ge_equals_gej(&res, &sumj);
 }
 
+void test_cleared_gej_should_not_be_valid(void) {
+    secp256k1_gej gej;
+    secp256k1_gej_clear(&gej);
+    CHECK(secp256k1_gej_is_valid_var(&gej) == 0);
+}
+
 void run_ge(void) {
     int i;
     for (i = 0; i < count * 32; i++) {
@@ -2426,6 +2432,7 @@ void run_ge(void) {
     }
     test_add_neg_y_diff_x();
     test_intialized_inf();
+    test_cleared_gej_should_not_be_valid();
 }
 
 void test_ec_combine(void) {
