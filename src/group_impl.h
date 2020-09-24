@@ -271,7 +271,7 @@ static int secp256k1_gej_is_infinity(const secp256k1_gej *a) {
 
 static int secp256k1_gej_is_valid_var(const secp256k1_gej *a) {
     secp256k1_fe y2, x3, z2, z6;
-    if (a->infinity) {
+    if (a->infinity || secp256k1_fe_is_zero(&a->z)) {
         return 0;
     }
     /** y^2 = x^3 + 7
