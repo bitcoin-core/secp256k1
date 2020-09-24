@@ -163,9 +163,9 @@ static void test_exhaustive_schnorrsig_sign(const secp256k1_context *ctx, unsign
                     /* Invoke the real function to construct a signature. */
                     CHECK(secp256k1_schnorrsig_sign(ctx, sig64, msg32, &keypairs[d - 1], secp256k1_hardened_nonce_function_smallint, &k));
                     /* The first 32 bytes must match the xonly pubkey for the specified k. */
-                    CHECK(memcmp(sig64, xonly_pubkey_bytes[k - 1], 32) == 0);
+                    CHECK(secp256k1_memcmp_var(sig64, xonly_pubkey_bytes[k - 1], 32) == 0);
                     /* The last 32 bytes must match the expected s value. */
-                    CHECK(memcmp(sig64 + 32, expected_s_bytes, 32) == 0);
+                    CHECK(secp256k1_memcmp_var(sig64 + 32, expected_s_bytes, 32) == 0);
                     /* Don't retry other messages that result in the same challenge. */
                     e_done[e] = 1;
                     ++e_count_done;
