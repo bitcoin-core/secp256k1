@@ -18,13 +18,14 @@ fi
     --enable-ecmult-static-precomputation="$STATICPRECOMPUTATION" --with-ecmult-gen-precision="$ECMULTGENPRECISION" \
     --enable-module-ecdh="$ECDH" --enable-module-recovery="$RECOVERY" \
     --enable-module-schnorrsig="$SCHNORRSIG" \
+    --with-valgrind="$WITH_VALGRIND" \
     --host="$HOST" $EXTRAFLAGS
 
 if [ -n "$BUILD" ]
 then
     make -j2 "$BUILD"
 fi
-if [ "$VALGRIND" = "yes" ]
+if [ "$RUN_VALGRIND" = "yes" ]
 then
     make -j2
     # the `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (http://valgrind.org/docs/manual/manual-core.html)
@@ -33,7 +34,7 @@ then
 fi
 if [ "$BENCH" = "yes" ]
 then
-    if [ "$VALGRIND" = "yes" ]
+    if [ "$RUN_VALGRIND" = "yes" ]
     then
         # Using the local `libtool` because on macOS the system's libtool has nothing to do with GNU libtool
         EXEC='./libtool --mode=execute valgrind --error-exitcode=42'
