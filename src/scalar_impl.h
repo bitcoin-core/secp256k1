@@ -252,7 +252,6 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
 #endif
 }
 
-#ifdef USE_ENDOMORPHISM
 /* These parameters are generated using sage/gen_exhaustive_groups.sage. */
 #if defined(EXHAUSTIVE_TEST_ORDER)
 #  if EXHAUSTIVE_TEST_ORDER == 13
@@ -345,7 +344,6 @@ static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar
     secp256k1_scalar_mul(r1, r2, &minus_lambda);
     secp256k1_scalar_add(r1, r1, a);
 }
-#endif
 #endif
 
 #endif /* SECP256K1_SCALAR_IMPL_H */
