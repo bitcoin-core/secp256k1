@@ -2615,7 +2615,6 @@ void test_point_times_order(const secp256k1_gej *point) {
     secp256k1_ecmult(&ctx->ecmult_ctx, &res2, point, &nx, &nx); /* calc res2 = (order - x) * point + (order - x) * G; */
     secp256k1_gej_add_var(&res1, &res1, &res2, NULL);
     CHECK(secp256k1_gej_is_infinity(&res1));
-    CHECK(secp256k1_gej_is_valid_var(&res1) == 0);
     secp256k1_ge_set_gej(&res3, &res1);
     CHECK(secp256k1_ge_is_infinity(&res3));
     CHECK(secp256k1_ge_is_valid_var(&res3) == 0);
@@ -2647,7 +2646,6 @@ void run_point_times_order(void) {
             secp256k1_gej j;
             CHECK(secp256k1_ge_is_valid_var(&p));
             secp256k1_gej_set_ge(&j, &p);
-            CHECK(secp256k1_gej_is_valid_var(&j));
             test_point_times_order(&j);
         }
         secp256k1_fe_sqr(&x, &x);
@@ -5532,9 +5530,6 @@ void run_cmov_tests(void) {
 }
 
 int main(int argc, char **argv) {
-    unsigned char seed16[16] = {0};
-    unsigned char run32[32] = {0};
-
     /* Disable buffering for stdout to improve reliability of getting
      * diagnostic information. Happens right at the start of main because
      * setbuf must be used before any other operation on the stream. */
@@ -5547,43 +5542,10 @@ int main(int argc, char **argv) {
     if (argc > 1) {
         count = strtol(argv[1], NULL, 0);
     }
+    printf("test count = %i\n", count);
 
     /* find random seed */
-    if (argc > 2) {
-        int pos = 0;
-        const char* ch = argv[2];
-        while (pos < 16 && ch[0] != 0 && ch[1] != 0) {
-            unsigned short sh;
-            if ((sscanf(ch, "%2hx", &sh)) == 1) {
-                seed16[pos] = sh;
-            } else {
-                break;
-            }
-            ch += 2;
-            pos++;
-        }
-    } else {
-        FILE *frand = fopen("/dev/urandom", "r");
-        if ((frand == NULL) || fread(&seed16, 1, sizeof(seed16), frand) != sizeof(seed16)) {
-            uint64_t t = time(NULL) * (uint64_t)1337;
-            fprintf(stderr, "WARNING: could not read 16 bytes from /dev/urandom; falling back to insecure PRNG\n");
-            seed16[0] ^= t;
-            seed16[1] ^= t >> 8;
-            seed16[2] ^= t >> 16;
-            seed16[3] ^= t >> 24;
-            seed16[4] ^= t >> 32;
-            seed16[5] ^= t >> 40;
-            seed16[6] ^= t >> 48;
-            seed16[7] ^= t >> 56;
-        }
-        if (frand) {
-            fclose(frand);
-        }
-    }
-    secp256k1_rand_seed(seed16);
-
-    printf("test count = %i\n", count);
-    printf("random seed = %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\n", seed16[0], seed16[1], seed16[2], seed16[3], seed16[4], seed16[5], seed16[6], seed16[7], seed16[8], seed16[9], seed16[10], seed16[11], seed16[12], seed16[13], seed16[14], seed16[15]);
+    secp256k1_rand_init(argc > 2 ? argv[2] : NULL);
 
     /* initialize */
     run_context_tests(0);
@@ -5591,8 +5553,9 @@ int main(int argc, char **argv) {
     run_scratch_tests();
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
     if (secp256k1_rand_bits(1)) {
-        secp256k1_rand256(run32);
-        CHECK(secp256k1_context_randomize(ctx, secp256k1_rand_bits(1) ? run32 : NULL));
+        unsigned char rand32[32];
+        secp256k1_rand256(rand32);
+        CHECK(secp256k1_context_randomize(ctx, secp256k1_rand_bits(1) ? rand32 : NULL));
     }
 
     run_rand_bits();
@@ -5680,8 +5643,7 @@ int main(int argc, char **argv) {
 
     run_cmov_tests();
 
-    secp256k1_rand256(run32);
-    printf("random run = %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\n", run32[0], run32[1], run32[2], run32[3], run32[4], run32[5], run32[6], run32[7], run32[8], run32[9], run32[10], run32[11], run32[12], run32[13], run32[14], run32[15]);
+    secp256k1_rand_finish();
 
     /* shutdown */
     secp256k1_context_destroy(ctx);
