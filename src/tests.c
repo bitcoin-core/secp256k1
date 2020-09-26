@@ -2634,6 +2634,87 @@ void test_point_times_order(const secp256k1_gej *point) {
     ge_equals_ge(&res3, &secp256k1_ge_const_g);
 }
 
+/* These scalars reach large (in absolute value) outputs when fed to secp256k1_scalar_split_lambda.
+ *
+ * They are computed as:
+ * - For a in [-2, -1, 0, 1, 2]:
+ *   - For b in [-3, -1, 1, 3]:
+ *     - Output (a*LAMBDA + (ORDER+b)/2) % ORDER
+ */
+static const secp256k1_scalar scalars_near_split_bounds[20] = {
+    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0x3aa0585c, 0xc5ea2367, 0xe1b660db, 0x0209e6fc),
+    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0x3aa0585c, 0xc5ea2367, 0xe1b660db, 0x0209e6fd),
+    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0x3aa0585c, 0xc5ea2367, 0xe1b660db, 0x0209e6fe),
+    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0x3aa0585c, 0xc5ea2367, 0xe1b660db, 0x0209e6ff),
+    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0xb294b893, 0x3722e9a5, 0x00e698ca, 0x4cf7632d),
+    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0xb294b893, 0x3722e9a5, 0x00e698ca, 0x4cf7632e),
+    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0xb294b893, 0x3722e9a5, 0x00e698ca, 0x4cf7632f),
+    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0xb294b893, 0x3722e9a5, 0x00e698ca, 0x4cf76330),
+    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xd576e735, 0x57a4501d, 0xdfe92f46, 0x681b209f),
+    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xd576e735, 0x57a4501d, 0xdfe92f46, 0x681b20a0),
+    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xd576e735, 0x57a4501d, 0xdfe92f46, 0x681b20a1),
+    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xd576e735, 0x57a4501d, 0xdfe92f46, 0x681b20a2),
+    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0xf85915d7, 0x7825b696, 0xbeebc5c2, 0x833ede11),
+    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0xf85915d7, 0x7825b696, 0xbeebc5c2, 0x833ede12),
+    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0xf85915d7, 0x7825b696, 0xbeebc5c2, 0x833ede13),
+    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0xf85915d7, 0x7825b696, 0xbeebc5c2, 0x833ede14),
+    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0x704d760e, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a42),
+    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0x704d760e, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a43),
+    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0x704d760e, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a44),
+    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0x704d760e, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a45)
+};
+
+void test_ecmult_target(const secp256k1_scalar* target, int mode) {
+    /* Mode: 0=ecmult_gen, 1=ecmult, 2=ecmult_const */
+    secp256k1_scalar n1, n2;
+    secp256k1_ge p;
+    secp256k1_gej pj, p1j, p2j, ptj;
+    static const secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
+
+    /* Generate random n1,n2 such that n1+n2 = -target. */
+    random_scalar_order_test(&n1);
+    secp256k1_scalar_add(&n2, &n1, target);
+    secp256k1_scalar_negate(&n2, &n2);
+
+    /* Generate a random input point. */
+    if (mode != 0) {
+        random_group_element_test(&p);
+        secp256k1_gej_set_ge(&pj, &p);
+    }
+
+    /* EC multiplications */
+    if (mode == 0) {
+        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &p1j, &n1);
+        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &p2j, &n2);
+        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &ptj, target);
+    } else if (mode == 1) {
+        secp256k1_ecmult(&ctx->ecmult_ctx, &p1j, &pj, &n1, &zero);
+        secp256k1_ecmult(&ctx->ecmult_ctx, &p2j, &pj, &n2, &zero);
+        secp256k1_ecmult(&ctx->ecmult_ctx, &ptj, &pj, target, &zero);
+    } else {
+        secp256k1_ecmult_const(&p1j, &p, &n1, 256);
+        secp256k1_ecmult_const(&p2j, &p, &n2, 256);
+        secp256k1_ecmult_const(&ptj, &p, target, 256);
+    }
+
+    /* Add them all up: n1*P + n2*P + target*P = (n1+n2+target)*P = (n1+n1-n1-n2)*P = 0. */
+    secp256k1_gej_add_var(&ptj, &ptj, &p1j, NULL);
+    secp256k1_gej_add_var(&ptj, &ptj, &p2j, NULL);
+    CHECK(secp256k1_gej_is_infinity(&ptj));
+}
+
+void run_ecmult_near_split_bound(void) {
+    int i;
+    unsigned j;
+    for (i = 0; i < 4*count; ++i) {
+        for (j = 0; j < sizeof(scalars_near_split_bounds) / sizeof(scalars_near_split_bounds[0]); ++j) {
+            test_ecmult_target(&scalars_near_split_bounds[j], 0);
+            test_ecmult_target(&scalars_near_split_bounds[j], 1);
+            test_ecmult_target(&scalars_near_split_bounds[j], 2);
+        }
+    }
+}
+
 void run_point_times_order(void) {
     int i;
     secp256k1_fe x = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 2);
@@ -3555,14 +3636,12 @@ void run_ecmult_gen_blind(void) {
 
 #ifdef USE_ENDOMORPHISM
 /***** ENDOMORPHISH TESTS *****/
-void test_scalar_split(void) {
-    secp256k1_scalar full;
+void test_scalar_split(const secp256k1_scalar* full) {
     secp256k1_scalar s1, slam;
     const unsigned char zero[32] = {0};
     unsigned char tmp[32];
 
-    random_scalar_order_test(&full);
-    secp256k1_scalar_split_lambda(&s1, &slam, &full);
+    secp256k1_scalar_split_lambda(&s1, &slam, full);
 
     /* check that both are <= 128 bits in size */
     if (secp256k1_scalar_is_high(&s1)) {
@@ -3578,8 +3657,17 @@ void test_scalar_split(void) {
     CHECK(memcmp(zero, tmp, 16) == 0);
 }
 
+
 void run_endomorphism_tests(void) {
-    test_scalar_split();
+    unsigned i;
+    for (i = 0; i < 100U * count; ++i) {
+        secp256k1_scalar full;
+        random_scalar_order_test(&full);
+        test_scalar_split(&full);
+    }
+    for (i = 0; i < sizeof(scalars_near_split_bounds) / sizeof(scalars_near_split_bounds[0]); ++i) {
+        test_scalar_split(&scalars_near_split_bounds[i]);
+    }
 }
 #endif
 
@@ -5626,6 +5714,7 @@ int main(int argc, char **argv) {
     /* ecmult tests */
     run_wnaf();
     run_point_times_order();
+    run_ecmult_near_split_bound();
     run_ecmult_chain();
     run_ecmult_constants();
     run_ecmult_gen_blind();
