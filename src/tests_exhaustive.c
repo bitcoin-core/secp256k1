@@ -58,7 +58,7 @@ void ge_equals_gej(const secp256k1_ge *a, const secp256k1_gej *b) {
 void random_fe(secp256k1_fe *x) {
     unsigned char bin[32];
     do {
-        secp256k1_rand256(bin);
+        secp256k1_testrand256(bin);
         if (secp256k1_fe_set_b32(x, bin)) {
             return;
         }
@@ -378,7 +378,7 @@ int main(int argc, char** argv) {
     printf("test count = %i\n", count);
 
     /* find random seed */
-    secp256k1_rand_init(argc > 2 ? argv[2] : NULL);
+    secp256k1_testrand_init(argc > 2 ? argv[2] : NULL);
 
     /* set up split processing */
     if (argc > 4) {
@@ -394,7 +394,7 @@ int main(int argc, char** argv) {
     while (count--) {
         /* Build context */
         ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-        secp256k1_rand256(rand32);
+        secp256k1_testrand256(rand32);
         CHECK(secp256k1_context_randomize(ctx, rand32));
 
         /* Generate the entire group */
@@ -451,7 +451,7 @@ int main(int argc, char** argv) {
         secp256k1_context_destroy(ctx);
     }
 
-    secp256k1_rand_finish();
+    secp256k1_testrand_finish();
 
     printf("no problems found\n");
     return 0;
