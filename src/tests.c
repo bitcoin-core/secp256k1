@@ -54,7 +54,7 @@ static void uncounting_illegal_callback_fn(const char* str, void* data) {
 void random_field_element_test(secp256k1_fe *fe) {
     do {
         unsigned char b32[32];
-        secp256k1_rand256_test(b32);
+        secp256k1_testrand256_test(b32);
         if (secp256k1_fe_set_b32(fe, b32)) {
             break;
         }
@@ -63,7 +63,7 @@ void random_field_element_test(secp256k1_fe *fe) {
 
 void random_field_element_magnitude(secp256k1_fe *fe) {
     secp256k1_fe zero;
-    int n = secp256k1_rand_int(9);
+    int n = secp256k1_testrand_int(9);
     secp256k1_fe_normalize(fe);
     if (n == 0) {
         return;
@@ -81,7 +81,7 @@ void random_group_element_test(secp256k1_ge *ge) {
     secp256k1_fe fe;
     do {
         random_field_element_test(&fe);
-        if (secp256k1_ge_set_xo_var(ge, &fe, secp256k1_rand_bits(1))) {
+        if (secp256k1_ge_set_xo_var(ge, &fe, secp256k1_testrand_bits(1))) {
             secp256k1_fe_normalize(&ge->y);
             break;
         }
@@ -108,7 +108,7 @@ void random_scalar_order_test(secp256k1_scalar *num) {
     do {
         unsigned char b32[32];
         int overflow = 0;
-        secp256k1_rand256_test(b32);
+        secp256k1_testrand256_test(b32);
         secp256k1_scalar_set_b32(num, b32, &overflow);
         if (overflow || secp256k1_scalar_is_zero(num)) {
             continue;
@@ -121,7 +121,7 @@ void random_scalar_order(secp256k1_scalar *num) {
     do {
         unsigned char b32[32];
         int overflow = 0;
-        secp256k1_rand256(b32);
+        secp256k1_testrand256(b32);
         secp256k1_scalar_set_b32(num, b32, &overflow);
         if (overflow || secp256k1_scalar_is_zero(num)) {
             continue;
@@ -444,7 +444,7 @@ void run_sha256_tests(void) {
         secp256k1_sha256_finalize(&hasher, out);
         CHECK(memcmp(out, outputs[i], 32) == 0);
         if (strlen(inputs[i]) > 0) {
-            int split = secp256k1_rand_int(strlen(inputs[i]));
+            int split = secp256k1_testrand_int(strlen(inputs[i]));
             secp256k1_sha256_initialize(&hasher);
             secp256k1_sha256_write(&hasher, (const unsigned char*)(inputs[i]), split);
             secp256k1_sha256_write(&hasher, (const unsigned char*)(inputs[i] + split), strlen(inputs[i]) - split);
@@ -488,7 +488,7 @@ void run_hmac_sha256_tests(void) {
         secp256k1_hmac_sha256_finalize(&hasher, out);
         CHECK(memcmp(out, outputs[i], 32) == 0);
         if (strlen(inputs[i]) > 0) {
-            int split = secp256k1_rand_int(strlen(inputs[i]));
+            int split = secp256k1_testrand_int(strlen(inputs[i]));
             secp256k1_hmac_sha256_initialize(&hasher, (const unsigned char*)(keys[i]), strlen(keys[i]));
             secp256k1_hmac_sha256_write(&hasher, (const unsigned char*)(inputs[i]), split);
             secp256k1_hmac_sha256_write(&hasher, (const unsigned char*)(inputs[i] + split), strlen(inputs[i]) - split);
@@ -558,7 +558,7 @@ void test_rand_bits(int rand32, int bits) {
     /* Multiply the output of all rand calls with the odd number m, which
        should not change the uniformity of its distribution. */
     for (i = 0; i < rounds[usebits]; i++) {
-        uint32_t r = (rand32 ? secp256k1_rand32() : secp256k1_rand_bits(bits));
+        uint32_t r = (rand32 ? secp256k1_testrand32() : secp256k1_testrand_bits(bits));
         CHECK((((uint64_t)r) >> bits) == 0);
         for (m = 0; m < sizeof(mults) / sizeof(mults[0]); m++) {
             uint32_t rm = r * mults[m];
@@ -583,7 +583,7 @@ void test_rand_int(uint32_t range, uint32_t subrange) {
     uint64_t x = 0;
     CHECK((range % subrange) == 0);
     for (i = 0; i < rounds; i++) {
-        uint32_t r = secp256k1_rand_int(range);
+        uint32_t r = secp256k1_testrand_int(range);
         CHECK(r < range);
         r = r % subrange;
         x |= (((uint64_t)1) << r);
@@ -615,7 +615,7 @@ void run_rand_int(void) {
 
 #ifndef USE_NUM_NONE
 void random_num_negate(secp256k1_num *num) {
-    if (secp256k1_rand_bits(1)) {
+    if (secp256k1_testrand_bits(1)) {
         secp256k1_num_negate(num);
     }
 }
@@ -659,11 +659,11 @@ void test_num_add_sub(void) {
     secp256k1_num n2;
     secp256k1_num n1p2, n2p1, n1m2, n2m1;
     random_num_order_test(&n1); /* n1 = R1 */
-    if (secp256k1_rand_bits(1)) {
+    if (secp256k1_testrand_bits(1)) {
         random_num_negate(&n1);
     }
     random_num_order_test(&n2); /* n2 = R2 */
-    if (secp256k1_rand_bits(1)) {
+    if (secp256k1_testrand_bits(1)) {
         random_num_negate(&n2);
     }
     secp256k1_num_add(&n1p2, &n1, &n2); /* n1p2 = R1 + R2 */
@@ -854,7 +854,7 @@ void scalar_test(void) {
         while (i < 256) {
             secp256k1_scalar t;
             int j;
-            int now = secp256k1_rand_int(15) + 1;
+            int now = secp256k1_testrand_int(15) + 1;
             if (now + i > 256) {
                 now = 256 - i;
             }
@@ -931,7 +931,7 @@ void scalar_test(void) {
         secp256k1_num rnum;
         secp256k1_num rnum2;
         unsigned char cone[1] = {0x01};
-        unsigned int shift = 256 + secp256k1_rand_int(257);
+        unsigned int shift = 256 + secp256k1_testrand_int(257);
         secp256k1_scalar_mul_shift_var(&r, &s1, &s2, shift);
         secp256k1_num_mul(&rnum, &s1num, &s2num);
         secp256k1_num_shift(&rnum, shift - 1);
@@ -949,7 +949,7 @@ void scalar_test(void) {
         random_scalar_order_test(&r);
         for (i = 0; i < 100; ++i) {
             int low;
-            int shift = 1 + secp256k1_rand_int(15);
+            int shift = 1 + secp256k1_testrand_int(15);
             int expected = r.d[0] % (1 << shift);
             low = secp256k1_scalar_shr_int(&r, shift);
             CHECK(expected == low);
@@ -997,7 +997,7 @@ void scalar_test(void) {
         secp256k1_scalar b;
         int i;
         /* Test add_bit. */
-        int bit = secp256k1_rand_bits(8);
+        int bit = secp256k1_testrand_bits(8);
         secp256k1_scalar_set_int(&b, 1);
         CHECK(secp256k1_scalar_is_one(&b));
         for (i = 0; i < bit; i++) {
@@ -1768,7 +1768,7 @@ void run_scalar_tests(void) {
 void random_fe(secp256k1_fe *x) {
     unsigned char bin[32];
     do {
-        secp256k1_rand256(bin);
+        secp256k1_testrand256(bin);
         if (secp256k1_fe_set_b32(x, bin)) {
             return;
         }
@@ -1778,7 +1778,7 @@ void random_fe(secp256k1_fe *x) {
 void random_fe_test(secp256k1_fe *x) {
     unsigned char bin[32];
     do {
-        secp256k1_rand256_test(bin);
+        secp256k1_testrand256_test(bin);
         if (secp256k1_fe_set_b32(x, bin)) {
             return;
         }
@@ -1971,7 +1971,7 @@ void run_field_inv_all_var(void) {
     secp256k1_fe_inv_all_var(xi, x, 0);
     for (i = 0; i < count; i++) {
         size_t j;
-        size_t len = secp256k1_rand_int(15) + 1;
+        size_t len = secp256k1_testrand_int(15) + 1;
         for (j = 0; j < len; j++) {
             random_fe_non_zero(&x[j]);
         }
@@ -2263,7 +2263,7 @@ void test_ge(void) {
             gej_shuffled[i] = gej[i];
         }
         for (i = 0; i < 4 * runs + 1; i++) {
-            int swap = i + secp256k1_rand_int(4 * runs + 1 - i);
+            int swap = i + secp256k1_testrand_int(4 * runs + 1 - i);
             if (swap != i) {
                 secp256k1_gej t = gej_shuffled[i];
                 gej_shuffled[i] = gej_shuffled[swap];
@@ -3059,7 +3059,7 @@ void test_secp256k1_pippenger_bucket_window_inv(void) {
  * for a given scratch space.
  */
 void test_ecmult_multi_pippenger_max_points(void) {
-    size_t scratch_size = secp256k1_rand_int(256);
+    size_t scratch_size = secp256k1_testrand_int(256);
     size_t max_size = secp256k1_pippenger_scratch_size(secp256k1_pippenger_bucket_window_inv(PIPPENGER_MAX_BUCKET_WINDOW-1)+512, 12);
     secp256k1_scratch *scratch;
     size_t n_points_supported;
@@ -3519,7 +3519,7 @@ void test_ecmult_gen_blind(void) {
     secp256k1_ge pge;
     random_scalar_order_test(&key);
     secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pgej, &key);
-    secp256k1_rand256(seed32);
+    secp256k1_testrand256(seed32);
     b = ctx->ecmult_gen_ctx.blind;
     i = ctx->ecmult_gen_ctx.initial;
     secp256k1_ecmult_gen_blind(&ctx->ecmult_gen_ctx, seed32);
@@ -4294,7 +4294,7 @@ void test_ecdsa_sign_verify(void) {
     random_scalar_order_test(&key);
     secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pubj, &key);
     secp256k1_ge_set_gej(&pub, &pubj);
-    getrec = secp256k1_rand_bits(1);
+    getrec = secp256k1_testrand_bits(1);
     random_sign(&sigr, &sigs, &key, &msg, getrec?&recid:NULL);
     if (getrec) {
         CHECK(recid >= 0 && recid < 4);
@@ -4394,7 +4394,7 @@ void test_ecdsa_end_to_end(void) {
     CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, privkey) == 1);
 
     /* Verify exporting and importing public key. */
-    CHECK(secp256k1_ec_pubkey_serialize(ctx, pubkeyc, &pubkeyclen, &pubkey, secp256k1_rand_bits(1) == 1 ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED));
+    CHECK(secp256k1_ec_pubkey_serialize(ctx, pubkeyc, &pubkeyclen, &pubkey, secp256k1_testrand_bits(1) == 1 ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED));
     memset(&pubkey, 0, sizeof(pubkey));
     CHECK(secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkeyc, pubkeyclen) == 1);
 
@@ -4406,19 +4406,19 @@ void test_ecdsa_end_to_end(void) {
     CHECK(memcmp(&pubkey_tmp, &pubkey, sizeof(pubkey)) == 0);
 
     /* Verify private key import and export. */
-    CHECK(ec_privkey_export_der(ctx, seckey, &seckeylen, privkey, secp256k1_rand_bits(1) == 1));
+    CHECK(ec_privkey_export_der(ctx, seckey, &seckeylen, privkey, secp256k1_testrand_bits(1) == 1));
     CHECK(ec_privkey_import_der(ctx, privkey2, seckey, seckeylen) == 1);
     CHECK(memcmp(privkey, privkey2, 32) == 0);
 
     /* Optionally tweak the keys using addition. */
-    if (secp256k1_rand_int(3) == 0) {
+    if (secp256k1_testrand_int(3) == 0) {
         int ret1;
         int ret2;
         int ret3;
         unsigned char rnd[32];
         unsigned char privkey_tmp[32];
         secp256k1_pubkey pubkey2;
-        secp256k1_rand256_test(rnd);
+        secp256k1_testrand256_test(rnd);
         memcpy(privkey_tmp, privkey, 32);
         ret1 = secp256k1_ec_seckey_tweak_add(ctx, privkey, rnd);
         ret2 = secp256k1_ec_pubkey_tweak_add(ctx, &pubkey, rnd);
@@ -4435,14 +4435,14 @@ void test_ecdsa_end_to_end(void) {
     }
 
     /* Optionally tweak the keys using multiplication. */
-    if (secp256k1_rand_int(3) == 0) {
+    if (secp256k1_testrand_int(3) == 0) {
         int ret1;
         int ret2;
         int ret3;
         unsigned char rnd[32];
         unsigned char privkey_tmp[32];
         secp256k1_pubkey pubkey2;
-        secp256k1_rand256_test(rnd);
+        secp256k1_testrand256_test(rnd);
         memcpy(privkey_tmp, privkey, 32);
         ret1 = secp256k1_ec_seckey_tweak_mul(ctx, privkey, rnd);
         ret2 = secp256k1_ec_pubkey_tweak_mul(ctx, &pubkey, rnd);
@@ -4504,7 +4504,7 @@ void test_ecdsa_end_to_end(void) {
     /* Serialize/destroy/parse DER and verify again. */
     siglen = 74;
     CHECK(secp256k1_ecdsa_signature_serialize_der(ctx, sig, &siglen, &signature[0]) == 1);
-    sig[secp256k1_rand_int(siglen)] += 1 + secp256k1_rand_int(255);
+    sig[secp256k1_testrand_int(siglen)] += 1 + secp256k1_testrand_int(255);
     CHECK(secp256k1_ecdsa_signature_parse_der(ctx, &signature[0], sig, siglen) == 0 ||
           secp256k1_ecdsa_verify(ctx, &signature[0], message, &pubkey) == 0);
 }
@@ -4514,23 +4514,23 @@ void test_random_pubkeys(void) {
     secp256k1_ge elem2;
     unsigned char in[65];
     /* Generate some randomly sized pubkeys. */
-    size_t len = secp256k1_rand_bits(2) == 0 ? 65 : 33;
-    if (secp256k1_rand_bits(2) == 0) {
-        len = secp256k1_rand_bits(6);
+    size_t len = secp256k1_testrand_bits(2) == 0 ? 65 : 33;
+    if (secp256k1_testrand_bits(2) == 0) {
+        len = secp256k1_testrand_bits(6);
     }
     if (len == 65) {
-      in[0] = secp256k1_rand_bits(1) ? 4 : (secp256k1_rand_bits(1) ? 6 : 7);
+      in[0] = secp256k1_testrand_bits(1) ? 4 : (secp256k1_testrand_bits(1) ? 6 : 7);
     } else {
-      in[0] = secp256k1_rand_bits(1) ? 2 : 3;
+      in[0] = secp256k1_testrand_bits(1) ? 2 : 3;
     }
-    if (secp256k1_rand_bits(3) == 0) {
-        in[0] = secp256k1_rand_bits(8);
+    if (secp256k1_testrand_bits(3) == 0) {
+        in[0] = secp256k1_testrand_bits(8);
     }
     if (len > 1) {
-        secp256k1_rand256(&in[1]);
+        secp256k1_testrand256(&in[1]);
     }
     if (len > 33) {
-        secp256k1_rand256(&in[33]);
+        secp256k1_testrand256(&in[33]);
     }
     if (secp256k1_eckey_pubkey_parse(&elem, in, len)) {
         unsigned char out[65];
@@ -4552,7 +4552,7 @@ void test_random_pubkeys(void) {
         CHECK(secp256k1_eckey_pubkey_parse(&elem2, in, size));
         ge_equals_ge(&elem,&elem2);
         /* Check that the X9.62 hybrid type is checked. */
-        in[0] = secp256k1_rand_bits(1) ? 6 : 7;
+        in[0] = secp256k1_testrand_bits(1) ? 6 : 7;
         res = secp256k1_eckey_pubkey_parse(&elem2, in, size);
         if (firstb == 2 || firstb == 3) {
             if (in[0] == firstb + 4) {
@@ -4711,27 +4711,27 @@ static void assign_big_endian(unsigned char *ptr, size_t ptrlen, uint32_t val) {
 
 static void damage_array(unsigned char *sig, size_t *len) {
     int pos;
-    int action = secp256k1_rand_bits(3);
+    int action = secp256k1_testrand_bits(3);
     if (action < 1 && *len > 3) {
         /* Delete a byte. */
-        pos = secp256k1_rand_int(*len);
+        pos = secp256k1_testrand_int(*len);
         memmove(sig + pos, sig + pos + 1, *len - pos - 1);
         (*len)--;
         return;
     } else if (action < 2 && *len < 2048) {
         /* Insert a byte. */
-        pos = secp256k1_rand_int(1 + *len);
+        pos = secp256k1_testrand_int(1 + *len);
         memmove(sig + pos + 1, sig + pos, *len - pos);
-        sig[pos] = secp256k1_rand_bits(8);
+        sig[pos] = secp256k1_testrand_bits(8);
         (*len)++;
         return;
     } else if (action < 4) {
         /* Modify a byte. */
-        sig[secp256k1_rand_int(*len)] += 1 + secp256k1_rand_int(255);
+        sig[secp256k1_testrand_int(*len)] += 1 + secp256k1_testrand_int(255);
         return;
     } else { /* action < 8 */
         /* Modify a bit. */
-        sig[secp256k1_rand_int(*len)] ^= 1 << secp256k1_rand_bits(3);
+        sig[secp256k1_testrand_int(*len)] ^= 1 << secp256k1_testrand_bits(3);
         return;
     }
 }
@@ -4744,23 +4744,23 @@ static void random_ber_signature(unsigned char *sig, size_t *len, int* certainly
     int n;
 
     *len = 0;
-    der = secp256k1_rand_bits(2) == 0;
+    der = secp256k1_testrand_bits(2) == 0;
     *certainly_der = der;
     *certainly_not_der = 0;
-    indet = der ? 0 : secp256k1_rand_int(10) == 0;
+    indet = der ? 0 : secp256k1_testrand_int(10) == 0;
 
     for (n = 0; n < 2; n++) {
         /* We generate two classes of numbers: nlow==1 "low" ones (up to 32 bytes), nlow==0 "high" ones (32 bytes with 129 top bits set, or larger than 32 bytes) */
-        nlow[n] = der ? 1 : (secp256k1_rand_bits(3) != 0);
+        nlow[n] = der ? 1 : (secp256k1_testrand_bits(3) != 0);
         /* The length of the number in bytes (the first byte of which will always be nonzero) */
-        nlen[n] = nlow[n] ? secp256k1_rand_int(33) : 32 + secp256k1_rand_int(200) * secp256k1_rand_int(8) / 8;
+        nlen[n] = nlow[n] ? secp256k1_testrand_int(33) : 32 + secp256k1_testrand_int(200) * secp256k1_testrand_int(8) / 8;
         CHECK(nlen[n] <= 232);
         /* The top bit of the number. */
-        nhbit[n] = (nlow[n] == 0 && nlen[n] == 32) ? 1 : (nlen[n] == 0 ? 0 : secp256k1_rand_bits(1));
+        nhbit[n] = (nlow[n] == 0 && nlen[n] == 32) ? 1 : (nlen[n] == 0 ? 0 : secp256k1_testrand_bits(1));
         /* The top byte of the number (after the potential hardcoded 16 0xFF characters for "high" 32 bytes numbers) */
-        nhbyte[n] = nlen[n] == 0 ? 0 : (nhbit[n] ? 128 + secp256k1_rand_bits(7) : 1 + secp256k1_rand_int(127));
+        nhbyte[n] = nlen[n] == 0 ? 0 : (nhbit[n] ? 128 + secp256k1_testrand_bits(7) : 1 + secp256k1_testrand_int(127));
         /* The number of zero bytes in front of the number (which is 0 or 1 in case of DER, otherwise we extend up to 300 bytes) */
-        nzlen[n] = der ? ((nlen[n] == 0 || nhbit[n]) ? 1 : 0) : (nlow[n] ? secp256k1_rand_int(3) : secp256k1_rand_int(300 - nlen[n]) * secp256k1_rand_int(8) / 8);
+        nzlen[n] = der ? ((nlen[n] == 0 || nhbit[n]) ? 1 : 0) : (nlow[n] ? secp256k1_testrand_int(3) : secp256k1_testrand_int(300 - nlen[n]) * secp256k1_testrand_int(8) / 8);
         if (nzlen[n] > ((nlen[n] == 0 || nhbit[n]) ? 1 : 0)) {
             *certainly_not_der = 1;
         }
@@ -4769,7 +4769,7 @@ static void random_ber_signature(unsigned char *sig, size_t *len, int* certainly
         nlenlen[n] = nlen[n] + nzlen[n] < 128 ? 0 : (nlen[n] + nzlen[n] < 256 ? 1 : 2);
         if (!der) {
             /* nlenlen[n] max 127 bytes */
-            int add = secp256k1_rand_int(127 - nlenlen[n]) * secp256k1_rand_int(16) * secp256k1_rand_int(16) / 256;
+            int add = secp256k1_testrand_int(127 - nlenlen[n]) * secp256k1_testrand_int(16) * secp256k1_testrand_int(16) / 256;
             nlenlen[n] += add;
             if (add != 0) {
                 *certainly_not_der = 1;
@@ -4783,7 +4783,7 @@ static void random_ber_signature(unsigned char *sig, size_t *len, int* certainly
     CHECK(tlen <= 856);
 
     /* The length of the garbage inside the tuple. */
-    elen = (der || indet) ? 0 : secp256k1_rand_int(980 - tlen) * secp256k1_rand_int(8) / 8;
+    elen = (der || indet) ? 0 : secp256k1_testrand_int(980 - tlen) * secp256k1_testrand_int(8) / 8;
     if (elen != 0) {
         *certainly_not_der = 1;
     }
@@ -4791,7 +4791,7 @@ static void random_ber_signature(unsigned char *sig, size_t *len, int* certainly
     CHECK(tlen <= 980);
 
     /* The length of the garbage after the end of the tuple. */
-    glen = der ? 0 : secp256k1_rand_int(990 - tlen) * secp256k1_rand_int(8) / 8;
+    glen = der ? 0 : secp256k1_testrand_int(990 - tlen) * secp256k1_testrand_int(8) / 8;
     if (glen != 0) {
         *certainly_not_der = 1;
     }
@@ -4806,7 +4806,7 @@ static void random_ber_signature(unsigned char *sig, size_t *len, int* certainly
     } else {
         int tlenlen = tlen < 128 ? 0 : (tlen < 256 ? 1 : 2);
         if (!der) {
-            int add = secp256k1_rand_int(127 - tlenlen) * secp256k1_rand_int(16) * secp256k1_rand_int(16) / 256;
+            int add = secp256k1_testrand_int(127 - tlenlen) * secp256k1_testrand_int(16) * secp256k1_testrand_int(16) / 256;
             tlenlen += add;
             if (add != 0) {
                 *certainly_not_der = 1;
@@ -4857,13 +4857,13 @@ static void random_ber_signature(unsigned char *sig, size_t *len, int* certainly
             nlen[n]--;
         }
         /* Generate remaining random bytes of number */
-        secp256k1_rand_bytes_test(sig + *len, nlen[n]);
+        secp256k1_testrand_bytes_test(sig + *len, nlen[n]);
         *len += nlen[n];
         nlen[n] = 0;
     }
 
     /* Generate random garbage inside tuple. */
-    secp256k1_rand_bytes_test(sig + *len, elen);
+    secp256k1_testrand_bytes_test(sig + *len, elen);
     *len += elen;
 
     /* Generate end-of-contents bytes. */
@@ -4875,7 +4875,7 @@ static void random_ber_signature(unsigned char *sig, size_t *len, int* certainly
     CHECK(tlen + glen <= 1121);
 
     /* Generate random garbage outside tuple. */
-    secp256k1_rand_bytes_test(sig + *len, glen);
+    secp256k1_testrand_bytes_test(sig + *len, glen);
     *len += glen;
     tlen += glen;
     CHECK(tlen <= 1121);
@@ -5292,7 +5292,7 @@ EC_KEY *get_openssl_key(const unsigned char *key32) {
     unsigned char privkey[300];
     size_t privkeylen;
     const unsigned char* pbegin = privkey;
-    int compr = secp256k1_rand_bits(1);
+    int compr = secp256k1_testrand_bits(1);
     EC_KEY *ec_key = EC_KEY_new_by_curve_name(NID_secp256k1);
     CHECK(ec_privkey_export_der(ctx, privkey, &privkeylen, key32, compr));
     CHECK(d2i_ECPrivateKey(&ec_key, &pbegin, privkeylen));
@@ -5313,7 +5313,7 @@ void test_ecdsa_openssl(void) {
     unsigned char message[32];
     unsigned char signature[80];
     unsigned char key32[32];
-    secp256k1_rand256_test(message);
+    secp256k1_testrand256_test(message);
     secp256k1_scalar_set_b32(&msg, message, NULL);
     random_scalar_order_test(&key);
     secp256k1_scalar_get_b32(key32, &key);
@@ -5545,17 +5545,17 @@ int main(int argc, char **argv) {
     printf("test count = %i\n", count);
 
     /* find random seed */
-    secp256k1_rand_init(argc > 2 ? argv[2] : NULL);
+    secp256k1_testrand_init(argc > 2 ? argv[2] : NULL);
 
     /* initialize */
     run_context_tests(0);
     run_context_tests(1);
     run_scratch_tests();
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-    if (secp256k1_rand_bits(1)) {
+    if (secp256k1_testrand_bits(1)) {
         unsigned char rand32[32];
-        secp256k1_rand256(rand32);
-        CHECK(secp256k1_context_randomize(ctx, secp256k1_rand_bits(1) ? rand32 : NULL));
+        secp256k1_testrand256(rand32);
+        CHECK(secp256k1_context_randomize(ctx, secp256k1_testrand_bits(1) ? rand32 : NULL));
     }
 
     run_rand_bits();
@@ -5643,7 +5643,7 @@ int main(int argc, char **argv) {
 
     run_cmov_tests();
 
-    secp256k1_rand_finish();
+    secp256k1_testrand_finish();
 
     /* shutdown */
     secp256k1_context_destroy(ctx);
