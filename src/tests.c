@@ -3635,11 +3635,16 @@ void run_ecmult_gen_blind(void) {
 #ifdef USE_ENDOMORPHISM
 /***** ENDOMORPHISH TESTS *****/
 void test_scalar_split(const secp256k1_scalar* full) {
-    secp256k1_scalar s1, slam;
+    secp256k1_scalar s, s1, slam;
     const unsigned char zero[32] = {0};
     unsigned char tmp[32];
 
     secp256k1_scalar_split_lambda(&s1, &slam, full);
+
+    /* check slam*lambda + s1 == full */
+    secp256k1_scalar_mul(&s, &secp256k1_const_lambda, &slam);
+    secp256k1_scalar_add(&s, &s, &s1);
+    CHECK(secp256k1_scalar_eq(&s, full));
 
     /* check that both are <= 128 bits in size */
     if (secp256k1_scalar_is_high(&s1)) {
@@ -3658,6 +3663,15 @@ void test_scalar_split(const secp256k1_scalar* full) {
 
 void run_endomorphism_tests(void) {
     unsigned i;
+    static secp256k1_scalar s;
+    test_scalar_split(&secp256k1_scalar_zero);
+    test_scalar_split(&secp256k1_scalar_one);
+    secp256k1_scalar_negate(&s,&secp256k1_scalar_one);
+    test_scalar_split(&s);
+    test_scalar_split(&secp256k1_const_lambda);
+    secp256k1_scalar_add(&s, &secp256k1_const_lambda, &secp256k1_scalar_one);
+    test_scalar_split(&s);
+
     for (i = 0; i < 100U * count; ++i) {
         secp256k1_scalar full;
         random_scalar_order_test(&full);
