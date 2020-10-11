@@ -434,16 +434,16 @@ static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar
  * Q.E.D.
  */
 
+static const secp256k1_scalar secp256k1_const_lambda = SECP256K1_SCALAR_CONST(
+    0x5363AD4CUL, 0xC05C30E0UL, 0xA5261C02UL, 0x8812645AUL,
+    0x122E22EAUL, 0x20816678UL, 0xDF02967CUL, 0x1B23BD72UL
+);
+
 #ifdef VERIFY
 static void secp256k1_scalar_split_lambda_verify(const secp256k1_scalar *r1, const secp256k1_scalar *r2, const secp256k1_scalar *k) {
     secp256k1_scalar s;
     unsigned char buf1[32];
     unsigned char buf2[32];
-
-    static const secp256k1_scalar lambda = SECP256K1_SCALAR_CONST(
-        0x5363AD4CUL, 0xC05C30E0UL, 0xA5261C02UL, 0x8812645AUL,
-        0x122E22EAUL, 0x20816678UL, 0xDF02967CUL, 0x1B23BD72UL
-    );
 
     /* (a1 + a2 + 1)/2 is 0xa2a8918ca85bafe22016d0b917e4dd77 */
     static const unsigned char k1_bound[32] = {
@@ -457,7 +457,7 @@ static void secp256k1_scalar_split_lambda_verify(const secp256k1_scalar *r1, con
         0x8a, 0x65, 0x28, 0x7b, 0xd4, 0x71, 0x79, 0xfb, 0x2b, 0xe0, 0x88, 0x46, 0xce, 0xa2, 0x67, 0xed
     };
 
-    secp256k1_scalar_mul(&s, &lambda, r2);
+    secp256k1_scalar_mul(&s, &secp256k1_const_lambda, r2);
     secp256k1_scalar_add(&s, &s, r1);
     VERIFY_CHECK(secp256k1_scalar_eq(&s, k));
 
@@ -475,10 +475,6 @@ static void secp256k1_scalar_split_lambda_verify(const secp256k1_scalar *r1, con
 
 static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k) {
     secp256k1_scalar c1, c2;
-    static const secp256k1_scalar minus_lambda = SECP256K1_SCALAR_CONST(
-        0xAC9C52B3UL, 0x3FA3CF1FUL, 0x5AD9E3FDUL, 0x77ED9BA4UL,
-        0xA880B9FCUL, 0x8EC739C2UL, 0xE0CFC810UL, 0xB51283CFUL
-    );
     static const secp256k1_scalar minus_b1 = SECP256K1_SCALAR_CONST(
         0x00000000UL, 0x00000000UL, 0x00000000UL, 0x00000000UL,
         0xE4437ED6UL, 0x010E8828UL, 0x6F547FA9UL, 0x0ABFE4C3UL
@@ -503,7 +499,8 @@ static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar
     secp256k1_scalar_mul(&c1, &c1, &minus_b1);
     secp256k1_scalar_mul(&c2, &c2, &minus_b2);
     secp256k1_scalar_add(r2, &c1, &c2);
-    secp256k1_scalar_mul(r1, r2, &minus_lambda);
+    secp256k1_scalar_mul(r1, r2, &secp256k1_const_lambda);
+    secp256k1_scalar_negate(r1, r1);
     secp256k1_scalar_add(r1, r1, k);
 
 #ifdef VERIFY
