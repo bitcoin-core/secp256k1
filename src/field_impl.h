@@ -12,7 +12,6 @@
 #endif
 
 #include "util.h"
-#include "num.h"
 
 #if defined(SECP256K1_WIDEMUL_INT128)
 #include "field_5x52_impl.h"

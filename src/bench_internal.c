@@ -10,7 +10,6 @@
 #include "assumptions.h"
 #include "util.h"
 #include "hash_impl.h"
-#include "num_impl.h"
 #include "field_impl.h"
 #include "group_impl.h"
 #include "scalar_impl.h"

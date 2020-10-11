@@ -31,34 +31,6 @@
 static const secp256k1_scalar secp256k1_scalar_one = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1);
 static const secp256k1_scalar secp256k1_scalar_zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
 
-#ifndef USE_NUM_NONE
-static void secp256k1_scalar_get_num(secp256k1_num *r, const secp256k1_scalar *a) {
-    unsigned char c[32];
-    secp256k1_scalar_get_b32(c, a);
-    secp256k1_num_set_bin(r, c, 32);
-}
-
-/** secp256k1 curve order, see secp256k1_ecdsa_const_order_as_fe in ecdsa_impl.h */
-static void secp256k1_scalar_order_get_num(secp256k1_num *r) {
-#if defined(EXHAUSTIVE_TEST_ORDER)
-    static const unsigned char order[32] = {
-        0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,EXHAUSTIVE_TEST_ORDER
-    };
-#else
-    static const unsigned char order[32] = {
-        0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
-        0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFE,
-        0xBA,0xAE,0xDC,0xE6,0xAF,0x48,0xA0,0x3B,
-        0xBF,0xD2,0x5E,0x8C,0xD0,0x36,0x41,0x41
-    };
-#endif
-    secp256k1_num_set_bin(r, order, 32);
-}
-#endif
-
 static int secp256k1_scalar_set_b32_seckey(secp256k1_scalar *r, const unsigned char *bin) {
     int overflow;
     secp256k1_scalar_set_b32(r, bin, &overflow);
