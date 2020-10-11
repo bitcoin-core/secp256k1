@@ -125,4 +125,19 @@ static SECP256K1_INLINE void secp256k1_scalar_cmov(secp256k1_scalar *r, const se
     *r = (*r & mask0) | (*a & mask1);
 }
 
+static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *x) {
+    int i;
+    *r = 0;
+    for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++)
+        if ((i * *x) % EXHAUSTIVE_TEST_ORDER == 1)
+            *r = i;
+    /* If this VERIFY_CHECK triggers we were given a noninvertible scalar (and thus
+     * have a composite group order; fix it in exhaustive_tests.c). */
+    VERIFY_CHECK(*r != 0);
+}
+
+static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
+    secp256k1_scalar_inverse(r, x);
+}
+
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */
