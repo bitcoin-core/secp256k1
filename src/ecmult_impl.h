@@ -428,8 +428,8 @@ static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, 
 
 struct secp256k1_strauss_point_state {
     secp256k1_scalar na_1, na_lam;
-    int wnaf_na_1[130];
-    int wnaf_na_lam[130];
+    int wnaf_na_1[129];
+    int wnaf_na_lam[129];
     int bits_na_1;
     int bits_na_lam;
     size_t input_pos;
@@ -466,10 +466,10 @@ static void secp256k1_ecmult_strauss_wnaf(const secp256k1_ecmult_context *ctx, c
         secp256k1_scalar_split_lambda(&state->ps[no].na_1, &state->ps[no].na_lam, &na[np]);
 
         /* build wnaf representation for na_1 and na_lam. */
-        state->ps[no].bits_na_1   = secp256k1_ecmult_wnaf(state->ps[no].wnaf_na_1,   130, &state->ps[no].na_1,   WINDOW_A);
-        state->ps[no].bits_na_lam = secp256k1_ecmult_wnaf(state->ps[no].wnaf_na_lam, 130, &state->ps[no].na_lam, WINDOW_A);
-        VERIFY_CHECK(state->ps[no].bits_na_1 <= 130);
-        VERIFY_CHECK(state->ps[no].bits_na_lam <= 130);
+        state->ps[no].bits_na_1   = secp256k1_ecmult_wnaf(state->ps[no].wnaf_na_1,   129, &state->ps[no].na_1,   WINDOW_A);
+        state->ps[no].bits_na_lam = secp256k1_ecmult_wnaf(state->ps[no].wnaf_na_lam, 129, &state->ps[no].na_lam, WINDOW_A);
+        VERIFY_CHECK(state->ps[no].bits_na_1 <= 129);
+        VERIFY_CHECK(state->ps[no].bits_na_lam <= 129);
         if (state->ps[no].bits_na_1 > bits) {
             bits = state->ps[no].bits_na_1;
         }
