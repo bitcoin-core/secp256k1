@@ -1419,33 +1419,6 @@ void scalar_test(void) {
 #endif
 
     {
-        /* Test that scalar inverses are equal to the inverse of their number modulo the order. */
-        if (!secp256k1_scalar_is_zero(&s)) {
-            secp256k1_scalar inv;
-#ifndef USE_NUM_NONE
-            secp256k1_num invnum;
-            secp256k1_num invnum2;
-#endif
-            secp256k1_scalar_inverse(&inv, &s);
-#ifndef USE_NUM_NONE
-            secp256k1_num_mod_inverse(&invnum, &snum, &order);
-            secp256k1_scalar_get_num(&invnum2, &inv);
-            CHECK(secp256k1_num_eq(&invnum, &invnum2));
-#endif
-            secp256k1_scalar_mul(&inv, &inv, &s);
-            /* Multiplying a scalar with its inverse must result in one. */
-            CHECK(secp256k1_scalar_is_one(&inv));
-            secp256k1_scalar_inverse(&inv, &inv);
-            /* Inverting one must result in one. */
-            CHECK(secp256k1_scalar_is_one(&inv));
-#ifndef USE_NUM_NONE
-            secp256k1_scalar_get_num(&invnum, &inv);
-            CHECK(secp256k1_num_is_one(&invnum));
-#endif
-        }
-    }
-
-    {
         /* Test commutativity of add. */
         secp256k1_scalar r1, r2;
         secp256k1_scalar_add(&r1, &s1, &s2);
@@ -2275,13 +2248,6 @@ int check_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
     return secp256k1_fe_equal_var(&an, &bn);
 }
 
-int check_fe_inverse(const secp256k1_fe *a, const secp256k1_fe *ai) {
-    secp256k1_fe x;
-    secp256k1_fe one = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1);
-    secp256k1_fe_mul(&x, a, ai);
-    return check_fe_equal(&x, &one);
-}
-
 void run_field_convert(void) {
     static const unsigned char b32[32] = {
         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -2401,30 +2367,6 @@ void run_field_misc(void) {
     }
 }
 
-void run_field_inv(void) {
-    secp256k1_fe x, xi, xii;
-    int i;
-    for (i = 0; i < 10*count; i++) {
-        random_fe_non_zero(&x);
-        secp256k1_fe_inv(&xi, &x);
-        CHECK(check_fe_inverse(&x, &xi));
-        secp256k1_fe_inv(&xii, &xi);
-        CHECK(check_fe_equal(&x, &xii));
-    }
-}
-
-void run_field_inv_var(void) {
-    secp256k1_fe x, xi, xii;
-    int i;
-    for (i = 0; i < 10*count; i++) {
-        random_fe_non_zero(&x);
-        secp256k1_fe_inv_var(&xi, &x);
-        CHECK(check_fe_inverse(&x, &xi));
-        secp256k1_fe_inv_var(&xii, &xi);
-        CHECK(check_fe_equal(&x, &xii));
-    }
-}
-
 void run_sqr(void) {
     secp256k1_fe x, s;
 
@@ -2485,6 +2427,169 @@ void run_sqrt(void) {
             test_sqrt(&t, NULL);
             secp256k1_fe_mul(&t, &s, &ns);
             test_sqrt(&t, NULL);
+        }
+    }
+}
+
+/***** FIELD/SCALAR INVERSE TESTS *****/
+
+static const secp256k1_scalar scalar_minus_one = SECP256K1_SCALAR_CONST(
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE,
+    0xBAAEDCE6, 0xAF48A03B, 0xBFD25E8C, 0xD0364140
+);
+
+static const secp256k1_fe fe_minus_one = SECP256K1_FE_CONST(
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0xFFFFFC2E
+);
+
+/* These tests test the following identities:
+ *
+ * for x==0: 1/x == 0
+ * for x!=0: x*(1/x) == 1
+ * for x!=0 and x!=1: 1/(1/x - 1) + 1 == -1/(x-1)
+ */
+
+void test_inverse_scalar(secp256k1_scalar* out, const secp256k1_scalar* x, int var)
+{
+    secp256k1_scalar l, r, t;
+
+    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse_var)(&l, x);  /* l = 1/x */
+    if (out) *out = l;
+    if (secp256k1_scalar_is_zero(x)) {
+        CHECK(secp256k1_scalar_is_zero(&l));
+        return;
+    }
+    secp256k1_scalar_mul(&t, x, &l);                                             /* t = x*(1/x) */
+    CHECK(secp256k1_scalar_is_one(&t));                                          /* x*(1/x) == 1 */
+    secp256k1_scalar_add(&r, x, &scalar_minus_one);                              /* r = x-1 */
+    if (secp256k1_scalar_is_zero(&r)) return;
+    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse_var)(&r, &r); /* r = 1/(x-1) */
+    secp256k1_scalar_add(&l, &scalar_minus_one, &l);                             /* l = 1/x-1 */
+    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse_var)(&l, &l); /* l = 1/(1/x-1) */
+    secp256k1_scalar_add(&l, &l, &secp256k1_scalar_one);                         /* l = 1/(1/x-1)+1 */
+    secp256k1_scalar_add(&l, &r, &l);                                            /* l = 1/(1/x-1)+1 + 1/(x-1) */
+    CHECK(secp256k1_scalar_is_zero(&l));                                         /* l == 0 */
+}
+
+void test_inverse_field(secp256k1_fe* out, const secp256k1_fe* x, int var)
+{
+    secp256k1_fe l, r, t;
+
+    (var ? secp256k1_fe_inv_var : secp256k1_fe_inv)(&l, x) ;   /* l = 1/x */
+    if (out) *out = l;
+    t = *x;                                                    /* t = x */
+    if (secp256k1_fe_normalizes_to_zero_var(&t)) {
+        CHECK(secp256k1_fe_normalizes_to_zero(&l));
+        return;
+    }
+    secp256k1_fe_mul(&t, x, &l);                               /* t = x*(1/x) */
+    secp256k1_fe_add(&t, &fe_minus_one);                       /* t = x*(1/x)-1 */
+    CHECK(secp256k1_fe_normalizes_to_zero(&t));                /* x*(1/x)-1 == 0 */
+    r = *x;                                                    /* r = x */
+    secp256k1_fe_add(&r, &fe_minus_one);                       /* r = x-1 */
+    if (secp256k1_fe_normalizes_to_zero_var(&r)) return;
+    (var ? secp256k1_fe_inv_var : secp256k1_fe_inv)(&r, &r);   /* r = 1/(x-1) */
+    secp256k1_fe_add(&l, &fe_minus_one);                       /* l = 1/x-1 */
+    (var ? secp256k1_fe_inv_var : secp256k1_fe_inv)(&l, &l);   /* l = 1/(1/x-1) */
+    secp256k1_fe_add(&l, &secp256k1_fe_one);                   /* l = 1/(1/x-1)+1 */
+    secp256k1_fe_add(&l, &r);                                  /* l = 1/(1/x-1)+1 + 1/(x-1) */
+    CHECK(secp256k1_fe_normalizes_to_zero_var(&l));            /* l == 0 */
+}
+
+void run_inverse_tests(void)
+{
+    /* Fixed test cases for field inverses: pairs of (x, 1/x) mod p. */
+    static const secp256k1_fe fe_cases[][2] = {
+        /* 0 */
+        {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0),
+         SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0)},
+        /* 1 */
+        {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1),
+         SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1)},
+        /* -1 */
+        {SECP256K1_FE_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xfffffc2e),
+         SECP256K1_FE_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xfffffc2e)},
+        /* 2 */
+        {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 2),
+         SECP256K1_FE_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x7ffffe18)},
+        /* 2**128 */
+        {SECP256K1_FE_CONST(0, 0, 0, 1, 0, 0, 0, 0),
+         SECP256K1_FE_CONST(0xbcb223fe, 0xdc24a059, 0xd838091d, 0xd2253530, 0xffffffff, 0xffffffff, 0xffffffff, 0x434dd931)},
+        /* Input known to need 637 divsteps */
+        {SECP256K1_FE_CONST(0xe34e9c95, 0x6bee8a84, 0x0dcb632a, 0xdb8a1320, 0x66885408, 0x06f3f996, 0x7c11ca84, 0x19199ec3),
+         SECP256K1_FE_CONST(0xbd2cbd8f, 0x1c536828, 0x9bccda44, 0x2582ac0c, 0x870152b0, 0x8a3f09fb, 0x1aaadf92, 0x19b618e5)}
+    };
+    /* Fixed test cases for scalar inverses: pairs of (x, 1/x) mod n. */
+    static const secp256k1_scalar scalar_cases[][2] = {
+        /* 0 */
+        {SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0),
+         SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0)},
+        /* 1 */
+        {SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1),
+         SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1)},
+        /* -1 */
+        {SECP256K1_SCALAR_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xbaaedce6, 0xaf48a03b, 0xbfd25e8c, 0xd0364140),
+         SECP256K1_SCALAR_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xbaaedce6, 0xaf48a03b, 0xbfd25e8c, 0xd0364140)},
+        /* 2 */
+        {SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 2),
+         SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x5d576e73, 0x57a4501d, 0xdfe92f46, 0x681b20a1)},
+        /* 2**128 */
+        {SECP256K1_SCALAR_CONST(0, 0, 0, 1, 0, 0, 0, 0),
+         SECP256K1_SCALAR_CONST(0x50a51ac8, 0x34b9ec24, 0x4b0dff66, 0x5588b13e, 0x9984d5b3, 0xcf80ef0f, 0xd6a23766, 0xa3ee9f22)},
+        /* Input known to need 635 divsteps */
+        {SECP256K1_SCALAR_CONST(0xcb9f1d35, 0xdd4416c2, 0xcd71bf3f, 0x6365da66, 0x3c9b3376, 0x8feb7ae9, 0x32a5ef60, 0x19199ec3),
+         SECP256K1_SCALAR_CONST(0x1d7c7bba, 0xf1893d53, 0xb834bd09, 0x36b411dc, 0x42c2e42f, 0xec72c428, 0x5e189791, 0x8e9bc708)}
+    };
+    int i, var, testrand;
+    unsigned char b32[32];
+    secp256k1_fe x_fe;
+    secp256k1_scalar x_scalar;
+    memset(b32, 0, sizeof(b32));
+    /* Test fixed test cases through test_inverse_{scalar,field}, both ways. */
+    for (i = 0; (size_t)i < sizeof(fe_cases)/sizeof(fe_cases[0]); ++i) {
+        for (var = 0; var <= 1; ++var) {
+            test_inverse_field(&x_fe, &fe_cases[i][0], var);
+            check_fe_equal(&x_fe, &fe_cases[i][1]);
+            test_inverse_field(&x_fe, &fe_cases[i][1], var);
+            check_fe_equal(&x_fe, &fe_cases[i][0]);
+        }
+    }
+    for (i = 0; (size_t)i < sizeof(scalar_cases)/sizeof(scalar_cases[0]); ++i) {
+        for (var = 0; var <= 1; ++var) {
+            test_inverse_scalar(&x_scalar, &scalar_cases[i][0], var);
+            CHECK(secp256k1_scalar_eq(&x_scalar, &scalar_cases[i][1]));
+            test_inverse_scalar(&x_scalar, &scalar_cases[i][1], var);
+            CHECK(secp256k1_scalar_eq(&x_scalar, &scalar_cases[i][0]));
+        }
+    }
+    /* Test inputs 0..999 and their respective negations. */
+    for (i = 0; i < 1000; ++i) {
+        b32[31] = i & 0xff;
+        b32[30] = (i >> 8) & 0xff;
+        secp256k1_scalar_set_b32(&x_scalar, b32, NULL);
+        secp256k1_fe_set_b32(&x_fe, b32);
+        for (var = 0; var <= 1; ++var) {
+            test_inverse_scalar(NULL, &x_scalar, var);
+            test_inverse_field(NULL, &x_fe, var);
+        }
+        secp256k1_scalar_negate(&x_scalar, &x_scalar);
+        secp256k1_fe_negate(&x_fe, &x_fe, 1);
+        for (var = 0; var <= 1; ++var) {
+            test_inverse_scalar(NULL, &x_scalar, var);
+            test_inverse_field(NULL, &x_fe, var);
+        }
+    }
+    /* test 128*count random inputs; half with testrand256_test, half with testrand256 */
+    for (testrand = 0; testrand <= 1; ++testrand) {
+        for (i = 0; i < 64 * count; ++i) {
+            (testrand ? secp256k1_testrand256_test : secp256k1_testrand256)(b32);
+            secp256k1_scalar_set_b32(&x_scalar, b32, NULL);
+            secp256k1_fe_set_b32(&x_fe, b32);
+            for (var = 0; var <= 1; ++var) {
+                test_inverse_scalar(NULL, &x_scalar, var);
+                test_inverse_field(NULL, &x_fe, var);
+            }
         }
     }
 }
@@ -6068,8 +6173,8 @@ int main(int argc, char **argv) {
     run_rand_int();
 
     run_ctz_tests();
-
     run_modinv_tests();
+    run_inverse_tests();
 
     run_sha256_tests();
     run_hmac_sha256_tests();
@@ -6084,8 +6189,6 @@ int main(int argc, char **argv) {
     run_scalar_tests();
 
     /* field tests */
-    run_field_inv();
-    run_field_inv_var();
     run_field_misc();
     run_field_convert();
     run_sqr();
