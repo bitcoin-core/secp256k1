@@ -416,6 +416,25 @@ void run_scratch_tests(void) {
     secp256k1_context_destroy(none);
 }
 
+void run_ctz_tests(void) {
+    static const uint32_t b32[] = {1, 0xffffffff, 0x5e56968f, 0xe0d63129};
+    static const uint64_t b64[] = {1, 0xffffffffffffffff, 0xbcd02462139b3fc3, 0x98b5f80c769693ef};
+    int shift;
+    unsigned i;
+    for (i = 0; i < sizeof(b32) / sizeof(b32[0]); ++i) {
+        for (shift = 0; shift < 32; ++shift) {
+            CHECK(secp256k1_ctz32_var_debruijn(b32[i] << shift) == shift);
+            CHECK(secp256k1_ctz32_var(b32[i] << shift) == shift);
+        }
+    }
+    for (i = 0; i < sizeof(b64) / sizeof(b64[0]); ++i) {
+        for (shift = 0; shift < 64; ++shift) {
+            CHECK(secp256k1_ctz64_var_debruijn(b64[i] << shift) == shift);
+            CHECK(secp256k1_ctz64_var(b64[i] << shift) == shift);
+        }
+    }
+}
+
 /***** HASH TESTS *****/
 
 void run_sha256_tests(void) {
@@ -5605,6 +5624,8 @@ int main(int argc, char **argv) {
 
     run_rand_bits();
     run_rand_int();
+
+    run_ctz_tests();
 
     run_sha256_tests();
     run_hmac_sha256_tests();
