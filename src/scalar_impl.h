@@ -267,14 +267,14 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
 #  endif
 
 /**
- * Find k1 and k2 given k, such that k1 + k2 * lambda == k mod n; unlike in the
- * full case we don't bother making k1 and k2 be small, we just want them to be
+ * Find r1 and r2 given k, such that r1 + r2 * lambda == k mod n; unlike in the
+ * full case we don't bother making r1 and r2 be small, we just want them to be
  * nontrivial to get full test coverage for the exhaustive tests. We therefore
- * (arbitrarily) set k2 = k + 5 and k1 = k - k2 * lambda.
+ * (arbitrarily) set r2 = k + 5 (mod n) and r1 = k - r2 * lambda (mod n).
  */
-static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *a) {
-    *r2 = (*a + 5) % EXHAUSTIVE_TEST_ORDER;
-    *r1 = (*a + (EXHAUSTIVE_TEST_ORDER - *r2) * EXHAUSTIVE_TEST_LAMBDA) % EXHAUSTIVE_TEST_ORDER;
+static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k) {
+    *r2 = (*k + 5) % EXHAUSTIVE_TEST_ORDER;
+    *r1 = (*k + (EXHAUSTIVE_TEST_ORDER - *r2) * EXHAUSTIVE_TEST_LAMBDA) % EXHAUSTIVE_TEST_ORDER;
 }
 #else
 /**
@@ -309,11 +309,11 @@ static void secp256k1_scalar_split_lambda_verify(const secp256k1_scalar *r1, con
  *
  * "Guide to Elliptic Curve Cryptography" (Hankerson, Menezes, Vanstone) gives an algorithm
  * (algorithm 3.74) to find k1 and k2 given k, such that k1 + k2 * lambda == k mod n, and k1
- * and k2 have a small size.
+ * and k2 are small in absolute value.
  *
  * The algorithm computes c1 = round(b2 * k / n) and c2 = round((-b1) * k / n), and gives
  * k1 = k - (c1*a1 + c2*a2) and k2 = -(c1*b1 + c2*b2). Instead, we use modular arithmetic, and
- * compute k - k2 * lambda (mod n) which is equivalent to k1 (mod n), avoiding the need for
+ * compute r2 = k2 mod n, and r1 = k1 mod n = (k - r2 * lambda) mod n, avoiding the need for
  * the constants a1 and a2.
  *
  * g1, g2 are precomputed constants used to replace division with a rounded multiplication
