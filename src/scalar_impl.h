@@ -279,9 +279,17 @@ static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar
 #else
 /**
  * The Secp256k1 curve has an endomorphism, where lambda * (x, y) = (beta * x, y), where
- * lambda is {0x53,0x63,0xad,0x4c,0xc0,0x5c,0x30,0xe0,0xa5,0x26,0x1c,0x02,0x88,0x12,0x64,0x5a,
- *            0x12,0x2e,0x22,0xea,0x20,0x81,0x66,0x78,0xdf,0x02,0x96,0x7c,0x1b,0x23,0xbd,0x72}
- *
+ * lambda is: */
+static const secp256k1_scalar secp256k1_const_lambda = SECP256K1_SCALAR_CONST(
+    0x5363AD4CUL, 0xC05C30E0UL, 0xA5261C02UL, 0x8812645AUL,
+    0x122E22EAUL, 0x20816678UL, 0xDF02967CUL, 0x1B23BD72UL
+);
+
+#ifdef VERIFY
+static void secp256k1_scalar_split_lambda_verify(const secp256k1_scalar *r1, const secp256k1_scalar *r2, const secp256k1_scalar *k);
+#endif
+
+/*
  * Both lambda and beta are primitive cube roots of unity.  That is lamba^3 == 1 mod n and
  * beta^3 == 1 mod p, where n is the curve order and p is the field order.
  *
@@ -329,7 +337,46 @@ static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar
  * - either r1 < 2^128 or -r1 mod n < 2^128
  * - either r2 < 2^128 or -r2 mod n < 2^128
  *
- * Proof.
+ * See proof below.
+ */
+static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k) {
+    secp256k1_scalar c1, c2;
+    static const secp256k1_scalar minus_b1 = SECP256K1_SCALAR_CONST(
+        0x00000000UL, 0x00000000UL, 0x00000000UL, 0x00000000UL,
+        0xE4437ED6UL, 0x010E8828UL, 0x6F547FA9UL, 0x0ABFE4C3UL
+    );
+    static const secp256k1_scalar minus_b2 = SECP256K1_SCALAR_CONST(
+        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL,
+        0x8A280AC5UL, 0x0774346DUL, 0xD765CDA8UL, 0x3DB1562CUL
+    );
+    static const secp256k1_scalar g1 = SECP256K1_SCALAR_CONST(
+        0x3086D221UL, 0xA7D46BCDUL, 0xE86C90E4UL, 0x9284EB15UL,
+        0x3DAA8A14UL, 0x71E8CA7FUL, 0xE893209AUL, 0x45DBB031UL
+    );
+    static const secp256k1_scalar g2 = SECP256K1_SCALAR_CONST(
+        0xE4437ED6UL, 0x010E8828UL, 0x6F547FA9UL, 0x0ABFE4C4UL,
+        0x221208ACUL, 0x9DF506C6UL, 0x1571B4AEUL, 0x8AC47F71UL
+    );
+    VERIFY_CHECK(r1 != k);
+    VERIFY_CHECK(r2 != k);
+    /* these _var calls are constant time since the shift amount is constant */
+    secp256k1_scalar_mul_shift_var(&c1, k, &g1, 384);
+    secp256k1_scalar_mul_shift_var(&c2, k, &g2, 384);
+    secp256k1_scalar_mul(&c1, &c1, &minus_b1);
+    secp256k1_scalar_mul(&c2, &c2, &minus_b2);
+    secp256k1_scalar_add(r2, &c1, &c2);
+    secp256k1_scalar_mul(r1, r2, &secp256k1_const_lambda);
+    secp256k1_scalar_negate(r1, r1);
+    secp256k1_scalar_add(r1, r1, k);
+
+#ifdef VERIFY
+    secp256k1_scalar_split_lambda_verify(r1, r2, k);
+#endif
+}
+
+#ifdef VERIFY
+/*
+ * Proof for secp256k1_scalar_split_lambda's bounds.
  *
  * Let
  *  - epsilon1 = 2^256 * |g1/2^384 - b2/d|
@@ -432,13 +479,6 @@ static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar
  *
  * Q.E.D.
  */
-
-static const secp256k1_scalar secp256k1_const_lambda = SECP256K1_SCALAR_CONST(
-    0x5363AD4CUL, 0xC05C30E0UL, 0xA5261C02UL, 0x8812645AUL,
-    0x122E22EAUL, 0x20816678UL, 0xDF02967CUL, 0x1B23BD72UL
-);
-
-#ifdef VERIFY
 static void secp256k1_scalar_split_lambda_verify(const secp256k1_scalar *r1, const secp256k1_scalar *r2, const secp256k1_scalar *k) {
     secp256k1_scalar s;
     unsigned char buf1[32];
@@ -470,42 +510,7 @@ static void secp256k1_scalar_split_lambda_verify(const secp256k1_scalar *r1, con
     secp256k1_scalar_get_b32(buf2, &s);
     VERIFY_CHECK(secp256k1_memcmp_var(buf1, k2_bound, 32) < 0 || secp256k1_memcmp_var(buf2, k2_bound, 32) < 0);
 }
-#endif
-
-static void secp256k1_scalar_split_lambda(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k) {
-    secp256k1_scalar c1, c2;
-    static const secp256k1_scalar minus_b1 = SECP256K1_SCALAR_CONST(
-        0x00000000UL, 0x00000000UL, 0x00000000UL, 0x00000000UL,
-        0xE4437ED6UL, 0x010E8828UL, 0x6F547FA9UL, 0x0ABFE4C3UL
-    );
-    static const secp256k1_scalar minus_b2 = SECP256K1_SCALAR_CONST(
-        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL,
-        0x8A280AC5UL, 0x0774346DUL, 0xD765CDA8UL, 0x3DB1562CUL
-    );
-    static const secp256k1_scalar g1 = SECP256K1_SCALAR_CONST(
-        0x3086D221UL, 0xA7D46BCDUL, 0xE86C90E4UL, 0x9284EB15UL,
-        0x3DAA8A14UL, 0x71E8CA7FUL, 0xE893209AUL, 0x45DBB031UL
-    );
-    static const secp256k1_scalar g2 = SECP256K1_SCALAR_CONST(
-        0xE4437ED6UL, 0x010E8828UL, 0x6F547FA9UL, 0x0ABFE4C4UL,
-        0x221208ACUL, 0x9DF506C6UL, 0x1571B4AEUL, 0x8AC47F71UL
-    );
-    VERIFY_CHECK(r1 != k);
-    VERIFY_CHECK(r2 != k);
-    /* these _var calls are constant time since the shift amount is constant */
-    secp256k1_scalar_mul_shift_var(&c1, k, &g1, 384);
-    secp256k1_scalar_mul_shift_var(&c2, k, &g2, 384);
-    secp256k1_scalar_mul(&c1, &c1, &minus_b1);
-    secp256k1_scalar_mul(&c2, &c2, &minus_b2);
-    secp256k1_scalar_add(r2, &c1, &c2);
-    secp256k1_scalar_mul(r1, r2, &secp256k1_const_lambda);
-    secp256k1_scalar_negate(r1, r1);
-    secp256k1_scalar_add(r1, r1, k);
-
-#ifdef VERIFY
-    secp256k1_scalar_split_lambda_verify(r1, r2, k);
-#endif
-}
-#endif
+#endif /* VERIFY */
+#endif /* !defined(EXHAUSTIVE_TEST_ORDER) */
 
 #endif /* SECP256K1_SCALAR_IMPL_H */
