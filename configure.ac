@@ -55,16 +55,28 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
 dnl Workaround for GCC bug 95189
 AC_MSG_CHECKING([if ${CC} has a broken memcmp builtin])
 if test x"$GCC" = x"yes"; then
-  gcc_version=`${CC} -dumpfullversion`
-  case $gcc_version in
-  9.*|10.*)
-    AC_MSG_RESULT([maybe, using -fno-builtin-memcmp])
+  AC_TRY_RUN([
+    int main() {
+      char a[] = "\0abc";
+      return __builtin_memcmp(a, "\0\0\0\0", 4);
+    }
+  ], [
+    AC_MSG_RESULT([yes, using -fno-builtin-memcmp])
     CFLAGS="$CFLAGS -fno-builtin-memcmp"
-    ;;
-  *)
+  ],[
     AC_MSG_RESULT([probably not])
-    ;;
-  esac
+  ],[
+    gcc_version=`${CC} -dumpfullversion`
+    case $gcc_version in
+    9.*|10.*)
+      AC_MSG_RESULT([maybe, using -fno-builtin-memcmp])
+      CFLAGS="$CFLAGS -fno-builtin-memcmp"
+      ;;
+    *)
+      AC_MSG_RESULT([probably not])
+      ;;
+    esac
+  ])
 fi
 
 AC_ARG_ENABLE(benchmark,
