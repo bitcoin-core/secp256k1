@@ -38,13 +38,13 @@ static void test_exhaustive_extrakeys(const secp256k1_context *ctx, const secp25
         /* Parse the xonly_pubkey back and verify it matches the previously serialized value. */
         CHECK(secp256k1_xonly_pubkey_parse(ctx, &xonly_pubkey[i - 1], xonly_pubkey_bytes[i - 1]));
         CHECK(secp256k1_xonly_pubkey_serialize(ctx, buf, &xonly_pubkey[i - 1]));
-        CHECK(memcmp(xonly_pubkey_bytes[i - 1], buf, 32) == 0);
+        CHECK(secp256k1_memcmp_var(xonly_pubkey_bytes[i - 1], buf, 32) == 0);
 
         /* Construct the xonly_pubkey from the pubkey, and verify it matches the same. */
         CHECK(secp256k1_xonly_pubkey_from_pubkey(ctx, &xonly_pubkey[i - 1], &parity, &pubkey[i - 1]));
         CHECK(parity == parities[i - 1]);
         CHECK(secp256k1_xonly_pubkey_serialize(ctx, buf, &xonly_pubkey[i - 1]));
-        CHECK(memcmp(xonly_pubkey_bytes[i - 1], buf, 32) == 0);
+        CHECK(secp256k1_memcmp_var(xonly_pubkey_bytes[i - 1], buf, 32) == 0);
 
         /* Compare the xonly_pubkey bytes against the precomputed group. */
         secp256k1_fe_set_b32(&fe, xonly_pubkey_bytes[i - 1]);
@@ -57,7 +57,7 @@ static void test_exhaustive_extrakeys(const secp256k1_context *ctx, const secp25
 
         /* Verify that the higher half is identical to the lower half mirrored. */
         if (i > EXHAUSTIVE_TEST_ORDER / 2) {
-            CHECK(memcmp(xonly_pubkey_bytes[i - 1], xonly_pubkey_bytes[EXHAUSTIVE_TEST_ORDER - i - 1], 32) == 0);
+            CHECK(secp256k1_memcmp_var(xonly_pubkey_bytes[i - 1], xonly_pubkey_bytes[EXHAUSTIVE_TEST_ORDER - i - 1], 32) == 0);
             CHECK(parities[i - 1] == 1 - parities[EXHAUSTIVE_TEST_ORDER - i - 1]);
         }
     }

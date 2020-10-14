@@ -68,7 +68,7 @@ static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *ms
     /* Tag the hash with algo16 which is important to avoid nonce reuse across
      * algorithms. If this nonce function is used in BIP-340 signing as defined
      * in the spec, an optimized tagging implementation is used. */
-    if (memcmp(algo16, bip340_algo16, 16) == 0) {
+    if (secp256k1_memcmp_var(algo16, bip340_algo16, 16) == 0) {
         secp256k1_nonce_function_bip340_sha256_tagged(&sha);
     } else {
         int algo16_len = 16;

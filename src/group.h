@@ -116,10 +116,8 @@ static void secp256k1_gej_add_ge_var(secp256k1_gej *r, const secp256k1_gej *a, c
 /** Set r equal to the sum of a and b (with the inverse of b's Z coordinate passed as bzinv). */
 static void secp256k1_gej_add_zinv_var(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_ge *b, const secp256k1_fe *bzinv);
 
-#ifdef USE_ENDOMORPHISM
 /** Set r to be equal to lambda times a, where lambda is chosen in a way such that this is very fast. */
 static void secp256k1_ge_mul_lambda(secp256k1_ge *r, const secp256k1_ge *a);
-#endif
 
 /** Clear a secp256k1_gej to prevent leaking sensitive information. */
 static void secp256k1_gej_clear(secp256k1_gej *r);

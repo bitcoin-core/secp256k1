@@ -95,7 +95,6 @@ int secp256k1_nonce_function_smallint(unsigned char *nonce32, const unsigned cha
     return 1;
 }
 
-#ifdef USE_ENDOMORPHISM
 void test_exhaustive_endomorphism(const secp256k1_ge *group) {
     int i;
     for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++) {
@@ -104,7 +103,6 @@ void test_exhaustive_endomorphism(const secp256k1_ge *group) {
         ge_equals_ge(&group[i * EXHAUSTIVE_TEST_LAMBDA % EXHAUSTIVE_TEST_ORDER], &res);
     }
 }
-#endif
 
 void test_exhaustive_addition(const secp256k1_ge *group, const secp256k1_gej *groupj) {
     int i, j;
@@ -429,9 +427,7 @@ int main(int argc, char** argv) {
         }
 
         /* Run the tests */
-#ifdef USE_ENDOMORPHISM
         test_exhaustive_endomorphism(group);
-#endif
         test_exhaustive_addition(group, groupj);
         test_exhaustive_ecmult(ctx, group, groupj);
         test_exhaustive_ecmult_multi(ctx, group);

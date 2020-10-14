@@ -17,7 +17,7 @@ void nonce_function_bip340_bitflip(unsigned char **args, size_t n_flip, size_t n
     CHECK(nonce_function_bip340(nonces[0], args[0], args[1], args[2], args[3], args[4]) == 1);
     secp256k1_testrand_flip(args[n_flip], n_bytes);
     CHECK(nonce_function_bip340(nonces[1], args[0], args[1], args[2], args[3], args[4]) == 1);
-    CHECK(memcmp(nonces[0], nonces[1], 32) != 0);
+    CHECK(secp256k1_memcmp_var(nonces[0], nonces[1], 32) != 0);
 }
 
 /* Tests for the equality of two sha256 structs. This function only produces a
@@ -28,7 +28,7 @@ void test_sha256_eq(const secp256k1_sha256 *sha1, const secp256k1_sha256 *sha2) 
     CHECK((sha1->bytes & 0x3F) == 0);
 
     CHECK(sha1->bytes == sha2->bytes);
-    CHECK(memcmp(sha1->s, sha2->s, sizeof(sha1->s)) == 0);
+    CHECK(secp256k1_memcmp_var(sha1->s, sha2->s, sizeof(sha1->s)) == 0);
 }
 
 void run_nonce_function_bip340_tests(void) {
@@ -197,11 +197,11 @@ void test_schnorrsig_bip_vectors_check_signing(const unsigned char *sk, const un
 
     CHECK(secp256k1_keypair_create(ctx, &keypair, sk));
     CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, NULL, aux_rand));
-    CHECK(memcmp(sig, expected_sig, 64) == 0);
+    CHECK(secp256k1_memcmp_var(sig, expected_sig, 64) == 0);
 
     CHECK(secp256k1_xonly_pubkey_parse(ctx, &pk_expected, pk_serialized));
     CHECK(secp256k1_keypair_xonly_pub(ctx, &pk, NULL, &keypair));
-    CHECK(memcmp(&pk, &pk_expected, sizeof(pk)) == 0);
+    CHECK(secp256k1_memcmp_var(&pk, &pk_expected, sizeof(pk)) == 0);
     CHECK(secp256k1_schnorrsig_verify(ctx, sig, msg, &pk));
 }
 
@@ -682,12 +682,12 @@ void test_schnorrsig_sign(void) {
     /* Test different nonce functions */
     memset(sig, 1, sizeof(sig));
     CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, nonce_function_failing, NULL) == 0);
-    CHECK(memcmp(sig, zeros64, sizeof(sig)) == 0);
+    CHECK(secp256k1_memcmp_var(sig, zeros64, sizeof(sig)) == 0);
     memset(&sig, 1, sizeof(sig));
     CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, nonce_function_0, NULL) == 0);
-    CHECK(memcmp(sig, zeros64, sizeof(sig)) == 0);
+    CHECK(secp256k1_memcmp_var(sig, zeros64, sizeof(sig)) == 0);
     CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, nonce_function_overflowing, NULL) == 1);
-    CHECK(memcmp(sig, zeros64, sizeof(sig)) != 0);
+    CHECK(secp256k1_memcmp_var(sig, zeros64, sizeof(sig)) != 0);
 }
 
 #define N_SIGS 3
