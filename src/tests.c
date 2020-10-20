@@ -5444,18 +5444,18 @@ void run_ecdsa_openssl(void) {
 # include "modules/schnorrsig/tests_impl.h"
 #endif
 
-void run_memczero_test(void) {
+void run_secp256k1_memczero_test(void) {
     unsigned char buf1[6] = {1, 2, 3, 4, 5, 6};
     unsigned char buf2[sizeof(buf1)];
 
-    /* memczero(..., ..., 0) is a noop. */
+    /* secp256k1_memczero(..., ..., 0) is a noop. */
     memcpy(buf2, buf1, sizeof(buf1));
-    memczero(buf1, sizeof(buf1), 0);
+    secp256k1_memczero(buf1, sizeof(buf1), 0);
     CHECK(secp256k1_memcmp_var(buf1, buf2, sizeof(buf1)) == 0);
 
-    /* memczero(..., ..., 1) zeros the buffer. */
+    /* secp256k1_memczero(..., ..., 1) zeros the buffer. */
     memset(buf2, 0, sizeof(buf2));
-    memczero(buf1, sizeof(buf1) , 1);
+    secp256k1_memczero(buf1, sizeof(buf1) , 1);
     CHECK(secp256k1_memcmp_var(buf1, buf2, sizeof(buf1)) == 0);
 }
 
@@ -5723,7 +5723,7 @@ int main(int argc, char **argv) {
 #endif
 
     /* util tests */
-    run_memczero_test();
+    run_secp256k1_memczero_test();
 
     run_cmov_tests();
 
