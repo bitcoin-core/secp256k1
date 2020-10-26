@@ -86,6 +86,8 @@ const secp256k1_context *secp256k1_context_no_precomp = &secp256k1_context_no_pr
 
 size_t secp256k1_context_preallocated_size(unsigned int flags) {
     size_t ret = ROUND_TO_ALIGN(sizeof(secp256k1_context));
+    /* A return value of 0 is reserved as an indicator for errors when we call this function internally. */
+    VERIFY_CHECK(ret != 0);
 
     if (EXPECT((flags & SECP256K1_FLAGS_TYPE_MASK) != SECP256K1_FLAGS_TYPE_CONTEXT, 0)) {
             secp256k1_callback_call(&default_illegal_callback,
@@ -122,21 +124,21 @@ secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigne
     if (!secp256k1_selftest()) {
         secp256k1_callback_call(&default_error_callback, "self test failed");
     }
-    VERIFY_CHECK(prealloc != NULL);
+
     prealloc_size = secp256k1_context_preallocated_size(flags);
+    if (prealloc_size == 0) {
+        return NULL;
+    }
+    VERIFY_CHECK(prealloc != NULL);
     ret = (secp256k1_context*)manual_alloc(&prealloc, sizeof(secp256k1_context), base, prealloc_size);
     ret->illegal_callback = default_illegal_callback;
     ret->error_callback = default_error_callback;
 
-    if (EXPECT((flags & SECP256K1_FLAGS_TYPE_MASK) != SECP256K1_FLAGS_TYPE_CONTEXT, 0)) {
-            secp256k1_callback_call(&ret->illegal_callback,
-                                    "Invalid flags");
-            return NULL;
-    }
-
     secp256k1_ecmult_context_init(&ret->ecmult_ctx);
     secp256k1_ecmult_gen_context_init(&ret->ecmult_gen_ctx);
 
+    /* Flags have been checked by secp256k1_context_preallocated_size. */
+    VERIFY_CHECK((flags & SECP256K1_FLAGS_TYPE_MASK) == SECP256K1_FLAGS_TYPE_CONTEXT);
     if (flags & SECP256K1_FLAGS_BIT_CONTEXT_SIGN) {
         secp256k1_ecmult_gen_context_build(&ret->ecmult_gen_ctx, &prealloc);
     }
