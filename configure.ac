@@ -395,8 +395,8 @@ esac
 
 if test x"$use_tests" = x"yes"; then
   SECP_OPENSSL_CHECK
-  if test x"$has_openssl_ec" = x"yes"; then
-    if test x"$enable_openssl_tests" != x"no"; then
+  if test x"$enable_openssl_tests" != x"no" && test x"$has_openssl_ec" = x"yes"; then
+      enable_openssl_tests=yes
       AC_DEFINE(ENABLE_OPENSSL_TESTS, 1, [Define this symbol if OpenSSL EC functions are available])
       SECP_TEST_INCLUDES="$SSL_CFLAGS $CRYPTO_CFLAGS $CRYPTO_CPPFLAGS"
       SECP_TEST_LIBS="$CRYPTO_LIBS"
@@ -406,16 +406,17 @@ if test x"$use_tests" = x"yes"; then
         SECP_TEST_LIBS="$SECP_TEST_LIBS -lgdi32"
         ;;
       esac
-    fi
   else
     if test x"$enable_openssl_tests" = x"yes"; then
       AC_MSG_ERROR([OpenSSL tests requested but OpenSSL with EC support is not available])
     fi
+    enable_openssl_tests=no
   fi
 else
   if test x"$enable_openssl_tests" = x"yes"; then
     AC_MSG_ERROR([OpenSSL tests requested but tests are not enabled])
   fi
+  enable_openssl_tests=no
 fi
 
 if test x"$set_bignum" = x"gmp"; then
@@ -503,6 +504,8 @@ echo "Build Options:"
 echo "  with ecmult precomp     = $set_precomp"
 echo "  with external callbacks = $use_external_default_callbacks"
 echo "  with benchmarks         = $use_benchmark"
+echo "  with tests              = $use_tests"
+echo "  with openssl tests      = $enable_openssl_tests"
 echo "  with coverage           = $enable_coverage"
 echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
