@@ -21,13 +21,23 @@ fi
     --with-valgrind="$WITH_VALGRIND" \
     --host="$HOST" $EXTRAFLAGS
 
+make -j2
+
 if [ -n "$BUILD" ]
 then
-    make -j2 "$BUILD"
+    make "$BUILD"
 fi
+
+if [ -n "$QEMU" ]
+then
+    qemu_run() { docker run --rm -t -v "${PWD}:/mnt/secp256k1" -w /mnt/secp256k1 $QEMU/ubuntu "$@"; }
+    qemu_run ls /mnt/secp256k1
+    qemu_run ./tests
+    qemu_run ./exhaustive_tests
+fi
+
 if [ "$RUN_VALGRIND" = "yes" ]
 then
-    make -j2
     # the `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (http://valgrind.org/docs/manual/manual-core.html)
     valgrind --error-exitcode=42 ./tests 16
     valgrind --error-exitcode=42 ./exhaustive_tests
