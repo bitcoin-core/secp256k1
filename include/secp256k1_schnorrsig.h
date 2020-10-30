@@ -50,11 +50,11 @@ typedef int (*secp256k1_nonce_function_hardened)(
  *
  *  If a data pointer is passed, it is assumed to be a pointer to 32 bytes of
  *  auxiliary random data as defined in BIP-340. If the data pointer is NULL,
- *  schnorrsig_sign does not produce BIP-340 compliant signatures. The algo16
- *  argument must be non-NULL, otherwise the function will fail and return 0.
- *  The hash will be tagged with algo16 after removing all terminating null
- *  bytes. Therefore, to create BIP-340 compliant signatures, algo16 must be set
- *  to "BIP0340/nonce\0\0\0"
+ *  the nonce derivation procedure follows BIP-340 by setting the auxiliary
+ *  random data to zero. The algo16 argument must be non-NULL, otherwise the
+ *  function will fail and return 0. The hash will be tagged with algo16 after
+ *  removing all terminating null bytes. Therefore, to create BIP-340 compliant
+ *  signatures, algo16 must be set to "BIP0340/nonce\0\0\0"
  */
 SECP256K1_API extern const secp256k1_nonce_function_hardened secp256k1_nonce_function_bip340;
 
