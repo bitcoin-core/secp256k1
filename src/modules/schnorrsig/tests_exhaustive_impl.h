@@ -163,7 +163,7 @@ static void test_exhaustive_schnorrsig_sign(const secp256k1_context *ctx, unsign
                     unsigned char expected_s_bytes[32];
                     secp256k1_scalar_get_b32(expected_s_bytes, &expected_s);
                     /* Invoke the real function to construct a signature. */
-                    CHECK(secp256k1_schnorrsig_sign(ctx, sig64, msg32, &keypairs[d - 1], secp256k1_hardened_nonce_function_smallint, &k));
+                    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig64, msg32, &keypairs[d - 1], secp256k1_hardened_nonce_function_smallint, &k));
                     /* The first 32 bytes must match the xonly pubkey for the specified k. */
                     CHECK(secp256k1_memcmp_var(sig64, xonly_pubkey_bytes[k - 1], 32) == 0);
                     /* The last 32 bytes must match the expected s value. */

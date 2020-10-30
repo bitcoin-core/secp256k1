@@ -143,23 +143,23 @@ void test_schnorrsig_api(void) {
 
     /** main test body **/
     ecount = 0;
-    CHECK(secp256k1_schnorrsig_sign(none, sig, msg, &keypairs[0], NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(none, sig, msg, &keypairs[0], NULL) == 0);
     CHECK(ecount == 1);
-    CHECK(secp256k1_schnorrsig_sign(vrfy, sig, msg, &keypairs[0], NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(vrfy, sig, msg, &keypairs[0], NULL) == 0);
     CHECK(ecount == 2);
-    CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, &keypairs[0], NULL, NULL) == 1);
+    CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, &keypairs[0], NULL) == 1);
     CHECK(ecount == 2);
-    CHECK(secp256k1_schnorrsig_sign(sign, NULL, msg, &keypairs[0], NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(sign, NULL, msg, &keypairs[0], NULL) == 0);
     CHECK(ecount == 3);
-    CHECK(secp256k1_schnorrsig_sign(sign, sig, NULL, &keypairs[0], NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(sign, sig, NULL, &keypairs[0], NULL) == 0);
     CHECK(ecount == 4);
-    CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, NULL, NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, NULL, NULL) == 0);
     CHECK(ecount == 5);
-    CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, &invalid_keypair, NULL, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, &invalid_keypair, NULL) == 0);
     CHECK(ecount == 6);
 
     ecount = 0;
-    CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, &keypairs[0], NULL, NULL) == 1);
+    CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, &keypairs[0], NULL) == 1);
     CHECK(secp256k1_schnorrsig_verify(none, sig, msg, &pk[0]) == 0);
     CHECK(ecount == 1);
     CHECK(secp256k1_schnorrsig_verify(sign, sig, msg, &pk[0]) == 0);
@@ -201,7 +201,7 @@ void test_schnorrsig_bip_vectors_check_signing(const unsigned char *sk, const un
     secp256k1_xonly_pubkey pk, pk_expected;
 
     CHECK(secp256k1_keypair_create(ctx, &keypair, sk));
-    CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, NULL, aux_rand));
+    CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, aux_rand));
     CHECK(secp256k1_memcmp_var(sig, expected_sig, 64) == 0);
 
     CHECK(secp256k1_xonly_pubkey_parse(ctx, &pk_expected, pk_serialized));
@@ -685,16 +685,16 @@ void test_schnorrsig_sign(void) {
 
     secp256k1_testrand256(sk);
     CHECK(secp256k1_keypair_create(ctx, &keypair, sk));
-    CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, NULL, NULL) == 1);
+    CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, NULL) == 1);
 
     /* Test different nonce functions */
     memset(sig, 1, sizeof(sig));
-    CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, nonce_function_failing, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig, msg, &keypair, nonce_function_failing, NULL) == 0);
     CHECK(secp256k1_memcmp_var(sig, zeros64, sizeof(sig)) == 0);
     memset(&sig, 1, sizeof(sig));
-    CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, nonce_function_0, NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig, msg, &keypair, nonce_function_0, NULL) == 0);
     CHECK(secp256k1_memcmp_var(sig, zeros64, sizeof(sig)) == 0);
-    CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, nonce_function_overflowing, NULL) == 1);
+    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig, msg, &keypair, nonce_function_overflowing, NULL) == 1);
     CHECK(secp256k1_memcmp_var(sig, zeros64, sizeof(sig)) != 0);
 }
 
@@ -717,7 +717,7 @@ void test_schnorrsig_sign_verify(void) {
 
     for (i = 0; i < N_SIGS; i++) {
         secp256k1_testrand256(msg[i]);
-        CHECK(secp256k1_schnorrsig_sign(ctx, sig[i], msg[i], &keypair, NULL, NULL));
+        CHECK(secp256k1_schnorrsig_sign(ctx, sig[i], msg[i], &keypair, NULL));
         CHECK(secp256k1_schnorrsig_verify(ctx, sig[i], msg[i], &pk));
     }
 
@@ -746,13 +746,13 @@ void test_schnorrsig_sign_verify(void) {
     }
 
     /* Test overflowing s */
-    CHECK(secp256k1_schnorrsig_sign(ctx, sig[0], msg[0], &keypair, NULL, NULL));
+    CHECK(secp256k1_schnorrsig_sign(ctx, sig[0], msg[0], &keypair, NULL));
     CHECK(secp256k1_schnorrsig_verify(ctx, sig[0], msg[0], &pk));
     memset(&sig[0][32], 0xFF, 32);
     CHECK(!secp256k1_schnorrsig_verify(ctx, sig[0], msg[0], &pk));
 
     /* Test negative s */
-    CHECK(secp256k1_schnorrsig_sign(ctx, sig[0], msg[0], &keypair, NULL, NULL));
+    CHECK(secp256k1_schnorrsig_sign(ctx, sig[0], msg[0], &keypair, NULL));
     CHECK(secp256k1_schnorrsig_verify(ctx, sig[0], msg[0], &pk));
     secp256k1_scalar_set_b32(&s, &sig[0][32], NULL);
     secp256k1_scalar_negate(&s, &s);
@@ -785,7 +785,7 @@ void test_schnorrsig_taproot(void) {
 
     /* Key spend */
     secp256k1_testrand256(msg);
-    CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, NULL, NULL) == 1);
+    CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, NULL) == 1);
     /* Verify key spend */
     CHECK(secp256k1_xonly_pubkey_parse(ctx, &output_pk, output_pk_bytes) == 1);
     CHECK(secp256k1_schnorrsig_verify(ctx, sig, msg, &output_pk) == 1);
