@@ -690,24 +690,34 @@ static int nonce_function_overflowing(unsigned char *nonce32, const unsigned cha
 
 void test_schnorrsig_sign(void) {
     unsigned char sk[32];
+    secp256k1_xonly_pubkey pk;
     secp256k1_keypair keypair;
     const unsigned char msg[32] = "this is a msg for a schnorrsig..";
     unsigned char sig[64];
     unsigned char zeros64[64] = { 0 };
+    secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
 
     secp256k1_testrand256(sk);
     CHECK(secp256k1_keypair_create(ctx, &keypair, sk));
+    CHECK(secp256k1_keypair_xonly_pub(ctx, &pk, NULL, &keypair));
     CHECK(secp256k1_schnorrsig_sign(ctx, sig, msg, &keypair, NULL) == 1);
+    CHECK(secp256k1_schnorrsig_verify(ctx, sig, msg, sizeof(msg), &pk));
 
     /* Test different nonce functions */
+    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig, msg, sizeof(msg), &keypair, &extraparams) == 1);
+    CHECK(secp256k1_schnorrsig_verify(ctx, sig, msg, sizeof(msg), &pk));
     memset(sig, 1, sizeof(sig));
-    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig, msg, sizeof(msg), &keypair, nonce_function_failing, NULL) == 0);
+    extraparams.noncefp = nonce_function_failing;
+    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig, msg, sizeof(msg), &keypair, &extraparams) == 0);
     CHECK(secp256k1_memcmp_var(sig, zeros64, sizeof(sig)) == 0);
     memset(&sig, 1, sizeof(sig));
-    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig, msg, sizeof(msg), &keypair, nonce_function_0, NULL) == 0);
+    extraparams.noncefp = nonce_function_0;
+    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig, msg, sizeof(msg), &keypair, &extraparams) == 0);
     CHECK(secp256k1_memcmp_var(sig, zeros64, sizeof(sig)) == 0);
-    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig, msg, sizeof(msg), &keypair, nonce_function_overflowing, NULL) == 1);
-    CHECK(secp256k1_memcmp_var(sig, zeros64, sizeof(sig)) != 0);
+    memset(&sig, 1, sizeof(sig));
+    extraparams.noncefp = nonce_function_overflowing;
+    CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig, msg, sizeof(msg), &keypair, &extraparams) == 1);
+    CHECK(secp256k1_schnorrsig_verify(ctx, sig, msg, sizeof(msg), &pk));
 }
 
 #define N_SIGS 3

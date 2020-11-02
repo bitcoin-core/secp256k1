@@ -120,11 +120,7 @@ static void secp256k1_schnorrsig_challenge(secp256k1_scalar* e, const unsigned c
     secp256k1_scalar_set_b32(e, buf, NULL);
 }
 
-int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg32, const secp256k1_keypair *keypair, unsigned char *aux_rand32) {
-    return secp256k1_schnorrsig_sign_custom(ctx, sig64, msg32, 32, keypair, NULL, aux_rand32);
-}
-
-int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_keypair *keypair, secp256k1_nonce_function_hardened noncefp, void *ndata) {
+int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_keypair *keypair, secp256k1_nonce_function_hardened noncefp, void *ndata) {
     secp256k1_scalar sk;
     secp256k1_scalar e;
     secp256k1_scalar k;
@@ -185,6 +181,25 @@ int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char
     memset(seckey, 0, sizeof(seckey));
 
     return ret;
+}
+
+int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg32, const secp256k1_keypair *keypair, unsigned char *aux_rand32) {
+    return secp256k1_schnorrsig_sign_internal(ctx, sig64, msg32, 32, keypair, secp256k1_nonce_function_bip340, aux_rand32);
+}
+
+int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_keypair *keypair, secp256k1_schnorrsig_extraparams *extraparams) {
+    secp256k1_nonce_function_hardened noncefp = NULL;
+    void *ndata = NULL;
+    VERIFY_CHECK(ctx != NULL);
+
+    if (extraparams != NULL) {
+        ARG_CHECK(secp256k1_memcmp_var(extraparams->magic,
+                                       SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC,
+                                       sizeof(extraparams->magic)) == 0);
+        noncefp = extraparams->noncefp;
+        ndata = extraparams->ndata;
+    }
+    return secp256k1_schnorrsig_sign_internal(ctx, sig64, msg, msglen, keypair, noncefp, ndata);
 }
 
 int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_xonly_pubkey *pubkey) {

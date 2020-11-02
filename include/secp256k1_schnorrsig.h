@@ -63,6 +63,35 @@ typedef int (*secp256k1_nonce_function_hardened)(
  */
 SECP256K1_API extern const secp256k1_nonce_function_hardened secp256k1_nonce_function_bip340;
 
+/** Data structure that contains additional arguments for schnorrsig_sign_custom.
+ *
+ *  A schnorrsig_extraparams structure object can be initialized correctly by
+ *  setting it to SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT.
+ *
+ *  Members:
+ *      magic: set to SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC at initialization
+ *             and has no other function than making sure the object is
+ *             initialized.
+ *    noncefp: pointer to a nonce generation function. If NULL,
+ *             secp256k1_nonce_function_bip340 is used
+ *      ndata: pointer to arbitrary data used by the nonce generation function
+ *             (can be NULL). If it is non-NULL and
+ *             secp256k1_nonce_function_bip340 is used, then ndata must be a
+ *             pointer to 32-byte auxiliary randomness as per BIP-340.
+ */
+typedef struct {
+    unsigned char magic[4];
+    secp256k1_nonce_function_hardened noncefp;
+    void* ndata;
+} secp256k1_schnorrsig_extraparams;
+
+#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC "\xda\x6f\xb3\x8c"
+#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT {\
+    SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC,\
+    NULL,\
+    NULL\
+}
+
 /** Create a Schnorr signature.
  *
  *  Does _not_ strictly follow BIP-340 because it does not verify the resulting
@@ -97,17 +126,15 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
 /** Create a Schnorr signature with a more flexible API.
  *
  *  Same arguments as secp256k1_schnorrsig_sign except that it allows signing
- *  variable length messages and allows providing a different nonce derivation
- *  function with its own data argument.
+ *  variable length messages and accepts a pointer to an extraparams object that
+ *  allows customizing signing by passing additional arguments.
+ *
+ *  Creates the same signatures as schnorrsig_sign if msglen is 32 and the
+ *  extraparams.ndata is the same as aux_rand32.
  *
  *  In:     msg: the message being signed. Can only be NULL if msglen is 0.
  *       msglen: length of the message
- *      noncefp: pointer to a nonce generation function. If NULL,
- *               secp256k1_nonce_function_bip340 is used.
- *        ndata: pointer to arbitrary data used by the nonce generation function
- *               (can be NULL). If it is non-NULL and
- *               secp256k1_nonce_function_bip340 is used, then ndata must be a
- *               pointer to 32-byte auxiliary randomness as per BIP-340.
+ *  extraparams: pointer to a extraparams object (can be NULL)
  */
 SECP256K1_API int secp256k1_schnorrsig_sign_custom(
     const secp256k1_context* ctx,
@@ -115,8 +142,7 @@ SECP256K1_API int secp256k1_schnorrsig_sign_custom(
     const unsigned char *msg,
     size_t msglen,
     const secp256k1_keypair *keypair,
-    secp256k1_nonce_function_hardened noncefp,
-    void *ndata
+    secp256k1_schnorrsig_extraparams *extraparams
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(5);
 
 /** Verify a Schnorr signature.
