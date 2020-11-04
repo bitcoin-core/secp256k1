@@ -582,7 +582,7 @@ int secp256k1_ec_pubkey_create(const secp256k1_context* ctx, secp256k1_pubkey *p
 
     ret = secp256k1_ec_pubkey_create_helper(&ctx->ecmult_gen_ctx, &seckey_scalar, &p, seckey);
     secp256k1_pubkey_save(pubkey, &p);
-    memczero(pubkey, sizeof(*pubkey), !ret);
+    secp256k1_memczero(pubkey, sizeof(*pubkey), !ret);
 
     secp256k1_scalar_clear(&seckey_scalar);
     return ret;
