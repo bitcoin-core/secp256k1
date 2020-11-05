@@ -186,6 +186,16 @@ int secp256k1_keypair_create(const secp256k1_context* ctx, secp256k1_keypair *ke
     return ret;
 }
 
+int secp256k1_keypair_sec(const secp256k1_context* ctx, unsigned char *seckey, const secp256k1_keypair *keypair) {
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(seckey != NULL);
+    memset(seckey, 0, 32);
+    ARG_CHECK(keypair != NULL);
+
+    memcpy(seckey, &keypair->data[0], 32);
+    return 1;
+}
+
 int secp256k1_keypair_pub(const secp256k1_context* ctx, secp256k1_pubkey *pubkey, const secp256k1_keypair *keypair) {
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(pubkey != NULL);
