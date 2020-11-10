@@ -962,33 +962,55 @@ static const secp256k1_scalar SECP256K1_SCALAR_NEG_TWO_POW_256 = SECP256K1_SCALA
     0x755DB9CDUL, 0x5E914077UL, 0x7FA4BD19UL, 0xA06C8282UL
 );
 
+static void secp256k1_scalar_normalize_62(int64_t *r, int64_t cond_negate) {
+    const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
+    const int64_t P[5] = { 0x3FD25E8CD0364141LL, 0x2ABB739ABD2280EELL, -0x15LL, 0, 256 };
+    int64_t r0 = r[0], r1 = r[1], r2 = r[2], r3 = r[3], r4 = r[4];
+    int64_t c, cond_add;
+
+    cond_add = r4 >> 63;
+
+    c  = r0 + (P[0] & cond_add);
+    r0 = c & M62; c >>= 62;
+    c += r1 + (P[1] & cond_add);
+    r1 = c & M62; c >>= 62;
+    c += r2 + (P[2] & cond_add);
+    r2 = c & M62; c >>= 62;
+    c += r3;
+    r3 = c & M62; c >>= 62;
+    c += r4 + (P[4] & cond_add);
+    r4 = c;
+
+    cond_add = (c >> 63) ^ cond_negate;
+
+    c  = (r0 ^ cond_negate) - cond_negate + (P[0] & cond_add);
+    r[0] = c & M62; c >>= 62;
+    c += (r1 ^ cond_negate) - cond_negate + (P[1] & cond_add);
+    r[1] = c & M62; c >>= 62;
+    c += (r2 ^ cond_negate) - cond_negate + (P[2] & cond_add);
+    r[2] = c & M62; c >>= 62;
+    c += (r3 ^ cond_negate) - cond_negate;
+    r[3] = c & M62; c >>= 62;
+    c += (r4 ^ cond_negate) - cond_negate + (P[4] & cond_add);
+    r[4] = c;
+
+    VERIFY_CHECK(c >> 8 == 0);
+}
+
 static void secp256k1_scalar_decode_62(secp256k1_scalar *r, const int64_t *a) {
 
     const uint64_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4];
-    uint64_t r0, r1, r2, r3;
-    secp256k1_scalar u;
 
-    /* a must be in the range [-2^256, 2^256). */
     VERIFY_CHECK(a0 >> 62 == 0);
     VERIFY_CHECK(a1 >> 62 == 0);
     VERIFY_CHECK(a2 >> 62 == 0);
     VERIFY_CHECK(a3 >> 62 == 0);
-    VERIFY_CHECK((int64_t)a4 >> 8 == 0 || (int64_t)a4 >> 8 == -(int64_t)1);
+    VERIFY_CHECK(a4 >>  8 == 0);
 
-    r0 = a0      | a1 << 62;
-    r1 = a1 >> 2 | a2 << 60;
-    r2 = a2 >> 4 | a3 << 58;
-    r3 = a3 >> 6 | a4 << 56;
-
-    r->d[0] = r0;
-    r->d[1] = r1;
-    r->d[2] = r2;
-    r->d[3] = r3;
-
-    secp256k1_scalar_reduce(r, secp256k1_scalar_check_overflow(r));
-
-    secp256k1_scalar_add(&u, r, &SECP256K1_SCALAR_NEG_TWO_POW_256);
-    secp256k1_scalar_cmov(r, &u, a4 >> 63);
+    r->d[0] = a0      | a1 << 62;
+    r->d[1] = a1 >> 2 | a2 << 60;
+    r->d[2] = a2 >> 4 | a3 << 58;
+    r->d[3] = a3 >> 6 | a4 << 56;
 }
 
 static void secp256k1_scalar_encode_62(int64_t *r, const secp256k1_scalar *a) {
@@ -1129,23 +1151,39 @@ static uint64_t secp256k1_scalar_divsteps_62_var(uint64_t eta, uint64_t f0, uint
 
 static void secp256k1_scalar_update_de_62(int64_t *d, int64_t *e, const int64_t *t) {
 
-    /* I62 == -P^-1 mod 2^62 */
-    const int64_t I62 = 0x0B0DFF665588B13FLL;
+    /* I62 == P^-1 mod 2^62 */
+    const int64_t I62 = 0x34F20099AA774EC1LL;
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
     const int64_t P[5] = { 0x3FD25E8CD0364141LL, 0x2ABB739ABD2280EELL, -0x15LL, 0, 256 };
     const int64_t d0 = d[0], d1 = d[1], d2 = d[2], d3 = d[3], d4 = d[4];
     const int64_t e0 = e[0], e1 = e[1], e2 = e[2], e3 = e[3], e4 = e[4];
     const int64_t u = t[0], v = t[1], q = t[2], r = t[3];
-    int64_t md, me;
+    int64_t md, me, sd, se;
     int128_t cd, ce;
+
+    /*
+     * On input, d/e must be in the range (-2.P, P). For initially negative d (resp. e), we add
+     * u and/or v (resp. q and/or r) multiples of the modulus to the corresponding output (prior
+     * to division by 2^62). This has the same effect as if we added the modulus to the input(s).
+     */
+
+    sd = d4 >> 63;
+    se = e4 >> 63;
+
+    md = (u & sd) + (v & se);
+    me = (q & sd) + (r & se);
 
     cd = (int128_t)u * d0 + (int128_t)v * e0;
     ce = (int128_t)q * d0 + (int128_t)r * e0;
 
-    /* Calculate the multiples of P to add, to zero the 62 bottom bits. We choose md, me
-     * from the centred range [-2^61, 2^61) to keep d, e within [-2^256, 2^256). */
-    md = (I62 * 4 * (int64_t)cd) >> 2;
-    me = (I62 * 4 * (int64_t)ce) >> 2;
+    /*
+     * Subtract from md/me an extra term in the range [0, 2^62) such that the low 62 bits of each
+     * sum of products will be 0. This allows clean division by 2^62. On output, d/e are thus in
+     * the range (-2.P, P), consistent with the input constraint.
+     */
+
+    md -= (I62 * (int64_t)cd + md) & M62;
+    me -= (I62 * (int64_t)ce + me) & M62;
 
     cd += (int128_t)P[0] * md;
     ce += (int128_t)P[0] * me;
@@ -1289,15 +1327,13 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
     int64_t f[5] = { 0x3FD25E8CD0364141LL, 0x2ABB739ABD2280EELL, 0x3FFFFFFFFFFFFFEBLL,
         0x3FFFFFFFFFFFFFFFLL, 0xFFLL };
     int64_t g[5];
-    secp256k1_scalar b0;
-    int i, sign;
+    int i;
     uint64_t eta;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
 
-    b0 = *x;
-    secp256k1_scalar_encode_62(g, &b0);
+    secp256k1_scalar_encode_62(g, x);
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak).
      *
@@ -1318,16 +1354,12 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 
     VERIFY_CHECK((g[0] | g[1] | g[2] | g[3] | g[4]) == 0);
 
-    sign = (f[0] >> 1) & 1;
-
-    secp256k1_scalar_decode_62(&b0, d);
-    secp256k1_scalar_cond_negate(&b0, sign);
+    secp256k1_scalar_normalize_62(d, f[4] >> 63);
+    secp256k1_scalar_decode_62(r, d);
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_scalar_is_zero(&b0) == !zero_in);
+    VERIFY_CHECK(!secp256k1_scalar_is_zero(r) == !zero_in);
 #endif
-
-    *r = b0;
 }
 
 SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
@@ -1346,16 +1378,14 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     int64_t f[5] = { 0x3FD25E8CD0364141LL, 0x2ABB739ABD2280EELL, 0x3FFFFFFFFFFFFFEBLL,
         0x3FFFFFFFFFFFFFFFLL, 0xFFLL };
     int64_t g[5];
-    secp256k1_scalar b;
-    int i, j, len = 5, sign;
+    int i, j, len = 5;
     uint64_t eta;
     int64_t cond, fn, gn;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
 
-    b = *x;
-    secp256k1_scalar_encode_62(g, &b);
+    secp256k1_scalar_encode_62(g, x);
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak).
      *
@@ -1398,19 +1428,12 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     /* At this point g is 0 and (if g was not originally 0) f must now equal +/- GCD of
      * the initial f, g values i.e. +/- 1, and d now contains +/- the modular inverse. */
 
-    sign = (f[0] >> 1) & 1;
-
-    secp256k1_scalar_decode_62(&b, d);
-
-    if (sign) {
-        secp256k1_scalar_negate(&b, &b);
-    }
+    secp256k1_scalar_normalize_62(d, f[len - 1] >> 63);
+    secp256k1_scalar_decode_62(r, d);
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_scalar_is_zero(&b) == !zero_in);
+    VERIFY_CHECK(!secp256k1_scalar_is_zero(r) == !zero_in);
 #endif
-
-    *r = b;
 }
 
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */
