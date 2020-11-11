@@ -894,7 +894,7 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
     secp256k1_fe_decode_62(r, d);
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(r) == !zero_in);
+    VERIFY_CHECK(!secp256k1_fe_is_zero(r) == !zero_in);
 #endif
 }
 
@@ -970,7 +970,7 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
     secp256k1_fe_decode_62(r, d);
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(r) == !zero_in);
+    VERIFY_CHECK(!secp256k1_fe_is_zero(r) == !zero_in);
 #endif
 }
 

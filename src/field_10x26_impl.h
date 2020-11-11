@@ -1164,16 +1164,65 @@ static SECP256K1_INLINE void secp256k1_fe_from_storage(secp256k1_fe *r, const se
 #endif
 }
 
+static void secp256k1_fe_normalize_30(int32_t *r, int32_t cond_negate) {
+    /* P == 2^256 - 2^32 - C30 */
+    const int32_t C30 = 0x3D1L;
+    const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
+    int32_t r0 = r[0], r1 = r[1], r2 = r[2], r3 = r[3], r4 = r[4],
+            r5 = r[5], r6 = r[6], r7 = r[7], r8 = r[8];
+    int32_t c, cond_add;
+
+    cond_add = r8 >> 31;
+
+    c  = r0 - (C30 & cond_add);
+    r0 = c & M30; c >>= 30;
+    c += r1 - (4 & cond_add);;
+    r1 = c & M30; c >>= 30;
+    c += r2;
+    r2 = c & M30; c >>= 30;
+    c += r3;
+    r3 = c & M30; c >>= 30;
+    c += r4;
+    r4 = c & M30; c >>= 30;
+    c += r5;
+    r5 = c & M30; c >>= 30;
+    c += r6;
+    r6 = c & M30; c >>= 30;
+    c += r7;
+    r7 = c & M30; c >>= 30;
+    c += r8 + (65536 & cond_add);
+    r8 = c;
+
+    cond_add = (c >> 31) ^ cond_negate;
+
+    c  = (r0 ^ cond_negate) - cond_negate - (C30 & cond_add);
+    r[0] = c & M30; c >>= 30;
+    c += (r1 ^ cond_negate) - cond_negate - (4 & cond_add);
+    r[1] = c & M30; c >>= 30;
+    c += (r2 ^ cond_negate) - cond_negate;
+    r[2] = c & M30; c >>= 30;
+    c += (r3 ^ cond_negate) - cond_negate;
+    r[3] = c & M30; c >>= 30;
+    c += (r4 ^ cond_negate) - cond_negate;
+    r[4] = c & M30; c >>= 30;
+    c += (r5 ^ cond_negate) - cond_negate;
+    r[5] = c & M30; c >>= 30;
+    c += (r6 ^ cond_negate) - cond_negate;
+    r[6] = c & M30; c >>= 30;
+    c += (r7 ^ cond_negate) - cond_negate;
+    r[7] = c & M30; c >>= 30;
+    c += (r8 ^ cond_negate) - cond_negate + (65536 & cond_add);
+    r[8] = c;
+
+    VERIFY_CHECK(c >> 16 == 0);
+}
+
 static void secp256k1_fe_decode_30(secp256k1_fe *r, const int32_t *a) {
 
     const uint32_t M26 = UINT32_MAX >> 6;
     const uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4],
                    a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
-    uint32_t r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, t;
 
-    t = (int32_t)a8 >> 16;
-
-    /* a must be in the range [-2^256, 2^256). */
     VERIFY_CHECK(a0 >> 30 == 0);
     VERIFY_CHECK(a1 >> 30 == 0);
     VERIFY_CHECK(a2 >> 30 == 0);
@@ -1182,45 +1231,22 @@ static void secp256k1_fe_decode_30(secp256k1_fe *r, const int32_t *a) {
     VERIFY_CHECK(a5 >> 30 == 0);
     VERIFY_CHECK(a6 >> 30 == 0);
     VERIFY_CHECK(a7 >> 30 == 0);
-    VERIFY_CHECK(t == 0 || t == -(uint32_t)1);
+    VERIFY_CHECK(a8 >> 16 == 0);
 
-    /* Add 2P if a8 is "negative". */
-    r0  = 0x3FFF85EUL & t;
-    r1  = 0x3FFFF7FUL & t;
-    r2  = 0x3FFFFFFUL & t;
-    r3  = 0x3FFFFFFUL & t;
-    r4  = 0x3FFFFFFUL & t;
-    r5  = 0x3FFFFFFUL & t;
-    r6  = 0x3FFFFFFUL & t;
-    r7  = 0x3FFFFFFUL & t;
-    r8  = 0x3FFFFFFUL & t;
-    r9  = 0x07FFFFFUL & t;
-
-    r0 +=  a0                   & M26;
-    r1 += (a0 >> 26 | a1 <<  4) & M26;
-    r2 += (a1 >> 22 | a2 <<  8) & M26;
-    r3 += (a2 >> 18 | a3 << 12) & M26;
-    r4 += (a3 >> 14 | a4 << 16) & M26;
-    r5 += (a4 >> 10 | a5 << 20) & M26;
-    r6 += (a5 >>  6 | a6 << 24) & M26;
-    r7 += (a6 >>  2           ) & M26;
-    r8 += (a6 >> 28 | a7 <<  2) & M26;
-    r9 += (a7 >> 24 | a8 <<  6);
-
-    r->n[0] = r0;
-    r->n[1] = r1;
-    r->n[2] = r2;
-    r->n[3] = r3;
-    r->n[4] = r4;
-    r->n[5] = r5;
-    r->n[6] = r6;
-    r->n[7] = r7;
-    r->n[8] = r8;
-    r->n[9] = r9;
+    r->n[0] =  a0                   & M26;
+    r->n[1] = (a0 >> 26 | a1 <<  4) & M26;
+    r->n[2] = (a1 >> 22 | a2 <<  8) & M26;
+    r->n[3] = (a2 >> 18 | a3 << 12) & M26;
+    r->n[4] = (a3 >> 14 | a4 << 16) & M26;
+    r->n[5] = (a4 >> 10 | a5 << 20) & M26;
+    r->n[6] = (a5 >>  6 | a6 << 24) & M26;
+    r->n[7] = (a6 >>  2           ) & M26;
+    r->n[8] = (a6 >> 28 | a7 <<  2) & M26;
+    r->n[9] = (a7 >> 24 | a8 <<  6);
 
 #ifdef VERIFY
     r->magnitude = 1;
-    r->normalized = 0;
+    r->normalized = 1;
     secp256k1_fe_verify(r);
 #endif
 }
@@ -1375,14 +1401,26 @@ static uint32_t secp256k1_fe_divsteps_30_var(uint32_t eta, uint32_t f0, uint32_t
 static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, const int32_t *t) {
 
     /* P == 2^256 - 2^32 - C30 */
-    const int64_t C30 = 0x3D1L;
-    /* I30 == -P^-1 mod 2^30 */
-    const int32_t I30 = 0x12253531L;
+    const int32_t C30 = 0x3D1L;
+    /* I30 == P^-1 mod 2^30 */
+    const int32_t I30 = 0x2DDACACFL;
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
     const int32_t u = t[0], v = t[1], q = t[2], r = t[3];
-    int32_t di, ei, md, me;
+    int32_t di, ei, md, me, sd, se;
     int64_t cd, ce;
     int i;
+
+    /*
+     * On input, d/e must be in the range (-2.P, P). For initially negative d (resp. e), we add
+     * u and/or v (resp. q and/or r) multiples of the modulus to the corresponding output (prior
+     * to division by 2^30). This has the same effect as if we added the modulus to the input(s).
+     */
+
+    sd = d[8] >> 31;
+    se = e[8] >> 31;
+
+    md = (u & sd) + (v & se);
+    me = (q & sd) + (r & se);
 
     di = d[0];
     ei = e[0];
@@ -1390,10 +1428,14 @@ static void secp256k1_fe_update_de_30(int32_t *d, int32_t *e, const int32_t *t) 
     cd = (int64_t)u * di + (int64_t)v * ei;
     ce = (int64_t)q * di + (int64_t)r * ei;
 
-    /* Calculate the multiples of P to add, to zero the 30 bottom bits. We choose md, me
-     * from the centred range [-2^29, 2^29) to keep d, e within [-2^256, 2^256). */
-    md = (I30 * 4 * (int32_t)cd) >> 2;
-    me = (I30 * 4 * (int32_t)ce) >> 2;
+    /*
+     * Subtract from md/me an extra term in the range [0, 2^30) such that the low 30 bits of each
+     * sum of products will be 0. This allows clean division by 2^30. On output, d/e are thus in
+     * the range (-2.P, P), consistent with the input constraint.
+     */
+
+    md -= (I30 * (int32_t)cd + md) & M30;
+    me -= (I30 * (int32_t)ce + me) & M30;
 
     cd -= (int64_t)C30 * md;
     ce -= (int64_t)C30 * me;
@@ -1513,8 +1555,8 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
     int32_t f[9] = { 0x3FFFFC2F, 0x3FFFFFFB, 0x3FFFFFFF, 0x3FFFFFFF, 0x3FFFFFFF,
         0x3FFFFFFF, 0x3FFFFFFF, 0x3FFFFFFF, 0xFFFF };
     int32_t g[9];
-    secp256k1_fe b0, b1;
-    int i, sign;
+    secp256k1_fe b0;
+    int i;
     uint32_t eta;
 #ifdef VERIFY
     int zero_in;
@@ -1547,19 +1589,12 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
 
     VERIFY_CHECK((g[0] | g[1] | g[2] | g[3] | g[4] | g[5] | g[6] | g[7] | g[8]) == 0);
 
-    sign = (f[0] >> 1) & 1;
-
-    secp256k1_fe_decode_30(&b0, d);
-
-    secp256k1_fe_negate(&b1, &b0, 2);
-    secp256k1_fe_cmov(&b0, &b1, sign);
-    secp256k1_fe_normalize_weak(&b0);
+    secp256k1_fe_normalize_30(d, f[8] >> 31);
+    secp256k1_fe_decode_30(r, d);
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(&b0) == !zero_in);
+    VERIFY_CHECK(!secp256k1_fe_is_zero(r) == !zero_in);
 #endif
-
-    *r = b0;
 }
 
 static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
@@ -1574,7 +1609,7 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
         0x3FFFFFFF, 0x3FFFFFFF, 0x3FFFFFFF, 0xFFFF };
     int32_t g[9];
     secp256k1_fe b;
-    int i, j, len = 9, sign;
+    int i, j, len = 9;
     uint32_t eta;
     int32_t cond, fn, gn;
 #ifdef VERIFY
@@ -1630,20 +1665,12 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a) {
     /* At this point g is 0 and (if g was not originally 0) f must now equal +/- GCD of
      * the initial f, g values i.e. +/- 1, and d now contains +/- the modular inverse. */
 
-    sign = (f[0] >> 1) & 1;
-
-    secp256k1_fe_decode_30(&b, d);
-
-    if (sign) {
-        secp256k1_fe_negate(&b, &b, 1);
-        secp256k1_fe_normalize_weak(&b);
-    }
+    secp256k1_fe_normalize_30(d, f[len - 1] >> 31);
+    secp256k1_fe_decode_30(r, d);
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(&b) == !zero_in);
+    VERIFY_CHECK(!secp256k1_fe_is_zero(r) == !zero_in);
 #endif
-
-    *r = b;
 }
 
 #endif /* SECP256K1_FIELD_REPR_IMPL_H */

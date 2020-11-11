@@ -738,14 +738,65 @@ static const secp256k1_scalar SECP256K1_SCALAR_NEG_TWO_POW_256 = SECP256K1_SCALA
     0x755DB9CDUL, 0x5E914077UL, 0x7FA4BD19UL, 0xA06C8282UL
 );
 
+static void secp256k1_scalar_normalize_30(int32_t *r, int32_t cond_negate) {
+    const int32_t P[9] = { 0x10364141L, 0x3F497A33L, 0x348A03BBL, 0x2BB739ABL, -0x146L,
+        0, 0, 0, 65536 };
+    const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
+    int32_t r0 = r[0], r1 = r[1], r2 = r[2], r3 = r[3], r4 = r[4],
+            r5 = r[5], r6 = r[6], r7 = r[7], r8 = r[8];
+    int32_t c, cond_add;
+
+    cond_add = r8 >> 31;
+
+    c  = r0 + (P[0] & cond_add);
+    r0 = c & M30; c >>= 30;
+    c += r1 + (P[1] & cond_add);
+    r1 = c & M30; c >>= 30;
+    c += r2 + (P[2] & cond_add);
+    r2 = c & M30; c >>= 30;
+    c += r3 + (P[3] & cond_add);
+    r3 = c & M30; c >>= 30;
+    c += r4 + (P[4] & cond_add);
+    r4 = c & M30; c >>= 30;
+    c += r5;
+    r5 = c & M30; c >>= 30;
+    c += r6;
+    r6 = c & M30; c >>= 30;
+    c += r7;
+    r7 = c & M30; c >>= 30;
+    c += r8 + (P[8] & cond_add);
+    r8 = c;
+
+    cond_add = (c >> 31) ^ cond_negate;
+
+    c  = (r0 ^ cond_negate) - cond_negate + (P[0] & cond_add);
+    r[0] = c & M30; c >>= 30;
+    c += (r1 ^ cond_negate) - cond_negate + (P[1] & cond_add);
+    r[1] = c & M30; c >>= 30;
+    c += (r2 ^ cond_negate) - cond_negate + (P[2] & cond_add);
+    r[2] = c & M30; c >>= 30;
+    c += (r3 ^ cond_negate) - cond_negate + (P[3] & cond_add);
+    r[3] = c & M30; c >>= 30;
+    c += (r4 ^ cond_negate) - cond_negate + (P[4] & cond_add);
+    r[4] = c & M30; c >>= 30;
+    c += (r5 ^ cond_negate) - cond_negate;
+    r[5] = c & M30; c >>= 30;
+    c += (r6 ^ cond_negate) - cond_negate;
+    r[6] = c & M30; c >>= 30;
+    c += (r7 ^ cond_negate) - cond_negate;
+    r[7] = c & M30; c >>= 30;
+    c += (r8 ^ cond_negate) - cond_negate + (P[8] & cond_add);
+    r[8] = c;
+
+    VERIFY_CHECK(c >> 16 == 0);
+}
+
+
 static void secp256k1_scalar_decode_30(secp256k1_scalar *r, const int32_t *a) {
 
     const uint32_t a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4],
                    a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
-    uint32_t r0, r1, r2, r3, r4, r5, r6, r7;
-    secp256k1_scalar u;
 
-    /* a must be in the range [-2^256, 2^256). */
     VERIFY_CHECK(a0 >> 30 == 0);
     VERIFY_CHECK(a1 >> 30 == 0);
     VERIFY_CHECK(a2 >> 30 == 0);
@@ -754,30 +805,16 @@ static void secp256k1_scalar_decode_30(secp256k1_scalar *r, const int32_t *a) {
     VERIFY_CHECK(a5 >> 30 == 0);
     VERIFY_CHECK(a6 >> 30 == 0);
     VERIFY_CHECK(a7 >> 30 == 0);
-    VERIFY_CHECK((int32_t)a8 >> 16 == 0 || (int32_t)a8 >> 16 == -(int32_t)1);
+    VERIFY_CHECK(a8 >> 16 == 0);
 
-    r0 = a0       | a1 << 30;
-    r1 = a1 >>  2 | a2 << 28;
-    r2 = a2 >>  4 | a3 << 26;
-    r3 = a3 >>  6 | a4 << 24;
-    r4 = a4 >>  8 | a5 << 22;
-    r5 = a5 >> 10 | a6 << 20;
-    r6 = a6 >> 12 | a7 << 18;
-    r7 = a7 >> 14 | a8 << 16;
-
-    r->d[0] = r0;
-    r->d[1] = r1;
-    r->d[2] = r2;
-    r->d[3] = r3;
-    r->d[4] = r4;
-    r->d[5] = r5;
-    r->d[6] = r6;
-    r->d[7] = r7;
-
-    secp256k1_scalar_reduce(r, secp256k1_scalar_check_overflow(r));
-
-    secp256k1_scalar_add(&u, r, &SECP256K1_SCALAR_NEG_TWO_POW_256);
-    secp256k1_scalar_cmov(r, &u, a8 >> 31);
+    r->d[0] = a0       | a1 << 30;
+    r->d[1] = a1 >>  2 | a2 << 28;
+    r->d[2] = a2 >>  4 | a3 << 26;
+    r->d[3] = a3 >>  6 | a4 << 24;
+    r->d[4] = a4 >>  8 | a5 << 22;
+    r->d[5] = a5 >> 10 | a6 << 20;
+    r->d[6] = a6 >> 12 | a7 << 18;
+    r->d[7] = a7 >> 14 | a8 << 16;
 }
 
 static void secp256k1_scalar_encode_30(int32_t *r, const secp256k1_scalar *a) {
@@ -928,14 +965,27 @@ static uint32_t secp256k1_scalar_divsteps_30_var(uint32_t eta, uint32_t f0, uint
 
 static void secp256k1_scalar_update_de_30(int32_t *d, int32_t *e, const int32_t *t) {
 
-    /* I30 == -P^-1 mod 2^30 */
-    const int32_t I30 = 0x1588B13FL;
+    /* I30 == P^-1 mod 2^30 */
+    const int32_t I30 = 0x2A774EC1L;
     const int32_t P[9] = { 0x10364141L, 0x3F497A33L, 0x348A03BBL, 0x2BB739ABL, -0x146L,
         0, 0, 0, 65536 };
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
-    int32_t u = t[0], v = t[1], q = t[2], r = t[3], di, ei, md, me;
+    const int32_t u = t[0], v = t[1], q = t[2], r = t[3];
+    int32_t di, ei, md, me, sd, se;
     int64_t cd, ce;
     int i;
+
+    /*
+     * On input, d/e must be in the range (-2.P, P). For initially negative d (resp. e), we add
+     * u and/or v (resp. q and/or r) multiples of the modulus to the corresponding output (prior
+     * to division by 2^30). This has the same effect as if we added the modulus to the input(s).
+     */
+
+    sd = d[8] >> 31;
+    se = e[8] >> 31;
+
+    md = (u & sd) + (v & se);
+    me = (q & sd) + (r & se);
 
     di = d[0];
     ei = e[0];
@@ -943,10 +993,14 @@ static void secp256k1_scalar_update_de_30(int32_t *d, int32_t *e, const int32_t 
     cd = (int64_t)u * di + (int64_t)v * ei;
     ce = (int64_t)q * di + (int64_t)r * ei;
 
-    /* Calculate the multiples of P to add, to zero the 30 bottom bits. We choose md, me
-     * from the centred range [-2^29, 2^29) to keep d, e within [-2^256, 2^256). */
-    md = (I30 * 4 * (int32_t)cd) >> 2;
-    me = (I30 * 4 * (int32_t)ce) >> 2;
+    /*
+     * Subtract from md/me an extra term in the range [0, 2^30) such that the low 30 bits of each
+     * sum of products will be 0. This allows clean division by 2^30. On output, d/e are thus in
+     * the range (-2.P, P), consistent with the input constraint.
+     */
+
+    md -= (I30 * (int32_t)cd + md) & M30;
+    me -= (I30 * (int32_t)ce + me) & M30;
 
     cd += (int64_t)P[0] * md;
     ce += (int64_t)P[0] * me;
@@ -1065,15 +1119,13 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
     int32_t f[9] = { 0x10364141L, 0x3F497A33L, 0x348A03BBL, 0x2BB739ABL,
         0x3FFFFEBAL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0xFFFFL };
     int32_t g[9];
-    secp256k1_scalar b0;
-    int i, sign;
+    int i;
     uint32_t eta;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
 
-    b0 = *x;
-    secp256k1_scalar_encode_30(g, &b0);
+    secp256k1_scalar_encode_30(g, x);
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak).
      *
@@ -1094,16 +1146,12 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 
     VERIFY_CHECK((g[0] | g[1] | g[2] | g[3] | g[4] | g[5] | g[6] | g[7] | g[8]) == 0);
 
-    sign = (f[0] >> 1) & 1;
-
-    secp256k1_scalar_decode_30(&b0, d);
-    secp256k1_scalar_cond_negate(&b0, sign);
+    secp256k1_scalar_normalize_30(d, f[8] >> 31);
+    secp256k1_scalar_decode_30(r, d);
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_scalar_is_zero(&b0) == !zero_in);
+    VERIFY_CHECK(!secp256k1_scalar_is_zero(r) == !zero_in);
 #endif
-
-    *r = b0;
 }
 
 SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
@@ -1122,16 +1170,14 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     int32_t f[9] = { 0x10364141L, 0x3F497A33L, 0x348A03BBL, 0x2BB739ABL,
         0x3FFFFEBAL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0x3FFFFFFFL, 0xFFFFL };
     int32_t g[9];
-    secp256k1_scalar b;
-    int i, j, len = 9, sign;
+    int i, j, len = 9;
     uint32_t eta;
     int32_t cond, fn, gn;
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
 
-    b = *x;
-    secp256k1_scalar_encode_30(g, &b);
+    secp256k1_scalar_encode_30(g, x);
 
     /* The paper uses 'delta'; eta == -delta (a performance tweak).
      *
@@ -1174,19 +1220,12 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     /* At this point g is 0 and (if g was not originally 0) f must now equal +/- GCD of
      * the initial f, g values i.e. +/- 1, and d now contains +/- the modular inverse. */
 
-    sign = (f[0] >> 1) & 1;
-
-    secp256k1_scalar_decode_30(&b, d);
-
-    if (sign) {
-        secp256k1_scalar_negate(&b, &b);
-    }
+    secp256k1_scalar_normalize_30(d, f[len - 1] >> 31);
+    secp256k1_scalar_decode_30(r, d);
 
 #ifdef VERIFY
-    VERIFY_CHECK(!secp256k1_scalar_is_zero(&b) == !zero_in);
+    VERIFY_CHECK(!secp256k1_scalar_is_zero(r) == !zero_in);
 #endif
-
-    *r = b;
 }
 
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */
