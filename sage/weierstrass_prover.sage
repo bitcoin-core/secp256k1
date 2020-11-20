@@ -175,7 +175,7 @@ laws_jacobian_weierstrass = {
 def check_exhaustive_jacobian_weierstrass(name, A, B, branches, formula, p):
   """Verify an implementation of addition of Jacobian points on a Weierstrass curve, by executing and validating the result for every possible addition in a prime field"""
   F = Integers(p)
-  print "Formula %s on Z%i:" % (name, p)
+  print("Formula %s on Z%i:" % (name, p))
   points = []
   for x in xrange(0, p):
     for y in xrange(0, p):
@@ -206,13 +206,13 @@ def check_exhaustive_jacobian_weierstrass(name, A, B, branches, formula, p):
                     r, e = concrete_verify(assumeLaw)
                     if r:
                       if match:
-                        print "  multiple branches for (%s,%s,%s,%s) + (%s,%s,%s,%s)" % (pA.X, pA.Y, pA.Z, pA.Infinity, pB.X, pB.Y, pB.Z, pB.Infinity)
+                        print("  multiple branches for (%s,%s,%s,%s) + (%s,%s,%s,%s)" % (pA.X, pA.Y, pA.Z, pA.Infinity, pB.X, pB.Y, pB.Z, pB.Infinity))
                       else:
                         match = True
                       r, e = concrete_verify(require)
                       if not r:
-                        print "  failure in branch %i for (%s,%s,%s,%s) + (%s,%s,%s,%s) = (%s,%s,%s,%s): %s" % (branch, pA.X, pA.Y, pA.Z, pA.Infinity, pB.X, pB.Y, pB.Z, pB.Infinity, pC.X, pC.Y, pC.Z, pC.Infinity, e)
-  print
+                        print("  failure in branch %i for (%s,%s,%s,%s) + (%s,%s,%s,%s) = (%s,%s,%s,%s): %s" % (branch, pA.X, pA.Y, pA.Z, pA.Infinity, pB.X, pB.Y, pB.Z, pB.Infinity, pC.X, pC.Y, pC.Z, pC.Infinity, e))
+  print()
 
 
 def check_symbolic_function(R, assumeAssert, assumeBranch, f, A, B, pa, pb, pA, pB, pC):
@@ -242,7 +242,7 @@ def check_symbolic_jacobian_weierstrass(name, A, B, branches, formula):
   for key in laws_jacobian_weierstrass:
     res[key] = []
 
-  print ("Formula " + name + ":")
+  print("Formula " + name + ":")
   count = 0
   for branch in xrange(branches):
     assumeFormula, assumeBranch, pC = formula(branch, pA, pB)
@@ -255,10 +255,10 @@ def check_symbolic_jacobian_weierstrass(name, A, B, branches, formula):
       res[key].append((check_symbolic_function(R, assumeFormula, assumeBranch, laws_jacobian_weierstrass[key], A, B, pa, pb, pA, pB, pC), branch))
 
   for key in res:
-    print "  %s:" % key
+    print("  %s:" % key)
     val = res[key]
     for x in val:
       if x[0] is not None:
-        print "    branch %i: %s" % (x[1], x[0])
+        print("    branch %i: %s" % (x[1], x[0]))
 
-  print
+  print()
