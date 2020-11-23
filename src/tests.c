@@ -5626,6 +5626,11 @@ int main(int argc, char **argv) {
     /* find iteration count */
     if (argc > 1) {
         count = strtol(argv[1], NULL, 0);
+    } else {
+        const char* env = getenv("SECP256K1_TEST_ITERS");
+        if (env) {
+            count = strtol(env, NULL, 0);
+        }
     }
     printf("test count = %i\n", count);
 
