@@ -5632,6 +5632,10 @@ int main(int argc, char **argv) {
             count = strtol(env, NULL, 0);
         }
     }
+    if (count <= 0) {
+        fputs("An iteration count of 0 or less is not allowed.\n", stderr);
+        return EXIT_FAILURE;
+    }
     printf("test count = %i\n", count);
 
     /* find random seed */
