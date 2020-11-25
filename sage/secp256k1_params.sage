@@ -27,6 +27,10 @@ assert is_prime(N)
 
 assert BETA != F(1)
 assert BETA^3 == F(1)
+assert BETA^2 + BETA + 1 == 0
 
 assert LAMBDA != Z(1)
 assert LAMBDA^3 == Z(1)
+assert LAMBDA^2 + LAMBDA + 1 == 0
+
+assert Integer(LAMBDA)*G == C(BETA*G[0], G[1])
