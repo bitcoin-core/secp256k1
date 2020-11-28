@@ -338,22 +338,28 @@ static void secp256k1_modinv64_update_de_62(secp256k1_modinv64_signed62 *d, secp
     /* Compute limb 1 of t*[d,e]+modulus*[md,me], and store it as output limb 0 (= down shift). */
     cd += (int128_t)u * d1 + (int128_t)v * e1;
     ce += (int128_t)q * d1 + (int128_t)r * e1;
-    cd += (int128_t)modinfo->modulus.v[1] * md;
-    ce += (int128_t)modinfo->modulus.v[1] * me;
+    if (modinfo->modulus.v[1]) { /* Optimize for the case where limb of modulus is zero. */
+        cd += (int128_t)modinfo->modulus.v[1] * md;
+        ce += (int128_t)modinfo->modulus.v[1] * me;
+    }
     d->v[0] = (int64_t)cd & M62; cd >>= 62;
     e->v[0] = (int64_t)ce & M62; ce >>= 62;
     /* Compute limb 2 of t*[d,e]+modulus*[md,me], and store it as output limb 1. */
     cd += (int128_t)u * d2 + (int128_t)v * e2;
     ce += (int128_t)q * d2 + (int128_t)r * e2;
-    cd += (int128_t)modinfo->modulus.v[2] * md;
-    ce += (int128_t)modinfo->modulus.v[2] * me;
+    if (modinfo->modulus.v[2]) { /* Optimize for the case where limb of modulus is zero. */
+        cd += (int128_t)modinfo->modulus.v[2] * md;
+        ce += (int128_t)modinfo->modulus.v[2] * me;
+    }
     d->v[1] = (int64_t)cd & M62; cd >>= 62;
     e->v[1] = (int64_t)ce & M62; ce >>= 62;
     /* Compute limb 3 of t*[d,e]+modulus*[md,me], and store it as output limb 2. */
     cd += (int128_t)u * d3 + (int128_t)v * e3;
     ce += (int128_t)q * d3 + (int128_t)r * e3;
-    cd += (int128_t)modinfo->modulus.v[3] * md;
-    ce += (int128_t)modinfo->modulus.v[3] * me;
+    if (modinfo->modulus.v[3]) { /* Optimize for the case where limb of modulus is zero. */
+        cd += (int128_t)modinfo->modulus.v[3] * md;
+        ce += (int128_t)modinfo->modulus.v[3] * me;
+    }
     d->v[2] = (int64_t)cd & M62; cd >>= 62;
     e->v[2] = (int64_t)ce & M62; ce >>= 62;
     /* Compute limb 4 of t*[d,e]+modulus*[md,me], and store it as output limb 3. */
