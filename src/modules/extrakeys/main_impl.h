@@ -55,6 +55,32 @@ int secp256k1_xonly_pubkey_serialize(const secp256k1_context* ctx, unsigned char
     return 1;
 }
 
+int secp256k1_xonly_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_xonly_pubkey* pk0, const secp256k1_xonly_pubkey* pk1) {
+    unsigned char out[2][32];
+    const secp256k1_xonly_pubkey* pk[2];
+    int i;
+
+    VERIFY_CHECK(ctx != NULL);
+    pk[0] = pk0; pk[1] = pk1;
+    for (i = 0; i < 2; i++) {
+        /* If the public key is NULL or invalid, xonly_pubkey_serialize will
+         * call the illegal_callback and return 0. In that case we will
+         * serialize the key as all zeros which is less than any valid public
+         * key. This results in consistent comparisons even if NULL or invalid
+         * pubkeys are involved and prevents edge cases such as sorting
+         * algorithms that use this function and do not terminate as a
+         * result. */
+        if (!secp256k1_xonly_pubkey_serialize(ctx, out[i], pk[i])) {
+            /* Note that xonly_pubkey_serialize should already set the output to
+             * zero in that case, but it's not guaranteed by the API, we can't
+             * test it and writing a VERIFY_CHECK is more complex than
+             * explicitly memsetting (again). */
+            memset(out[i], 0, sizeof(out[i]));
+        }
+    }
+    return secp256k1_memcmp_var(out[0], out[1], sizeof(out[1]));
+}
+
 /** Keeps a group element as is if it has an even Y and otherwise negates it.
  *  y_parity is set to 0 in the former case and to 1 in the latter case.
  *  Requires that the coordinates of r are normalized. */
