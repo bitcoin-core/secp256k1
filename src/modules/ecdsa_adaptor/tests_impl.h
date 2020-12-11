@@ -5,7 +5,7 @@
 
 void rand_scalar(secp256k1_scalar *scalar) {
     unsigned char buf32[32];
-    secp256k1_rand256(buf32);
+    secp256k1_testrand256(buf32);
     secp256k1_scalar_set_b32(scalar, buf32, NULL);
 }
 
@@ -51,7 +51,7 @@ void dleq_tests(void) {
 }
 
 void rand_flip_bit(unsigned char *array, size_t n) {
-    array[secp256k1_rand_int(n)] ^= 1 << secp256k1_rand_int(8);
+    array[secp256k1_testrand_int(n)] ^= 1 << secp256k1_testrand_int(8);
 }
 
 void adaptor_tests(void) {
@@ -64,9 +64,9 @@ void adaptor_tests(void) {
     unsigned char adaptor_proof[97];
     secp256k1_ecdsa_signature sig;
 
-    secp256k1_rand256(seckey);
-    secp256k1_rand256(msg);
-    secp256k1_rand256(adaptor_secret);
+    secp256k1_testrand256(seckey);
+    secp256k1_testrand256(msg);
+    secp256k1_testrand256(adaptor_secret);
 
     CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, seckey) == 1);
     CHECK(secp256k1_ec_pubkey_create(ctx, &adaptor, adaptor_secret) == 1);
