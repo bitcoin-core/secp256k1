@@ -40,10 +40,8 @@ extern "C" {
  *  Returns: 1 on success, 0 on failure
  *  Args:            ctx: a secp256k1 context object, initialized for signing
  *                        (cannot be NULL)
- *  Out:   adaptor_sig65: pointer to 65 byte to store the returned signature
+ *  Out:   adaptor_sig162: pointer to 162 byte to store the returned signature
  *                        (cannot be NULL)
- *       adaptor_proof97: pointer to 97 byte to store the adaptor proof (cannot be
- *                        NULL)
  *  In:         seckey32: pointer to 32 byte secret key corresponding to the
  *                        pubkey (cannot be NULL)
  *               adaptor: pointer to the adaptor point (cannot be NULL)
@@ -51,8 +49,7 @@ extern "C" {
  */
 SECP256K1_API int secp256k1_ecdsa_adaptor_sign(
     const secp256k1_context* ctx,
-    unsigned char *adaptor_sig65,
-    unsigned char *adaptor_proof97,
+    unsigned char *adaptor_sig162,
     unsigned char *seckey32,
     const secp256k1_pubkey *adaptor,
     const unsigned char *msg32
@@ -66,20 +63,18 @@ SECP256K1_API int secp256k1_ecdsa_adaptor_sign(
  *  Returns: 1 on success, 0 on failure
  *  Args:           ctx: a secp256k1 context object, initialized for verification
  *                       (cannot be NULL)
- *  In:   adaptor_sig65: pointer to 65-byte signature to verify (cannot be NULL)
+ *  In:   adaptor_sig162: pointer to 162-byte signature to verify (cannot be NULL)
  *               pubkey: pointer to the public key (cannot be NULL)
  *                msg32: pointer to the 32-byte message (cannot be NULL)
  *              adaptor: pointer to the adaptor point (cannot be NULL)
- *      adaptor_proof97: pointer to 97-byte adaptor proof (cannot be NULL)
  */
 SECP256K1_API int secp256k1_ecdsa_adaptor_sig_verify(
     const secp256k1_context* ctx,
-    const unsigned char *adaptor_sig65,
+    const unsigned char *adaptor_sig162,
     const secp256k1_pubkey *pubkey,
     const unsigned char *msg32,
-    const secp256k1_pubkey *adaptor,
-    const unsigned char *adaptor_proof97
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
+    const secp256k1_pubkey *adaptor
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
 
 /** Adapt signature ("DecSig")
  *
