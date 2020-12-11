@@ -105,13 +105,10 @@ void test_spec_vectors(void) {
     secp256k1_pubkey pubkey;
     secp256k1_ge encryption_key_ge;
     secp256k1_pubkey encryption_key;
-    unsigned char out[33];
-    size_t size = 33;
 
     secp256k1_eckey_pubkey_parse(&encryption_key_ge, encryption_key_hex, 33);
     secp256k1_pubkey_save(&encryption_key, &encryption_key_ge);
     secp256k1_eckey_pubkey_parse(&pubkey_ge, pubkey_hex, 33);
-    secp256k1_eckey_pubkey_serialize(&pubkey_ge, out, &size, 1);
     secp256k1_pubkey_save(&pubkey, &pubkey_ge);
     CHECK(secp256k1_ecdsa_adaptor_sig_verify(ctx, adaptor_sig, &pubkey, msg, &encryption_key) == 1);
 }
