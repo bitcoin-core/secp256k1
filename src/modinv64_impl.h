@@ -220,21 +220,6 @@ static int64_t secp256k1_modinv64_divsteps_62(int64_t eta, uint64_t f0, uint64_t
  * Implements the divsteps_n_matrix_var function from the explanation.
  */
 static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint64_t g0, secp256k1_modinv64_trans2x2 *t) {
-    /* inv256[i] = -(2*i+1)^-1 (mod 256) */
-    static const uint8_t inv256[128] = {
-        0xFF, 0x55, 0x33, 0x49, 0xC7, 0x5D, 0x3B, 0x11, 0x0F, 0xE5, 0xC3, 0x59,
-        0xD7, 0xED, 0xCB, 0x21, 0x1F, 0x75, 0x53, 0x69, 0xE7, 0x7D, 0x5B, 0x31,
-        0x2F, 0x05, 0xE3, 0x79, 0xF7, 0x0D, 0xEB, 0x41, 0x3F, 0x95, 0x73, 0x89,
-        0x07, 0x9D, 0x7B, 0x51, 0x4F, 0x25, 0x03, 0x99, 0x17, 0x2D, 0x0B, 0x61,
-        0x5F, 0xB5, 0x93, 0xA9, 0x27, 0xBD, 0x9B, 0x71, 0x6F, 0x45, 0x23, 0xB9,
-        0x37, 0x4D, 0x2B, 0x81, 0x7F, 0xD5, 0xB3, 0xC9, 0x47, 0xDD, 0xBB, 0x91,
-        0x8F, 0x65, 0x43, 0xD9, 0x57, 0x6D, 0x4B, 0xA1, 0x9F, 0xF5, 0xD3, 0xE9,
-        0x67, 0xFD, 0xDB, 0xB1, 0xAF, 0x85, 0x63, 0xF9, 0x77, 0x8D, 0x6B, 0xC1,
-        0xBF, 0x15, 0xF3, 0x09, 0x87, 0x1D, 0xFB, 0xD1, 0xCF, 0xA5, 0x83, 0x19,
-        0x97, 0xAD, 0x8B, 0xE1, 0xDF, 0x35, 0x13, 0x29, 0xA7, 0x3D, 0x1B, 0xF1,
-        0xEF, 0xC5, 0xA3, 0x39, 0xB7, 0xCD, 0xAB, 0x01
-    };
-
     /* Transformation matrix; see comments in secp256k1_modinv64_divsteps_62. */
     uint64_t u = 1, v = 0, q = 0, r = 1;
     uint64_t f = f0, g = g0, m;
@@ -265,17 +250,28 @@ static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint
             tmp = f; f = g; g = -tmp;
             tmp = u; u = q; q = -tmp;
             tmp = v; v = r; r = -tmp;
+            /* Use a formula to cancel out up to 6 bits of g. Also, no more than i can be cancelled
+             * out (as we'd be done before that point), and no more than eta+1 can be done as its
+             * will flip again once that happens. */
+            limit = ((int)eta + 1) > i ? i : ((int)eta + 1);
+            VERIFY_CHECK(limit > 0 && limit <= 62);
+            /* m is a mask for the bottom min(limit, 6) bits. */
+            m = (UINT64_MAX >> (64 - limit)) & 63U;
+            /* Find what multiple of f must be added to g to cancel its bottom min(limit, 6)
+             * bits. */
+            w = (f * g * (f * f - 2)) & m;
+        } else {
+            /* In this branch, use a simpler formula that only lets us cancel up to 4 bits of g, as
+             * eta tends to be smaller here. */
+            limit = ((int)eta + 1) > i ? i : ((int)eta + 1);
+            VERIFY_CHECK(limit > 0 && limit <= 62);
+            /* m is a mask for the bottom min(limit, 4) bits. */
+            m = (UINT64_MAX >> (64 - limit)) & 15U;
+            /* Find what multiple of f must be added to g to cancel its bottom min(limit, 4)
+             * bits. */
+            w = f + (((f + 1) & 4) << 1);
+            w = (-w * g) & m;
         }
-        /* eta is now >= 0. In what follows we're going to cancel out the bottom bits of g. No more
-         * than i can be cancelled out (as we'd be done before that point), and no more than eta+1
-         * can be done as its sign will flip once that happens. */
-        limit = ((int)eta + 1) > i ? i : ((int)eta + 1);
-        /* m is a mask for the bottom min(limit, 8) bits (our table only supports 8 bits). */
-        VERIFY_CHECK(limit > 0 && limit <= 62);
-        m = (UINT64_MAX >> (64 - limit)) & 255U;
-        /* Find what multiple of f must be added to g to cancel its bottom min(limit, 8) bits. */
-        w = (g * inv256[(f >> 1) & 127]) & m;
-        /* Do so. */
         g += f * w;
         q += u * w;
         r += v * w;
