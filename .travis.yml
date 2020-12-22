@@ -97,7 +97,7 @@ before_script: ./autogen.sh
 script:
   - function keep_alive() { while true; do echo -en "\a"; sleep 60; done }
   - keep_alive &
-  - ./contrib/travis.sh
+  - ./ci/travis.sh
   - kill %keep_alive
 
 after_script:
