@@ -86,13 +86,13 @@ SECP256K1_API int secp256k1_ecdsa_adaptor_sig_verify(
  *                         be NULL)
  *  In:  adaptor_secret32: pointer to 32-byte byte adaptor secret of the adaptor
  *                         point (cannot be NULL)
- *          adaptor_sig65: pointer to 65-byte byte adaptor sig (cannot be NULL)
+ *          adaptor_sig162: pointer to 162-byte byte adaptor sig (cannot be NULL)
  */
 SECP256K1_API int secp256k1_ecdsa_adaptor_adapt(
     const secp256k1_context* ctx,
     secp256k1_ecdsa_signature *sig,
     const unsigned char *adaptor_secret32,
-    const unsigned char *adaptor_sig65
+    const unsigned char *adaptor_sig162
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
 /** Adaptor extract ("Rec")
@@ -115,7 +115,7 @@ SECP256K1_API int secp256k1_ecdsa_adaptor_extract_secret(
     const secp256k1_context* ctx,
     unsigned char *adaptor_secret32,
     const secp256k1_ecdsa_signature *sig,
-    const unsigned char *adaptor_sig65,
+    const unsigned char *adaptor_sig162,
     const secp256k1_pubkey *adaptor
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
 

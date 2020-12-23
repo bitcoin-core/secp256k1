@@ -229,7 +229,7 @@ int secp256k1_ecdsa_adaptor_sig_verify(const secp256k1_context* ctx, const unsig
     return secp256k1_gej_is_infinity(&lhs);
 }
 
-int secp256k1_ecdsa_adaptor_adapt(const secp256k1_context* ctx, secp256k1_ecdsa_signature *sig, const unsigned char *adaptor_secret32, const unsigned char *adaptor_sig192) {
+int secp256k1_ecdsa_adaptor_adapt(const secp256k1_context* ctx, secp256k1_ecdsa_signature *sig, const unsigned char *adaptor_secret32, const unsigned char *adaptor_sig162) {
     secp256k1_scalar adaptor_secret;
     secp256k1_scalar sp;
     secp256k1_scalar s;
@@ -241,14 +241,14 @@ int secp256k1_ecdsa_adaptor_adapt(const secp256k1_context* ctx, secp256k1_ecdsa_
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(sig != NULL);
     ARG_CHECK(adaptor_secret32 != NULL);
-    ARG_CHECK(adaptor_sig192 != NULL);
+    ARG_CHECK(adaptor_sig162 != NULL);
 
     secp256k1_scalar_set_b32(&adaptor_secret, adaptor_secret32, &overflow);
     if (overflow) {
         return 0;
     }
 
-    if (!secp256k1_ecdsa_adaptor_sig_deserialize(NULL, &sigr, NULL, &sp, NULL, NULL, adaptor_sig192)) {
+    if (!secp256k1_ecdsa_adaptor_sig_deserialize(NULL, &sigr, NULL, &sp, NULL, NULL, adaptor_sig162)) {
         secp256k1_scalar_clear(&adaptor_secret);
         return 0;
     }
