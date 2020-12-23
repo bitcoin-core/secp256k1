@@ -18,6 +18,7 @@
 #include "include/secp256k1.h"
 #include "include/secp256k1_preallocated.h"
 #include "testrand_impl.h"
+#include "util.h"
 
 #ifdef ENABLE_OPENSSL_TESTS
 #include "openssl/bn.h"
@@ -31,6 +32,11 @@ void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 
 #include "contrib/lax_der_parsing.c"
 #include "contrib/lax_der_privatekey_parsing.c"
+
+#include "modinv32_impl.h"
+#ifdef SECP256K1_WIDEMUL_INT128
+#include "modinv64_impl.h"
+#endif
 
 static int count = 64;
 static secp256k1_context *ctx = NULL;
@@ -816,7 +822,443 @@ void run_num_smalltests(void) {
 }
 #endif
 
+/***** MODINV TESTS *****/
+
+/* Compute the modular inverse of (odd) x mod 2^64. */
+uint64_t modinv2p64(uint64_t x) {
+    /* If w = 1/x mod 2^(2^L), then w*(2 - w*x) = 1/x mod 2^(2^(L+1)). See
+     * Hacker's Delight second edition, Henry S. Warren, Jr., pages 245-247 for
+     * why. Start with L=0, for which it is true for every odd x that
+     * 1/x=1 mod 2. Iterating 6 times gives us 1/x mod 2^64. */
+    int l;
+    uint64_t w = 1;
+    CHECK(x & 1);
+    for (l = 0; l < 6; ++l) w *= (2 - w*x);
+    return w;
+}
+
+/* compute out = (a*b) mod m; if b=NULL, treat b=1.
+ *
+ * Out is a 512-bit number (represented as 32 uint16_t's in LE order). The other
+ * arguments are 256-bit numbers (represented as 16 uint16_t's in LE order). */
+void mulmod256(uint16_t* out, const uint16_t* a, const uint16_t* b, const uint16_t* m) {
+    uint16_t mul[32];
+    uint64_t c = 0;
+    int i, j;
+    int m_bitlen = 0;
+    int mul_bitlen = 0;
+
+    if (b != NULL) {
+        /* Compute the product of a and b, and put it in mul. */
+        for (i = 0; i < 32; ++i) {
+            for (j = i <= 15 ? 0 : i - 15; j <= i && j <= 15; j++) {
+                c += (uint64_t)a[j] * b[i - j];
+            }
+            mul[i] = c & 0xFFFF;
+            c >>= 16;
+        }
+        CHECK(c == 0);
+
+        /* compute the highest set bit in mul */
+        for (i = 511; i >= 0; --i) {
+            if ((mul[i >> 4] >> (i & 15)) & 1) {
+                mul_bitlen = i;
+                break;
+            }
+        }
+    } else {
+        /* if b==NULL, set mul=a. */
+        memcpy(mul, a, 32);
+        memset(mul + 16, 0, 32);
+        /* compute the highest set bit in mul */
+        for (i = 255; i >= 0; --i) {
+            if ((mul[i >> 4] >> (i & 15)) & 1) {
+                mul_bitlen = i;
+                break;
+            }
+        }
+    }
+
+    /* Compute the highest set bit in m. */
+    for (i = 255; i >= 0; --i) {
+        if ((m[i >> 4] >> (i & 15)) & 1) {
+            m_bitlen = i;
+            break;
+        }
+    }
+
+    /* Try do mul -= m<<i, for i going down to 0, whenever the result is not negative */
+    for (i = mul_bitlen - m_bitlen; i >= 0; --i) {
+        uint16_t mul2[32];
+        int64_t cs;
+
+        /* Compute mul2 = mul - m<<i. */
+        cs = 0; /* accumulator */
+        for (j = 0; j < 32; ++j) { /* j loops over the output limbs in mul2. */
+            /* Compute sub: the 16 bits in m that will be subtracted from mul2[j]. */
+            uint16_t sub = 0;
+            int p;
+            for (p = 0; p < 16; ++p) { /* p loops over the bit positions in mul2[j]. */
+                int bitpos = j * 16 - i + p; /* bitpos is the correspond bit position in m. */
+                if (bitpos >= 0 && bitpos < 256) {
+                    sub |= ((m[bitpos >> 4] >> (bitpos & 15)) & 1) << p;
+                }
+            }
+            /* Add mul[j]-sub to accumulator, and shift bottom 16 bits out to mul2[j]. */
+            cs += mul[j];
+            cs -= sub;
+            mul2[j] = (cs & 0xFFFF);
+            cs >>= 16;
+        }
+        /* If remainder of subtraction is 0, set mul = mul2. */
+        if (cs == 0) {
+            memcpy(mul, mul2, sizeof(mul));
+        }
+    }
+    /* Sanity check: test that all limbs higher than m's highest are zero */
+    for (i = (m_bitlen >> 4) + 1; i < 32; ++i) {
+        CHECK(mul[i] == 0);
+    }
+    memcpy(out, mul, 32);
+}
+
+/* Convert a 256-bit number represented as 16 uint16_t's to signed30 notation. */
+void uint16_to_signed30(secp256k1_modinv32_signed30* out, const uint16_t* in) {
+    int i;
+    memset(out->v, 0, sizeof(out->v));
+    for (i = 0; i < 256; ++i) {
+        out->v[i / 30] |= (int32_t)(((in[i >> 4]) >> (i & 15)) & 1) << (i % 30);
+    }
+}
+
+/* Convert a 256-bit number in signed30 notation to a representation as 16 uint16_t's. */
+void signed30_to_uint16(uint16_t* out, const secp256k1_modinv32_signed30* in) {
+    int i;
+    memset(out, 0, 32);
+    for (i = 0; i < 256; ++i) {
+        out[i >> 4] |= (((in->v[i / 30]) >> (i % 30)) & 1) << (i & 15);
+    }
+}
+
+/* Randomly mutate the sign of limbs in signed30 representation, without changing the value. */
+void mutate_sign_signed30(secp256k1_modinv32_signed30* x) {
+    int i;
+    for (i = 0; i < 16; ++i) {
+        int pos = secp256k1_testrand_int(8);
+        if (x->v[pos] > 0 && x->v[pos + 1] <= 0x3fffffff) {
+            x->v[pos] -= 0x40000000;
+            x->v[pos + 1] += 1;
+        } else if (x->v[pos] < 0 && x->v[pos + 1] >= 0x3fffffff) {
+            x->v[pos] += 0x40000000;
+            x->v[pos + 1] -= 1;
+        }
+    }
+}
+
+/* Test secp256k1_modinv32{_var}, using inputs in 16-bit limb format, and returning inverse. */
+void test_modinv32_uint16(uint16_t* out, const uint16_t* in, const uint16_t* mod) {
+    uint16_t tmp[16];
+    secp256k1_modinv32_signed30 x;
+    secp256k1_modinv32_modinfo m;
+    int i, vartime, nonzero;
+
+    uint16_to_signed30(&x, in);
+    nonzero = (x.v[0] | x.v[1] | x.v[2] | x.v[3] | x.v[4] | x.v[5] | x.v[6] | x.v[7] | x.v[8]) != 0;
+    uint16_to_signed30(&m.modulus, mod);
+    mutate_sign_signed30(&m.modulus);
+
+    /* compute 1/modulus mod 2^30 */
+    m.modulus_inv30 = modinv2p64(m.modulus.v[0]) & 0x3fffffff;
+    CHECK(((m.modulus_inv30 * m.modulus.v[0]) & 0x3fffffff) == 1);
+
+    for (vartime = 0; vartime < 2; ++vartime) {
+        /* compute inverse */
+        (vartime ? secp256k1_modinv32_var : secp256k1_modinv32)(&x, &m);
+
+        /* produce output */
+        signed30_to_uint16(out, &x);
+
+        /* check if the inverse times the input is 1 (mod m), unless x is 0. */
+        mulmod256(tmp, out, in, mod);
+        CHECK(tmp[0] == nonzero);
+        for (i = 1; i < 16; ++i) CHECK(tmp[i] == 0);
+
+        /* invert again */
+        (vartime ? secp256k1_modinv32_var : secp256k1_modinv32)(&x, &m);
+
+        /* check if the result is equal to the input */
+        signed30_to_uint16(tmp, &x);
+        for (i = 0; i < 16; ++i) CHECK(tmp[i] == in[i]);
+    }
+}
+
+#ifdef SECP256K1_WIDEMUL_INT128
+/* Convert a 256-bit number represented as 16 uint16_t's to signed62 notation. */
+void uint16_to_signed62(secp256k1_modinv64_signed62* out, const uint16_t* in) {
+    int i;
+    memset(out->v, 0, sizeof(out->v));
+    for (i = 0; i < 256; ++i) {
+        out->v[i / 62] |= (int64_t)(((in[i >> 4]) >> (i & 15)) & 1) << (i % 62);
+    }
+}
+
+/* Convert a 256-bit number in signed62 notation to a representation as 16 uint16_t's. */
+void signed62_to_uint16(uint16_t* out, const secp256k1_modinv64_signed62* in) {
+    int i;
+    memset(out, 0, 32);
+    for (i = 0; i < 256; ++i) {
+        out[i >> 4] |= (((in->v[i / 62]) >> (i % 62)) & 1) << (i & 15);
+    }
+}
+
+/* Randomly mutate the sign of limbs in signed62 representation, without changing the value. */
+void mutate_sign_signed62(secp256k1_modinv64_signed62* x) {
+    static const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
+    int i;
+    for (i = 0; i < 8; ++i) {
+        int pos = secp256k1_testrand_int(4);
+        if (x->v[pos] > 0 && x->v[pos + 1] <= M62) {
+            x->v[pos] -= (M62 + 1);
+            x->v[pos + 1] += 1;
+        } else if (x->v[pos] < 0 && x->v[pos + 1] >= -M62) {
+            x->v[pos] += (M62 + 1);
+            x->v[pos + 1] -= 1;
+        }
+    }
+}
+
+/* Test secp256k1_modinv64{_var}, using inputs in 16-bit limb format, and returning inverse. */
+void test_modinv64_uint16(uint16_t* out, const uint16_t* in, const uint16_t* mod) {
+    static const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
+    uint16_t tmp[16];
+    secp256k1_modinv64_signed62 x;
+    secp256k1_modinv64_modinfo m;
+    int i, vartime, nonzero;
+
+    uint16_to_signed62(&x, in);
+    nonzero = (x.v[0] | x.v[1] | x.v[2] | x.v[3] | x.v[4]) != 0;
+    uint16_to_signed62(&m.modulus, mod);
+    mutate_sign_signed62(&m.modulus);
+
+    /* compute 1/modulus mod 2^62 */
+    m.modulus_inv62 = modinv2p64(m.modulus.v[0]) & M62;
+    CHECK(((m.modulus_inv62 * m.modulus.v[0]) & M62) == 1);
+
+    for (vartime = 0; vartime < 2; ++vartime) {
+        /* compute inverse */
+        (vartime ? secp256k1_modinv64_var : secp256k1_modinv64)(&x, &m);
+
+        /* produce output */
+        signed62_to_uint16(out, &x);
+
+        /* check if the inverse times the input is 1 (mod m), unless x is 0. */
+        mulmod256(tmp, out, in, mod);
+        CHECK(tmp[0] == nonzero);
+        for (i = 1; i < 16; ++i) CHECK(tmp[i] == 0);
+
+        /* invert again */
+        (vartime ? secp256k1_modinv64_var : secp256k1_modinv64)(&x, &m);
+
+        /* check if the result is equal to the input */
+        signed62_to_uint16(tmp, &x);
+        for (i = 0; i < 16; ++i) CHECK(tmp[i] == in[i]);
+    }
+}
+#endif
+
+/* test if a and b are coprime */
+int coprime(const uint16_t* a, const uint16_t* b) {
+    uint16_t x[16], y[16], t[16];
+    int i;
+    int iszero;
+    memcpy(x, a, 32);
+    memcpy(y, b, 32);
+
+    /* simple gcd loop: while x!=0, (x,y)=(y%x,x) */
+    while (1) {
+        iszero = 1;
+        for (i = 0; i < 16; ++i) {
+            if (x[i] != 0) {
+                iszero = 0;
+                break;
+            }
+        }
+        if (iszero) break;
+        mulmod256(t, y, NULL, x);
+        memcpy(y, x, 32);
+        memcpy(x, t, 32);
+    }
+
+    /* return whether y=1 */
+    if (y[0] != 1) return 0;
+    for (i = 1; i < 16; ++i) {
+        if (y[i] != 0) return 0;
+    }
+    return 1;
+}
+
+void run_modinv_tests(void) {
+    /* Fixed test cases. Each tuple is (input, modulus, output), each as 16x16 bits in LE order. */
+    static const uint16_t CASES[][3][16] = {
+        /* Test case known to need 713 divsteps */
+        {{0x1513, 0x5389, 0x54e9, 0x2798, 0x1957, 0x66a0, 0x8057, 0x3477,
+          0x7784, 0x1052, 0x326a, 0x9331, 0x6506, 0xa95c, 0x91f3, 0xfb5e},
+         {0x2bdd, 0x8df4, 0xcc61, 0x481f, 0xdae5, 0x5ca7, 0xf43b, 0x7d54,
+          0x13d6, 0x469b, 0x2294, 0x20f4, 0xb2a4, 0xa2d1, 0x3ff1, 0xfd4b},
+         {0xffd8, 0xd9a0, 0x456e, 0x81bb, 0xbabd, 0x6cea, 0x6dbd, 0x73ab,
+          0xbb94, 0x3d3c, 0xdf08, 0x31c4, 0x3e32, 0xc179, 0x2486, 0xb86b}},
+        /* Test case known to need 589 divsteps, reaching delta=-140 and
+           delta=141. */
+        {{0x3fb1, 0x903b, 0x4eb7, 0x4813, 0xd863, 0x26bf, 0xd89f, 0xa8a9,
+          0x02fe, 0x57c6, 0x554a, 0x4eab, 0x165e, 0x3d61, 0xee1e, 0x456c},
+         {0x9295, 0x823b, 0x5c1f, 0x5386, 0x48e0, 0x02ff, 0x4c2a, 0xa2da,
+          0xe58f, 0x967c, 0xc97e, 0x3f5a, 0x69fb, 0x52d9, 0x0a86, 0xb4a3},
+         {0x3d30, 0xb893, 0xa809, 0xa7a8, 0x26f5, 0x5b42, 0x55be, 0xf4d0,
+          0x12c2, 0x7e6a, 0xe41a, 0x90c7, 0xebfa, 0xf920, 0x304e, 0x1419}},
+        /* Test case known to need 650 divsteps, and doing 65 consecutive (f,g/2) steps. */
+        {{0x8583, 0x5058, 0xbeae, 0xeb69, 0x48bc, 0x52bb, 0x6a9d, 0xcc94,
+          0x2a21, 0x87d5, 0x5b0d, 0x42f6, 0x5b8a, 0x2214, 0xe9d6, 0xa040},
+         {0x7531, 0x27cb, 0x7e53, 0xb739, 0x6a5f, 0x83f5, 0xa45c, 0xcb1d,
+          0x8a87, 0x1c9c, 0x51d7, 0x851c, 0xb9d8, 0x1fbe, 0xc241, 0xd4a3},
+         {0xcdb4, 0x275c, 0x7d22, 0xa906, 0x0173, 0xc054, 0x7fdf, 0x5005,
+          0x7fb8, 0x9059, 0xdf51, 0x99df, 0x2654, 0x8f6e, 0x070f, 0xb347}},
+        /* Test case with the group order as modulus, needing 635 divsteps. */
+        {{0x95ed, 0x6c01, 0xd113, 0x5ff1, 0xd7d0, 0x29cc, 0x5817, 0x6120,
+          0xca8e, 0xaad1, 0x25ae, 0x8e84, 0x9af6, 0x30bf, 0xf0ed, 0x1686},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x1631, 0xbf4a, 0x286a, 0x2716, 0x469f, 0x2ac8, 0x1312, 0xe9bc,
+          0x04f4, 0x304b, 0x9931, 0x113b, 0xd932, 0xc8f4, 0x0d0d, 0x01a1}},
+        /* Test case with the field size as modulus, needing 637 divsteps. */
+        {{0x9ec3, 0x1919, 0xca84, 0x7c11, 0xf996, 0x06f3, 0x5408, 0x6688,
+          0x1320, 0xdb8a, 0x632a, 0x0dcb, 0x8a84, 0x6bee, 0x9c95, 0xe34e},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x18e5, 0x19b6, 0xdf92, 0x1aaa, 0x09fb, 0x8a3f, 0x52b0, 0x8701,
+          0xac0c, 0x2582, 0xda44, 0x9bcc, 0x6828, 0x1c53, 0xbd8f, 0xbd2c}},
+        /* Test case with the field size as modulus, needing 935 divsteps with
+           broken eta handling. */
+        {{0x1b37, 0xbdc3, 0x8bcd, 0x25e3, 0x1eae, 0x567d, 0x30b6, 0xf0d8,
+          0x9277, 0x0cf8, 0x9c2e, 0xecd7, 0x631d, 0xe38f, 0xd4f8, 0x5c93},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x1622, 0xe05b, 0xe880, 0x7de9, 0x3e45, 0xb682, 0xee6c, 0x67ed,
+          0xa179, 0x15db, 0x6b0d, 0xa656, 0x7ccb, 0x8ef7, 0xa2ff, 0xe279}},
+        /* Test case with the group size as modulus, needing 981 divsteps with
+           broken eta handling. */
+        {{0xfeb9, 0xb877, 0xee41, 0x7fa3, 0x87da, 0x94c4, 0x9d04, 0xc5ae,
+          0x5708, 0x0994, 0xfc79, 0x0916, 0xbf32, 0x3ad8, 0xe11c, 0x5ca2},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x0f12, 0x075e, 0xce1c, 0x6f92, 0xc80f, 0xca92, 0x9a04, 0x6126,
+          0x4b6c, 0x57d6, 0xca31, 0x97f3, 0x1f99, 0xf4fd, 0xda4d, 0x42ce}},
+        /* Test case with the field size as modulus, input = 0. */
+        {{0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000}},
+        /* Test case with the field size as modulus, input = 1. */
+        {{0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000}},
+        /* Test case with the field size as modulus, input = 2. */
+        {{0x0002, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0xfe18, 0x7fff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x7fff}},
+        /* Test case with the field size as modulus, input = field - 1. */
+        {{0xfc2e, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0xfc2e, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff}},
+        /* Test case with the group size as modulus, input = 0. */
+        {{0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000}},
+        /* Test case with the group size as modulus, input = 1. */
+        {{0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000}},
+        /* Test case with the group size as modulus, input = 2. */
+        {{0x0002, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x20a1, 0x681b, 0x2f46, 0xdfe9, 0x501d, 0x57a4, 0x6e73, 0x5d57,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x7fff}},
+        /* Test case with the group size as modulus, input = group - 1. */
+        {{0x4140, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x4140, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff}}
+    };
+
+    int i, j, ok;
+
+    /* Test known inputs/outputs */
+    for (i = 0; (size_t)i < sizeof(CASES) / sizeof(CASES[0]); ++i) {
+        uint16_t out[16];
+        test_modinv32_uint16(out, CASES[i][0], CASES[i][1]);
+        for (j = 0; j < 16; ++j) CHECK(out[j] == CASES[i][2][j]);
+#ifdef SECP256K1_WIDEMUL_INT128
+        test_modinv64_uint16(out, CASES[i][0], CASES[i][1]);
+        for (j = 0; j < 16; ++j) CHECK(out[j] == CASES[i][2][j]);
+#endif
+    }
+
+    for (i = 0; i < 100 * count; ++i) {
+        /* 256-bit numbers in 16-uint16_t's notation */
+        static const uint16_t ZERO[16] = {0};
+        uint16_t xd[16];  /* the number (in range [0,2^256)) to be inverted */
+        uint16_t md[16];  /* the modulus (odd, in range [3,2^256)) */
+        uint16_t id[16];  /* the inverse of xd mod md */
+
+        /* generate random xd and md, so that md is odd, md>1, xd<md, and gcd(xd,md)=1 */
+        do {
+            /* generate random xd and md (with many subsequent 0s and 1s) */
+            secp256k1_testrand256_test((unsigned char*)xd);
+            secp256k1_testrand256_test((unsigned char*)md);
+            md[0] |= 1; /* modulus must be odd */
+            /* If modulus is 1, find another one. */
+            ok = md[0] != 1;
+            for (j = 1; j < 16; ++j) ok |= md[j] != 0;
+            mulmod256(xd, xd, NULL, md); /* Make xd = xd mod md */
+        } while (!(ok && coprime(xd, md)));
+
+        test_modinv32_uint16(id, xd, md);
+#ifdef SECP256K1_WIDEMUL_INT128
+        test_modinv64_uint16(id, xd, md);
+#endif
+
+        /* In a few cases, also test with input=0 */
+        if (i < count) {
+            test_modinv32_uint16(id, ZERO, md);
+#ifdef SECP256K1_WIDEMUL_INT128
+            test_modinv64_uint16(id, ZERO, md);
+#endif
+        }
+    }
+}
+
 /***** SCALAR TESTS *****/
+
 
 void scalar_test(void) {
     secp256k1_scalar s;
@@ -5626,6 +6068,8 @@ int main(int argc, char **argv) {
     run_rand_int();
 
     run_ctz_tests();
+
+    run_modinv_tests();
 
     run_sha256_tests();
     run_hmac_sha256_tests();
