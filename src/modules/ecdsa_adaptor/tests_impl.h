@@ -117,12 +117,13 @@ void test_spec_vectors(void) {
         0x39, 0x40, 0x9f, 0xbb, 0xac, 0xd3, 0x8e, 0x83
     };
 
+    unsigned char signature[64];
+    unsigned char adaptor_secret[32];
     secp256k1_ge pubkey_ge;
     secp256k1_pubkey pubkey;
     secp256k1_ge encryption_key_ge;
     secp256k1_pubkey encryption_key;
     secp256k1_ecdsa_signature sig;
-    unsigned char signature[64];
 
     secp256k1_eckey_pubkey_parse(&encryption_key_ge, encryption_key_hex, 33);
     secp256k1_pubkey_save(&encryption_key, &encryption_key_ge);
@@ -130,10 +131,13 @@ void test_spec_vectors(void) {
     secp256k1_pubkey_save(&pubkey, &pubkey_ge);
     /* ecdsa_adaptor_verify */
     CHECK(secp256k1_ecdsa_adaptor_sig_verify(ctx, adaptor_sig, &pubkey, msg, &encryption_key) == 1);
-    /* ecdsa_adaptor_recover */
+    /* ecdsa_adaptor_decrypt */
     secp256k1_ecdsa_adaptor_adapt(ctx, &sig, decryption_key_hex, adaptor_sig);
     secp256k1_ecdsa_signature_serialize_compact(ctx, signature, &sig);
     CHECK(secp256k1_memcmp_var(signature, signature_hex, 64) == 0);
+    /* ecdsa_adaptor_recover */
+    secp256k1_ecdsa_adaptor_extract_secret(ctx, adaptor_secret, &sig, adaptor_sig, &encryption_key);
+    CHECK(secp256k1_memcmp_var(adaptor_secret, decryption_key_hex, 32) == 0);
 }
 
 void adaptor_tests(void) {
