@@ -40,9 +40,9 @@ case $host_os in
          dnl These Homebrew packages may be keg-only, meaning that they won't be found
          dnl in expected paths because they may conflict with system files. Ask
          dnl Homebrew where each one is located, then adjust paths accordingly.
-
          openssl_prefix=`$BREW --prefix openssl 2>/dev/null`
          gmp_prefix=`$BREW --prefix gmp 2>/dev/null`
+         valgrind_prefix=`$BREW --prefix valgrind 2>/dev/null`
          if test x$openssl_prefix != x; then
            PKG_CONFIG_PATH="$openssl_prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
            export PKG_CONFIG_PATH
@@ -51,6 +51,9 @@ case $host_os in
          if test x$gmp_prefix != x; then
            GMP_CPPFLAGS="-I$gmp_prefix/include"
            GMP_LIBS="-L$gmp_prefix/lib"
+         fi
+         if test x$valgrind_prefix != x; then
+           VALGRIND_CPPFLAGS="-I$valgrind_prefix/include"
          fi
        else
          AC_PATH_PROG([PORT],port,)
@@ -180,12 +183,15 @@ AC_ARG_WITH([valgrind], [AS_HELP_STRING([--with-valgrind=yes|no|auto],
 if test x"$req_valgrind" = x"no"; then
   enable_valgrind=no
 else
-  AC_CHECK_HEADER([valgrind/memcheck.h], [enable_valgrind=yes], [
+  SECP_VALGRIND_CHECK
+  if test x"$has_valgrind" != x"yes"; then
     if test x"$req_valgrind" = x"yes"; then
       AC_MSG_ERROR([Valgrind support explicitly requested but valgrind/memcheck.h header not available])
     fi
     enable_valgrind=no
-  ], [])
+  else
+    enable_valgrind=yes
+  fi
 fi
 AM_CONDITIONAL([VALGRIND_ENABLED],[test "$enable_valgrind" = "yes"])
 
@@ -422,6 +428,10 @@ fi
 if test x"$set_bignum" = x"gmp"; then
   SECP_LIBS="$SECP_LIBS $GMP_LIBS"
   SECP_INCLUDES="$SECP_INCLUDES $GMP_CPPFLAGS"
+fi
+
+if test x"$enable_valgrind" = x"yes"; then
+  SECP_INCLUDES="$SECP_INCLUDES $VALGRIND_CPPFLAGS"
 fi
 
 if test x"$set_precomp" = x"yes"; then
