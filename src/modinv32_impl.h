@@ -168,17 +168,17 @@ typedef struct {
     int32_t u, v, q, r;
 } secp256k1_modinv32_trans2x2;
 
-/* Compute the transition matrix and eta for 30 divsteps.
+/* Compute the transition matrix and zeta for 30 divsteps.
  *
- * Input:  eta: initial eta
- *         f0:  bottom limb of initial f
- *         g0:  bottom limb of initial g
+ * Input:  zeta: initial zeta
+ *         f0:   bottom limb of initial f
+ *         g0:   bottom limb of initial g
  * Output: t: transition matrix
- * Return: final eta
+ * Return: final zeta
  *
  * Implements the divsteps_n_matrix function from the explanation.
  */
-static int32_t secp256k1_modinv32_divsteps_30(int32_t eta, uint32_t f0, uint32_t g0, secp256k1_modinv32_trans2x2 *t) {
+static int32_t secp256k1_modinv32_divsteps_30(int32_t zeta, uint32_t f0, uint32_t g0, secp256k1_modinv32_trans2x2 *t) {
     /* u,v,q,r are the elements of the transformation matrix being built up,
      * starting with the identity matrix. Semantically they are signed integers
      * in range [-2^30,2^30], but here represented as unsigned mod 2^32. This
@@ -193,8 +193,8 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t eta, uint32_t f0, uint32_t
         VERIFY_CHECK((f & 1) == 1); /* f must always be odd */
         VERIFY_CHECK((u * f0 + v * g0) == f << i);
         VERIFY_CHECK((q * f0 + r * g0) == g << i);
-        /* Compute conditional masks for (eta < 0) and for (g & 1). */
-        c1 = eta >> 31;
+        /* Compute conditional masks for (zeta < 0) and for (g & 1). */
+        c1 = zeta >> 31;
         c2 = -(g & 1);
         /* Compute x,y,z, conditionally negated versions of f,u,v. */
         x = (f ^ c1) - c1;
@@ -204,10 +204,10 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t eta, uint32_t f0, uint32_t
         g += x & c2;
         q += y & c2;
         r += z & c2;
-        /* In what follows, c1 is a condition mask for (eta < 0) and (g & 1). */
+        /* In what follows, c1 is a condition mask for (zeta < 0) and (g & 1). */
         c1 &= c2;
-        /* Conditionally negate eta, and unconditionally subtract 1. */
-        eta = (eta ^ c1) - (c1 + 1);
+        /* Conditionally change zeta into -zeta-2 or zeta-1. */
+        zeta = (zeta ^ c1) - 1;
         /* Conditionally add g,q,r to f,u,v. */
         f += g & c1;
         u += q & c1;
@@ -216,8 +216,8 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t eta, uint32_t f0, uint32_t
         g >>= 1;
         u <<= 1;
         v <<= 1;
-        /* Bounds on eta that follow from the bounds on iteration count (max 25*30 divsteps). */
-        VERIFY_CHECK(eta >= -751 && eta <= 751);
+        /* Bounds on zeta that follow from the bounds on iteration count (max 20*30 divsteps). */
+        VERIFY_CHECK(zeta >= -601 && zeta <= 601);
     }
     /* Return data in t and return value. */
     t->u = (int32_t)u;
@@ -229,7 +229,7 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t eta, uint32_t f0, uint32_t
      * will be divided out again). As each divstep's individual matrix has determinant 2, the
      * aggregate of 30 of them will have determinant 2^30. */
     VERIFY_CHECK((int64_t)t->u * t->r - (int64_t)t->v * t->q == ((int64_t)1) << 30);
-    return eta;
+    return zeta;
 }
 
 /* Compute the transition matrix and eta for 30 divsteps (variable time).
@@ -453,19 +453,19 @@ static void secp256k1_modinv32_update_fg_30_var(int len, secp256k1_modinv32_sign
 
 /* Compute the inverse of x modulo modinfo->modulus, and replace x with it (constant time in x). */
 static void secp256k1_modinv32(secp256k1_modinv32_signed30 *x, const secp256k1_modinv32_modinfo *modinfo) {
-    /* Start with d=0, e=1, f=modulus, g=x, eta=-1. */
+    /* Start with d=0, e=1, f=modulus, g=x, zeta=-1. */
     secp256k1_modinv32_signed30 d = {{0}};
     secp256k1_modinv32_signed30 e = {{1}};
     secp256k1_modinv32_signed30 f = modinfo->modulus;
     secp256k1_modinv32_signed30 g = *x;
     int i;
-    int32_t eta = -1;
+    int32_t zeta = -1; /* zeta = -(delta+1/2); delta is initially 1/2. */
 
-    /* Do 25 iterations of 30 divsteps each = 750 divsteps. 724 suffices for 256-bit inputs. */
-    for (i = 0; i < 25; ++i) {
-        /* Compute transition matrix and new eta after 30 divsteps. */
+    /* Do 20 iterations of 30 divsteps each = 600 divsteps. 590 suffices for 256-bit inputs. */
+    for (i = 0; i < 20; ++i) {
+        /* Compute transition matrix and new zeta after 30 divsteps. */
         secp256k1_modinv32_trans2x2 t;
-        eta = secp256k1_modinv32_divsteps_30(eta, f.v[0], g.v[0], &t);
+        zeta = secp256k1_modinv32_divsteps_30(zeta, f.v[0], g.v[0], &t);
         /* Update d,e using that transition matrix. */
         secp256k1_modinv32_update_de_30(&d, &e, &t, modinfo);
         /* Update f,g using that transition matrix. */
@@ -515,7 +515,7 @@ static void secp256k1_modinv32_var(secp256k1_modinv32_signed30 *x, const secp256
     int i = 0;
 #endif
     int j, len = 9;
-    int32_t eta = -1;
+    int32_t eta = -1; /* eta = -delta; delta is initially 1 (faster for the variable-time code) */
     int32_t cond, fn, gn;
 
     /* Do iterations of 30 divsteps each until g=0. */
