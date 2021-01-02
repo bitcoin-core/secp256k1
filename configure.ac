@@ -22,7 +22,6 @@ PKG_PROG_PKG_CONFIG
 AC_PATH_TOOL(AR, ar)
 AC_PATH_TOOL(RANLIB, ranlib)
 AC_PATH_TOOL(STRIP, strip)
-AX_PROG_CC_FOR_BUILD
 
 AM_PROG_CC_C_O
 
@@ -88,6 +87,10 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
     [ AC_MSG_RESULT([no])
       CFLAGS="$saved_CFLAGS"
     ])
+
+###
+### Parse config arguments
+###
 
 AC_ARG_ENABLE(benchmark,
     AS_HELP_STRING([--enable-benchmark],[compile benchmark [default=yes]]),
@@ -180,6 +183,10 @@ AC_ARG_WITH([valgrind], [AS_HELP_STRING([--with-valgrind=yes|no|auto],
 )],
 [req_valgrind=$withval], [req_valgrind=auto])
 
+###
+### Handle config options
+###
+
 if test x"$req_valgrind" = x"no"; then
   enable_valgrind=no
 else
@@ -201,61 +208,6 @@ if test x"$enable_coverage" = x"yes"; then
     LDFLAGS="--coverage $LDFLAGS"
 else
     CFLAGS="-O2 $CFLAGS"
-fi
-
-if test x"$use_ecmult_static_precomputation" != x"no"; then
-  # Temporarily switch to an environment for the native compiler
-  save_cross_compiling=$cross_compiling
-  cross_compiling=no
-  SAVE_CC="$CC"
-  CC="$CC_FOR_BUILD"
-  SAVE_CFLAGS="$CFLAGS"
-  CFLAGS="$CFLAGS_FOR_BUILD"
-  SAVE_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS_FOR_BUILD"
-  SAVE_LDFLAGS="$LDFLAGS"
-  LDFLAGS="$LDFLAGS_FOR_BUILD"
-
-  warn_CFLAGS_FOR_BUILD="-Wall -Wextra -Wno-unused-function"
-  saved_CFLAGS="$CFLAGS"
-  CFLAGS="$warn_CFLAGS_FOR_BUILD $CFLAGS"
-  AC_MSG_CHECKING([if native ${CC_FOR_BUILD} supports ${warn_CFLAGS_FOR_BUILD}])
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
-      [ AC_MSG_RESULT([yes]) ],
-      [ AC_MSG_RESULT([no])
-        CFLAGS="$saved_CFLAGS"
-      ])
-
-  AC_MSG_CHECKING([for working native compiler: ${CC_FOR_BUILD}])
-  AC_RUN_IFELSE(
-    [AC_LANG_PROGRAM([], [])],
-    [working_native_cc=yes],
-    [working_native_cc=no],[:])
-
-  CFLAGS_FOR_BUILD="$CFLAGS"
-
-  # Restore the environment
-  cross_compiling=$save_cross_compiling
-  CC="$SAVE_CC"
-  CFLAGS="$SAVE_CFLAGS"
-  CPPFLAGS="$SAVE_CPPFLAGS"
-  LDFLAGS="$SAVE_LDFLAGS"
-
-  if test x"$working_native_cc" = x"no"; then
-    AC_MSG_RESULT([no])
-    set_precomp=no
-    m4_define([please_set_for_build], [Please set CC_FOR_BUILD, CFLAGS_FOR_BUILD, CPPFLAGS_FOR_BUILD, and/or LDFLAGS_FOR_BUILD.])
-    if test x"$use_ecmult_static_precomputation" = x"yes";  then
-      AC_MSG_ERROR([native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
-    else
-      AC_MSG_WARN([Disabling statically generated ecmult table because the native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
-    fi
-  else
-    AC_MSG_RESULT([yes])
-    set_precomp=yes
-  fi
-else
-  set_precomp=no
 fi
 
 if test x"$req_asm" = x"auto"; then
@@ -311,6 +263,79 @@ else
   esac
 fi
 
+# This should come after all tests which modify CFLAGS and friends.
+if test x"$use_ecmult_static_precomputation" != x"no"; then
+  if test x"$cross_compiling" = x"no"; then
+    set_precomp=yes
+    if test x"${CC_FOR_BUILD+x}${CFLAGS_FOR_BUILD+x}${CPPFLAGS_FOR_BUILD+x}${LDFLAGS_FOR_BUILD+x}" != x; then
+      AC_MSG_WARN([CC_FOR_BUILD, CFLAGS_FOR_BUILD, CPPFLAGS_FOR_BUILD, and/or LDFLAGS_FOR_BUILD is set but ignored because we are not cross-compiling.])
+    fi
+    # If we're not cross-compiling, simply use the same compiler for building the static precompation code.
+    CC_FOR_BUILD="$CC"
+    CFLAGS_FOR_BUILD="$CFLAGS"
+    CPPFLAGS_FOR_BUILD="$CPPFLAGS"
+    LDFLAGS_FOR_BUILD="$LDFLAGS"
+  else
+    AX_PROG_CC_FOR_BUILD
+
+    # Temporarily switch to an environment for the native compiler
+    save_cross_compiling=$cross_compiling
+    cross_compiling=no
+    SAVE_CC="$CC"
+    CC="$CC_FOR_BUILD"
+    SAVE_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS_FOR_BUILD"
+    SAVE_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS_FOR_BUILD"
+    SAVE_LDFLAGS="$LDFLAGS"
+    LDFLAGS="$LDFLAGS_FOR_BUILD"
+
+    warn_CFLAGS_FOR_BUILD="-Wall -Wextra -Wno-unused-function"
+    saved_CFLAGS="$CFLAGS"
+    CFLAGS="$warn_CFLAGS_FOR_BUILD $CFLAGS"
+    AC_MSG_CHECKING([if native ${CC_FOR_BUILD} supports ${warn_CFLAGS_FOR_BUILD}])
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
+        [ AC_MSG_RESULT([yes]) ],
+        [ AC_MSG_RESULT([no])
+          CFLAGS="$saved_CFLAGS"
+        ])
+
+    AC_MSG_CHECKING([for working native compiler: ${CC_FOR_BUILD}])
+    AC_RUN_IFELSE(
+      [AC_LANG_PROGRAM([], [])],
+      [working_native_cc=yes],
+      [working_native_cc=no],[:])
+
+    # Restore the environment
+    cross_compiling=$save_cross_compiling
+    CC="$SAVE_CC"
+    CFLAGS="$SAVE_CFLAGS"
+    CPPFLAGS="$SAVE_CPPFLAGS"
+    LDFLAGS="$SAVE_LDFLAGS"
+
+    if test x"$working_native_cc" = x"no"; then
+      AC_MSG_RESULT([no])
+      set_precomp=no
+      m4_define([please_set_for_build], [Please set CC_FOR_BUILD, CFLAGS_FOR_BUILD, CPPFLAGS_FOR_BUILD, and/or LDFLAGS_FOR_BUILD.])
+      if test x"$use_ecmult_static_precomputation" = x"yes";  then
+        AC_MSG_ERROR([native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
+      else
+        AC_MSG_WARN([Disabling statically generated ecmult table because the native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
+      fi
+    else
+      AC_MSG_RESULT([yes])
+      set_precomp=yes
+    fi
+  fi
+
+  AC_SUBST(CC_FOR_BUILD)
+  AC_SUBST(CFLAGS_FOR_BUILD)
+  AC_SUBST(CPPFLAGS_FOR_BUILD)
+  AC_SUBST(LDFLAGS_FOR_BUILD)
+else
+  set_precomp=no
+fi
+
 # select assembly optimization
 use_external_asm=no
 
@@ -327,6 +352,11 @@ no)
   AC_MSG_ERROR([invalid assembly optimizations])
   ;;
 esac
+
+if test x"$use_external_asm" = x"yes"; then
+  AC_DEFINE(USE_EXTERNAL_ASM, 1, [Define this symbol if an external (non-inline) assembly implementation is used])
+fi
+
 
 # select wide multiplication implementation
 case $set_widemul in
@@ -457,10 +487,6 @@ if test x"$enable_module_extrakeys" = x"yes"; then
   AC_DEFINE(ENABLE_MODULE_EXTRAKEYS, 1, [Define this symbol to enable the extrakeys module])
 fi
 
-if test x"$use_external_asm" = x"yes"; then
-  AC_DEFINE(USE_EXTERNAL_ASM, 1, [Define this symbol if an external (non-inline) assembly implementation is used])
-fi
-
 if test x"$use_external_default_callbacks" = x"yes"; then
   AC_DEFINE(USE_EXTERNAL_DEFAULT_CALLBACKS, 1, [Define this symbol if an external implementation of the default callbacks is used])
 fi
@@ -483,6 +509,10 @@ else
     AC_MSG_ERROR([ARM assembly optimization is experimental. Use --enable-experimental to allow.])
   fi
 fi
+
+###
+### Generate output
+###
 
 AC_CONFIG_HEADERS([src/libsecp256k1-config.h])
 AC_CONFIG_FILES([Makefile libsecp256k1.pc])
@@ -536,4 +566,10 @@ echo "  CC                      = $CC"
 echo "  CFLAGS                  = $CFLAGS"
 echo "  CPPFLAGS                = $CPPFLAGS"
 echo "  LDFLAGS                 = $LDFLAGS"
+if test x"$cross_compiling" = x"yes"; then
+echo "  CC_FOR_BUILD            = $CC_FOR_BUILD"
+echo "  CFLAGS_FOR_BUILD        = $CFLAGS_FOR_BUILD"
+echo "  CPPFLAGS_FOR_BUILD      = $CPPFLAGS_FOR_BUILD"
+echo "  LDFLAGS_FOR_BUILD       = $LDFLAGS_FOR_BUILD"
+fi
 echo
