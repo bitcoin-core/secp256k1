@@ -14,7 +14,7 @@ AM_INIT_AUTOMAKE([foreign subdir-objects])
 : ${CFLAGS="-g"}
 LT_INIT
 
-dnl make the compilation flags quiet unless V=1 is used
+# Make the compilation flags quiet unless V=1 is used.
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 PKG_PROG_PKG_CONFIG
@@ -37,9 +37,9 @@ case $host_os in
      if  test x$cross_compiling != xyes; then
        AC_PATH_PROG([BREW],brew,)
        if test x$BREW != x; then
-         dnl These Homebrew packages may be keg-only, meaning that they won't be found
-         dnl in expected paths because they may conflict with system files. Ask
-         dnl Homebrew where each one is located, then adjust paths accordingly.
+         # These Homebrew packages may be keg-only, meaning that they won't be found
+         # in expected paths because they may conflict with system files. Ask
+         # Homebrew where each one is located, then adjust paths accordingly.
          openssl_prefix=`$BREW --prefix openssl 2>/dev/null`
          gmp_prefix=`$BREW --prefix gmp 2>/dev/null`
          valgrind_prefix=`$BREW --prefix valgrind 2>/dev/null`
@@ -57,8 +57,8 @@ case $host_os in
          fi
        else
          AC_PATH_PROG([PORT],port,)
-         dnl if homebrew isn't installed and macports is, add the macports default paths
-         dnl as a last resort.
+         # If homebrew isn't installed and macports is, add the macports default paths
+         # as a last resort.
          if test x$PORT != x; then
            CPPFLAGS="$CPPFLAGS -isystem /opt/local/include"
            LDFLAGS="$LDFLAGS -L/opt/local/lib"
@@ -88,6 +88,10 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
     [ AC_MSG_RESULT([no])
       CFLAGS="$saved_CFLAGS"
     ])
+
+###
+### Define config arguments
+###
 
 AC_ARG_ENABLE(benchmark,
     AS_HELP_STRING([--enable-benchmark],[compile benchmark [default=yes]]),
@@ -149,8 +153,8 @@ AC_ARG_ENABLE(external_default_callbacks,
     [use_external_default_callbacks=$enableval],
     [use_external_default_callbacks=no])
 
-dnl Test-only override of the (autodetected by the C code) "widemul" setting.
-dnl Legal values are int64 (for [u]int64_t), int128 (for [unsigned] __int128), and auto (the default).
+# Test-only override of the (autodetected by the C code) "widemul" setting.
+# Legal values are int64 (for [u]int64_t), int128 (for [unsigned] __int128), and auto (the default).
 AC_ARG_WITH([test-override-wide-multiply], [] ,[set_widemul=$withval], [set_widemul=auto])
 
 AC_ARG_WITH([bignum], [AS_HELP_STRING([--with-bignum=gmp|no|auto],
@@ -180,6 +184,10 @@ AC_ARG_WITH([valgrind], [AS_HELP_STRING([--with-valgrind=yes|no|auto],
 )],
 [req_valgrind=$withval], [req_valgrind=auto])
 
+###
+### Handle config options (except for modules)
+###
+
 if test x"$req_valgrind" = x"no"; then
   enable_valgrind=no
 else
@@ -201,61 +209,6 @@ if test x"$enable_coverage" = x"yes"; then
     LDFLAGS="--coverage $LDFLAGS"
 else
     CFLAGS="-O2 $CFLAGS"
-fi
-
-if test x"$use_ecmult_static_precomputation" != x"no"; then
-  # Temporarily switch to an environment for the native compiler
-  save_cross_compiling=$cross_compiling
-  cross_compiling=no
-  SAVE_CC="$CC"
-  CC="$CC_FOR_BUILD"
-  SAVE_CFLAGS="$CFLAGS"
-  CFLAGS="$CFLAGS_FOR_BUILD"
-  SAVE_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS_FOR_BUILD"
-  SAVE_LDFLAGS="$LDFLAGS"
-  LDFLAGS="$LDFLAGS_FOR_BUILD"
-
-  warn_CFLAGS_FOR_BUILD="-Wall -Wextra -Wno-unused-function"
-  saved_CFLAGS="$CFLAGS"
-  CFLAGS="$warn_CFLAGS_FOR_BUILD $CFLAGS"
-  AC_MSG_CHECKING([if native ${CC_FOR_BUILD} supports ${warn_CFLAGS_FOR_BUILD}])
-  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
-      [ AC_MSG_RESULT([yes]) ],
-      [ AC_MSG_RESULT([no])
-        CFLAGS="$saved_CFLAGS"
-      ])
-
-  AC_MSG_CHECKING([for working native compiler: ${CC_FOR_BUILD}])
-  AC_RUN_IFELSE(
-    [AC_LANG_PROGRAM([], [])],
-    [working_native_cc=yes],
-    [working_native_cc=no],[:])
-
-  CFLAGS_FOR_BUILD="$CFLAGS"
-
-  # Restore the environment
-  cross_compiling=$save_cross_compiling
-  CC="$SAVE_CC"
-  CFLAGS="$SAVE_CFLAGS"
-  CPPFLAGS="$SAVE_CPPFLAGS"
-  LDFLAGS="$SAVE_LDFLAGS"
-
-  if test x"$working_native_cc" = x"no"; then
-    AC_MSG_RESULT([no])
-    set_precomp=no
-    m4_define([please_set_for_build], [Please set CC_FOR_BUILD, CFLAGS_FOR_BUILD, CPPFLAGS_FOR_BUILD, and/or LDFLAGS_FOR_BUILD.])
-    if test x"$use_ecmult_static_precomputation" = x"yes";  then
-      AC_MSG_ERROR([native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
-    else
-      AC_MSG_WARN([Disabling statically generated ecmult table because the native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
-    fi
-  else
-    AC_MSG_RESULT([yes])
-    set_precomp=yes
-  fi
-else
-  set_precomp=no
 fi
 
 if test x"$req_asm" = x"auto"; then
@@ -311,7 +264,7 @@ else
   esac
 fi
 
-# select assembly optimization
+# Select assembly optimization
 use_external_asm=no
 
 case $set_asm in
@@ -328,7 +281,12 @@ no)
   ;;
 esac
 
-# select wide multiplication implementation
+if test x"$use_external_asm" = x"yes"; then
+  AC_DEFINE(USE_EXTERNAL_ASM, 1, [Define this symbol if an external (non-inline) assembly implementation is used])
+fi
+
+
+# Select wide multiplication implementation
 case $set_widemul in
 int128)
   AC_DEFINE(USE_FORCE_WIDEMUL_INT128, 1, [Define this symbol to force the use of the (unsigned) __int128 based wide multiplication implementation])
@@ -343,7 +301,7 @@ auto)
   ;;
 esac
 
-# select bignum implementation
+# Select bignum implementation
 case $set_bignum in
 gmp)
   AC_DEFINE(HAVE_LIBGMP, 1, [Define this symbol if libgmp is installed])
@@ -361,7 +319,7 @@ no)
   ;;
 esac
 
-#set ecmult window size
+# Set ecmult window size
 if test x"$req_ecmult_window" = x"auto"; then
   set_ecmult_window=15
 else
@@ -383,7 +341,7 @@ case $set_ecmult_window in
   ;;
 esac
 
-#set ecmult gen precision
+# Set ecmult gen precision
 if test x"$req_ecmult_gen_precision" = x"auto"; then
   set_ecmult_gen_precision=4
 else
@@ -434,9 +392,69 @@ if test x"$enable_valgrind" = x"yes"; then
   SECP_INCLUDES="$SECP_INCLUDES $VALGRIND_CPPFLAGS"
 fi
 
+# Handle static precomputation (after everything which modifies CFLAGS and friends)
+if test x"$use_ecmult_static_precomputation" != x"no"; then
+  # Temporarily switch to an environment for the native compiler
+  save_cross_compiling=$cross_compiling
+  cross_compiling=no
+  SAVE_CC="$CC"
+  CC="$CC_FOR_BUILD"
+  SAVE_CFLAGS="$CFLAGS"
+  CFLAGS="$CFLAGS_FOR_BUILD"
+  SAVE_CPPFLAGS="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS_FOR_BUILD"
+  SAVE_LDFLAGS="$LDFLAGS"
+  LDFLAGS="$LDFLAGS_FOR_BUILD"
+
+  warn_CFLAGS_FOR_BUILD="-Wall -Wextra -Wno-unused-function"
+  saved_CFLAGS="$CFLAGS"
+  CFLAGS="$warn_CFLAGS_FOR_BUILD $CFLAGS"
+  AC_MSG_CHECKING([if native ${CC_FOR_BUILD} supports ${warn_CFLAGS_FOR_BUILD}])
+  AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
+      [ AC_MSG_RESULT([yes]) ],
+      [ AC_MSG_RESULT([no])
+        CFLAGS="$saved_CFLAGS"
+      ])
+
+  AC_MSG_CHECKING([for working native compiler: ${CC_FOR_BUILD}])
+  AC_RUN_IFELSE(
+    [AC_LANG_PROGRAM([], [])],
+    [working_native_cc=yes],
+    [working_native_cc=no],[:])
+
+  CFLAGS_FOR_BUILD="$CFLAGS"
+
+  # Restore the environment
+  cross_compiling=$save_cross_compiling
+  CC="$SAVE_CC"
+  CFLAGS="$SAVE_CFLAGS"
+  CPPFLAGS="$SAVE_CPPFLAGS"
+  LDFLAGS="$SAVE_LDFLAGS"
+
+  if test x"$working_native_cc" = x"no"; then
+    AC_MSG_RESULT([no])
+    set_precomp=no
+    m4_define([please_set_for_build], [Please set CC_FOR_BUILD, CFLAGS_FOR_BUILD, CPPFLAGS_FOR_BUILD, and/or LDFLAGS_FOR_BUILD.])
+    if test x"$use_ecmult_static_precomputation" = x"yes";  then
+      AC_MSG_ERROR([native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
+    else
+      AC_MSG_WARN([Disabling statically generated ecmult table because the native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
+    fi
+  else
+    AC_MSG_RESULT([yes])
+    set_precomp=yes
+  fi
+else
+  set_precomp=no
+fi
+
 if test x"$set_precomp" = x"yes"; then
   AC_DEFINE(USE_ECMULT_STATIC_PRECOMPUTATION, 1, [Define this symbol to use a statically generated ecmult table])
 fi
+
+###
+### Handle module options
+###
 
 if test x"$enable_module_ecdh" = x"yes"; then
   AC_DEFINE(ENABLE_MODULE_ECDH, 1, [Define this symbol to enable the ECDH module])
@@ -457,13 +475,13 @@ if test x"$enable_module_extrakeys" = x"yes"; then
   AC_DEFINE(ENABLE_MODULE_EXTRAKEYS, 1, [Define this symbol to enable the extrakeys module])
 fi
 
-if test x"$use_external_asm" = x"yes"; then
-  AC_DEFINE(USE_EXTERNAL_ASM, 1, [Define this symbol if an external (non-inline) assembly implementation is used])
-fi
-
 if test x"$use_external_default_callbacks" = x"yes"; then
   AC_DEFINE(USE_EXTERNAL_DEFAULT_CALLBACKS, 1, [Define this symbol if an external implementation of the default callbacks is used])
 fi
+
+###
+### Check for --enable-experimental if necessary
+###
 
 if test x"$enable_experimental" = x"yes"; then
   AC_MSG_NOTICE([******])
@@ -484,6 +502,10 @@ else
   fi
 fi
 
+###
+### Generate output
+###
+
 AC_CONFIG_HEADERS([src/libsecp256k1-config.h])
 AC_CONFIG_FILES([Makefile libsecp256k1.pc])
 AC_SUBST(SECP_INCLUDES)
@@ -502,7 +524,7 @@ AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = 
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$use_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
 
-dnl make sure nothing new is exported so that we don't break the cache
+# Make sure nothing new is exported so that we don't break the cache.
 PKGCONFIG_PATH_TEMP="$PKG_CONFIG_PATH"
 unset PKG_CONFIG_PATH
 PKG_CONFIG_PATH="$PKGCONFIG_PATH_TEMP"
@@ -526,7 +548,7 @@ echo "  asm                     = $set_asm"
 echo "  bignum                  = $set_bignum"
 echo "  ecmult window size      = $set_ecmult_window"
 echo "  ecmult gen prec. bits   = $set_ecmult_gen_precision"
-dnl Hide test-only options unless they're used.
+# Hide test-only options unless they're used.
 if test x"$set_widemul" != xauto; then
 echo "  wide multiplication     = $set_widemul"
 fi
