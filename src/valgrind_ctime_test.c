@@ -140,6 +140,12 @@ int main(void) {
     ret = secp256k1_keypair_xonly_tweak_add(ctx, &keypair, msg);
     VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
     CHECK(ret == 1);
+
+    VALGRIND_MAKE_MEM_UNDEFINED(key, 32);
+    VALGRIND_MAKE_MEM_UNDEFINED(&keypair, sizeof(keypair));
+    ret = secp256k1_keypair_sec(ctx, key, &keypair);
+    VALGRIND_MAKE_MEM_DEFINED(&ret, sizeof(ret));
+    CHECK(ret == 1);
 #endif
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
