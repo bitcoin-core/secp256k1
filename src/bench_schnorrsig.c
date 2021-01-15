@@ -13,6 +13,8 @@
 #include "util.h"
 #include "bench.h"
 
+#define MSGLEN 32
+
 typedef struct {
     secp256k1_context *ctx;
     int n;
@@ -26,7 +28,7 @@ typedef struct {
 void bench_schnorrsig_sign(void* arg, int iters) {
     bench_schnorrsig_data *data = (bench_schnorrsig_data *)arg;
     int i;
-    unsigned char msg[32] = "benchmarkexamplemessagetemplate";
+    unsigned char msg[MSGLEN] = "benchmarkexamplemessagetemplate";
     unsigned char sig[64];
 
     for (i = 0; i < iters; i++) {
@@ -43,7 +45,7 @@ void bench_schnorrsig_verify(void* arg, int iters) {
     for (i = 0; i < iters; i++) {
         secp256k1_xonly_pubkey pk;
         CHECK(secp256k1_xonly_pubkey_parse(data->ctx, &pk, data->pk[i]) == 1);
-        CHECK(secp256k1_schnorrsig_verify(data->ctx, data->sigs[i], data->msgs[i], &pk));
+        CHECK(secp256k1_schnorrsig_verify(data->ctx, data->sigs[i], data->msgs[i], MSGLEN, &pk));
     }
 }
 
@@ -60,7 +62,7 @@ int main(void) {
 
     for (i = 0; i < iters; i++) {
         unsigned char sk[32];
-        unsigned char *msg = (unsigned char *)malloc(32);
+        unsigned char *msg = (unsigned char *)malloc(MSGLEN);
         unsigned char *sig = (unsigned char *)malloc(64);
         secp256k1_keypair *keypair = (secp256k1_keypair *)malloc(sizeof(*keypair));
         unsigned char *pk_char = (unsigned char *)malloc(32);

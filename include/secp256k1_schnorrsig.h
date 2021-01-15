@@ -24,7 +24,9 @@ extern "C" {
  *  Returns: 1 if a nonce was successfully generated. 0 will cause signing to
  *           return an error.
  *  Out:  nonce32: pointer to a 32-byte array to be filled by the function
- *  In:     msg32: the 32-byte message hash being verified (will not be NULL)
+ *  In:       msg: the message being verified. Is NULL if and only if msglen
+ *                 is 0.
+ *         msglen: the length of the message
  *          key32: pointer to a 32-byte secret key (will not be NULL)
  *     xonly_pk32: the 32-byte serialized xonly pubkey corresponding to key32
  *                 (will not be NULL)
@@ -38,7 +40,8 @@ extern "C" {
  */
 typedef int (*secp256k1_nonce_function_hardened)(
     unsigned char *nonce32,
-    const unsigned char *msg32,
+    const unsigned char *msg,
+    size_t msglen,
     const unsigned char *key32,
     const unsigned char *xonly_pk32,
     const unsigned char *algo,
@@ -66,6 +69,13 @@ SECP256K1_API extern const secp256k1_nonce_function_hardened secp256k1_nonce_fun
  *  signature. Instead, you can manually use secp256k1_schnorrsig_verify and
  *  abort if it fails.
  *
+ *  This function only signs 32-byte messages. If you have messages of a
+ *  different size (or the same size but without a context-specific tag
+ *  prefix), it is recommended to create a 32-byte message hash with
+ *  secp256k1_tagged_sha256 and then sign the hash. Tagged hashing allows
+ *  providing an context-specific tag for domain separation. This prevents
+ *  signatures from being valid in multiple contexts by accident.
+ *
  *  Returns 1 on success, 0 on failure.
  *  Args:    ctx: pointer to a context object, initialized for signing (cannot be NULL)
  *  Out:   sig64: pointer to a 64-byte array to store the serialized signature (cannot be NULL)
@@ -86,12 +96,14 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
 
 /** Create a Schnorr signature with a more flexible API.
  *
- *  Same arguments as secp256k1_schnorrsig_sign except that it misses aux_rand32
- *  and instead allows allows providing a different nonce derivation function
- *  with its own data argument.
+ *  Same arguments as secp256k1_schnorrsig_sign except that it allows signing
+ *  variable length messages and allows providing a different nonce derivation
+ *  function with its own data argument.
  *
- *  In: noncefp: pointer to a nonce generation function. If NULL,
- *               secp256k1_nonce_function_bip340 is used
+ *  In:     msg: the message being signed. Can only be NULL if msglen is 0.
+ *       msglen: length of the message
+ *      noncefp: pointer to a nonce generation function. If NULL,
+ *               secp256k1_nonce_function_bip340 is used.
  *        ndata: pointer to arbitrary data used by the nonce generation function
  *               (can be NULL). If it is non-NULL and
  *               secp256k1_nonce_function_bip340 is used, then ndata must be a
@@ -100,11 +112,12 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
 SECP256K1_API int secp256k1_schnorrsig_sign_custom(
     const secp256k1_context* ctx,
     unsigned char *sig64,
-    const unsigned char *msg32,
+    const unsigned char *msg,
+    size_t msglen,
     const secp256k1_keypair *keypair,
     secp256k1_nonce_function_hardened noncefp,
     void *ndata
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(5);
 
 /** Verify a Schnorr signature.
  *
@@ -112,15 +125,17 @@ SECP256K1_API int secp256k1_schnorrsig_sign_custom(
  *           0: incorrect signature
  *  Args:    ctx: a secp256k1 context object, initialized for verification.
  *  In:    sig64: pointer to the 64-byte signature to verify (cannot be NULL)
- *         msg32: the 32-byte message being verified (cannot be NULL)
+ *           msg: the message being verified. Can only be NULL if msglen is 0.
+ *        msglen: length of the message
  *        pubkey: pointer to an x-only public key to verify with (cannot be NULL)
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_verify(
     const secp256k1_context* ctx,
     const unsigned char *sig64,
-    const unsigned char *msg32,
+    const unsigned char *msg,
+    size_t msglen,
     const secp256k1_xonly_pubkey *pubkey
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(5);
 
 #ifdef __cplusplus
 }

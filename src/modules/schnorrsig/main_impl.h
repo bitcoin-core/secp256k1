@@ -47,7 +47,7 @@ static void secp256k1_nonce_function_bip340_sha256_tagged_aux(secp256k1_sha256 *
  * by using the correct tagged hash function. */
 static const unsigned char bip340_algo[13] = "BIP0340/nonce";
 
-static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
     secp256k1_sha256 sha;
     unsigned char masked_key[32];
     int i;
@@ -82,7 +82,7 @@ static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *ms
         secp256k1_sha256_write(&sha, key32, 32);
     }
     secp256k1_sha256_write(&sha, xonly_pk32, 32);
-    secp256k1_sha256_write(&sha, msg32, 32);
+    secp256k1_sha256_write(&sha, msg, msglen);
     secp256k1_sha256_finalize(&sha, nonce32);
     return 1;
 }
@@ -104,28 +104,27 @@ static void secp256k1_schnorrsig_sha256_tagged(secp256k1_sha256 *sha) {
     sha->bytes = 64;
 }
 
-static void secp256k1_schnorrsig_challenge(secp256k1_scalar* e, const unsigned char *r32, const unsigned char *msg32, const unsigned char *pubkey32)
+static void secp256k1_schnorrsig_challenge(secp256k1_scalar* e, const unsigned char *r32, const unsigned char *msg, size_t msglen, const unsigned char *pubkey32)
 {
     unsigned char buf[32];
     secp256k1_sha256 sha;
 
-    /* tagged hash(r.x, pk.x, msg32) */
+    /* tagged hash(r.x, pk.x, msg) */
     secp256k1_schnorrsig_sha256_tagged(&sha);
     secp256k1_sha256_write(&sha, r32, 32);
     secp256k1_sha256_write(&sha, pubkey32, 32);
-    secp256k1_sha256_write(&sha, msg32, 32);
+    secp256k1_sha256_write(&sha, msg, msglen);
     secp256k1_sha256_finalize(&sha, buf);
     /* Set scalar e to the challenge hash modulo the curve order as per
      * BIP340. */
     secp256k1_scalar_set_b32(e, buf, NULL);
 }
 
-
 int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg32, const secp256k1_keypair *keypair, unsigned char *aux_rand32) {
-    return secp256k1_schnorrsig_sign_custom(ctx, sig64, msg32, keypair, NULL, aux_rand32);
+    return secp256k1_schnorrsig_sign_custom(ctx, sig64, msg32, 32, keypair, NULL, aux_rand32);
 }
 
-int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg32, const secp256k1_keypair *keypair, secp256k1_nonce_function_hardened noncefp, void *ndata) {
+int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_keypair *keypair, secp256k1_nonce_function_hardened noncefp, void *ndata) {
     secp256k1_scalar sk;
     secp256k1_scalar e;
     secp256k1_scalar k;
@@ -140,7 +139,7 @@ int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
     ARG_CHECK(sig64 != NULL);
-    ARG_CHECK(msg32 != NULL);
+    ARG_CHECK(msg != NULL || msglen == 0);
     ARG_CHECK(keypair != NULL);
 
     if (noncefp == NULL) {
@@ -157,7 +156,7 @@ int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char
 
     secp256k1_scalar_get_b32(seckey, &sk);
     secp256k1_fe_get_b32(pk_buf, &pk.x);
-    ret &= !!noncefp(buf, msg32, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
+    ret &= !!noncefp(buf, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
     secp256k1_scalar_set_b32(&k, buf, NULL);
     ret &= !secp256k1_scalar_is_zero(&k);
     secp256k1_scalar_cmov(&k, &secp256k1_scalar_one, !ret);
@@ -175,7 +174,7 @@ int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char
     secp256k1_fe_normalize_var(&r.x);
     secp256k1_fe_get_b32(&sig64[0], &r.x);
 
-    secp256k1_schnorrsig_challenge(&e, &sig64[0], msg32, pk_buf);
+    secp256k1_schnorrsig_challenge(&e, &sig64[0], msg, msglen, pk_buf);
     secp256k1_scalar_mul(&e, &e, &sk);
     secp256k1_scalar_add(&e, &e, &k);
     secp256k1_scalar_get_b32(&sig64[32], &e);
@@ -188,7 +187,7 @@ int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char
     return ret;
 }
 
-int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned char *sig64, const unsigned char *msg32, const secp256k1_xonly_pubkey *pubkey) {
+int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_xonly_pubkey *pubkey) {
     secp256k1_scalar s;
     secp256k1_scalar e;
     secp256k1_gej rj;
@@ -202,7 +201,7 @@ int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned cha
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
     ARG_CHECK(sig64 != NULL);
-    ARG_CHECK(msg32 != NULL);
+    ARG_CHECK(msg != NULL || msglen == 0);
     ARG_CHECK(pubkey != NULL);
 
     if (!secp256k1_fe_set_b32(&rx, &sig64[0])) {
@@ -220,7 +219,7 @@ int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned cha
 
     /* Compute e. */
     secp256k1_fe_get_b32(buf, &pk.x);
-    secp256k1_schnorrsig_challenge(&e, &sig64[0], msg32, buf);
+    secp256k1_schnorrsig_challenge(&e, &sig64[0], msg, msglen, buf);
 
     /* Compute rj =  s*G + (-e)*pkj */
     secp256k1_scalar_negate(&e, &e);
