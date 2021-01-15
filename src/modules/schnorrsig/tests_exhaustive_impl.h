@@ -60,13 +60,15 @@ static const unsigned char invalid_pubkey_bytes[][32] = {
 
 static int secp256k1_hardened_nonce_function_smallint(unsigned char *nonce32, const unsigned char *msg32,
                                                       const unsigned char *key32, const unsigned char *xonly_pk32,
-                                                      const unsigned char *algo16, void* data) {
+                                                      const unsigned char *algo, size_t algolen,
+                                                      void* data) {
     secp256k1_scalar s;
     int *idata = data;
     (void)msg32;
     (void)key32;
     (void)xonly_pk32;
-    (void)algo16;
+    (void)algo;
+    (void)algolen;
     secp256k1_scalar_set_int(&s, *idata);
     secp256k1_scalar_get_b32(nonce32, &s);
     return 1;
