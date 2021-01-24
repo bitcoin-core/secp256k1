@@ -63,9 +63,6 @@ static void secp256k1_scalar_mul(secp256k1_scalar *r, const secp256k1_scalar *a,
  *  the low bits that were shifted off */
 static int secp256k1_scalar_shr_int(secp256k1_scalar *r, int n);
 
-/** Compute the square of a scalar (modulo the group order). */
-static void secp256k1_scalar_sqr(secp256k1_scalar *r, const secp256k1_scalar *a);
-
 /** Compute the inverse of a scalar (modulo the group order). */
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *a);
 
