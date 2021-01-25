@@ -4,8 +4,8 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
-#ifndef _SECP256K1_MODULE_SCHNORRSIG_TESTS_EXHAUSTIVE_
-#define _SECP256K1_MODULE_SCHNORRSIG_TESTS_EXHAUSTIVE_
+#ifndef SECP256K1_MODULE_SCHNORRSIG_TESTS_EXHAUSTIVE_H
+#define SECP256K1_MODULE_SCHNORRSIG_TESTS_EXHAUSTIVE_H
 
 #include "include/secp256k1_schnorrsig.h"
 #include "src/modules/schnorrsig/main_impl.h"

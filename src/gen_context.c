@@ -47,8 +47,8 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    fprintf(fp, "#ifndef _SECP256K1_ECMULT_STATIC_CONTEXT_\n");
-    fprintf(fp, "#define _SECP256K1_ECMULT_STATIC_CONTEXT_\n");
+    fprintf(fp, "#ifndef SECP256K1_ECMULT_STATIC_CONTEXT_H\n");
+    fprintf(fp, "#define SECP256K1_ECMULT_STATIC_CONTEXT_H\n");
     fprintf(fp, "#include \"src/group.h\"\n");
     fprintf(fp, "#define SC SECP256K1_GE_STORAGE_CONST\n");
     fprintf(fp, "#if ECMULT_GEN_PREC_N != %d || ECMULT_GEN_PREC_G != %d\n", ECMULT_GEN_PREC_N, ECMULT_GEN_PREC_G);
