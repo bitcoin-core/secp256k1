@@ -591,7 +591,7 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
     secp256k1_fe_cmov(&n, &m, degenerate);              /* n = M^3 * Malt (2) */
     secp256k1_fe_sqr(&t, &rr_alt);                      /* t = Ralt^2 (1) */
     secp256k1_fe_mul(&r->z, &a->z, &m_alt);             /* r->z = Malt*Z (1) */
-    infinity = secp256k1_fe_normalizes_to_zero(&r->z) * (1 - a->infinity);
+    infinity = secp256k1_fe_normalizes_to_zero(&r->z) & ~a->infinity;
     secp256k1_fe_mul_int(&r->z, 2);                     /* r->z = Z3 = 2*Malt*Z (2) */
     secp256k1_fe_negate(&q, &q, 1);                     /* q = -Q (2) */
     secp256k1_fe_add(&t, &q);                           /* t = Ralt^2-Q (3) */
