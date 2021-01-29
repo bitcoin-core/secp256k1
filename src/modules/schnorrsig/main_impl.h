@@ -166,7 +166,7 @@ int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64
 
     /* We declassify r to allow using it as a branch point. This is fine
      * because r is not a secret. */
-    secp256k1_declassify(ctx, &r, sizeof(r));
+/*    secp256k1_declassify(ctx, &r, sizeof(r));*/
     secp256k1_fe_normalize_var(&r.y);
     if (secp256k1_fe_is_odd(&r.y)) {
         secp256k1_scalar_negate(&k, &k);
