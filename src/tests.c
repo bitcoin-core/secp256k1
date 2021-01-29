@@ -4324,8 +4324,10 @@ void test_ecdsa_sign_verify(void) {
     secp256k1_scalar one;
     secp256k1_scalar msg, key;
     secp256k1_scalar sigr, sigs;
-    int recid;
     int getrec;
+    /* Initialize recid to suppress a false positive -Wconditional-uninitialized in clang.
+       VG_UNDEF ensures that valgrind will still treat the variable as uninitialized. */
+    int recid = -1; VG_UNDEF(&recid, sizeof(recid));
     random_scalar_order_test(&msg);
     random_scalar_order_test(&key);
     secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pubj, &key);
