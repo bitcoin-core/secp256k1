@@ -87,7 +87,7 @@ static int secp256k1_wnaf_const(int *wnaf, const secp256k1_scalar *scalar, int w
      * we need to special-case it in this logic. */
     flip = secp256k1_scalar_is_high(scalar);
     /* We add 1 to even numbers, 2 to odd ones, noting that negation flips parity */
-    bit = flip ^ !secp256k1_scalar_is_even(scalar);
+    bit = flip & !secp256k1_scalar_is_even(scalar);
     /* We check for negative one, since adding 2 to it will cause an overflow */
     secp256k1_scalar_negate(&s, scalar);
     not_neg_one = !secp256k1_scalar_is_one(&s);
