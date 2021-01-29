@@ -465,7 +465,7 @@ __asm__ __volatile__(
     "movq $0x1000003d10,%%rdx\n"
     "mulq %%rdx\n"
     "addq %%rax,%%r8\n"
-    "adcq %%rdx,%%r9\n"
+    "addq %%rdx,%%r9\n"
     /* d >>= 52 (%%rbx only) */
     "shrdq $52,%%rcx,%%rbx\n"
     /* r[2] = c & M */
