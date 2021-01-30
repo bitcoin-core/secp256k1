@@ -224,7 +224,7 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *r, int flag) {
     c2 += (th2 < th);               /* never overflows by contract (verified the next line) */ \
     VERIFY_CHECK((th2 >= th) || (c2 != 0)); \
     tl2 = tl + tl;                  /* at most 0xFFFFFFFFFFFFFFFE (in case the lowest 63 bits of tl were 0x7FFFFFFFFFFFFFFF) */ \
-    th2 += (tl2 < tl);              /* at most 0xFFFFFFFFFFFFFFFF */ \
+    /*th2 += (tl2 < tl);*/              /* at most 0xFFFFFFFFFFFFFFFF */ \
     c0 += tl2;                      /* overflow is handled on the next line */ \
     th2 += (c0 < tl2);              /* second overflow is handled on the next line */ \
     c2 += (c0 < tl2) & (th2 == 0);  /* never overflows by contract (verified the next line) */ \
