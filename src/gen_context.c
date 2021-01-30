@@ -39,15 +39,10 @@ int main(int argc, char **argv) {
     FILE* fp;
     const char *SC_FORMAT = "    SC(%uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu)";
 
-#if USE_COMB
     const int blocks = COMB_BLOCKS;
     const int points = COMB_POINTS;
 #if COMB_OFFSET
     secp256k1_ge_storage offset;
-#endif
-#else
-    const int blocks = ECMULT_GEN_PREC_N;
-    const int points = ECMULT_GEN_PREC_G;
 #endif
 
     (void)argc;
@@ -63,31 +58,20 @@ int main(int argc, char **argv) {
     fprintf(fp, "#define SECP256K1_ECMULT_STATIC_CONTEXT_H\n");
     fprintf(fp, "#include \"src/group.h\"\n");
     fprintf(fp, "#define SC SECP256K1_GE_STORAGE_CONST\n");
-    fprintf(fp, "#if USE_COMB != %i\n", USE_COMB);
-    fprintf(fp, "   #error configuration mismatch, invalid USE_COMB. Try deleting ecmult_static_context.h before the build.\n");
-    fprintf(fp, "#endif\n");
-#if USE_COMB
     fprintf(fp, "#if COMB_BLOCKS != %i || COMB_TEETH != %i || COMB_SPACING != %i\n", COMB_BLOCKS, COMB_TEETH, COMB_SPACING);
     fprintf(fp, "   #error configuration mismatch, invalid COMB_BLOCKS, COMB_TEETH, or COMB_SPACING. Try deleting ecmult_static_context.h before the build.\n");
     fprintf(fp, "#endif\n");
-#else
-    fprintf(fp, "#if ECMULT_GEN_PREC_N != %d || ECMULT_GEN_PREC_G != %d\n", ECMULT_GEN_PREC_N, ECMULT_GEN_PREC_G);
-    fprintf(fp, "   #error configuration mismatch, invalid ECMULT_GEN_PREC_N, ECMULT_GEN_PREC_G. Try deleting ecmult_static_context.h before the build.\n");
-    fprintf(fp, "#endif\n");
-#endif
 
     base = checked_malloc(&default_error_callback, SECP256K1_ECMULT_GEN_CONTEXT_PREALLOCATED_SIZE);
     prealloc = base;
     secp256k1_ecmult_gen_context_init(&ctx);
     secp256k1_ecmult_gen_context_build(&ctx, &prealloc);
 
-#if USE_COMB
 #if COMB_OFFSET
     secp256k1_ge_to_storage(&offset, &ctx.offset);
     fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_gen_ctx_offset =\n");
     fprintf(fp, SC_FORMAT, SECP256K1_GE_STORAGE_CONST_GET(offset));
     fprintf(fp, ";\n");
-#endif
 #endif
 
     fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_gen_ctx_prec[%i][%i] = {\n", blocks, points);
