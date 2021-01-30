@@ -3,14 +3,18 @@
 set -e
 set -x
 
-if [ "$HOST" = "i686-linux-gnu" ]
-then
-    export CC="$CC -m32"
-fi
-if [ "$TRAVIS_OS_NAME" = "osx" ] && [ "$TRAVIS_COMPILER" = "gcc" ]
-then
-    export CC="gcc-9"
-fi
+export LC_ALL=C
+
+env >> test_env.log
+
+$CC -v || true
+valgrind --version || true
+
+./autogen.sh
+
+# Nix doesn't store GNU file in /usr/bin, see https://lists.gnu.org/archive/html/bug-libtool/2015-09/msg00000.html .
+# The -i'' is necessary for macOS portability, see https://stackoverflow.com/a/4247319 .
+sed -i'' -e 's@/usr/bin/file@$(which file)@g' configure
 
 ./configure \
     --enable-experimental="$EXPERIMENTAL" \
@@ -25,6 +29,7 @@ if [ -n "$BUILD" ]
 then
     make -j2 "$BUILD"
 fi
+
 if [ "$RUN_VALGRIND" = "yes" ]
 then
     make -j2
@@ -32,16 +37,27 @@ then
     valgrind --error-exitcode=42 ./tests 16
     valgrind --error-exitcode=42 ./exhaustive_tests
 fi
+
+if [ -n "$QEMU_CMD" ]
+then
+    make -j2
+    $QEMU_CMD ./tests 16
+    $QEMU_CMD ./exhaustive_tests
+fi
+
 if [ "$BENCH" = "yes" ]
 then
+    # Using the local `libtool` because on macOS the system's libtool has nothing to do with GNU libtool
+    EXEC='./libtool --mode=execute'
+    if [ -n "$QEMU_CMD" ]
+    then
+       EXEC="$EXEC $QEMU_CMD"
+    fi
     if [ "$RUN_VALGRIND" = "yes" ]
     then
-        # Using the local `libtool` because on macOS the system's libtool has nothing to do with GNU libtool
-        EXEC='./libtool --mode=execute valgrind --error-exitcode=42'
-    else
-        EXEC=
+        EXEC="$EXEC valgrind --error-exitcode=42"
     fi
-    # This limits the iterations in the benchmarks below to ITER(set in .travis.yml) iterations.
+    # This limits the iterations in the benchmarks below to ITER iterations.
     export SECP256K1_BENCH_ITERS="$ITERS"
     {
         $EXEC ./bench_ecmult

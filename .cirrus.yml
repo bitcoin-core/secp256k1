@@ -1,0 +1,191 @@
+env:
+  WIDEMUL: auto
+  BIGNUM: auto
+  STATICPRECOMPUTATION: yes
+  ECMULTGENPRECISION: auto
+  ASM: no
+  BUILD: check
+  WITH_VALGRIND: yes
+  RUN_VALGRIND: no
+  EXTRAFLAGS:
+  HOST:
+  ECDH: no
+  RECOVERY: no
+  SCHNORRSIG: no
+  EXPERIMENTAL: no
+  CTIMETEST: yes
+  BENCH: yes
+  ITERS: 2
+  # We only need the top commit
+  CIRRUS_CLONE_DEPTH: 1
+
+cat_logs_snippet: &CAT_LOGS
+  always:
+    test_logs_script:
+      - cat tests.log || true
+      - cat exhaustive_tests.log || true
+      - cat valgrind_ctime_test.log || true
+      - cat bench.log || true
+  on_failure:
+    debug_output_script:
+      - cat config.log || true
+      - cat test_env.log || true
+      - env
+
+task:
+  name: "x86_64: Linux (Alpine Linux, Nix Shell)"
+  container:
+    dockerfile: ci/linux-nixos.Dockerfile
+    # Reduce number of CPUs to be able to do more builds in parallel.
+    cpu: 1
+    # More than enough for our scripts.
+    memory: 1G
+  matrix: &ENV_MATRIX
+    - env: {WIDEMUL:  int64,  RECOVERY: yes}
+    - env: {WIDEMUL:  int64,                 ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes}
+    - env: {WIDEMUL: int128}
+    - env: {WIDEMUL: int128,  RECOVERY: yes,            EXPERIMENTAL: yes, SCHNORRSIG: yes}
+    - env: {WIDEMUL: int128,                 ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes}
+    - env: {WIDEMUL: int128,  ASM: x86_64}
+    - env: {BIGNUM: no}
+    - env: {BIGNUM: no,       RECOVERY: yes,            EXPERIMENTAL: yes, SCHNORRSIG: yes}
+    - env: {BIGNUM: no,       STATICPRECOMPUTATION: no}
+    - env: {BUILD: distcheck, WITH_VALGRIND: no, CTIMETEST: no, BENCH: no}
+    - env: {CPPFLAGS: -DDETERMINISTIC}
+    - env: {CFLAGS: -O0, CTIMETEST: no}
+    - env:
+        CFLAGS:  "-fsanitize=undefined -fno-omit-frame-pointer"
+        LDFLAGS: "-fsanitize=undefined -fno-omit-frame-pointer"
+        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
+        BIGNUM: no
+        ASM: x86_64
+        ECDH: yes
+        RECOVERY: yes
+        EXPERIMENTAL: yes
+        SCHNORRSIG: yes
+        CTIMETEST: no
+    - env: { ECMULTGENPRECISION: 2 }
+    - env: { ECMULTGENPRECISION: 8 }
+    - env:
+        RUN_VALGRIND: yes
+        BIGNUM: no
+        ASM: x86_64
+        ECDH: yes
+        RECOVERY: yes
+        EXPERIMENTAL: yes
+        SCHNORRSIG: yes
+        EXTRAFLAGS: "--disable-openssl-tests"
+        BUILD:
+  matrix:
+    - env:
+        CC: gcc
+    - env:
+        CC: clang
+  test_script:
+    - nix-shell ci/shell.nix --run ./ci/cirrus.sh
+  << : *CAT_LOGS
+
+task:
+  name: "i686: Linux (Alpine Linux, Nix Shell)"
+  container:
+    dockerfile: ci/linux-nixos.Dockerfile
+    cpu: 1
+    memory: 1G
+  env:
+    HOST: i686-linux-gnu
+    ECDH: yes
+    RECOVERY: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG: yes
+  matrix:
+    - env:
+        CC: gcc
+    - env:
+        CC: clang
+  matrix:
+    - env:
+        BIGNUM: gmp
+    - env:
+        BIGNUM: no
+  test_script:
+    - nix-shell ci/shell-i686.nix --run ./ci/cirrus.sh
+  << : *CAT_LOGS
+
+task:
+  name: "x86_64: macOS Catalina"
+  macos_instance:
+    image: catalina-base
+  env:
+    HOMEBREW_NO_AUTO_UPDATE: 1
+    HOMEBREW_NO_INSTALL_CLEANUP: 1
+  matrix:
+    << : *ENV_MATRIX
+  matrix:
+    - env:
+        CC: gcc-9
+    - env:
+        CC: clang
+  # Update Command Line Tools
+  # Uncomment this if the Command Line Tools on the CirrusCI macOS image are too old to brew valgrind.
+  # See https://apple.stackexchange.com/a/195963 for the implementation.
+  ## update_clt_script:
+  ##   - system_profiler SPSoftwareDataType
+  ##   - touch /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
+  ##   - |-
+  ##     PROD=$(softwareupdate -l | grep "*.*Command Line" | tail -n 1 | awk -F"*" '{print $2}' | sed -e 's/^ *//' | sed 's/Label: //g' | tr -d '\n')
+  ##   # For debugging
+  ##   - softwareupdate -l && echo "PROD: $PROD"
+  ##   - softwareupdate -i "$PROD" --verbose
+  ##   - rm /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
+  ##
+  brew_valgrind_pre_script:
+    - brew config
+    - brew tap --shallow LouisBrunner/valgrind
+    # Fetch valgrind source but don't build it yet.
+    - brew fetch --HEAD LouisBrunner/valgrind/valgrind
+  brew_valgrind_cache:
+    # This is $(brew --cellar valgrind) but command substition does not work here.
+    folder: /usr/local/Cellar/valgrind
+    # Rebuild cache if ...
+    fingerprint_script:
+      # ... macOS version changes:
+      - sw_vers
+      # ... brew changes:
+      - brew config
+      # ... valgrind changes:
+      - git -C "$(brew --cache)/valgrind--git" rev-parse HEAD
+    populate_script:
+      # If there's no hit in the cache, build and install valgrind.
+      - brew install --HEAD LouisBrunner/valgrind/valgrind
+  brew_valgrind_post_script:
+    # If we have restored valgrind from the cache, tell brew to create symlink to the PATH.
+    # If we haven't restored from cached (and just run brew install), this is a no-op.
+    - brew link valgrind
+  brew_script:
+    - brew install automake libtool gmp gcc@9
+  test_script:
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS
+
+task:
+  name: "s390x (big-endian): Linux (Debian QEMU)"
+  container:
+    dockerfile: ci/linux-debian-s390-qemu.Dockerfile
+    cpu: 1
+    memory: 1G
+  env:
+    QEMU_CMD: qemu-s390x
+    HOST: s390x-linux-gnu
+    BUILD:
+    WITH_VALGRIND: no
+    BIGNUM: no
+    ECDH: yes
+    RECOVERY: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG: yes
+    CTIMETEST: no
+  test_script:
+    # https://sourceware.org/bugzilla/show_bug.cgi?id=27008
+    - rm /etc/ld.so.cache
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS
