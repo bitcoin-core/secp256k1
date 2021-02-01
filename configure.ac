@@ -23,7 +23,15 @@ AC_PATH_TOOL(AR, ar)
 AC_PATH_TOOL(RANLIB, ranlib)
 AC_PATH_TOOL(STRIP, strip)
 
+# Save definition of AC_PROG_CC because AM_PROG_CC_C_O in automake<=1.13 will
+# redefine AC_PROG_CC to exit with an error, which avoids the user calling it
+# accidently and screwing up the effect of AM_PROG_CC_C_O. However, we'll need
+# AC_PROG_CC later on in AX_PROG_CC_FOR_BUILD, where its usage is fine, and
+# we'll carefully make sure not to call AC_PROG_CC anywhere else.
+m4_copy([AC_PROG_CC], [saved_AC_PROG_CC])
 AM_PROG_CC_C_O
+# Restore AC_PROG_CC
+m4_rename_force([saved_AC_PROG_CC], [AC_PROG_CC])
 
 AC_PROG_CC_C89
 if test x"$ac_cv_prog_cc_c89" = x"no"; then
