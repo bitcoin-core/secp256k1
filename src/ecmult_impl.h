@@ -56,14 +56,23 @@
 
 #define ECMULT_MAX_POINTS_PER_BATCH 5000000
 
-/** Fill a table 'prej' with precomputed odd multiples of a. Prej will contain
- *  the values [1*a,3*a,...,(2*n-1)*a], so it space for n values. zr[0] will
- *  contain prej[0].z / a.z. The other zr[i] values = prej[i].z / prej[i-1].z.
- *  Prej's Z values are undefined, except for the last value.
+/** Fill a table 'pre_a' with precomputed odd multiples of a.
+ *  pre_a will contain [1*a,3*a,...,(2*n-1)*a], so it needs space for n group elements.
+ *  zr needs space for n field elements.
+ *
+ *  Although pre_a is an array of _ge rather than _gej, it actually represents elements
+ *  in Jacobian coordinates with their z coordinates omitted. The omitted z-coordinates
+ *  can be recovered using z and zr. Using the notation z(b) to represent the omitted
+ *  z coordinate of b:
+ *  - z(pre_a[n-1]) = 'z'
+ *  - z(pre_a[i-1]) = z(pre_a[i]) / zr[i] for n > i > 0
+ *
+ *  Lastly the zr[0] value, which isn't used above, is set so that:
+ *  - a.z = z(pre_a[0]) / zr[0]
  */
-static void secp256k1_ecmult_odd_multiples_table(int n, secp256k1_gej *prej, secp256k1_fe *zr, const secp256k1_gej *a) {
-    secp256k1_gej d;
-    secp256k1_ge a_ge, d_ge;
+static void secp256k1_ecmult_odd_multiples_table(int n, secp256k1_ge *pre_a, secp256k1_fe *zr, secp256k1_fe *z, const secp256k1_gej *a) {
+    secp256k1_gej d, ai;
+    secp256k1_ge d_ge;
     int i;
 
     VERIFY_CHECK(!a->infinity);
@@ -71,29 +80,38 @@ static void secp256k1_ecmult_odd_multiples_table(int n, secp256k1_gej *prej, sec
     secp256k1_gej_double_var(&d, a, NULL);
 
     /*
-     * Perform the additions on an isomorphism where 'd' is affine: drop the z coordinate
-     * of 'd', and scale the 1P starting value's x/y coordinates without changing its z.
+     * Perform the additions using an isomorphic curve Y^2 = X^3 + 7*C^6 where C := d.z.
+     * The isomorphism, phi, maps a secp256k1 point (x, y) to the point (x*C^2, y*C^3) on the other curve.
+     * In Jacobian coordinates phi maps (x, y, z) to (x*C^2, y*C^3, z) or, equivalently to (x, y, z/C).
+     *
+     *     phi(x, y, z) = (x*C^2, y*C^3, z) = (x, y, z/C)
+     *   d_ge := phi(d) = (d.x, d.y, 1)
+     *     ai := phi(a) = (a.x*C^2, a.y*C^3, a.z)
+     *
+     * The group addition functions work correctly on these isomorphic curves.
+     * In particular phi(d) is easy to represent in affine coordinates under this isomorphism.
+     * This lets us use the faster secp256k1_gej_add_ge_var group addition function that we wouldn't be able to use otherwise.
      */
-    d_ge.x = d.x;
-    d_ge.y = d.y;
-    d_ge.infinity = 0;
+    secp256k1_ge_set_xy(&d_ge, &d.x, &d.y);
+    secp256k1_ge_set_gej_zinv(&pre_a[0], a, &d.z);
+    secp256k1_gej_set_ge(&ai, &pre_a[0]);
+    ai.z = a->z;
 
-    secp256k1_ge_set_gej_zinv(&a_ge, a, &d.z);
-    prej[0].x = a_ge.x;
-    prej[0].y = a_ge.y;
-    prej[0].z = a->z;
-    prej[0].infinity = 0;
-
+    /* pre_a[0] is the point (a.x*C^2, a.y*C^3, a.z*C) which is equvalent to a.
+     * Set zr[0] to C, which is the ratio between the omitted z(pre_a[0]) value and a.z.
+     */
     zr[0] = d.z;
+
     for (i = 1; i < n; i++) {
-        secp256k1_gej_add_ge_var(&prej[i], &prej[i-1], &d_ge, &zr[i]);
+        secp256k1_gej_add_ge_var(&ai, &ai, &d_ge, &zr[i]);
+        secp256k1_ge_set_xy(&pre_a[i], &ai.x, &ai.y);
     }
 
-    /*
-     * Each point in 'prej' has a z coordinate too small by a factor of 'd.z'. Only
-     * the final point's z coordinate is actually used though, so just update that.
+    /* Multiply the last z-coordinate by C to undo the isomorphism.
+     * Since the z-coordinates of the pre_a values are implied by the zr array of z-coordinate ratios,
+     * undoing the isomorphism here undoes the isomorphism for all pre_a values.
      */
-    secp256k1_fe_mul(&prej[n-1].z, &prej[n-1].z, &d.z);
+    secp256k1_fe_mul(z, &ai.z, &d.z);
 }
 
 /** The following two macro retrieves a particular odd multiple from a table
@@ -246,18 +264,18 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
      */
     if (no > 0) {
         /* Compute the odd multiples in Jacobian form. */
-        secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), state->prej, state->zr, &a[state->ps[0].input_pos]);
+        secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), state->pre_a, state->zr, &Z, &a[state->ps[0].input_pos]);
         for (np = 1; np < no; ++np) {
             secp256k1_gej tmp = a[state->ps[np].input_pos];
 #ifdef VERIFY
-            secp256k1_fe_normalize_var(&(state->prej[(np - 1) * ECMULT_TABLE_SIZE(WINDOW_A) + ECMULT_TABLE_SIZE(WINDOW_A) - 1].z));
+            secp256k1_fe_normalize_var(&Z);
 #endif
-            secp256k1_gej_rescale(&tmp, &(state->prej[(np - 1) * ECMULT_TABLE_SIZE(WINDOW_A) + ECMULT_TABLE_SIZE(WINDOW_A) - 1].z));
-            secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), state->prej + np * ECMULT_TABLE_SIZE(WINDOW_A), state->zr + np * ECMULT_TABLE_SIZE(WINDOW_A), &tmp);
+            secp256k1_gej_rescale(&tmp, &Z);
+            secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), state->pre_a + np * ECMULT_TABLE_SIZE(WINDOW_A), state->zr + np * ECMULT_TABLE_SIZE(WINDOW_A), &Z, &tmp);
             secp256k1_fe_mul(state->zr + np * ECMULT_TABLE_SIZE(WINDOW_A), state->zr + np * ECMULT_TABLE_SIZE(WINDOW_A), &(a[state->ps[np].input_pos].z));
         }
         /* Bring them to the same Z denominator. */
-        secp256k1_ge_globalz_set_table_gej(ECMULT_TABLE_SIZE(WINDOW_A) * no, state->pre_a, &Z, state->prej, state->zr);
+        secp256k1_ge_table_set_globalz(ECMULT_TABLE_SIZE(WINDOW_A) * no, state->pre_a, state->zr);
     } else {
         secp256k1_fe_set_int(&Z, 1);
     }
