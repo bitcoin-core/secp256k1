@@ -33,9 +33,9 @@ cat_logs_snippet: &CAT_LOGS
       - env
 
 task:
-  name: "x86_64: Linux (Alpine Linux, Nix Shell)"
+  name: "x86_64: Linux (Debian stable)"
   container:
-    dockerfile: ci/linux-nixos.Dockerfile
+    dockerfile: ci/linux-debian.Dockerfile
     # Reduce number of CPUs to be able to do more builds in parallel.
     cpu: 1
     # More than enough for our scripts.
@@ -82,13 +82,13 @@ task:
     - env:
         CC: clang
   test_script:
-    - nix-shell ci/shell.nix --run ./ci/cirrus.sh
+    - ./ci/cirrus.sh
   << : *CAT_LOGS
 
 task:
-  name: "i686: Linux (Alpine Linux, Nix Shell)"
+  name: "i686: Linux (Debian stable)"
   container:
-    dockerfile: ci/linux-nixos.Dockerfile
+    dockerfile: ci/linux-debian.Dockerfile
     cpu: 1
     memory: 1G
   env:
@@ -99,16 +99,16 @@ task:
     SCHNORRSIG: yes
   matrix:
     - env:
-        CC: gcc
+        CC: i686-linux-gnu-gcc
     - env:
-        CC: clang
+        CC: clang --target=i686-pc-linux-gnu -isystem /usr/i686-linux-gnu/include
   matrix:
     - env:
         BIGNUM: gmp
     - env:
         BIGNUM: no
   test_script:
-    - nix-shell ci/shell-i686.nix --run ./ci/cirrus.sh
+    - ./ci/cirrus.sh
   << : *CAT_LOGS
 
 task:
@@ -168,9 +168,9 @@ task:
   << : *CAT_LOGS
 
 task:
-  name: "s390x (big-endian): Linux (Debian QEMU)"
+  name: "s390x (big-endian): Linux (Debian stable, QEMU)"
   container:
-    dockerfile: ci/linux-debian-s390-qemu.Dockerfile
+    dockerfile: ci/linux-debian.Dockerfile
     cpu: 1
     memory: 1G
   env:

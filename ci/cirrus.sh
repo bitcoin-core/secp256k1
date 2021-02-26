@@ -12,10 +12,6 @@ valgrind --version || true
 
 ./autogen.sh
 
-# Nix doesn't store GNU file in /usr/bin, see https://lists.gnu.org/archive/html/bug-libtool/2015-09/msg00000.html .
-# The -i'' is necessary for macOS portability, see https://stackoverflow.com/a/4247319 .
-sed -i'' -e 's@/usr/bin/file@$(which file)@g' configure
-
 ./configure \
     --enable-experimental="$EXPERIMENTAL" \
     --with-test-override-wide-multiply="$WIDEMUL" --with-bignum="$BIGNUM" --with-asm="$ASM" \
