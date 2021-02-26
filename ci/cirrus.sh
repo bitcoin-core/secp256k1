@@ -21,6 +21,13 @@ valgrind --version || true
     --with-valgrind="$WITH_VALGRIND" \
     --host="$HOST" $EXTRAFLAGS
 
+make -j2
+
+# Print information about binaries so that we can see that the architecture is correct
+file *tests || true
+file bench_* || true
+file .libs/* || true
+
 if [ -n "$BUILD" ]
 then
     make -j2 "$BUILD"
@@ -28,7 +35,6 @@ fi
 
 if [ "$RUN_VALGRIND" = "yes" ]
 then
-    make -j2
     # the `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (https://www.valgrind.org/docs/manual/manual-core.html)
     valgrind --error-exitcode=42 ./tests 16
     valgrind --error-exitcode=42 ./exhaustive_tests
@@ -36,7 +42,6 @@ fi
 
 if [ -n "$QEMU_CMD" ]
 then
-    make -j2
     $QEMU_CMD ./tests 16
     $QEMU_CMD ./exhaustive_tests
 fi
