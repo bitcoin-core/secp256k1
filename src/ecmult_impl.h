@@ -114,19 +114,29 @@ static void secp256k1_ecmult_odd_multiples_table(int n, secp256k1_ge *pre_a, sec
     secp256k1_fe_mul(z, &ai.z, &d.z);
 }
 
-/** The following two macro retrieves a particular odd multiple from a table
- *  of precomputed multiples. */
-#define ECMULT_TABLE_GET_GE(r,pre,n,w) do { \
-    VERIFY_CHECK(((n) & 1) == 1); \
-    VERIFY_CHECK((n) >= -((1 << ((w)-1)) - 1)); \
-    VERIFY_CHECK((n) <=  ((1 << ((w)-1)) - 1)); \
-    if ((n) > 0) { \
-        *(r) = (pre)[((n)-1)/2]; \
-    } else { \
-        *(r) = (pre)[(-(n)-1)/2]; \
-        secp256k1_fe_negate(&((r)->y), &((r)->y), 1); \
-    } \
-} while(0)
+SECP256K1_INLINE static void secp256k1_ecmult_table_get_ge(secp256k1_ge *r, const secp256k1_ge *pre, int n, int w) {
+    VERIFY_CHECK((n & 1) == 1);
+    VERIFY_CHECK(n >= -((1 << (w-1)) - 1));
+    VERIFY_CHECK(n <=  ((1 << (w-1)) - 1));
+    if (n > 0) {
+        *r = pre[(n-1)/2];
+    } else {
+        *r = pre[(-n-1)/2];
+        secp256k1_fe_negate(&(r->y), &(r->y), 1);
+    }
+}
+
+SECP256K1_INLINE static void secp256k1_ecmult_table_get_ge_lambda(secp256k1_ge *r, const secp256k1_ge *pre, const secp256k1_fe *x, int n, int w) {
+    VERIFY_CHECK((n & 1) == 1);
+    VERIFY_CHECK(n >= -((1 << (w-1)) - 1));
+    VERIFY_CHECK(n <=  ((1 << (w-1)) - 1));
+    if (n > 0) {
+        secp256k1_ge_set_xy(r, &x[(n-1)/2], &pre[(n-1)/2].y);
+    } else {
+        secp256k1_ge_set_xy(r, &x[(-n-1)/2], &pre[(-n-1)/2].y);
+        secp256k1_fe_negate(&(r->y), &(r->y), 1);
+    }
+}
 
 #define ECMULT_TABLE_GET_GE_STORAGE(r,pre,n,w) do { \
     VERIFY_CHECK(((n) & 1) == 1); \
@@ -209,7 +219,8 @@ struct secp256k1_strauss_point_state {
 };
 
 struct secp256k1_strauss_state {
-    secp256k1_fe* zr;
+    /* aux is used to hold z-ratios, and then used to hold pre_a[i].x * BETA values. */
+    secp256k1_fe* aux;
     secp256k1_ge* pre_a;
     secp256k1_ge* pre_a_lam;
     struct secp256k1_strauss_point_state* ps;
@@ -263,25 +274,25 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
      */
     if (no > 0) {
         /* Compute the odd multiples in Jacobian form. */
-        secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), state->pre_a, state->zr, &Z, &a[state->ps[0].input_pos]);
+        secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), state->pre_a, state->aux, &Z, &a[state->ps[0].input_pos]);
         for (np = 1; np < no; ++np) {
             secp256k1_gej tmp = a[state->ps[np].input_pos];
 #ifdef VERIFY
             secp256k1_fe_normalize_var(&Z);
 #endif
             secp256k1_gej_rescale(&tmp, &Z);
-            secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), state->pre_a + np * ECMULT_TABLE_SIZE(WINDOW_A), state->zr + np * ECMULT_TABLE_SIZE(WINDOW_A), &Z, &tmp);
-            secp256k1_fe_mul(state->zr + np * ECMULT_TABLE_SIZE(WINDOW_A), state->zr + np * ECMULT_TABLE_SIZE(WINDOW_A), &(a[state->ps[np].input_pos].z));
+            secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), state->pre_a + np * ECMULT_TABLE_SIZE(WINDOW_A), state->aux + np * ECMULT_TABLE_SIZE(WINDOW_A), &Z, &tmp);
+            secp256k1_fe_mul(state->aux + np * ECMULT_TABLE_SIZE(WINDOW_A), state->aux + np * ECMULT_TABLE_SIZE(WINDOW_A), &(a[state->ps[np].input_pos].z));
         }
         /* Bring them to the same Z denominator. */
-        secp256k1_ge_table_set_globalz(ECMULT_TABLE_SIZE(WINDOW_A) * no, state->pre_a, state->zr);
+        secp256k1_ge_table_set_globalz(ECMULT_TABLE_SIZE(WINDOW_A) * no, state->pre_a, state->aux);
     } else {
         secp256k1_fe_set_int(&Z, 1);
     }
 
     for (np = 0; np < no; ++np) {
         for (i = 0; i < ECMULT_TABLE_SIZE(WINDOW_A); i++) {
-            secp256k1_ge_mul_lambda(&state->pre_a_lam[np * ECMULT_TABLE_SIZE(WINDOW_A) + i], &state->pre_a[np * ECMULT_TABLE_SIZE(WINDOW_A) + i]);
+            secp256k1_fe_mul(&state->aux[np * ECMULT_TABLE_SIZE(WINDOW_A) + i], &state->pre_a[np * ECMULT_TABLE_SIZE(WINDOW_A) + i].x, &secp256k1_const_beta);
         }
     }
 
@@ -307,11 +318,11 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
         secp256k1_gej_double_var(r, r, NULL);
         for (np = 0; np < no; ++np) {
             if (i < state->ps[np].bits_na_1 && (n = state->ps[np].wnaf_na_1[i])) {
-                ECMULT_TABLE_GET_GE(&tmpa, state->pre_a + np * ECMULT_TABLE_SIZE(WINDOW_A), n, WINDOW_A);
+                secp256k1_ecmult_table_get_ge(&tmpa, state->pre_a + np * ECMULT_TABLE_SIZE(WINDOW_A), n, WINDOW_A);
                 secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
             }
             if (i < state->ps[np].bits_na_lam && (n = state->ps[np].wnaf_na_lam[i])) {
-                ECMULT_TABLE_GET_GE(&tmpa, state->pre_a_lam + np * ECMULT_TABLE_SIZE(WINDOW_A), n, WINDOW_A);
+                secp256k1_ecmult_table_get_ge_lambda(&tmpa, state->pre_a + np * ECMULT_TABLE_SIZE(WINDOW_A), state->aux + np * ECMULT_TABLE_SIZE(WINDOW_A), n, WINDOW_A);
                 secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
             }
         }
@@ -331,13 +342,13 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
 }
 
 static void secp256k1_ecmult(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_scalar *na, const secp256k1_scalar *ng) {
-    secp256k1_fe zr[ECMULT_TABLE_SIZE(WINDOW_A)];
+    secp256k1_fe aux[ECMULT_TABLE_SIZE(WINDOW_A)];
     secp256k1_ge pre_a[ECMULT_TABLE_SIZE(WINDOW_A)];
     struct secp256k1_strauss_point_state ps[1];
     secp256k1_ge pre_a_lam[ECMULT_TABLE_SIZE(WINDOW_A)];
     struct secp256k1_strauss_state state;
 
-    state.zr = zr;
+    state.aux = aux;
     state.pre_a = pre_a;
     state.pre_a_lam = pre_a_lam;
     state.ps = ps;
@@ -366,12 +377,12 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callba
      * constant and strauss_scratch_size accordingly. */
     points = (secp256k1_gej*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_gej));
     scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_scalar));
-    state.zr = (secp256k1_fe*)secp256k1_scratch_alloc(error_callback, scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_fe));
+    state.aux = (secp256k1_fe*)secp256k1_scratch_alloc(error_callback, scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_fe));
     state.pre_a = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_ge));
     state.pre_a_lam = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_ge));
     state.ps = (struct secp256k1_strauss_point_state*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(struct secp256k1_strauss_point_state));
 
-    if (points == NULL || scalars == NULL || state.zr == NULL || state.pre_a == NULL || state.pre_a_lam == NULL || state.ps == NULL) {
+    if (points == NULL || scalars == NULL || state.aux == NULL || state.pre_a == NULL || state.pre_a_lam == NULL || state.ps == NULL) {
         secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
         return 0;
     }
