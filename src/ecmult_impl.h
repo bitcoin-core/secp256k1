@@ -47,7 +47,7 @@
 
 /* The number of objects allocated on the scratch space for ecmult_multi algorithms */
 #define PIPPENGER_SCRATCH_OBJECTS 6
-#define STRAUSS_SCRATCH_OBJECTS 5
+#define STRAUSS_SCRATCH_OBJECTS 3
 
 #define PIPPENGER_MAX_BUCKET_WINDOW 12
 
@@ -386,7 +386,7 @@ static void secp256k1_ecmult(secp256k1_gej *r, const secp256k1_gej *a, const sec
 }
 
 static size_t secp256k1_strauss_scratch_size(size_t n_points) {
-    static const size_t point_size = (sizeof(secp256k1_ge) + sizeof(secp256k1_fe)) * ECMULT_TABLE_SIZE(WINDOW_A) + sizeof(struct secp256k1_strauss_point_state) + sizeof(secp256k1_gej) + sizeof(secp256k1_scalar);
+    static const size_t point_size = (sizeof(secp256k1_ge) + sizeof(secp256k1_fe)) * ECMULT_TABLE_SIZE(WINDOW_A) + sizeof(struct secp256k1_strauss_point_state);
     return n_points*point_size;
 }
 
@@ -408,8 +408,6 @@ static int secp256k1_ecmult_adaptor_cb(secp256k1_scalar *sc, secp256k1_gej *pt, 
 }
 
 static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points, size_t cb_offset) {
-    secp256k1_gej* points;
-    secp256k1_scalar* scalars;
     struct secp256k1_ecmult_adaptor_cb_data adaptor_data;
     struct secp256k1_strauss_state state;
     const size_t scratch_checkpoint = secp256k1_scratch_checkpoint(error_callback, scratch);
@@ -422,20 +420,14 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callba
     /* We allocate STRAUSS_SCRATCH_OBJECTS objects on the scratch space. If these
      * allocations change, make sure to update the STRAUSS_SCRATCH_OBJECTS
      * constant and strauss_scratch_size accordingly. */
-    points = (secp256k1_gej*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_gej));
-    scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_scalar));
     adaptor_data.cb = cb;
     adaptor_data.data = cbdata;
     state.aux = (secp256k1_fe*)secp256k1_scratch_alloc(error_callback, scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_fe));
     state.pre_a = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_ge));
     state.ps = (struct secp256k1_strauss_point_state*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(struct secp256k1_strauss_point_state));
 
-    if (points == NULL || scalars == NULL || state.aux == NULL || state.pre_a == NULL || state.ps == NULL) {
-        secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
-        return 0;
-    }
-
-    if (!secp256k1_ecmult_strauss_wnaf(&state, r, n_points, &secp256k1_ecmult_adaptor_cb, &adaptor_data, cb_offset, inp_g_sc)) {
+    if (state.aux == NULL || state.pre_a == NULL || state.ps == NULL ||
+            !secp256k1_ecmult_strauss_wnaf(&state, r, n_points, &secp256k1_ecmult_adaptor_cb, &adaptor_data, cb_offset, inp_g_sc)) {
         secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
         return 0;
     }
