@@ -19,15 +19,20 @@ env:
 
 cat_logs_snippet: &CAT_LOGS
   always:
-    test_logs_script:
+    cat_tests_log_script:
       - cat tests.log || true
+    cat_exhaustive_tests_log_script:
       - cat exhaustive_tests.log || true
+    cat_valgrind_ctime_test_log_script:
       - cat valgrind_ctime_test.log || true
+    cat_bench_log_script:
       - cat bench.log || true
   on_failure:
-    debug_output_script:
+    cat_config_log_script:
       - cat config.log || true
+    cat_test_env_script:
       - cat test_env.log || true
+    cat_ci_env_script:
       - env
 
 merge_base_script_snippet: &MERGE_BASE
