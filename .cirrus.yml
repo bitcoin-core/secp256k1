@@ -16,8 +16,6 @@ env:
   CTIMETEST: yes
   BENCH: yes
   ITERS: 2
-  # We only need the top commit
-  CIRRUS_CLONE_DEPTH: 1
 
 cat_logs_snippet: &CAT_LOGS
   always:
@@ -31,6 +29,14 @@ cat_logs_snippet: &CAT_LOGS
       - cat config.log || true
       - cat test_env.log || true
       - env
+
+merge_base_script_snippet: &MERGE_BASE
+  merge_base_script:
+    - if [ "$CIRRUS_PR" = "" ]; then exit 0; fi
+    - git fetch $CIRRUS_REPO_CLONE_URL $CIRRUS_BASE_BRANCH
+    - git config --global user.email "ci@ci.ci"
+    - git config --global user.name "ci"
+    - git merge FETCH_HEAD  # Merge base to detect silent merge conflicts
 
 task:
   name: "x86_64: Linux (Debian stable)"
@@ -81,6 +87,7 @@ task:
         CC: gcc
     - env:
         CC: clang
+  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -107,6 +114,7 @@ task:
         BIGNUM: gmp
     - env:
         BIGNUM: no
+  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -163,6 +171,7 @@ task:
     - brew link valgrind
   brew_script:
     - brew install automake libtool gmp gcc@9
+  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -184,6 +193,7 @@ task:
     EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
+  << : *MERGE_BASE
   test_script:
     # https://sourceware.org/bugzilla/show_bug.cgi?id=27008
     - rm /etc/ld.so.cache
