@@ -16,6 +16,7 @@ env:
   CTIMETEST: yes
   BENCH: yes
   ITERS: 2
+  MAKEFLAGS: -j2
 
 cat_logs_snippet: &CAT_LOGS
   always:
@@ -131,6 +132,8 @@ task:
   env:
     HOMEBREW_NO_AUTO_UPDATE: 1
     HOMEBREW_NO_INSTALL_CLEANUP: 1
+    # Cirrus gives us a fixed number of 12 virtual CPUs. Not that we even have that many jobs at the moment...
+    MAKEFLAGS: -j13
   matrix:
     << : *ENV_MATRIX
   matrix:

@@ -21,7 +21,8 @@ valgrind --version || true
     --with-valgrind="$WITH_VALGRIND" \
     --host="$HOST" $EXTRAFLAGS
 
-make -j2
+# We have set "-j<n>" in MAKEFLAGS.
+make
 
 # Print information about binaries so that we can see that the architecture is correct
 file *tests || true
@@ -30,7 +31,7 @@ file .libs/* || true
 
 if [ -n "$BUILD" ]
 then
-    make -j2 "$BUILD"
+    make "$BUILD"
 fi
 
 if [ "$RUN_VALGRIND" = "yes" ]
