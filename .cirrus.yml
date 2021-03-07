@@ -16,26 +16,38 @@ env:
   CTIMETEST: yes
   BENCH: yes
   ITERS: 2
-  # We only need the top commit
-  CIRRUS_CLONE_DEPTH: 1
+  MAKEFLAGS: -j2
 
 cat_logs_snippet: &CAT_LOGS
   always:
-    test_logs_script:
+    cat_tests_log_script:
       - cat tests.log || true
+    cat_exhaustive_tests_log_script:
       - cat exhaustive_tests.log || true
+    cat_valgrind_ctime_test_log_script:
       - cat valgrind_ctime_test.log || true
+    cat_bench_log_script:
       - cat bench.log || true
   on_failure:
-    debug_output_script:
+    cat_config_log_script:
       - cat config.log || true
+    cat_test_env_script:
       - cat test_env.log || true
+    cat_ci_env_script:
       - env
 
+merge_base_script_snippet: &MERGE_BASE
+  merge_base_script:
+    - if [ "$CIRRUS_PR" = "" ]; then exit 0; fi
+    - git fetch $CIRRUS_REPO_CLONE_URL $CIRRUS_BASE_BRANCH
+    - git config --global user.email "ci@ci.ci"
+    - git config --global user.name "ci"
+    - git merge FETCH_HEAD  # Merge base to detect silent merge conflicts
+
 task:
-  name: "x86_64: Linux (Alpine Linux, Nix Shell)"
+  name: "x86_64: Linux (Debian stable)"
   container:
-    dockerfile: ci/linux-nixos.Dockerfile
+    dockerfile: ci/linux-debian.Dockerfile
     # Reduce number of CPUs to be able to do more builds in parallel.
     cpu: 1
     # More than enough for our scripts.
@@ -81,14 +93,15 @@ task:
         CC: gcc
     - env:
         CC: clang
+  << : *MERGE_BASE
   test_script:
-    - nix-shell ci/shell.nix --run ./ci/cirrus.sh
+    - ./ci/cirrus.sh
   << : *CAT_LOGS
 
 task:
-  name: "i686: Linux (Alpine Linux, Nix Shell)"
+  name: "i686: Linux (Debian stable)"
   container:
-    dockerfile: ci/linux-nixos.Dockerfile
+    dockerfile: ci/linux-debian.Dockerfile
     cpu: 1
     memory: 1G
   env:
@@ -99,16 +112,17 @@ task:
     SCHNORRSIG: yes
   matrix:
     - env:
-        CC: gcc
+        CC: i686-linux-gnu-gcc
     - env:
-        CC: clang
+        CC: clang --target=i686-pc-linux-gnu -isystem /usr/i686-linux-gnu/include
   matrix:
     - env:
         BIGNUM: gmp
     - env:
         BIGNUM: no
+  << : *MERGE_BASE
   test_script:
-    - nix-shell ci/shell-i686.nix --run ./ci/cirrus.sh
+    - ./ci/cirrus.sh
   << : *CAT_LOGS
 
 task:
@@ -118,6 +132,8 @@ task:
   env:
     HOMEBREW_NO_AUTO_UPDATE: 1
     HOMEBREW_NO_INSTALL_CLEANUP: 1
+    # Cirrus gives us a fixed number of 12 virtual CPUs. Not that we even have that many jobs at the moment...
+    MAKEFLAGS: -j13
   matrix:
     << : *ENV_MATRIX
   matrix:
@@ -163,14 +179,15 @@ task:
     - brew link valgrind
   brew_script:
     - brew install automake libtool gmp gcc@9
+  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
 
 task:
-  name: "s390x (big-endian): Linux (Debian QEMU)"
+  name: "s390x (big-endian): Linux (Debian stable, QEMU)"
   container:
-    dockerfile: ci/linux-debian-s390-qemu.Dockerfile
+    dockerfile: ci/linux-debian.Dockerfile
     cpu: 1
     memory: 1G
   env:
@@ -184,6 +201,7 @@ task:
     EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
+  << : *MERGE_BASE
   test_script:
     # https://sourceware.org/bugzilla/show_bug.cgi?id=27008
     - rm /etc/ld.so.cache
