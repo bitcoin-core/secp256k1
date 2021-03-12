@@ -60,7 +60,7 @@ int secp256k1_xonly_pubkey_serialize(const secp256k1_context* ctx, unsigned char
  *  Requires that the coordinates of r are normalized. */
 static int secp256k1_extrakeys_ge_even_y(secp256k1_ge *r) {
     int y_parity = 0;
-    VERIFY_CHECK(!secp256k1_ge_is_infinity(r));
+    VERIFY_ONLY_CHECK(!secp256k1_ge_is_infinity(r));
 
     if (secp256k1_fe_is_odd(&r->y)) {
         secp256k1_fe_negate(&r->y, &r->y, 1);

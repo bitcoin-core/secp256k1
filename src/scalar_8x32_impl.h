@@ -156,10 +156,8 @@ static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int
     r->d[6] = t & 0xFFFFFFFFULL; t >>= 32;
     t += (uint64_t)r->d[7] + (((uint32_t)((bit >> 5) == 7)) << (bit & 0x1F));
     r->d[7] = t & 0xFFFFFFFFULL;
-#ifdef VERIFY
     VERIFY_CHECK((t >> 32) == 0);
-    VERIFY_CHECK(secp256k1_scalar_check_overflow(r) == 0);
-#endif
+    VERIFY_ONLY_CHECK(secp256k1_scalar_check_overflow(r) == 0);
 }
 
 static void secp256k1_scalar_set_b32(secp256k1_scalar *r, const unsigned char *b32, int *overflow) {

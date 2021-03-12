@@ -129,7 +129,7 @@ static int secp256k1_wnaf_const(int *wnaf, const secp256k1_scalar *scalar, int w
     } while (word * w < size);
     wnaf[word] = u * global_sign;
 
-    VERIFY_CHECK(secp256k1_scalar_is_zero(&s));
+    VERIFY_ONLY_CHECK(secp256k1_scalar_is_zero(&s));
     VERIFY_CHECK(word == WNAF_SIZE_BITS(size, w));
     return skew;
 }

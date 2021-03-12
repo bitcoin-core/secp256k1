@@ -616,7 +616,7 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
 static void secp256k1_gej_rescale(secp256k1_gej *r, const secp256k1_fe *s) {
     /* Operations: 4 mul, 1 sqr */
     secp256k1_fe zz;
-    VERIFY_CHECK(!secp256k1_fe_is_zero(s));
+    VERIFY_ONLY_CHECK(!secp256k1_fe_is_zero(s));
     secp256k1_fe_sqr(&zz, s);
     secp256k1_fe_mul(&r->x, &r->x, &zz);                /* r->x *= s^2 */
     secp256k1_fe_mul(&r->y, &r->y, &zz);

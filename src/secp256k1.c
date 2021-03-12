@@ -268,7 +268,7 @@ static void secp256k1_pubkey_save(secp256k1_pubkey* pubkey, secp256k1_ge* ge) {
         secp256k1_ge_to_storage(&s, ge);
         memcpy(&pubkey->data[0], &s, sizeof(s));
     } else {
-        VERIFY_CHECK(!secp256k1_ge_is_infinity(ge));
+        VERIFY_ONLY_CHECK(!secp256k1_ge_is_infinity(ge));
         secp256k1_fe_normalize_var(&ge->x);
         secp256k1_fe_normalize_var(&ge->y);
         secp256k1_fe_get_b32(pubkey->data, &ge->x);

@@ -57,15 +57,22 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
 } while(0)
 #endif
 
-/* Like assert(), but when VERIFY is defined, and side-effect safe. */
+/* VERIFY_CHECK is like assert(), but only enabled when VERIFY is defined, and side-effect safe
+   (even in non-VERIFY mode, the argument is evaluated - and hopefully optimized out).
+   VERIFY_ONLY_CHECK is similar but its argument is only evaluated in VERIFY mode; it is
+   intended for nontrivial consistency checks that may be too hard to optimize out, or
+   risk introducing variable-time behavior. */
 #if defined(COVERAGE)
 #define VERIFY_CHECK(check)
+#define VERIFY_ONLY_CHECK(check)
 #define VERIFY_SETUP(stmt)
 #elif defined(VERIFY)
 #define VERIFY_CHECK CHECK
+#define VERIFY_ONLY_CHECK CHECK
 #define VERIFY_SETUP(stmt) do { stmt; } while(0)
 #else
 #define VERIFY_CHECK(cond) do { (void)(cond); } while(0)
+#define VERIFY_ONLY_CHECK(cond) do { if (0) { (void)(cond); } } while(0)
 #define VERIFY_SETUP(stmt)
 #endif
 
