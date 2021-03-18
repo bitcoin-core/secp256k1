@@ -18,6 +18,7 @@
 #include "include/secp256k1.h"
 #include "include/secp256k1_preallocated.h"
 #include "testrand_impl.h"
+#include "util.h"
 
 #ifdef ENABLE_OPENSSL_TESTS
 #include "openssl/bn.h"
@@ -31,6 +32,11 @@ void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 
 #include "contrib/lax_der_parsing.c"
 #include "contrib/lax_der_privatekey_parsing.c"
+
+#include "modinv32_impl.h"
+#ifdef SECP256K1_WIDEMUL_INT128
+#include "modinv64_impl.h"
+#endif
 
 static int count = 64;
 static secp256k1_context *ctx = NULL;
@@ -416,6 +422,25 @@ void run_scratch_tests(void) {
     secp256k1_context_destroy(none);
 }
 
+void run_ctz_tests(void) {
+    static const uint32_t b32[] = {1, 0xffffffff, 0x5e56968f, 0xe0d63129};
+    static const uint64_t b64[] = {1, 0xffffffffffffffff, 0xbcd02462139b3fc3, 0x98b5f80c769693ef};
+    int shift;
+    unsigned i;
+    for (i = 0; i < sizeof(b32) / sizeof(b32[0]); ++i) {
+        for (shift = 0; shift < 32; ++shift) {
+            CHECK(secp256k1_ctz32_var_debruijn(b32[i] << shift) == shift);
+            CHECK(secp256k1_ctz32_var(b32[i] << shift) == shift);
+        }
+    }
+    for (i = 0; i < sizeof(b64) / sizeof(b64[0]); ++i) {
+        for (shift = 0; shift < 64; ++shift) {
+            CHECK(secp256k1_ctz64_var_debruijn(b64[i] << shift) == shift);
+            CHECK(secp256k1_ctz64_var(b64[i] << shift) == shift);
+        }
+    }
+}
+
 /***** HASH TESTS *****/
 
 void run_sha256_tests(void) {
@@ -611,202 +636,448 @@ void run_rand_int(void) {
     }
 }
 
-/***** NUM TESTS *****/
+/***** MODINV TESTS *****/
 
-#ifndef USE_NUM_NONE
-void random_num_negate(secp256k1_num *num) {
-    if (secp256k1_testrand_bits(1)) {
-        secp256k1_num_negate(num);
+/* Compute the modular inverse of (odd) x mod 2^64. */
+uint64_t modinv2p64(uint64_t x) {
+    /* If w = 1/x mod 2^(2^L), then w*(2 - w*x) = 1/x mod 2^(2^(L+1)). See
+     * Hacker's Delight second edition, Henry S. Warren, Jr., pages 245-247 for
+     * why. Start with L=0, for which it is true for every odd x that
+     * 1/x=1 mod 2. Iterating 6 times gives us 1/x mod 2^64. */
+    int l;
+    uint64_t w = 1;
+    CHECK(x & 1);
+    for (l = 0; l < 6; ++l) w *= (2 - w*x);
+    return w;
+}
+
+/* compute out = (a*b) mod m; if b=NULL, treat b=1.
+ *
+ * Out is a 512-bit number (represented as 32 uint16_t's in LE order). The other
+ * arguments are 256-bit numbers (represented as 16 uint16_t's in LE order). */
+void mulmod256(uint16_t* out, const uint16_t* a, const uint16_t* b, const uint16_t* m) {
+    uint16_t mul[32];
+    uint64_t c = 0;
+    int i, j;
+    int m_bitlen = 0;
+    int mul_bitlen = 0;
+
+    if (b != NULL) {
+        /* Compute the product of a and b, and put it in mul. */
+        for (i = 0; i < 32; ++i) {
+            for (j = i <= 15 ? 0 : i - 15; j <= i && j <= 15; j++) {
+                c += (uint64_t)a[j] * b[i - j];
+            }
+            mul[i] = c & 0xFFFF;
+            c >>= 16;
+        }
+        CHECK(c == 0);
+
+        /* compute the highest set bit in mul */
+        for (i = 511; i >= 0; --i) {
+            if ((mul[i >> 4] >> (i & 15)) & 1) {
+                mul_bitlen = i;
+                break;
+            }
+        }
+    } else {
+        /* if b==NULL, set mul=a. */
+        memcpy(mul, a, 32);
+        memset(mul + 16, 0, 32);
+        /* compute the highest set bit in mul */
+        for (i = 255; i >= 0; --i) {
+            if ((mul[i >> 4] >> (i & 15)) & 1) {
+                mul_bitlen = i;
+                break;
+            }
+        }
     }
+
+    /* Compute the highest set bit in m. */
+    for (i = 255; i >= 0; --i) {
+        if ((m[i >> 4] >> (i & 15)) & 1) {
+            m_bitlen = i;
+            break;
+        }
+    }
+
+    /* Try do mul -= m<<i, for i going down to 0, whenever the result is not negative */
+    for (i = mul_bitlen - m_bitlen; i >= 0; --i) {
+        uint16_t mul2[32];
+        int64_t cs;
+
+        /* Compute mul2 = mul - m<<i. */
+        cs = 0; /* accumulator */
+        for (j = 0; j < 32; ++j) { /* j loops over the output limbs in mul2. */
+            /* Compute sub: the 16 bits in m that will be subtracted from mul2[j]. */
+            uint16_t sub = 0;
+            int p;
+            for (p = 0; p < 16; ++p) { /* p loops over the bit positions in mul2[j]. */
+                int bitpos = j * 16 - i + p; /* bitpos is the correspond bit position in m. */
+                if (bitpos >= 0 && bitpos < 256) {
+                    sub |= ((m[bitpos >> 4] >> (bitpos & 15)) & 1) << p;
+                }
+            }
+            /* Add mul[j]-sub to accumulator, and shift bottom 16 bits out to mul2[j]. */
+            cs += mul[j];
+            cs -= sub;
+            mul2[j] = (cs & 0xFFFF);
+            cs >>= 16;
+        }
+        /* If remainder of subtraction is 0, set mul = mul2. */
+        if (cs == 0) {
+            memcpy(mul, mul2, sizeof(mul));
+        }
+    }
+    /* Sanity check: test that all limbs higher than m's highest are zero */
+    for (i = (m_bitlen >> 4) + 1; i < 32; ++i) {
+        CHECK(mul[i] == 0);
+    }
+    memcpy(out, mul, 32);
 }
 
-void random_num_order_test(secp256k1_num *num) {
-    secp256k1_scalar sc;
-    random_scalar_order_test(&sc);
-    secp256k1_scalar_get_num(num, &sc);
-}
-
-void random_num_order(secp256k1_num *num) {
-    secp256k1_scalar sc;
-    random_scalar_order(&sc);
-    secp256k1_scalar_get_num(num, &sc);
-}
-
-void test_num_negate(void) {
-    secp256k1_num n1;
-    secp256k1_num n2;
-    random_num_order_test(&n1); /* n1 = R */
-    random_num_negate(&n1);
-    secp256k1_num_copy(&n2, &n1); /* n2 = R */
-    secp256k1_num_sub(&n1, &n2, &n1); /* n1 = n2-n1 = 0 */
-    CHECK(secp256k1_num_is_zero(&n1));
-    secp256k1_num_copy(&n1, &n2); /* n1 = R */
-    secp256k1_num_negate(&n1); /* n1 = -R */
-    CHECK(!secp256k1_num_is_zero(&n1));
-    secp256k1_num_add(&n1, &n2, &n1); /* n1 = n2+n1 = 0 */
-    CHECK(secp256k1_num_is_zero(&n1));
-    secp256k1_num_copy(&n1, &n2); /* n1 = R */
-    secp256k1_num_negate(&n1); /* n1 = -R */
-    CHECK(secp256k1_num_is_neg(&n1) != secp256k1_num_is_neg(&n2));
-    secp256k1_num_negate(&n1); /* n1 = R */
-    CHECK(secp256k1_num_eq(&n1, &n2));
-}
-
-void test_num_add_sub(void) {
+/* Convert a 256-bit number represented as 16 uint16_t's to signed30 notation. */
+void uint16_to_signed30(secp256k1_modinv32_signed30* out, const uint16_t* in) {
     int i;
-    secp256k1_scalar s;
-    secp256k1_num n1;
-    secp256k1_num n2;
-    secp256k1_num n1p2, n2p1, n1m2, n2m1;
-    random_num_order_test(&n1); /* n1 = R1 */
-    if (secp256k1_testrand_bits(1)) {
-        random_num_negate(&n1);
-    }
-    random_num_order_test(&n2); /* n2 = R2 */
-    if (secp256k1_testrand_bits(1)) {
-        random_num_negate(&n2);
-    }
-    secp256k1_num_add(&n1p2, &n1, &n2); /* n1p2 = R1 + R2 */
-    secp256k1_num_add(&n2p1, &n2, &n1); /* n2p1 = R2 + R1 */
-    secp256k1_num_sub(&n1m2, &n1, &n2); /* n1m2 = R1 - R2 */
-    secp256k1_num_sub(&n2m1, &n2, &n1); /* n2m1 = R2 - R1 */
-    CHECK(secp256k1_num_eq(&n1p2, &n2p1));
-    CHECK(!secp256k1_num_eq(&n1p2, &n1m2));
-    secp256k1_num_negate(&n2m1); /* n2m1 = -R2 + R1 */
-    CHECK(secp256k1_num_eq(&n2m1, &n1m2));
-    CHECK(!secp256k1_num_eq(&n2m1, &n1));
-    secp256k1_num_add(&n2m1, &n2m1, &n2); /* n2m1 = -R2 + R1 + R2 = R1 */
-    CHECK(secp256k1_num_eq(&n2m1, &n1));
-    CHECK(!secp256k1_num_eq(&n2p1, &n1));
-    secp256k1_num_sub(&n2p1, &n2p1, &n2); /* n2p1 = R2 + R1 - R2 = R1 */
-    CHECK(secp256k1_num_eq(&n2p1, &n1));
-
-    /* check is_one */
-    secp256k1_scalar_set_int(&s, 1);
-    secp256k1_scalar_get_num(&n1, &s);
-    CHECK(secp256k1_num_is_one(&n1));
-    /* check that 2^n + 1 is never 1 */
-    secp256k1_scalar_get_num(&n2, &s);
-    for (i = 0; i < 250; ++i) {
-        secp256k1_num_add(&n1, &n1, &n1);    /* n1 *= 2 */
-        secp256k1_num_add(&n1p2, &n1, &n2);  /* n1p2 = n1 + 1 */
-        CHECK(!secp256k1_num_is_one(&n1p2));
+    memset(out->v, 0, sizeof(out->v));
+    for (i = 0; i < 256; ++i) {
+        out->v[i / 30] |= (int32_t)(((in[i >> 4]) >> (i & 15)) & 1) << (i % 30);
     }
 }
 
-void test_num_mod(void) {
+/* Convert a 256-bit number in signed30 notation to a representation as 16 uint16_t's. */
+void signed30_to_uint16(uint16_t* out, const secp256k1_modinv32_signed30* in) {
     int i;
-    secp256k1_scalar s;
-    secp256k1_num order, n;
+    memset(out, 0, 32);
+    for (i = 0; i < 256; ++i) {
+        out[i >> 4] |= (((in->v[i / 30]) >> (i % 30)) & 1) << (i & 15);
+    }
+}
 
-    /* check that 0 mod anything is 0 */
-    random_scalar_order_test(&s);
-    secp256k1_scalar_get_num(&order, &s);
-    secp256k1_scalar_set_int(&s, 0);
-    secp256k1_scalar_get_num(&n, &s);
-    secp256k1_num_mod(&n, &order);
-    CHECK(secp256k1_num_is_zero(&n));
+/* Randomly mutate the sign of limbs in signed30 representation, without changing the value. */
+void mutate_sign_signed30(secp256k1_modinv32_signed30* x) {
+    int i;
+    for (i = 0; i < 16; ++i) {
+        int pos = secp256k1_testrand_int(8);
+        if (x->v[pos] > 0 && x->v[pos + 1] <= 0x3fffffff) {
+            x->v[pos] -= 0x40000000;
+            x->v[pos + 1] += 1;
+        } else if (x->v[pos] < 0 && x->v[pos + 1] >= 0x3fffffff) {
+            x->v[pos] += 0x40000000;
+            x->v[pos + 1] -= 1;
+        }
+    }
+}
 
-    /* check that anything mod 1 is 0 */
-    secp256k1_scalar_set_int(&s, 1);
-    secp256k1_scalar_get_num(&order, &s);
-    secp256k1_scalar_get_num(&n, &s);
-    secp256k1_num_mod(&n, &order);
-    CHECK(secp256k1_num_is_zero(&n));
+/* Test secp256k1_modinv32{_var}, using inputs in 16-bit limb format, and returning inverse. */
+void test_modinv32_uint16(uint16_t* out, const uint16_t* in, const uint16_t* mod) {
+    uint16_t tmp[16];
+    secp256k1_modinv32_signed30 x;
+    secp256k1_modinv32_modinfo m;
+    int i, vartime, nonzero;
 
-    /* check that increasing the number past 2^256 does not break this */
-    random_scalar_order_test(&s);
-    secp256k1_scalar_get_num(&n, &s);
-    /* multiply by 2^8, which'll test this case with high probability */
+    uint16_to_signed30(&x, in);
+    nonzero = (x.v[0] | x.v[1] | x.v[2] | x.v[3] | x.v[4] | x.v[5] | x.v[6] | x.v[7] | x.v[8]) != 0;
+    uint16_to_signed30(&m.modulus, mod);
+    mutate_sign_signed30(&m.modulus);
+
+    /* compute 1/modulus mod 2^30 */
+    m.modulus_inv30 = modinv2p64(m.modulus.v[0]) & 0x3fffffff;
+    CHECK(((m.modulus_inv30 * m.modulus.v[0]) & 0x3fffffff) == 1);
+
+    for (vartime = 0; vartime < 2; ++vartime) {
+        /* compute inverse */
+        (vartime ? secp256k1_modinv32_var : secp256k1_modinv32)(&x, &m);
+
+        /* produce output */
+        signed30_to_uint16(out, &x);
+
+        /* check if the inverse times the input is 1 (mod m), unless x is 0. */
+        mulmod256(tmp, out, in, mod);
+        CHECK(tmp[0] == nonzero);
+        for (i = 1; i < 16; ++i) CHECK(tmp[i] == 0);
+
+        /* invert again */
+        (vartime ? secp256k1_modinv32_var : secp256k1_modinv32)(&x, &m);
+
+        /* check if the result is equal to the input */
+        signed30_to_uint16(tmp, &x);
+        for (i = 0; i < 16; ++i) CHECK(tmp[i] == in[i]);
+    }
+}
+
+#ifdef SECP256K1_WIDEMUL_INT128
+/* Convert a 256-bit number represented as 16 uint16_t's to signed62 notation. */
+void uint16_to_signed62(secp256k1_modinv64_signed62* out, const uint16_t* in) {
+    int i;
+    memset(out->v, 0, sizeof(out->v));
+    for (i = 0; i < 256; ++i) {
+        out->v[i / 62] |= (int64_t)(((in[i >> 4]) >> (i & 15)) & 1) << (i % 62);
+    }
+}
+
+/* Convert a 256-bit number in signed62 notation to a representation as 16 uint16_t's. */
+void signed62_to_uint16(uint16_t* out, const secp256k1_modinv64_signed62* in) {
+    int i;
+    memset(out, 0, 32);
+    for (i = 0; i < 256; ++i) {
+        out[i >> 4] |= (((in->v[i / 62]) >> (i % 62)) & 1) << (i & 15);
+    }
+}
+
+/* Randomly mutate the sign of limbs in signed62 representation, without changing the value. */
+void mutate_sign_signed62(secp256k1_modinv64_signed62* x) {
+    static const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
+    int i;
     for (i = 0; i < 8; ++i) {
-        secp256k1_num_add(&n, &n, &n);
+        int pos = secp256k1_testrand_int(4);
+        if (x->v[pos] > 0 && x->v[pos + 1] <= M62) {
+            x->v[pos] -= (M62 + 1);
+            x->v[pos + 1] += 1;
+        } else if (x->v[pos] < 0 && x->v[pos + 1] >= -M62) {
+            x->v[pos] += (M62 + 1);
+            x->v[pos + 1] -= 1;
+        }
     }
-    secp256k1_num_mod(&n, &order);
-    CHECK(secp256k1_num_is_zero(&n));
 }
 
-void test_num_jacobi(void) {
-    secp256k1_scalar sqr;
-    secp256k1_scalar small;
-    secp256k1_scalar five;  /* five is not a quadratic residue */
-    secp256k1_num order, n;
-    int i;
-    /* squares mod 5 are 1, 4 */
-    const int jacobi5[10] = { 0, 1, -1, -1, 1, 0, 1, -1, -1, 1 };
+/* Test secp256k1_modinv64{_var}, using inputs in 16-bit limb format, and returning inverse. */
+void test_modinv64_uint16(uint16_t* out, const uint16_t* in, const uint16_t* mod) {
+    static const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
+    uint16_t tmp[16];
+    secp256k1_modinv64_signed62 x;
+    secp256k1_modinv64_modinfo m;
+    int i, vartime, nonzero;
 
-    /* check some small values with 5 as the order */
-    secp256k1_scalar_set_int(&five, 5);
-    secp256k1_scalar_get_num(&order, &five);
-    for (i = 0; i < 10; ++i) {
-        secp256k1_scalar_set_int(&small, i);
-        secp256k1_scalar_get_num(&n, &small);
-        CHECK(secp256k1_num_jacobi(&n, &order) == jacobi5[i]);
-    }
+    uint16_to_signed62(&x, in);
+    nonzero = (x.v[0] | x.v[1] | x.v[2] | x.v[3] | x.v[4]) != 0;
+    uint16_to_signed62(&m.modulus, mod);
+    mutate_sign_signed62(&m.modulus);
 
-    /** test large values with 5 as group order */
-    secp256k1_scalar_get_num(&order, &five);
-    /* we first need a scalar which is not a multiple of 5 */
-    do {
-        secp256k1_num fiven;
-        random_scalar_order_test(&sqr);
-        secp256k1_scalar_get_num(&fiven, &five);
-        secp256k1_scalar_get_num(&n, &sqr);
-        secp256k1_num_mod(&n, &fiven);
-    } while (secp256k1_num_is_zero(&n));
-    /* next force it to be a residue. 2 is a nonresidue mod 5 so we can
-     * just multiply by two, i.e. add the number to itself */
-    if (secp256k1_num_jacobi(&n, &order) == -1) {
-        secp256k1_num_add(&n, &n, &n);
-    }
+    /* compute 1/modulus mod 2^62 */
+    m.modulus_inv62 = modinv2p64(m.modulus.v[0]) & M62;
+    CHECK(((m.modulus_inv62 * m.modulus.v[0]) & M62) == 1);
 
-    /* test residue */
-    CHECK(secp256k1_num_jacobi(&n, &order) == 1);
-    /* test nonresidue */
-    secp256k1_num_add(&n, &n, &n);
-    CHECK(secp256k1_num_jacobi(&n, &order) == -1);
+    for (vartime = 0; vartime < 2; ++vartime) {
+        /* compute inverse */
+        (vartime ? secp256k1_modinv64_var : secp256k1_modinv64)(&x, &m);
 
-    /** test with secp group order as order */
-    secp256k1_scalar_order_get_num(&order);
-    random_scalar_order_test(&sqr);
-    secp256k1_scalar_sqr(&sqr, &sqr);
-    /* test residue */
-    secp256k1_scalar_get_num(&n, &sqr);
-    CHECK(secp256k1_num_jacobi(&n, &order) == 1);
-    /* test nonresidue */
-    secp256k1_scalar_mul(&sqr, &sqr, &five);
-    secp256k1_scalar_get_num(&n, &sqr);
-    CHECK(secp256k1_num_jacobi(&n, &order) == -1);
-    /* test multiple of the order*/
-    CHECK(secp256k1_num_jacobi(&order, &order) == 0);
+        /* produce output */
+        signed62_to_uint16(out, &x);
 
-    /* check one less than the order */
-    secp256k1_scalar_set_int(&small, 1);
-    secp256k1_scalar_get_num(&n, &small);
-    secp256k1_num_sub(&n, &order, &n);
-    CHECK(secp256k1_num_jacobi(&n, &order) == 1);  /* sage confirms this is 1 */
-}
+        /* check if the inverse times the input is 1 (mod m), unless x is 0. */
+        mulmod256(tmp, out, in, mod);
+        CHECK(tmp[0] == nonzero);
+        for (i = 1; i < 16; ++i) CHECK(tmp[i] == 0);
 
-void run_num_smalltests(void) {
-    int i;
-    for (i = 0; i < 100*count; i++) {
-        test_num_negate();
-        test_num_add_sub();
-        test_num_mod();
-        test_num_jacobi();
+        /* invert again */
+        (vartime ? secp256k1_modinv64_var : secp256k1_modinv64)(&x, &m);
+
+        /* check if the result is equal to the input */
+        signed62_to_uint16(tmp, &x);
+        for (i = 0; i < 16; ++i) CHECK(tmp[i] == in[i]);
     }
 }
 #endif
 
+/* test if a and b are coprime */
+int coprime(const uint16_t* a, const uint16_t* b) {
+    uint16_t x[16], y[16], t[16];
+    int i;
+    int iszero;
+    memcpy(x, a, 32);
+    memcpy(y, b, 32);
+
+    /* simple gcd loop: while x!=0, (x,y)=(y%x,x) */
+    while (1) {
+        iszero = 1;
+        for (i = 0; i < 16; ++i) {
+            if (x[i] != 0) {
+                iszero = 0;
+                break;
+            }
+        }
+        if (iszero) break;
+        mulmod256(t, y, NULL, x);
+        memcpy(y, x, 32);
+        memcpy(x, t, 32);
+    }
+
+    /* return whether y=1 */
+    if (y[0] != 1) return 0;
+    for (i = 1; i < 16; ++i) {
+        if (y[i] != 0) return 0;
+    }
+    return 1;
+}
+
+void run_modinv_tests(void) {
+    /* Fixed test cases. Each tuple is (input, modulus, output), each as 16x16 bits in LE order. */
+    static const uint16_t CASES[][3][16] = {
+        /* Test case known to need 713 divsteps */
+        {{0x1513, 0x5389, 0x54e9, 0x2798, 0x1957, 0x66a0, 0x8057, 0x3477,
+          0x7784, 0x1052, 0x326a, 0x9331, 0x6506, 0xa95c, 0x91f3, 0xfb5e},
+         {0x2bdd, 0x8df4, 0xcc61, 0x481f, 0xdae5, 0x5ca7, 0xf43b, 0x7d54,
+          0x13d6, 0x469b, 0x2294, 0x20f4, 0xb2a4, 0xa2d1, 0x3ff1, 0xfd4b},
+         {0xffd8, 0xd9a0, 0x456e, 0x81bb, 0xbabd, 0x6cea, 0x6dbd, 0x73ab,
+          0xbb94, 0x3d3c, 0xdf08, 0x31c4, 0x3e32, 0xc179, 0x2486, 0xb86b}},
+        /* Test case known to need 589 divsteps, reaching delta=-140 and
+           delta=141. */
+        {{0x3fb1, 0x903b, 0x4eb7, 0x4813, 0xd863, 0x26bf, 0xd89f, 0xa8a9,
+          0x02fe, 0x57c6, 0x554a, 0x4eab, 0x165e, 0x3d61, 0xee1e, 0x456c},
+         {0x9295, 0x823b, 0x5c1f, 0x5386, 0x48e0, 0x02ff, 0x4c2a, 0xa2da,
+          0xe58f, 0x967c, 0xc97e, 0x3f5a, 0x69fb, 0x52d9, 0x0a86, 0xb4a3},
+         {0x3d30, 0xb893, 0xa809, 0xa7a8, 0x26f5, 0x5b42, 0x55be, 0xf4d0,
+          0x12c2, 0x7e6a, 0xe41a, 0x90c7, 0xebfa, 0xf920, 0x304e, 0x1419}},
+        /* Test case known to need 650 divsteps, and doing 65 consecutive (f,g/2) steps. */
+        {{0x8583, 0x5058, 0xbeae, 0xeb69, 0x48bc, 0x52bb, 0x6a9d, 0xcc94,
+          0x2a21, 0x87d5, 0x5b0d, 0x42f6, 0x5b8a, 0x2214, 0xe9d6, 0xa040},
+         {0x7531, 0x27cb, 0x7e53, 0xb739, 0x6a5f, 0x83f5, 0xa45c, 0xcb1d,
+          0x8a87, 0x1c9c, 0x51d7, 0x851c, 0xb9d8, 0x1fbe, 0xc241, 0xd4a3},
+         {0xcdb4, 0x275c, 0x7d22, 0xa906, 0x0173, 0xc054, 0x7fdf, 0x5005,
+          0x7fb8, 0x9059, 0xdf51, 0x99df, 0x2654, 0x8f6e, 0x070f, 0xb347}},
+        /* Test case with the group order as modulus, needing 635 divsteps. */
+        {{0x95ed, 0x6c01, 0xd113, 0x5ff1, 0xd7d0, 0x29cc, 0x5817, 0x6120,
+          0xca8e, 0xaad1, 0x25ae, 0x8e84, 0x9af6, 0x30bf, 0xf0ed, 0x1686},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x1631, 0xbf4a, 0x286a, 0x2716, 0x469f, 0x2ac8, 0x1312, 0xe9bc,
+          0x04f4, 0x304b, 0x9931, 0x113b, 0xd932, 0xc8f4, 0x0d0d, 0x01a1}},
+        /* Test case with the field size as modulus, needing 637 divsteps. */
+        {{0x9ec3, 0x1919, 0xca84, 0x7c11, 0xf996, 0x06f3, 0x5408, 0x6688,
+          0x1320, 0xdb8a, 0x632a, 0x0dcb, 0x8a84, 0x6bee, 0x9c95, 0xe34e},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x18e5, 0x19b6, 0xdf92, 0x1aaa, 0x09fb, 0x8a3f, 0x52b0, 0x8701,
+          0xac0c, 0x2582, 0xda44, 0x9bcc, 0x6828, 0x1c53, 0xbd8f, 0xbd2c}},
+        /* Test case with the field size as modulus, needing 935 divsteps with
+           broken eta handling. */
+        {{0x1b37, 0xbdc3, 0x8bcd, 0x25e3, 0x1eae, 0x567d, 0x30b6, 0xf0d8,
+          0x9277, 0x0cf8, 0x9c2e, 0xecd7, 0x631d, 0xe38f, 0xd4f8, 0x5c93},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x1622, 0xe05b, 0xe880, 0x7de9, 0x3e45, 0xb682, 0xee6c, 0x67ed,
+          0xa179, 0x15db, 0x6b0d, 0xa656, 0x7ccb, 0x8ef7, 0xa2ff, 0xe279}},
+        /* Test case with the group size as modulus, needing 981 divsteps with
+           broken eta handling. */
+        {{0xfeb9, 0xb877, 0xee41, 0x7fa3, 0x87da, 0x94c4, 0x9d04, 0xc5ae,
+          0x5708, 0x0994, 0xfc79, 0x0916, 0xbf32, 0x3ad8, 0xe11c, 0x5ca2},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x0f12, 0x075e, 0xce1c, 0x6f92, 0xc80f, 0xca92, 0x9a04, 0x6126,
+          0x4b6c, 0x57d6, 0xca31, 0x97f3, 0x1f99, 0xf4fd, 0xda4d, 0x42ce}},
+        /* Test case with the field size as modulus, input = 0. */
+        {{0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000}},
+        /* Test case with the field size as modulus, input = 1. */
+        {{0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000}},
+        /* Test case with the field size as modulus, input = 2. */
+        {{0x0002, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0xfe18, 0x7fff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x7fff}},
+        /* Test case with the field size as modulus, input = field - 1. */
+        {{0xfc2e, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0xfc2e, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff}},
+        /* Test case with the group size as modulus, input = 0. */
+        {{0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000}},
+        /* Test case with the group size as modulus, input = 1. */
+        {{0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x0001, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000}},
+        /* Test case with the group size as modulus, input = 2. */
+        {{0x0002, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
+          0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x20a1, 0x681b, 0x2f46, 0xdfe9, 0x501d, 0x57a4, 0x6e73, 0x5d57,
+          0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x7fff}},
+        /* Test case with the group size as modulus, input = group - 1. */
+        {{0x4140, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x4141, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff},
+         {0x4140, 0xd036, 0x5e8c, 0xbfd2, 0xa03b, 0xaf48, 0xdce6, 0xbaae,
+          0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff}}
+    };
+
+    int i, j, ok;
+
+    /* Test known inputs/outputs */
+    for (i = 0; (size_t)i < sizeof(CASES) / sizeof(CASES[0]); ++i) {
+        uint16_t out[16];
+        test_modinv32_uint16(out, CASES[i][0], CASES[i][1]);
+        for (j = 0; j < 16; ++j) CHECK(out[j] == CASES[i][2][j]);
+#ifdef SECP256K1_WIDEMUL_INT128
+        test_modinv64_uint16(out, CASES[i][0], CASES[i][1]);
+        for (j = 0; j < 16; ++j) CHECK(out[j] == CASES[i][2][j]);
+#endif
+    }
+
+    for (i = 0; i < 100 * count; ++i) {
+        /* 256-bit numbers in 16-uint16_t's notation */
+        static const uint16_t ZERO[16] = {0};
+        uint16_t xd[16];  /* the number (in range [0,2^256)) to be inverted */
+        uint16_t md[16];  /* the modulus (odd, in range [3,2^256)) */
+        uint16_t id[16];  /* the inverse of xd mod md */
+
+        /* generate random xd and md, so that md is odd, md>1, xd<md, and gcd(xd,md)=1 */
+        do {
+            /* generate random xd and md (with many subsequent 0s and 1s) */
+            secp256k1_testrand256_test((unsigned char*)xd);
+            secp256k1_testrand256_test((unsigned char*)md);
+            md[0] |= 1; /* modulus must be odd */
+            /* If modulus is 1, find another one. */
+            ok = md[0] != 1;
+            for (j = 1; j < 16; ++j) ok |= md[j] != 0;
+            mulmod256(xd, xd, NULL, md); /* Make xd = xd mod md */
+        } while (!(ok && coprime(xd, md)));
+
+        test_modinv32_uint16(id, xd, md);
+#ifdef SECP256K1_WIDEMUL_INT128
+        test_modinv64_uint16(id, xd, md);
+#endif
+
+        /* In a few cases, also test with input=0 */
+        if (i < count) {
+            test_modinv32_uint16(id, ZERO, md);
+#ifdef SECP256K1_WIDEMUL_INT128
+            test_modinv64_uint16(id, ZERO, md);
+#endif
+        }
+    }
+}
+
 /***** SCALAR TESTS *****/
+
 
 void scalar_test(void) {
     secp256k1_scalar s;
     secp256k1_scalar s1;
     secp256k1_scalar s2;
-#ifndef USE_NUM_NONE
-    secp256k1_num snum, s1num, s2num;
-    secp256k1_num order, half_order;
-#endif
     unsigned char c[32];
 
     /* Set 's' to a random scalar, with value 'snum'. */
@@ -818,16 +1089,6 @@ void scalar_test(void) {
     /* Set 's2' to a random scalar, with value 'snum2', and byte array representation 'c'. */
     random_scalar_order_test(&s2);
     secp256k1_scalar_get_b32(c, &s2);
-
-#ifndef USE_NUM_NONE
-    secp256k1_scalar_get_num(&snum, &s);
-    secp256k1_scalar_get_num(&s1num, &s1);
-    secp256k1_scalar_get_num(&s2num, &s2);
-
-    secp256k1_scalar_order_get_num(&order);
-    half_order = order;
-    secp256k1_num_shift(&half_order, 1);
-#endif
 
     {
         int i;
@@ -868,80 +1129,6 @@ void scalar_test(void) {
         CHECK(secp256k1_scalar_eq(&n, &s));
     }
 
-#ifndef USE_NUM_NONE
-    {
-        /* Test that adding the scalars together is equal to adding their numbers together modulo the order. */
-        secp256k1_num rnum;
-        secp256k1_num r2num;
-        secp256k1_scalar r;
-        secp256k1_num_add(&rnum, &snum, &s2num);
-        secp256k1_num_mod(&rnum, &order);
-        secp256k1_scalar_add(&r, &s, &s2);
-        secp256k1_scalar_get_num(&r2num, &r);
-        CHECK(secp256k1_num_eq(&rnum, &r2num));
-    }
-
-    {
-        /* Test that multiplying the scalars is equal to multiplying their numbers modulo the order. */
-        secp256k1_scalar r;
-        secp256k1_num r2num;
-        secp256k1_num rnum;
-        secp256k1_num_mul(&rnum, &snum, &s2num);
-        secp256k1_num_mod(&rnum, &order);
-        secp256k1_scalar_mul(&r, &s, &s2);
-        secp256k1_scalar_get_num(&r2num, &r);
-        CHECK(secp256k1_num_eq(&rnum, &r2num));
-        /* The result can only be zero if at least one of the factors was zero. */
-        CHECK(secp256k1_scalar_is_zero(&r) == (secp256k1_scalar_is_zero(&s) || secp256k1_scalar_is_zero(&s2)));
-        /* The results can only be equal to one of the factors if that factor was zero, or the other factor was one. */
-        CHECK(secp256k1_num_eq(&rnum, &snum) == (secp256k1_scalar_is_zero(&s) || secp256k1_scalar_is_one(&s2)));
-        CHECK(secp256k1_num_eq(&rnum, &s2num) == (secp256k1_scalar_is_zero(&s2) || secp256k1_scalar_is_one(&s)));
-    }
-
-    {
-        secp256k1_scalar neg;
-        secp256k1_num negnum;
-        secp256k1_num negnum2;
-        /* Check that comparison with zero matches comparison with zero on the number. */
-        CHECK(secp256k1_num_is_zero(&snum) == secp256k1_scalar_is_zero(&s));
-        /* Check that comparison with the half order is equal to testing for high scalar. */
-        CHECK(secp256k1_scalar_is_high(&s) == (secp256k1_num_cmp(&snum, &half_order) > 0));
-        secp256k1_scalar_negate(&neg, &s);
-        secp256k1_num_sub(&negnum, &order, &snum);
-        secp256k1_num_mod(&negnum, &order);
-        /* Check that comparison with the half order is equal to testing for high scalar after negation. */
-        CHECK(secp256k1_scalar_is_high(&neg) == (secp256k1_num_cmp(&negnum, &half_order) > 0));
-        /* Negating should change the high property, unless the value was already zero. */
-        CHECK((secp256k1_scalar_is_high(&s) == secp256k1_scalar_is_high(&neg)) == secp256k1_scalar_is_zero(&s));
-        secp256k1_scalar_get_num(&negnum2, &neg);
-        /* Negating a scalar should be equal to (order - n) mod order on the number. */
-        CHECK(secp256k1_num_eq(&negnum, &negnum2));
-        secp256k1_scalar_add(&neg, &neg, &s);
-        /* Adding a number to its negation should result in zero. */
-        CHECK(secp256k1_scalar_is_zero(&neg));
-        secp256k1_scalar_negate(&neg, &neg);
-        /* Negating zero should still result in zero. */
-        CHECK(secp256k1_scalar_is_zero(&neg));
-    }
-
-    {
-        /* Test secp256k1_scalar_mul_shift_var. */
-        secp256k1_scalar r;
-        secp256k1_num one;
-        secp256k1_num rnum;
-        secp256k1_num rnum2;
-        unsigned char cone[1] = {0x01};
-        unsigned int shift = 256 + secp256k1_testrand_int(257);
-        secp256k1_scalar_mul_shift_var(&r, &s1, &s2, shift);
-        secp256k1_num_mul(&rnum, &s1num, &s2num);
-        secp256k1_num_shift(&rnum, shift - 1);
-        secp256k1_num_set_bin(&one, cone, 1);
-        secp256k1_num_add(&rnum, &rnum, &one);
-        secp256k1_num_shift(&rnum, 1);
-        secp256k1_scalar_get_num(&rnum2, &r);
-        CHECK(secp256k1_num_eq(&rnum, &rnum2));
-    }
-
     {
         /* test secp256k1_scalar_shr_int */
         secp256k1_scalar r;
@@ -953,34 +1140,6 @@ void scalar_test(void) {
             int expected = r.d[0] % (1 << shift);
             low = secp256k1_scalar_shr_int(&r, shift);
             CHECK(expected == low);
-        }
-    }
-#endif
-
-    {
-        /* Test that scalar inverses are equal to the inverse of their number modulo the order. */
-        if (!secp256k1_scalar_is_zero(&s)) {
-            secp256k1_scalar inv;
-#ifndef USE_NUM_NONE
-            secp256k1_num invnum;
-            secp256k1_num invnum2;
-#endif
-            secp256k1_scalar_inverse(&inv, &s);
-#ifndef USE_NUM_NONE
-            secp256k1_num_mod_inverse(&invnum, &snum, &order);
-            secp256k1_scalar_get_num(&invnum2, &inv);
-            CHECK(secp256k1_num_eq(&invnum, &invnum2));
-#endif
-            secp256k1_scalar_mul(&inv, &inv, &s);
-            /* Multiplying a scalar with its inverse must result in one. */
-            CHECK(secp256k1_scalar_is_one(&inv));
-            secp256k1_scalar_inverse(&inv, &inv);
-            /* Inverting one must result in one. */
-            CHECK(secp256k1_scalar_is_one(&inv));
-#ifndef USE_NUM_NONE
-            secp256k1_scalar_get_num(&invnum, &inv);
-            CHECK(secp256k1_num_is_one(&invnum));
-#endif
         }
     }
 
@@ -1055,14 +1214,6 @@ void scalar_test(void) {
     }
 
     {
-        /* Test square. */
-        secp256k1_scalar r1, r2;
-        secp256k1_scalar_sqr(&r1, &s1);
-        secp256k1_scalar_mul(&r2, &s1, &s1);
-        CHECK(secp256k1_scalar_eq(&r1, &r2));
-    }
-
-    {
         /* Test multiplicative identity. */
         secp256k1_scalar r1, v1;
         secp256k1_scalar_set_int(&v1,1);
@@ -1126,48 +1277,6 @@ void run_scalar_tests(void) {
         CHECK(secp256k1_scalar_is_zero(&o));
     }
 
-#ifndef USE_NUM_NONE
-    {
-        /* Test secp256k1_scalar_set_b32 boundary conditions */
-        secp256k1_num order;
-        secp256k1_scalar scalar;
-        unsigned char bin[32];
-        unsigned char bin_tmp[32];
-        int overflow = 0;
-        /* 2^256-1 - order */
-        static const secp256k1_scalar all_ones_minus_order = SECP256K1_SCALAR_CONST(
-            0x00000000UL, 0x00000000UL, 0x00000000UL, 0x00000001UL,
-            0x45512319UL, 0x50B75FC4UL, 0x402DA173UL, 0x2FC9BEBEUL
-        );
-
-        /* A scalar set to 0s should be 0. */
-        memset(bin, 0, 32);
-        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
-        CHECK(overflow == 0);
-        CHECK(secp256k1_scalar_is_zero(&scalar));
-
-        /* A scalar with value of the curve order should be 0. */
-        secp256k1_scalar_order_get_num(&order);
-        secp256k1_num_get_bin(bin, 32, &order);
-        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
-        CHECK(overflow == 1);
-        CHECK(secp256k1_scalar_is_zero(&scalar));
-
-        /* A scalar with value of the curve order minus one should not overflow. */
-        bin[31] -= 1;
-        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
-        CHECK(overflow == 0);
-        secp256k1_scalar_get_b32(bin_tmp, &scalar);
-        CHECK(secp256k1_memcmp_var(bin, bin_tmp, 32) == 0);
-
-        /* A scalar set to all 1s should overflow. */
-        memset(bin, 0xFF, 32);
-        secp256k1_scalar_set_b32(&scalar, bin, &overflow);
-        CHECK(overflow == 1);
-        CHECK(secp256k1_scalar_eq(&scalar, &all_ones_minus_order));
-    }
-#endif
-
     {
         /* Does check_overflow check catch all ones? */
         static const secp256k1_scalar overflowed = SECP256K1_SCALAR_CONST(
@@ -1190,9 +1299,7 @@ void run_scalar_tests(void) {
         secp256k1_scalar one;
         secp256k1_scalar r1;
         secp256k1_scalar r2;
-#if defined(USE_SCALAR_INV_NUM)
         secp256k1_scalar zzv;
-#endif
         int overflow;
         unsigned char chal[33][2][32] = {
             {{0xff, 0xff, 0x03, 0x07, 0x00, 0x00, 0x00, 0x00,
@@ -1742,10 +1849,8 @@ void run_scalar_tests(void) {
             if (!secp256k1_scalar_is_zero(&y)) {
                 secp256k1_scalar_inverse(&zz, &y);
                 CHECK(!secp256k1_scalar_check_overflow(&zz));
-#if defined(USE_SCALAR_INV_NUM)
                 secp256k1_scalar_inverse_var(&zzv, &y);
                 CHECK(secp256k1_scalar_eq(&zzv, &zz));
-#endif
                 secp256k1_scalar_mul(&z, &z, &zz);
                 CHECK(!secp256k1_scalar_check_overflow(&z));
                 CHECK(secp256k1_scalar_eq(&x, &z));
@@ -1753,12 +1858,6 @@ void run_scalar_tests(void) {
                 CHECK(!secp256k1_scalar_check_overflow(&zz));
                 CHECK(secp256k1_scalar_eq(&one, &zz));
             }
-            secp256k1_scalar_mul(&z, &x, &x);
-            CHECK(!secp256k1_scalar_check_overflow(&z));
-            secp256k1_scalar_sqr(&zz, &x);
-            CHECK(!secp256k1_scalar_check_overflow(&zz));
-            CHECK(secp256k1_scalar_eq(&zz, &z));
-            CHECK(secp256k1_scalar_eq(&r2, &zz));
         }
     }
 }
@@ -1812,13 +1911,6 @@ int check_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
     secp256k1_fe_normalize_weak(&an);
     secp256k1_fe_normalize_var(&bn);
     return secp256k1_fe_equal_var(&an, &bn);
-}
-
-int check_fe_inverse(const secp256k1_fe *a, const secp256k1_fe *ai) {
-    secp256k1_fe x;
-    secp256k1_fe one = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1);
-    secp256k1_fe_mul(&x, a, ai);
-    return check_fe_equal(&x, &one);
 }
 
 void run_field_convert(void) {
@@ -1940,30 +2032,6 @@ void run_field_misc(void) {
     }
 }
 
-void run_field_inv(void) {
-    secp256k1_fe x, xi, xii;
-    int i;
-    for (i = 0; i < 10*count; i++) {
-        random_fe_non_zero(&x);
-        secp256k1_fe_inv(&xi, &x);
-        CHECK(check_fe_inverse(&x, &xi));
-        secp256k1_fe_inv(&xii, &xi);
-        CHECK(check_fe_equal(&x, &xii));
-    }
-}
-
-void run_field_inv_var(void) {
-    secp256k1_fe x, xi, xii;
-    int i;
-    for (i = 0; i < 10*count; i++) {
-        random_fe_non_zero(&x);
-        secp256k1_fe_inv_var(&xi, &x);
-        CHECK(check_fe_inverse(&x, &xi));
-        secp256k1_fe_inv_var(&xii, &xi);
-        CHECK(check_fe_equal(&x, &xii));
-    }
-}
-
 void run_sqr(void) {
     secp256k1_fe x, s;
 
@@ -2024,6 +2092,169 @@ void run_sqrt(void) {
             test_sqrt(&t, NULL);
             secp256k1_fe_mul(&t, &s, &ns);
             test_sqrt(&t, NULL);
+        }
+    }
+}
+
+/***** FIELD/SCALAR INVERSE TESTS *****/
+
+static const secp256k1_scalar scalar_minus_one = SECP256K1_SCALAR_CONST(
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE,
+    0xBAAEDCE6, 0xAF48A03B, 0xBFD25E8C, 0xD0364140
+);
+
+static const secp256k1_fe fe_minus_one = SECP256K1_FE_CONST(
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0xFFFFFC2E
+);
+
+/* These tests test the following identities:
+ *
+ * for x==0: 1/x == 0
+ * for x!=0: x*(1/x) == 1
+ * for x!=0 and x!=1: 1/(1/x - 1) + 1 == -1/(x-1)
+ */
+
+void test_inverse_scalar(secp256k1_scalar* out, const secp256k1_scalar* x, int var)
+{
+    secp256k1_scalar l, r, t;
+
+    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse_var)(&l, x);  /* l = 1/x */
+    if (out) *out = l;
+    if (secp256k1_scalar_is_zero(x)) {
+        CHECK(secp256k1_scalar_is_zero(&l));
+        return;
+    }
+    secp256k1_scalar_mul(&t, x, &l);                                             /* t = x*(1/x) */
+    CHECK(secp256k1_scalar_is_one(&t));                                          /* x*(1/x) == 1 */
+    secp256k1_scalar_add(&r, x, &scalar_minus_one);                              /* r = x-1 */
+    if (secp256k1_scalar_is_zero(&r)) return;
+    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse_var)(&r, &r); /* r = 1/(x-1) */
+    secp256k1_scalar_add(&l, &scalar_minus_one, &l);                             /* l = 1/x-1 */
+    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse_var)(&l, &l); /* l = 1/(1/x-1) */
+    secp256k1_scalar_add(&l, &l, &secp256k1_scalar_one);                         /* l = 1/(1/x-1)+1 */
+    secp256k1_scalar_add(&l, &r, &l);                                            /* l = 1/(1/x-1)+1 + 1/(x-1) */
+    CHECK(secp256k1_scalar_is_zero(&l));                                         /* l == 0 */
+}
+
+void test_inverse_field(secp256k1_fe* out, const secp256k1_fe* x, int var)
+{
+    secp256k1_fe l, r, t;
+
+    (var ? secp256k1_fe_inv_var : secp256k1_fe_inv)(&l, x) ;   /* l = 1/x */
+    if (out) *out = l;
+    t = *x;                                                    /* t = x */
+    if (secp256k1_fe_normalizes_to_zero_var(&t)) {
+        CHECK(secp256k1_fe_normalizes_to_zero(&l));
+        return;
+    }
+    secp256k1_fe_mul(&t, x, &l);                               /* t = x*(1/x) */
+    secp256k1_fe_add(&t, &fe_minus_one);                       /* t = x*(1/x)-1 */
+    CHECK(secp256k1_fe_normalizes_to_zero(&t));                /* x*(1/x)-1 == 0 */
+    r = *x;                                                    /* r = x */
+    secp256k1_fe_add(&r, &fe_minus_one);                       /* r = x-1 */
+    if (secp256k1_fe_normalizes_to_zero_var(&r)) return;
+    (var ? secp256k1_fe_inv_var : secp256k1_fe_inv)(&r, &r);   /* r = 1/(x-1) */
+    secp256k1_fe_add(&l, &fe_minus_one);                       /* l = 1/x-1 */
+    (var ? secp256k1_fe_inv_var : secp256k1_fe_inv)(&l, &l);   /* l = 1/(1/x-1) */
+    secp256k1_fe_add(&l, &secp256k1_fe_one);                   /* l = 1/(1/x-1)+1 */
+    secp256k1_fe_add(&l, &r);                                  /* l = 1/(1/x-1)+1 + 1/(x-1) */
+    CHECK(secp256k1_fe_normalizes_to_zero_var(&l));            /* l == 0 */
+}
+
+void run_inverse_tests(void)
+{
+    /* Fixed test cases for field inverses: pairs of (x, 1/x) mod p. */
+    static const secp256k1_fe fe_cases[][2] = {
+        /* 0 */
+        {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0),
+         SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0)},
+        /* 1 */
+        {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1),
+         SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1)},
+        /* -1 */
+        {SECP256K1_FE_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xfffffc2e),
+         SECP256K1_FE_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xfffffc2e)},
+        /* 2 */
+        {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 2),
+         SECP256K1_FE_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x7ffffe18)},
+        /* 2**128 */
+        {SECP256K1_FE_CONST(0, 0, 0, 1, 0, 0, 0, 0),
+         SECP256K1_FE_CONST(0xbcb223fe, 0xdc24a059, 0xd838091d, 0xd2253530, 0xffffffff, 0xffffffff, 0xffffffff, 0x434dd931)},
+        /* Input known to need 637 divsteps */
+        {SECP256K1_FE_CONST(0xe34e9c95, 0x6bee8a84, 0x0dcb632a, 0xdb8a1320, 0x66885408, 0x06f3f996, 0x7c11ca84, 0x19199ec3),
+         SECP256K1_FE_CONST(0xbd2cbd8f, 0x1c536828, 0x9bccda44, 0x2582ac0c, 0x870152b0, 0x8a3f09fb, 0x1aaadf92, 0x19b618e5)}
+    };
+    /* Fixed test cases for scalar inverses: pairs of (x, 1/x) mod n. */
+    static const secp256k1_scalar scalar_cases[][2] = {
+        /* 0 */
+        {SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0),
+         SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0)},
+        /* 1 */
+        {SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1),
+         SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1)},
+        /* -1 */
+        {SECP256K1_SCALAR_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xbaaedce6, 0xaf48a03b, 0xbfd25e8c, 0xd0364140),
+         SECP256K1_SCALAR_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xbaaedce6, 0xaf48a03b, 0xbfd25e8c, 0xd0364140)},
+        /* 2 */
+        {SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 2),
+         SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x5d576e73, 0x57a4501d, 0xdfe92f46, 0x681b20a1)},
+        /* 2**128 */
+        {SECP256K1_SCALAR_CONST(0, 0, 0, 1, 0, 0, 0, 0),
+         SECP256K1_SCALAR_CONST(0x50a51ac8, 0x34b9ec24, 0x4b0dff66, 0x5588b13e, 0x9984d5b3, 0xcf80ef0f, 0xd6a23766, 0xa3ee9f22)},
+        /* Input known to need 635 divsteps */
+        {SECP256K1_SCALAR_CONST(0xcb9f1d35, 0xdd4416c2, 0xcd71bf3f, 0x6365da66, 0x3c9b3376, 0x8feb7ae9, 0x32a5ef60, 0x19199ec3),
+         SECP256K1_SCALAR_CONST(0x1d7c7bba, 0xf1893d53, 0xb834bd09, 0x36b411dc, 0x42c2e42f, 0xec72c428, 0x5e189791, 0x8e9bc708)}
+    };
+    int i, var, testrand;
+    unsigned char b32[32];
+    secp256k1_fe x_fe;
+    secp256k1_scalar x_scalar;
+    memset(b32, 0, sizeof(b32));
+    /* Test fixed test cases through test_inverse_{scalar,field}, both ways. */
+    for (i = 0; (size_t)i < sizeof(fe_cases)/sizeof(fe_cases[0]); ++i) {
+        for (var = 0; var <= 1; ++var) {
+            test_inverse_field(&x_fe, &fe_cases[i][0], var);
+            check_fe_equal(&x_fe, &fe_cases[i][1]);
+            test_inverse_field(&x_fe, &fe_cases[i][1], var);
+            check_fe_equal(&x_fe, &fe_cases[i][0]);
+        }
+    }
+    for (i = 0; (size_t)i < sizeof(scalar_cases)/sizeof(scalar_cases[0]); ++i) {
+        for (var = 0; var <= 1; ++var) {
+            test_inverse_scalar(&x_scalar, &scalar_cases[i][0], var);
+            CHECK(secp256k1_scalar_eq(&x_scalar, &scalar_cases[i][1]));
+            test_inverse_scalar(&x_scalar, &scalar_cases[i][1], var);
+            CHECK(secp256k1_scalar_eq(&x_scalar, &scalar_cases[i][0]));
+        }
+    }
+    /* Test inputs 0..999 and their respective negations. */
+    for (i = 0; i < 1000; ++i) {
+        b32[31] = i & 0xff;
+        b32[30] = (i >> 8) & 0xff;
+        secp256k1_scalar_set_b32(&x_scalar, b32, NULL);
+        secp256k1_fe_set_b32(&x_fe, b32);
+        for (var = 0; var <= 1; ++var) {
+            test_inverse_scalar(NULL, &x_scalar, var);
+            test_inverse_field(NULL, &x_fe, var);
+        }
+        secp256k1_scalar_negate(&x_scalar, &x_scalar);
+        secp256k1_fe_negate(&x_fe, &x_fe, 1);
+        for (var = 0; var <= 1; ++var) {
+            test_inverse_scalar(NULL, &x_scalar, var);
+            test_inverse_field(NULL, &x_fe, var);
+        }
+    }
+    /* test 128*count random inputs; half with testrand256_test, half with testrand256 */
+    for (testrand = 0; testrand <= 1; ++testrand) {
+        for (i = 0; i < 64 * count; ++i) {
+            (testrand ? secp256k1_testrand256_test : secp256k1_testrand256)(b32);
+            secp256k1_scalar_set_b32(&x_scalar, b32, NULL);
+            secp256k1_fe_set_b32(&x_fe, b32);
+            for (var = 0; var <= 1; ++var) {
+                test_inverse_scalar(NULL, &x_scalar, var);
+                test_inverse_field(NULL, &x_fe, var);
+            }
         }
     }
 }
@@ -2407,64 +2638,35 @@ void run_ec_combine(void) {
 void test_group_decompress(const secp256k1_fe* x) {
     /* The input itself, normalized. */
     secp256k1_fe fex = *x;
-    secp256k1_fe fez;
-    /* Results of set_xquad_var, set_xo_var(..., 0), set_xo_var(..., 1). */
-    secp256k1_ge ge_quad, ge_even, ge_odd;
-    secp256k1_gej gej_quad;
+    /* Results of set_xo_var(..., 0), set_xo_var(..., 1). */
+    secp256k1_ge ge_even, ge_odd;
     /* Return values of the above calls. */
-    int res_quad, res_even, res_odd;
+    int res_even, res_odd;
 
     secp256k1_fe_normalize_var(&fex);
 
-    res_quad = secp256k1_ge_set_xquad(&ge_quad, &fex);
     res_even = secp256k1_ge_set_xo_var(&ge_even, &fex, 0);
     res_odd = secp256k1_ge_set_xo_var(&ge_odd, &fex, 1);
 
-    CHECK(res_quad == res_even);
-    CHECK(res_quad == res_odd);
+    CHECK(res_even == res_odd);
 
-    if (res_quad) {
-        secp256k1_fe_normalize_var(&ge_quad.x);
+    if (res_even) {
         secp256k1_fe_normalize_var(&ge_odd.x);
         secp256k1_fe_normalize_var(&ge_even.x);
-        secp256k1_fe_normalize_var(&ge_quad.y);
         secp256k1_fe_normalize_var(&ge_odd.y);
         secp256k1_fe_normalize_var(&ge_even.y);
 
         /* No infinity allowed. */
-        CHECK(!ge_quad.infinity);
         CHECK(!ge_even.infinity);
         CHECK(!ge_odd.infinity);
 
         /* Check that the x coordinates check out. */
-        CHECK(secp256k1_fe_equal_var(&ge_quad.x, x));
         CHECK(secp256k1_fe_equal_var(&ge_even.x, x));
         CHECK(secp256k1_fe_equal_var(&ge_odd.x, x));
-
-        /* Check that the Y coordinate result in ge_quad is a square. */
-        CHECK(secp256k1_fe_is_quad_var(&ge_quad.y));
 
         /* Check odd/even Y in ge_odd, ge_even. */
         CHECK(secp256k1_fe_is_odd(&ge_odd.y));
         CHECK(!secp256k1_fe_is_odd(&ge_even.y));
-
-        /* Check secp256k1_gej_has_quad_y_var. */
-        secp256k1_gej_set_ge(&gej_quad, &ge_quad);
-        CHECK(secp256k1_gej_has_quad_y_var(&gej_quad));
-        do {
-            random_fe_test(&fez);
-        } while (secp256k1_fe_is_zero(&fez));
-        secp256k1_gej_rescale(&gej_quad, &fez);
-        CHECK(secp256k1_gej_has_quad_y_var(&gej_quad));
-        secp256k1_gej_neg(&gej_quad, &gej_quad);
-        CHECK(!secp256k1_gej_has_quad_y_var(&gej_quad));
-        do {
-            random_fe_test(&fez);
-        } while (secp256k1_fe_is_zero(&fez));
-        secp256k1_gej_rescale(&gej_quad, &fez);
-        CHECK(!secp256k1_gej_has_quad_y_var(&gej_quad));
-        secp256k1_gej_neg(&gej_quad, &gej_quad);
-        CHECK(secp256k1_gej_has_quad_y_var(&gej_quad));
     }
 }
 
@@ -5606,21 +5808,18 @@ int main(int argc, char **argv) {
     run_rand_bits();
     run_rand_int();
 
+    run_ctz_tests();
+    run_modinv_tests();
+    run_inverse_tests();
+
     run_sha256_tests();
     run_hmac_sha256_tests();
     run_rfc6979_hmac_sha256_tests();
-
-#ifndef USE_NUM_NONE
-    /* num tests */
-    run_num_smalltests();
-#endif
 
     /* scalar tests */
     run_scalar_tests();
 
     /* field tests */
-    run_field_inv();
-    run_field_inv_var();
     run_field_misc();
     run_field_convert();
     run_sqr();
