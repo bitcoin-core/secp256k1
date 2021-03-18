@@ -477,9 +477,7 @@ static SECP256K1_INLINE void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, 
 }
 
 static void secp256k1_fe_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a) {
-#ifdef VERIFY
-    VERIFY_CHECK(a->normalized);
-#endif
+    VERIFY_CHECK_ONLY(a->normalized);
     r->n[0] = a->n[0] | a->n[1] << 52;
     r->n[1] = a->n[1] >> 12 | a->n[2] << 40;
     r->n[2] = a->n[2] >> 24 | a->n[3] << 28;
@@ -528,9 +526,7 @@ static void secp256k1_fe_to_signed62(secp256k1_modinv64_signed62 *r, const secp2
     const uint64_t M62 = UINT64_MAX >> 2;
     const uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4];
 
-#ifdef VERIFY
-    VERIFY_CHECK(a->normalized);
-#endif
+    VERIFY_CHECK_ONLY(a->normalized);
 
     r->v[0] = (a0       | a1 << 52) & M62;
     r->v[1] = (a1 >> 10 | a2 << 42) & M62;
