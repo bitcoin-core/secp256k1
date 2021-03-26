@@ -21,10 +21,10 @@
 #include "util.h"
 
 #ifdef ENABLE_OPENSSL_TESTS
-#include "openssl/bn.h"
-#include "openssl/ec.h"
-#include "openssl/ecdsa.h"
-#include "openssl/obj_mac.h"
+#include <openssl/bn.h>
+#include <openssl/ec.h>
+#include <openssl/ecdsa.h>
+#include <openssl/obj_mac.h>
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
 void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) {*pr = sig->r; *ps = sig->s;}
 # endif
