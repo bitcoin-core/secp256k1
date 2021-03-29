@@ -681,7 +681,7 @@ def update_de(d, e, t, M, Mi):
     cd, ce = (u*d + v*e) % 2**N, (q*d + r*e) % 2**N
     md -= (Mi*cd + md) % 2**N
     me -= (Mi*ce + me) % 2**N
-    cd, ce = u*d + v*e + Mi*md, q*d + r*e + Mi*me
+    cd, ce = u*d + v*e + M*md, q*d + r*e + M*me
     return cd >> N, ce >> N
 ```
 
