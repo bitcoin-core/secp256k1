@@ -76,7 +76,7 @@ int main(void) {
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY | SECP256K1_CONTEXT_SIGN);
     /* Scratch space size was selected to allow fitting the maximum number of
      * points for the default iters value into a single ecmult_multi batch. */
-    data.scratch = secp256k1_scratch_space_create(data.ctx, 5 * 1024 * 1024);
+    data.scratch = secp256k1_scratch_space_create(data.ctx, 7 * 1024 * 1024);
     data.keypairs = (const secp256k1_keypair **)malloc(iters * sizeof(secp256k1_keypair *));
     data.pk = (const unsigned char **)malloc(iters * sizeof(unsigned char *));
     data.msgs = (const unsigned char **)malloc(iters * sizeof(unsigned char *));
