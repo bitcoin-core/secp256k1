@@ -19,6 +19,7 @@
 
 #define USE_WIDEMUL_64 1
 #define ECMULT_WINDOW_SIZE 15
+#define ECMULT_GEN_PREC_BITS 4
 
 #endif /* USE_BASIC_CONFIG */
 
