@@ -10,6 +10,7 @@
 #ifdef USE_BASIC_CONFIG
 
 #define ECMULT_WINDOW_SIZE 15
+#define ECMULT_GEN_PREC_BITS 4
 
 #endif /* USE_BASIC_CONFIG */
 
