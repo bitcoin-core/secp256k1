@@ -4489,37 +4489,89 @@ void run_wnaf(void) {
     CHECK(secp256k1_scalar_is_zero(&n));
 }
 
+static int test_ecmult_accumulate_cb(secp256k1_scalar* sc, secp256k1_ge* pt, size_t idx, void* data) {
+    const secp256k1_scalar* indata = (const secp256k1_scalar*)data;
+    *sc = *indata;
+    *pt = secp256k1_ge_const_g;
+    CHECK(idx == 0);
+    return 1;
+}
+
+void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar* x, secp256k1_scratch* scratch) {
+    /* Compute x*G in 6 different ways, serialize it uncompressed, and feed it into acc. */
+    secp256k1_gej rj1, rj2, rj3, rj4, rj5, rj6, gj, infj;
+    secp256k1_ge r;
+    const secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
+    unsigned char bytes[65];
+    size_t size = 65;
+    secp256k1_gej_set_ge(&gj, &secp256k1_ge_const_g);
+    secp256k1_gej_set_infinity(&infj);
+    secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &rj1, x);
+    secp256k1_ecmult(&rj2, &gj, x, &zero);
+    secp256k1_ecmult(&rj3, &infj, &zero, x);
+    secp256k1_ecmult_multi_var(NULL, scratch, &rj4, x, NULL, NULL, 0);
+    secp256k1_ecmult_multi_var(NULL, scratch, &rj5, &zero, test_ecmult_accumulate_cb, (void*)x, 1);
+    secp256k1_ecmult_const(&rj6, &secp256k1_ge_const_g, x, 256);
+    secp256k1_ge_set_gej_var(&r, &rj1);
+    ge_equals_gej(&r, &rj2);
+    ge_equals_gej(&r, &rj3);
+    ge_equals_gej(&r, &rj4);
+    ge_equals_gej(&r, &rj5);
+    ge_equals_gej(&r, &rj6);
+    if (secp256k1_ge_is_infinity(&r)) {
+        /* Store infinity as 0x00 */
+        const unsigned char zerobyte[1] = {0};
+        secp256k1_sha256_write(acc, zerobyte, 1);
+    } else {
+        /* Store other points using their uncompressed serialization. */
+        secp256k1_eckey_pubkey_serialize(&r, bytes, &size, 0);
+        CHECK(size == 65);
+        secp256k1_sha256_write(acc, bytes, size);
+    }
+}
+
 void test_ecmult_constants(void) {
-    /* Test ecmult_gen() for [0..36) and [order-36..0). */
+    /* Test ecmult_gen for:
+     * - For i in 0..36:
+     *   - Key i
+     *   - Key -i
+     * - For i in 0..255:
+     *   - For j in 1..255 (only odd values):
+     *     - Key (j*2^i) mod order
+     */
     secp256k1_scalar x;
-    secp256k1_gej r;
-    secp256k1_ge ng;
-    int i;
-    int j;
-    secp256k1_ge_neg(&ng, &secp256k1_ge_const_g);
-    for (i = 0; i < 36; i++ ) {
+    secp256k1_sha256 acc;
+    unsigned char b32[32];
+    int i, j;
+    secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(ctx, 65536);
+
+    /* Expected hash of all the computed points; created with an independent
+     * implementation. */
+    static const unsigned char expected32[32] = {
+        0xe4, 0x71, 0x1b, 0x4d, 0x14, 0x1e, 0x68, 0x48,
+        0xb7, 0xaf, 0x47, 0x2b, 0x4c, 0xd2, 0x04, 0x14,
+        0x3a, 0x75, 0x87, 0x60, 0x1a, 0xf9, 0x63, 0x60,
+        0xd0, 0xcb, 0x1f, 0xaa, 0x85, 0x9a, 0xb7, 0xb4
+    };
+    secp256k1_sha256_initialize(&acc);
+    for (i = 0; i <= 36; ++i) {
         secp256k1_scalar_set_int(&x, i);
-        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &r, &x);
-        for (j = 0; j < i; j++) {
-            if (j == i - 1) {
-                ge_equals_gej(&secp256k1_ge_const_g, &r);
-            }
-            secp256k1_gej_add_ge(&r, &r, &ng);
-        }
-        CHECK(secp256k1_gej_is_infinity(&r));
-    }
-    for (i = 1; i <= 36; i++ ) {
-        secp256k1_scalar_set_int(&x, i);
+        test_ecmult_accumulate(&acc, &x, scratch);
         secp256k1_scalar_negate(&x, &x);
-        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &r, &x);
-        for (j = 0; j < i; j++) {
-            if (j == i - 1) {
-                ge_equals_gej(&ng, &r);
-            }
-            secp256k1_gej_add_ge(&r, &r, &secp256k1_ge_const_g);
+        test_ecmult_accumulate(&acc, &x, scratch);
+    };
+    for (i = 0; i < 256; ++i) {
+        for (j = 1; j < 256; j += 2) {
+            int k;
+            secp256k1_scalar_set_int(&x, j);
+            for (k = 0; k < i; ++k) secp256k1_scalar_add(&x, &x, &x);
+            test_ecmult_accumulate(&acc, &x, scratch);
         }
-        CHECK(secp256k1_gej_is_infinity(&r));
     }
+    secp256k1_sha256_finalize(&acc, b32);
+    CHECK(secp256k1_memcmp_var(b32, expected32, 32) == 0);
+
+    secp256k1_scratch_space_destroy(ctx, scratch);
 }
 
 void run_ecmult_constants(void) {
