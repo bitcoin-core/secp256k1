@@ -244,8 +244,8 @@ def modinv(M, Mi, x):
 
 This means that in practice we'll always perform a multiple of *N* divsteps. This is not a problem
 because once *g=0*, further divsteps do not affect *f*, *g*, *d*, or *e* anymore (only *&delta;* keeps
-increasing). For variable time code such excess iterations will be mostly optimized away in
-section 6.
+increasing). For variable time code such excess iterations will be mostly optimized away in later
+sections.
 
 
 ## 4. Avoiding modulus operations
@@ -519,6 +519,20 @@ computation:
     g >>= 1
 ```
 
+A variant of divsteps with better worst-case performance can be used instead: starting *&delta;* at
+*1/2* instead of *1*. This reduces the worst case number of iterations to *590* for *256*-bit inputs
+(which can be shown using convex hull analysis). In this case, the substitution *&zeta;=-(&delta;+1/2)*
+is used instead to keep the variable integral. Incrementing *&delta;* by *1* still translates to
+decrementing *&zeta;* by *1*, but negating *&delta;* now corresponds to going from *&zeta;* to *-(&zeta;+1)*, or
+*~&zeta;*. Doing that conditionally based on *c3* is simply:
+
+```python
+    ...
+    c3 = c1 & c2
+    zeta ^= c3
+    ...
+```
+
 By replacing the loop in `divsteps_n_matrix` with a variant of the divstep code above (extended to
 also apply all *f* operations to *u*, *v* and all *g* operations to *q*, *r*), a constant-time version of
 `divsteps_n_matrix` is obtained. The full code will be in section 7.
@@ -535,7 +549,8 @@ other cases, it slows down calculations unnecessarily. In this section, we will 
 faster non-constant time `divsteps_n_matrix` function.
 
 To do so, first consider yet another way of writing the inner loop of divstep operations in
-`gcd` from section 1. This decomposition is also explained in the paper in section 8.2.
+`gcd` from section 1. This decomposition is also explained in the paper in section 8.2. We use
+the original version with initial *&delta;=1* and *&eta;=-&delta;* here.
 
 ```python
 for _ in range(N):
@@ -643,24 +658,24 @@ All together we need the following functions:
   section 5, extended to handle *u*, *v*, *q*, *r*:
 
 ```python
-def divsteps_n_matrix(eta, f, g):
-    """Compute eta and transition matrix t after N divsteps (multiplied by 2^N)."""
+def divsteps_n_matrix(zeta, f, g):
+    """Compute zeta and transition matrix t after N divsteps (multiplied by 2^N)."""
     u, v, q, r = 1, 0, 0, 1 # start with identity matrix
     for _ in range(N):
-        c1 = eta >> 63
+        c1 = zeta >> 63
         # Compute x, y, z as conditionally-negated versions of f, u, v.
         x, y, z = (f ^ c1) - c1, (u ^ c1) - c1, (v ^ c1) - c1
         c2 = -(g & 1)
         # Conditionally add x, y, z to g, q, r.
         g, q, r = g + (x & c2), q + (y & c2), r + (z & c2)
         c1 &= c2                     # reusing c1 here for the earlier c3 variable
-        eta = (eta ^ c1) - (c1 + 1)  # inlining the unconditional eta decrement here
+        zeta = (zeta ^ c1) - 1       # inlining the unconditional zeta decrement here
         # Conditionally add g, q, r to f, u, v.
         f, u, v = f + (g & c1), u + (q & c1), v + (r & c1)
         # When shifting g down, don't shift q, r, as we construct a transition matrix multiplied
         # by 2^N. Instead, shift f's coefficients u and v up.
         g, u, v = g >> 1, u << 1, v << 1
-    return eta, (u, v, q, r)
+    return zeta, (u, v, q, r)
 ```
 
 - The functions to update *f* and *g*, and *d* and *e*, from section 2 and section 4, with the constant-time
@@ -681,7 +696,7 @@ def update_de(d, e, t, M, Mi):
     cd, ce = (u*d + v*e) % 2**N, (q*d + r*e) % 2**N
     md -= (Mi*cd + md) % 2**N
     me -= (Mi*ce + me) % 2**N
-    cd, ce = u*d + v*e + Mi*md, q*d + r*e + Mi*me
+    cd, ce = u*d + v*e + M*md, q*d + r*e + M*me
     return cd >> N, ce >> N
 ```
 
@@ -702,15 +717,15 @@ def normalize(sign, v, M):
     return v
 ```
 
-- And finally the `modinv` function too, adapted to use *&eta;* instead of *&delta;*, and using the fixed
+- And finally the `modinv` function too, adapted to use *&zeta;* instead of *&delta;*, and using the fixed
   iteration count from section 5:
 
 ```python
 def modinv(M, Mi, x):
     """Compute the modular inverse of x mod M, given Mi=1/M mod 2^N."""
-    eta, f, g, d, e = -1, M, x, 0, 1
-    for _ in range((724 + N - 1) // N):
-        eta, t = divsteps_n_matrix(-eta, f % 2**N, g % 2**N)
+    zeta, f, g, d, e = -1, M, x, 0, 1
+    for _ in range((590 + N - 1) // N):
+        zeta, t = divsteps_n_matrix(zeta, f % 2**N, g % 2**N)
         f, g = update_fg(f, g, t)
         d, e = update_de(d, e, t, M, Mi)
     return normalize(f, d, M)

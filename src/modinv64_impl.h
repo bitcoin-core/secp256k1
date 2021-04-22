@@ -145,33 +145,35 @@ typedef struct {
     int64_t u, v, q, r;
 } secp256k1_modinv64_trans2x2;
 
-/* Compute the transition matrix and eta for 62 divsteps.
+/* Compute the transition matrix and eta for 59 divsteps (where zeta=-(delta+1/2)).
+ * Note that the transformation matrix is scaled by 2^62 and not 2^59.
  *
- * Input:  eta: initial eta
- *         f0:  bottom limb of initial f
- *         g0:  bottom limb of initial g
+ * Input:  zeta: initial zeta
+ *         f0:   bottom limb of initial f
+ *         g0:   bottom limb of initial g
  * Output: t: transition matrix
- * Return: final eta
+ * Return: final zeta
  *
  * Implements the divsteps_n_matrix function from the explanation.
  */
-static int64_t secp256k1_modinv64_divsteps_62(int64_t eta, uint64_t f0, uint64_t g0, secp256k1_modinv64_trans2x2 *t) {
+static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_t g0, secp256k1_modinv64_trans2x2 *t) {
     /* u,v,q,r are the elements of the transformation matrix being built up,
-     * starting with the identity matrix. Semantically they are signed integers
+     * starting with the identity matrix times 8 (because the caller expects
+     * a result scaled by 2^62). Semantically they are signed integers
      * in range [-2^62,2^62], but here represented as unsigned mod 2^64. This
      * permits left shifting (which is UB for negative numbers). The range
      * being inside [-2^63,2^63) means that casting to signed works correctly.
      */
-    uint64_t u = 1, v = 0, q = 0, r = 1;
+    uint64_t u = 8, v = 0, q = 0, r = 8;
     uint64_t c1, c2, f = f0, g = g0, x, y, z;
     int i;
 
-    for (i = 0; i < 62; ++i) {
+    for (i = 3; i < 62; ++i) {
         VERIFY_CHECK((f & 1) == 1); /* f must always be odd */
         VERIFY_CHECK((u * f0 + v * g0) == f << i);
         VERIFY_CHECK((q * f0 + r * g0) == g << i);
-        /* Compute conditional masks for (eta < 0) and for (g & 1). */
-        c1 = eta >> 63;
+        /* Compute conditional masks for (zeta < 0) and for (g & 1). */
+        c1 = zeta >> 63;
         c2 = -(g & 1);
         /* Compute x,y,z, conditionally negated versions of f,u,v. */
         x = (f ^ c1) - c1;
@@ -181,10 +183,10 @@ static int64_t secp256k1_modinv64_divsteps_62(int64_t eta, uint64_t f0, uint64_t
         g += x & c2;
         q += y & c2;
         r += z & c2;
-        /* In what follows, c1 is a condition mask for (eta < 0) and (g & 1). */
+        /* In what follows, c1 is a condition mask for (zeta < 0) and (g & 1). */
         c1 &= c2;
-        /* Conditionally negate eta, and unconditionally subtract 1. */
-        eta = (eta ^ c1) - (c1 + 1);
+        /* Conditionally change zeta into -zeta-2 or zeta-1. */
+        zeta = (zeta ^ c1) - 1;
         /* Conditionally add g,q,r to f,u,v. */
         f += g & c1;
         u += q & c1;
@@ -193,8 +195,8 @@ static int64_t secp256k1_modinv64_divsteps_62(int64_t eta, uint64_t f0, uint64_t
         g >>= 1;
         u <<= 1;
         v <<= 1;
-        /* Bounds on eta that follow from the bounds on iteration count (max 12*62 divsteps). */
-        VERIFY_CHECK(eta >= -745 && eta <= 745);
+        /* Bounds on zeta that follow from the bounds on iteration count (max 10*59 divsteps). */
+        VERIFY_CHECK(zeta >= -591 && zeta <= 591);
     }
     /* Return data in t and return value. */
     t->u = (int64_t)u;
@@ -204,12 +206,14 @@ static int64_t secp256k1_modinv64_divsteps_62(int64_t eta, uint64_t f0, uint64_t
     /* The determinant of t must be a power of two. This guarantees that multiplication with t
      * does not change the gcd of f and g, apart from adding a power-of-2 factor to it (which
      * will be divided out again). As each divstep's individual matrix has determinant 2, the
-     * aggregate of 62 of them will have determinant 2^62. */
-    VERIFY_CHECK((int128_t)t->u * t->r - (int128_t)t->v * t->q == ((int128_t)1) << 62);
-    return eta;
+     * aggregate of 59 of them will have determinant 2^59. Multiplying with the initial
+     * 8*identity (which has determinant 2^6) means the overall outputs has determinant
+     * 2^65. */
+    VERIFY_CHECK((int128_t)t->u * t->r - (int128_t)t->v * t->q == ((int128_t)1) << 65);
+    return zeta;
 }
 
-/* Compute the transition matrix and eta for 62 divsteps (variable time).
+/* Compute the transition matrix and eta for 62 divsteps (variable time, eta=-delta).
  *
  * Input:  eta: initial eta
  *         f0:  bottom limb of initial f
@@ -290,7 +294,7 @@ static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint
     return eta;
 }
 
-/* Compute (t/2^62) * [d, e] mod modulus, where t is a transition matrix for 62 divsteps.
+/* Compute (t/2^62) * [d, e] mod modulus, where t is a transition matrix scaled by 2^62.
  *
  * On input and output, d and e are in range (-2*modulus,modulus). All output limbs will be in range
  * (-2^62,2^62).
@@ -376,7 +380,7 @@ static void secp256k1_modinv64_update_de_62(secp256k1_modinv64_signed62 *d, secp
 #endif
 }
 
-/* Compute (t/2^62) * [f, g], where t is a transition matrix for 62 divsteps.
+/* Compute (t/2^62) * [f, g], where t is a transition matrix scaled by 2^62.
  *
  * This implements the update_fg function from the explanation.
  */
@@ -455,19 +459,19 @@ static void secp256k1_modinv64_update_fg_62_var(int len, secp256k1_modinv64_sign
 
 /* Compute the inverse of x modulo modinfo->modulus, and replace x with it (constant time in x). */
 static void secp256k1_modinv64(secp256k1_modinv64_signed62 *x, const secp256k1_modinv64_modinfo *modinfo) {
-    /* Start with d=0, e=1, f=modulus, g=x, eta=-1. */
+    /* Start with d=0, e=1, f=modulus, g=x, zeta=-1. */
     secp256k1_modinv64_signed62 d = {{0, 0, 0, 0, 0}};
     secp256k1_modinv64_signed62 e = {{1, 0, 0, 0, 0}};
     secp256k1_modinv64_signed62 f = modinfo->modulus;
     secp256k1_modinv64_signed62 g = *x;
     int i;
-    int64_t eta = -1;
+    int64_t zeta = -1; /* zeta = -(delta+1/2); delta starts at 1/2. */
 
-    /* Do 12 iterations of 62 divsteps each = 744 divsteps. 724 suffices for 256-bit inputs. */
-    for (i = 0; i < 12; ++i) {
-        /* Compute transition matrix and new eta after 62 divsteps. */
+    /* Do 10 iterations of 59 divsteps each = 590 divsteps. This suffices for 256-bit inputs. */
+    for (i = 0; i < 10; ++i) {
+        /* Compute transition matrix and new zeta after 59 divsteps. */
         secp256k1_modinv64_trans2x2 t;
-        eta = secp256k1_modinv64_divsteps_62(eta, f.v[0], g.v[0], &t);
+        zeta = secp256k1_modinv64_divsteps_59(zeta, f.v[0], g.v[0], &t);
         /* Update d,e using that transition matrix. */
         secp256k1_modinv64_update_de_62(&d, &e, &t, modinfo);
         /* Update f,g using that transition matrix. */
@@ -517,7 +521,7 @@ static void secp256k1_modinv64_var(secp256k1_modinv64_signed62 *x, const secp256
     int i = 0;
 #endif
     int j, len = 5;
-    int64_t eta = -1;
+    int64_t eta = -1; /* eta = -delta; delta is initially 1 */
     int64_t cond, fn, gn;
 
     /* Do iterations of 62 divsteps each until g=0. */
