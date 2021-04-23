@@ -8,6 +8,11 @@
 #include "libsecp256k1-config.h"
 #endif
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+
 #undef USE_ECMULT_STATIC_PRECOMPUTATION
 
 #ifndef EXHAUSTIVE_TEST_ORDER
@@ -32,12 +37,6 @@
 #include "scratch_impl.h"
 #include "testrand_impl.h"
 #include "util.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-
 
 static int count = 2;
 
