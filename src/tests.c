@@ -4,15 +4,18 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
-
 #if defined HAVE_CONFIG_H
 #include "libsecp256k1-config.h"
 #endif
 
+#include <limits.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "secp256k1.c"
 #include "secp256k1.h"
-#include "contrib/lax_der_parsing.c"
-#include "contrib/lax_der_privatekey_parsing.c"
 #include "ecdsa_impl.h"
 #include "eckey_impl.h"
 #include "ecmult_const_impl.h"
@@ -27,11 +30,7 @@
 #include "hash.h"
 #include "hash_impl.h"
 #include "modinv32.h"
-#include "modinv32_impl.h"
 #include "modinv64.h"
-#ifdef SECP256K1_WIDEMUL_INT128
-#include "modinv64_impl.h"
-#endif
 #include "scalar_4x64.h"
 #include "scalar_4x64_impl.h"
 #include "scalar_impl.h"
@@ -40,12 +39,6 @@
 #include "testrand_impl.h"
 #include "util.h"
 
-
-#include <limits.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #ifdef ENABLE_OPENSSL_TESTS
 #include <openssl/bn.h>
@@ -59,6 +52,13 @@ void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 # endif
 #endif
 
+#include "contrib/lax_der_parsing.c"
+#include "contrib/lax_der_privatekey_parsing.c"
+
+#include "modinv32_impl.h"
+#ifdef SECP256K1_WIDEMUL_INT128
+#include "modinv64_impl.h"
+#endif
 
 static int count = 64;
 static secp256k1_context *ctx = NULL;
