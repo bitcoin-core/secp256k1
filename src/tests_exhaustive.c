@@ -8,11 +8,6 @@
 #include "libsecp256k1-config.h"
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <time.h>
-
 #undef USE_ECMULT_STATIC_PRECOMPUTATION
 
 #ifndef EXHAUSTIVE_TEST_ORDER
@@ -20,11 +15,29 @@
 #define EXHAUSTIVE_TEST_ORDER 13
 #endif
 
-#include "include/secp256k1.h"
-#include "assumptions.h"
-#include "group.h"
 #include "secp256k1.c"
+#include "secp256k1.h"
+#include "ecmult_const_impl.h"
+#include "ecmult_gen_impl.h"
+#include "ecmult_impl.h"
+#include "field_5x52.h"
+#include "field_5x52_impl.h"
+#include "field_impl.h"
+#include "group.h"
+#include "group_impl.h"
+#include "scalar_impl.h"
+#include "scalar_low.h"
+#include "scalar_low_impl.h"
+#include "scratch.h"
+#include "scratch_impl.h"
 #include "testrand_impl.h"
+#include "util.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+
 
 static int count = 2;
 

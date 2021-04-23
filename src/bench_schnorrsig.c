@@ -4,14 +4,14 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
-#include <string.h>
-#include <stdlib.h>
-
-
-#include "include/secp256k1.h"
-#include "include/secp256k1_schnorrsig.h"
+#include "secp256k1.h"
+#include "secp256k1_schnorrsig.h"
 #include "util.h"
 #include "bench.h"
+#include "secp256k1_extrakeys.h"
+
+#include <string.h>
+#include <stdlib.h>
 
 typedef struct {
     secp256k1_context *ctx;

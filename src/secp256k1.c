@@ -4,22 +4,31 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
-#include "include/secp256k1.h"
-#include "include/secp256k1_preallocated.h"
+#include "secp256k1.h"
 
-#include "assumptions.h"
+#include "secp256k1_preallocated.h"
 #include "util.h"
-#include "field_impl.h"
 #include "scalar_impl.h"
 #include "group_impl.h"
 #include "ecmult_impl.h"
-#include "ecmult_const_impl.h"
 #include "ecmult_gen_impl.h"
 #include "ecdsa_impl.h"
 #include "eckey_impl.h"
 #include "hash_impl.h"
 #include "scratch_impl.h"
 #include "selftest.h"
+#include "ecmult.h"
+#include "ecmult_gen.h"
+#include "field_5x52.h"
+#include "field_5x52_impl.h"
+#include "group.h"
+#include "hash.h"
+#include "libsecp256k1-config.h"
+#include "scalar_4x64.h"
+#include "scalar_4x64_impl.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 #if defined(VALGRIND)
 # include <valgrind/memcheck.h>
@@ -39,8 +48,8 @@
 } while(0)
 
 #ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
-#include <stdlib.h>
 #include <stdio.h>
+
 static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
     (void)data;
     fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);

@@ -7,12 +7,13 @@
 #ifndef SECP256K1_TESTRAND_IMPL_H
 #define SECP256K1_TESTRAND_IMPL_H
 
+#include "testrand.h"
+#include "hash.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-
-#include "testrand.h"
-#include "hash.h"
+#include <time.h>
 
 static secp256k1_rfc6979_hmac_sha256 secp256k1_test_rng;
 static uint32_t secp256k1_test_rng_precomputed[8];

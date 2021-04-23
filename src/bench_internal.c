@@ -3,11 +3,8 @@
  * Distributed under the MIT software license, see the accompanying    *
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
-#include <stdio.h>
 
-#include "include/secp256k1.h"
-
-#include "assumptions.h"
+#include "secp256k1.h"
 #include "util.h"
 #include "hash_impl.h"
 #include "field_impl.h"
@@ -17,6 +14,15 @@
 #include "ecmult_impl.h"
 #include "bench.h"
 #include "secp256k1.c"
+#include "field_5x52.h"
+#include "field_5x52_impl.h"
+#include "group.h"
+#include "hash.h"
+#include "scalar_4x64.h"
+#include "scalar_4x64_impl.h"
+
+#include <stdio.h>
+#include <string.h>
 
 typedef struct {
     secp256k1_scalar scalar[2];

@@ -4,9 +4,11 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
-#include "include/secp256k1.h"
+#include "secp256k1.h"
 #include "util.h"
 #include "bench.h"
+
+#include <stddef.h>
 
 typedef struct {
     secp256k1_context* ctx;
