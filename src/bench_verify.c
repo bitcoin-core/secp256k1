@@ -7,7 +7,6 @@
 #include "secp256k1.h"
 #include "util.h"
 #include "bench.h"
-#include "libsecp256k1-config.h"
 
 #include <stdio.h>
 
