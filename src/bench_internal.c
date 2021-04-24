@@ -8,6 +8,8 @@
 #include <string.h>
 
 #include "secp256k1.h"
+
+#include "assumptions.h"
 #include "group.h"
 #include "group_impl.h"
 #include "ecmult_const_impl.h"

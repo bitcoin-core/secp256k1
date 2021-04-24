@@ -22,6 +22,7 @@
 
 #include "secp256k1.c"
 #include "secp256k1.h"
+#include "assumptions.h"
 #include "ecmult_const_impl.h"
 #include "ecmult_gen_impl.h"
 #include "ecmult_impl.h"

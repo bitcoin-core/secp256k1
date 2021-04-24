@@ -9,6 +9,7 @@
 #include <valgrind/valgrind.h>
 
 #include "secp256k1.h"
+#include "assumptions.h"
 #include "util.h"
 
 #ifdef ENABLE_MODULE_ECDH
