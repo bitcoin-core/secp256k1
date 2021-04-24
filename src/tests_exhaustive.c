@@ -26,8 +26,6 @@
 #include "ecmult_const_impl.h"
 #include "ecmult_gen_impl.h"
 #include "ecmult_impl.h"
-#include "field_5x52.h"
-#include "field_5x52_impl.h"
 #include "field_impl.h"
 #include "group.h"
 #include "group_impl.h"

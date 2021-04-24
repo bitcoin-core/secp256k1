@@ -4,11 +4,11 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
+#include <stdio.h>
+
 #include "secp256k1.h"
 #include "util.h"
 #include "bench.h"
-
-#include <stdio.h>
 
 #ifdef ENABLE_OPENSSL_TESTS
 #include <openssl/obj_mac.h>

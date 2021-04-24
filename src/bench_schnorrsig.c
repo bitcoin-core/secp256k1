@@ -9,9 +9,9 @@
 
 #include "secp256k1.h"
 #include "secp256k1_schnorrsig.h"
-#include "util.h"
-#include "bench.h"
 #include "secp256k1_extrakeys.h"
+#include "bench.h"
+#include "util.h"
 
 typedef struct {
     secp256k1_context *ctx;
