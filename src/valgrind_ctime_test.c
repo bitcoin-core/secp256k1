@@ -4,12 +4,12 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
-#include "secp256k1.h"
-#include "util.h"
-
 #include <stdio.h>
 #include <valgrind/memcheck.h>
 #include <valgrind/valgrind.h>
+
+#include "secp256k1.h"
+#include "util.h"
 
 #ifdef ENABLE_MODULE_ECDH
 # include "secp256k1_ecdh.h"

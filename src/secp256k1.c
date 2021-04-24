@@ -4,9 +4,13 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
-#include "secp256k1.h"
+#include <stdlib.h>
+#include <string.h>
 
+#include "secp256k1.h"
 #include "secp256k1_preallocated.h"
+
+#include "assumptions.h"
 #include "util.h"
 #include "scalar_impl.h"
 #include "group_impl.h"
@@ -27,8 +31,6 @@
 #include "scalar_4x64.h"
 #include "scalar_4x64_impl.h"
 
-#include <stdlib.h>
-#include <string.h>
 
 #if defined(VALGRIND)
 # include <valgrind/memcheck.h>
