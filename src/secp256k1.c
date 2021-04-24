@@ -12,6 +12,7 @@
 
 #include "assumptions.h"
 #include "util.h"
+#include "field_impl.h"
 #include "scalar_impl.h"
 #include "group_impl.h"
 #include "ecmult_impl.h"
@@ -21,15 +22,6 @@
 #include "hash_impl.h"
 #include "scratch_impl.h"
 #include "selftest.h"
-#include "ecmult.h"
-#include "ecmult_gen.h"
-#include "field_5x52.h"
-#include "field_5x52_impl.h"
-#include "group.h"
-#include "hash.h"
-#include "libsecp256k1-config.h"
-#include "scalar_4x64.h"
-#include "scalar_4x64_impl.h"
 
 
 #if defined(VALGRIND)
