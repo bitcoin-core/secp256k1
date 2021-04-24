@@ -23,7 +23,6 @@
 #include "scratch_impl.h"
 #include "selftest.h"
 
-
 #if defined(VALGRIND)
 # include <valgrind/memcheck.h>
 #endif
