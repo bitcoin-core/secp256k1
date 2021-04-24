@@ -4,21 +4,22 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+
 #include "secp256k1.h"
+
 #include "util.h"
 #include "hash_impl.h"
 #include "group_impl.h"
 #include "ecmult_impl.h"
+#include "scalar_impl.h"
 #include "bench.h"
 #include "secp256k1.c"
 #include "group.h"
 #include "hash.h"
-#include "scalar_4x64.h"
-#include "scalar_4x64_impl.h"
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 
 #define POINTS 32768
 
