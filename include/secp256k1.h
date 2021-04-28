@@ -7,7 +7,9 @@ extern "C" {
 
 #include <stddef.h>
 
-/* These rules specify the order of arguments in API calls:
+/* Unless explicitly stated all pointer arguments must not be NULL.
+ *
+ * The following rules specify the order of arguments in API calls:
  *
  * 1. Context pointers go first, followed by output arguments, combined
  *    output/input arguments, and finally input-only arguments.
