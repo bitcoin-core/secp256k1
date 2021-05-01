@@ -4,6 +4,8 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
+#define SECP256K1_BUILD
+
 #include "include/secp256k1.h"
 #include "include/secp256k1_preallocated.h"
 
@@ -20,6 +22,10 @@
 #include "hash_impl.h"
 #include "scratch_impl.h"
 #include "selftest.h"
+
+#ifdef SECP256K1_NO_BUILD
+# error "secp256k1.h processed without SECP256K1_BUILD defined while building secp256k1.c"
+#endif
 
 #if defined(VALGRIND)
 # include <valgrind/memcheck.h>
