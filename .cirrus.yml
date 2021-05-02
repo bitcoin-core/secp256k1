@@ -213,6 +213,9 @@ task:
     EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
+  matrix:
+    - env: {}
+    - env: {ASM: arm}
   << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
