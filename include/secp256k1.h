@@ -127,6 +127,17 @@ typedef int (*secp256k1_nonce_function)(
 #  define SECP256K1_INLINE inline
 # endif
 
+/** When this header is used at build-time the SECP256K1_BUILD define needs to be set
+ *  to correctly setup export attributes and nullness checks.  This is normally done
+ *  by secp256k1.c but to guard against this header being included before secp256k1.c
+ *  has had a chance to set the define (e.g. via test harnesses that just includes
+ *  secp256k1.c) we set SECP256K1_NO_BUILD when this header is processed without the
+ *  BUILD define so this condition can be caught.
+ */
+#ifndef SECP256K1_BUILD
+# define SECP256K1_NO_BUILD
+#endif
+
 #ifndef SECP256K1_API
 # if defined(_WIN32)
 #  ifdef SECP256K1_BUILD
