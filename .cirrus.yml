@@ -196,3 +196,24 @@ task:
     - rm /etc/ld.so.cache
     - ./ci/cirrus.sh
   << : *CAT_LOGS
+
+task:
+  name: "x86_64 (mingw32-w64): Windows (Debian stable, Wine)"
+  container:
+    dockerfile: ci/linux-debian.Dockerfile
+    cpu: 1
+    memory: 1G
+  env:
+    WINE_CMD: wine64-stable
+    HOST: x86_64-w64-mingw32
+    BUILD:
+    WITH_VALGRIND: no
+    ECDH: yes
+    RECOVERY: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG: yes
+    CTIMETEST: no
+  << : *MERGE_BASE
+  test_script:
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS

@@ -25,7 +25,7 @@ valgrind --version || true
 make
 
 # Print information about binaries so that we can see that the architecture is correct
-file *tests || true
+file *tests* || true
 file bench_* || true
 file .libs/* || true
 
@@ -47,6 +47,12 @@ then
     $QEMU_CMD ./exhaustive_tests
 fi
 
+if [ -n "$WINE_CMD" ]
+then
+    $WINE_CMD ./tests 16
+    $WINE_CMD ./exhaustive_tests
+fi
+
 if [ "$BENCH" = "yes" ]
 then
     # Using the local `libtool` because on macOS the system's libtool has nothing to do with GNU libtool
@@ -58,6 +64,10 @@ then
     if [ "$RUN_VALGRIND" = "yes" ]
     then
         EXEC="$EXEC valgrind --error-exitcode=42"
+    fi
+    if [ -n "$WINE_CMD" ]
+    then
+        EXEC="$WINE_CMD"
     fi
     # This limits the iterations in the benchmarks below to ITER iterations.
     export SECP256K1_BENCH_ITERS="$ITERS"
