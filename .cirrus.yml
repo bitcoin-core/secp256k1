@@ -198,6 +198,48 @@ task:
   << : *CAT_LOGS
 
 task:
+  name: "ARM32: Linux (Debian stable, QEMU)"
+  container:
+    dockerfile: ci/linux-debian.Dockerfile
+    cpu: 1
+    memory: 1G
+  env:
+    QEMU_CMD: qemu-arm
+    HOST: arm-linux-gnueabihf
+    BUILD:
+    WITH_VALGRIND: no
+    ECDH: yes
+    RECOVERY: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG: yes
+    CTIMETEST: no
+  << : *MERGE_BASE
+  test_script:
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS
+
+task:
+  name: "ARM64: Linux (Debian stable, QEMU)"
+  container:
+    dockerfile: ci/linux-debian.Dockerfile
+    cpu: 1
+    memory: 1G
+  env:
+    QEMU_CMD: qemu-aarch64
+    HOST: aarch64-linux-gnu
+    BUILD:
+    WITH_VALGRIND: no
+    ECDH: yes
+    RECOVERY: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG: yes
+    CTIMETEST: no
+  << : *MERGE_BASE
+  test_script:
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS
+
+task:
   name: "x86_64 (mingw32-w64): Windows (Debian stable, Wine)"
   container:
     dockerfile: ci/linux-debian.Dockerfile
