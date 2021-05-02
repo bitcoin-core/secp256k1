@@ -103,7 +103,7 @@ void test_schnorrsig_api(void) {
     unsigned char sk3[32];
     unsigned char msg[32];
     secp256k1_keypair keypairs[3];
-    secp256k1_keypair invalid_keypair = { 0 };
+    secp256k1_keypair invalid_keypair = {{ 0 }};
     secp256k1_xonly_pubkey pk[3];
     secp256k1_xonly_pubkey zero_pk;
     unsigned char sig[64];
