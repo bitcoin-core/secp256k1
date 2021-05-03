@@ -13,6 +13,10 @@
 /* We can't require the precomputed tables when creating them. */
 #undef USE_ECMULT_STATIC_PRECOMPUTATION
 
+/* In principle we could use external ASM, but this yields only a minor speedup in
+   build time and it is prone to problems in the building process, e.g., linker issues. */
+#undef USE_EXTERNAL_ASM
+
 #include "include/secp256k1.h"
 #include "assumptions.h"
 #include "util.h"
