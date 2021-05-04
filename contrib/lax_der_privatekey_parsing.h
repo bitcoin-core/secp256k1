@@ -28,7 +28,9 @@
 #ifndef SECP256K1_CONTRIB_BER_PRIVATEKEY_H
 #define SECP256K1_CONTRIB_BER_PRIVATEKEY_H
 
+#ifndef SECP256K1_H
 #include <secp256k1.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

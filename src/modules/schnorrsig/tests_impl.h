@@ -7,7 +7,7 @@
 #ifndef SECP256K1_MODULE_SCHNORRSIG_TESTS_H
 #define SECP256K1_MODULE_SCHNORRSIG_TESTS_H
 
-#include "secp256k1_schnorrsig.h"
+#include "../../../include/secp256k1_schnorrsig.h"
 
 /* Checks that a bit flip in the n_flip-th argument (that has n_bytes many
  * bytes) changes the hash function

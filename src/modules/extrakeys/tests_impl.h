@@ -7,7 +7,7 @@
 #ifndef SECP256K1_MODULE_EXTRAKEYS_TESTS_H
 #define SECP256K1_MODULE_EXTRAKEYS_TESTS_H
 
-#include "secp256k1_extrakeys.h"
+#include "../../../include/secp256k1_extrakeys.h"
 
 static secp256k1_context* api_test_context(int flags, int *ecount) {
     secp256k1_context *ctx0 = secp256k1_context_create(flags);

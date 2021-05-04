@@ -10,7 +10,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <time.h>
 
 #undef USE_ECMULT_STATIC_PRECOMPUTATION
@@ -21,7 +20,7 @@
 #endif
 
 #include "secp256k1.c"
-#include "include/secp256k1.h"
+#include "../include/secp256k1.h"
 #include "assumptions.h"
 #include "group.h"
 #include "testrand_impl.h"
