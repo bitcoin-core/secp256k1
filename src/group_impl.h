@@ -310,7 +310,7 @@ static void secp256k1_gej_double_var(secp256k1_gej *r, const secp256k1_gej *a, s
      *  point will be gibberish (z = 0 but infinity = 0).
      */
     if (a->infinity) {
-        r->infinity = 1;
+        secp256k1_gej_set_infinity(r);
         if (rzr != NULL) {
             secp256k1_fe_set_int(rzr, 1);
         }
