@@ -101,7 +101,7 @@ if VALGRIND_ENABLED
 tests_CPPFLAGS += -DVALGRIND
 noinst_PROGRAMS += valgrind_ctime_test
 valgrind_ctime_test_SOURCES = src/valgrind_ctime_test.c
-valgrind_ctime_test_LDADD = libsecp256k1.la $(SECP_LIBS) $(SECP_LIBS) $(COMMON_LIB)
+valgrind_ctime_test_LDADD = libsecp256k1.la $(SECP_LIBS) $(COMMON_LIB)
 endif
 if !ENABLE_COVERAGE
 tests_CPPFLAGS += -DVERIFY
@@ -129,7 +129,7 @@ CPPFLAGS_FOR_BUILD +=-I$(top_srcdir) -I$(builddir)/src
 gen_context_OBJECTS = gen_context.o
 gen_context_BIN = gen_context$(BUILD_EXEEXT)
 gen_%.o: src/gen_%.c src/libsecp256k1-config.h
-	$(CC_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) $(CFLAGS_FOR_BUILD) -c $< -o $@
+	$(CC_FOR_BUILD) $(DEFS) $(CPPFLAGS_FOR_BUILD) $(CFLAGS_FOR_BUILD) -c $< -o $@
 
 $(gen_context_BIN): $(gen_context_OBJECTS)
 	$(CC_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) $^ -o $@
