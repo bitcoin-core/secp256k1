@@ -15,8 +15,8 @@
 #include <time.h>
 
 #include "secp256k1.c"
-#include "include/secp256k1.h"
-#include "include/secp256k1_preallocated.h"
+#include "../include/secp256k1.h"
+#include "../include/secp256k1_preallocated.h"
 #include "testrand_impl.h"
 #include "util.h"
 
@@ -30,8 +30,8 @@ void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 # endif
 #endif
 
-#include "contrib/lax_der_parsing.c"
-#include "contrib/lax_der_privatekey_parsing.c"
+#include "../contrib/lax_der_parsing.c"
+#include "../contrib/lax_der_privatekey_parsing.c"
 
 #include "modinv32_impl.h"
 #ifdef SECP256K1_WIDEMUL_INT128

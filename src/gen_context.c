@@ -18,7 +18,7 @@
    need to build the external ASM for the build and the host machine. */
 #undef USE_EXTERNAL_ASM
 
-#include "include/secp256k1.h"
+#include "../include/secp256k1.h"
 #include "assumptions.h"
 #include "util.h"
 #include "field_impl.h"
