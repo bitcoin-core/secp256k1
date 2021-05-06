@@ -17,6 +17,7 @@ valgrind_ctime_test
 
 Makefile
 configure
+build/**
 .libs/
 Makefile.in
 aclocal.m4

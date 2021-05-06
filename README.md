@@ -63,7 +63,8 @@ Build steps
 libsecp256k1 is built using autotools:
 
     $ ./autogen.sh
-    $ ./configure
+    $ mkdir -p build; cd build
+    $ ../configure
     $ make
     $ make check
     $ sudo make install  # optional
@@ -84,7 +85,7 @@ This library aims to have full coverage of the reachable lines and branches.
 
 To create a test coverage report, configure with `--enable-coverage` (use of GCC is necessary):
 
-    $ ./configure --enable-coverage
+    $ ../configure --enable-coverage
 
 Run the tests:
 
@@ -92,11 +93,11 @@ Run the tests:
 
 To create a report, `gcovr` is recommended, as it includes branch coverage reporting:
 
-    $ gcovr --exclude 'src/bench*' --print-summary
+    $ gcovr --root .. --exclude '../src/bench*' --print-summary
 
 To create a HTML report with coloured and annotated source code:
 
-    $ gcovr --exclude 'src/bench*' --html --html-details -o coverage.html
+    $ gcovr --root .. --exclude '../src/bench*' --html --html-details -o coverage.html
 
 Reporting a vulnerability
 ------------
