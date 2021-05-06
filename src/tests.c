@@ -3101,18 +3101,32 @@ void test_ge(void) {
 
     /* Test batch gej -> ge conversion with many infinities. */
     for (i = 0; i < 4 * runs + 1; i++) {
+        int odd;
         random_group_element_test(&ge[i]);
+        odd = secp256k1_fe_is_odd(&ge[i].x);
+        CHECK(odd == 0 || odd == 1);
         /* randomly set half the points to infinity */
-        if(secp256k1_fe_is_odd(&ge[i].x)) {
+        if (odd == i % 2) {
             secp256k1_ge_set_infinity(&ge[i]);
         }
         secp256k1_gej_set_ge(&gej[i], &ge[i]);
     }
-    /* batch invert */
+    /* batch convert */
     secp256k1_ge_set_all_gej_var(ge, gej, 4 * runs + 1);
     /* check result */
     for (i = 0; i < 4 * runs + 1; i++) {
         ge_equals_gej(&ge[i], &gej[i]);
+    }
+
+    /* Test batch gej -> ge conversion with all infinities. */
+    for (i = 0; i < 4 * runs + 1; i++) {
+        secp256k1_gej_set_infinity(&gej[i]);
+    }
+    /* batch convert */
+    secp256k1_ge_set_all_gej_var(ge, gej, 4 * runs + 1);
+    /* check result */
+    for (i = 0; i < 4 * runs + 1; i++) {
+        CHECK(secp256k1_ge_is_infinity(&ge[i]));
     }
 
     free(ge);
