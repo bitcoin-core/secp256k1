@@ -14,7 +14,6 @@ valgrind_ctime_test
 *.so
 *.a
 !.gitignore
-
 Makefile
 configure
 build/**
@@ -34,6 +33,13 @@ libtool
 *~
 *.log
 *.trs
+
+coverage/
+coverage.html
+coverage.*.html
+*.gcda
+*.gcno
+
 src/libsecp256k1-config.h
 src/libsecp256k1-config.h.in
 src/ecmult_static_context.h

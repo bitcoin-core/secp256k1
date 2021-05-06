@@ -97,7 +97,8 @@ To create a report, `gcovr` is recommended, as it includes branch coverage repor
 
 To create a HTML report with coloured and annotated source code:
 
-    $ gcovr --root .. --exclude '../src/bench*' --html --html-details -o coverage.html
+    $ mdkir -p coverage
+    $ gcovr --root .. --exclude '../src/bench*' --html --html-details -o coverage/coverage.html
 
 Reporting a vulnerability
 ------------
