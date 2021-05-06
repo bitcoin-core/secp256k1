@@ -1,21 +1,27 @@
 env:
-  WIDEMUL: auto
+  ### compiler options
+  HOST:
+  # Specific warnings can be disabled with -Wno-error=foo.
+  # -pedantic-errors is not equivalent to -Werror=pedantic and thus not implied by -Werror according to the GCC manual.
+  WERROR_CFLAGS: -Werror -pedantic-errors 
+  MAKEFLAGS: -j2
+  EXTRAFLAGS:
+  BUILD: check
+  ### secp256k1 config
   STATICPRECOMPUTATION: yes
   ECMULTGENPRECISION: auto
   ASM: no
-  BUILD: check
+  WIDEMUL: auto
   WITH_VALGRIND: yes
   RUN_VALGRIND: no
-  EXTRAFLAGS:
-  HOST:
-  ECDH: no
-  RECOVERY: no
-  SCHNORRSIG: no
-  EXPERIMENTAL: no
   CTIMETEST: yes
   BENCH: yes
   ITERS: 2
-  MAKEFLAGS: -j2
+  ### secp256k1 modules
+  EXPERIMENTAL: no
+  ECDH: no
+  RECOVERY: no
+  SCHNORRSIG: no
 
 cat_logs_snippet: &CAT_LOGS
   always:
