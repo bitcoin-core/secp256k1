@@ -12,7 +12,8 @@ valgrind --version || true
 
 ./autogen.sh
 
-./configure \
+mkdir build; cd build
+../configure \
     --enable-experimental="$EXPERIMENTAL" \
     --with-test-override-wide-multiply="$WIDEMUL" --with-asm="$ASM" \
     --enable-ecmult-static-precomputation="$STATICPRECOMPUTATION" --with-ecmult-gen-precision="$ECMULTGENPRECISION" \
