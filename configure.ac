@@ -355,6 +355,9 @@ if test x"$enable_valgrind" = x"yes"; then
   SECP_INCLUDES="$SECP_INCLUDES $VALGRIND_CPPFLAGS"
 fi
 
+# Add -Werror and similar flags passed from the outside (for testing, e.g., in CI)
+SECP_CFLAGS="$SECP_CFLAGS $WERROR_CFLAGS"
+
 # Handle static precomputation (after everything which modifies CFLAGS and friends)
 if test x"$use_ecmult_static_precomputation" != x"no"; then
   if test x"$cross_compiling" = x"no"; then
