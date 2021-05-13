@@ -70,35 +70,41 @@ case $host_os in
    ;;
 esac
 
-CFLAGS="-W $CFLAGS"
+# Try if some desirable compiler flags are supported and append them to SECP_CFLAGS.
+#
+# These are our own flags, so we append them to our own SECP_CFLAGS variable (instead of CFLAGS) as
+# recommended in the automake manual (Section "Flag Variables Ordering"). CFLAGS belongs to the user
+# and we are not supposed to touch it. In the Makefile, we will need to ensure that SECP_CFLAGS
+# is prepended to CFLAGS when invoking the compiler so that the user always has the last word (flag).
+#
+# Another advantage of not touching CFLAGS is that the contents of CFLAGS will be picked up by
+# libtool for compiling helper executables. For example, when compiling for Windows, libtool will
+# generate entire wrapper executables (instead of simple wrapper scripts as on Unix) to ensure
+# proper operation of uninstalled programs linked by libtool against the uninstalled shared library.
+# These executables are compiled from C source file for which our flags may not be appropriate,
+# e.g., -std=c89 flag has lead to undesirable warnings in the past.
+#
+# TODO We still touch the CFLAGS for --coverage and -O0/-O2.
+# TODO We should analogously not touch CPPFLAGS and LDFLAGS but currently there are no issues.
+AC_DEFUN([SECP_TRY_APPEND_DEFAULT_CFLAGS], [
+    # Try to append -Werror=unknown-warning-option to CFLAGS temporarily. Otherwise clang will
+    # not error out if it gets unknown warning flags and the checks here will always succeed
+    # no matter if clang knows the flag or not.
+    SECP_TRY_APPEND_DEFAULT_CFLAGS_saved_CFLAGS="$CFLAGS"
+    SECP_TRY_APPEND_CFLAGS([-Werror=unknown-warning-option], CFLAGS)
 
-warn_CFLAGS="-std=c89 -pedantic -Wall -Wextra -Wcast-align -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef -Wno-unused-function -Wno-long-long -Wno-overlength-strings"
-saved_CFLAGS="$CFLAGS"
-CFLAGS="$warn_CFLAGS $CFLAGS"
-AC_MSG_CHECKING([if ${CC} supports ${warn_CFLAGS}])
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
-    [ AC_MSG_RESULT([yes]) ],
-    [ AC_MSG_RESULT([no])
-      CFLAGS="$saved_CFLAGS"
-    ])
+    SECP_TRY_APPEND_CFLAGS([-std=c89 -pedantic -Wno-long-long -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef], $1) # GCC >= 3.0, -Wlong-long is implied by -pedantic.
+    SECP_TRY_APPEND_CFLAGS([-Wno-overlength-strings], $1) # GCC >= 4.2, -Woverlength-strings is implied by -pedantic.
+    SECP_TRY_APPEND_CFLAGS([-Wall], $1) # GCC >= 2.95 and probably many other compilers
+    SECP_TRY_APPEND_CFLAGS([-Wno-unused-function], $1) # GCC >= 3.0, -Wunused-function is implied by -Wall.
+    SECP_TRY_APPEND_CFLAGS([-Wextra], $1) # GCC >= 3.4, this is the newer name of -W, which we don't use because older GCCs will warn about unused functions.
+    SECP_TRY_APPEND_CFLAGS([-Wcast-align], $1) # GCC >= 2.95
+    SECP_TRY_APPEND_CFLAGS([-Wconditional-uninitialized], $1) # Clang >= 3.0 only
+    SECP_TRY_APPEND_CFLAGS([-fvisibility=hidden], $1) # GCC >= 4.0
 
-saved_CFLAGS="$CFLAGS"
-CFLAGS="-Wconditional-uninitialized $CFLAGS"
-AC_MSG_CHECKING([if ${CC} supports -Wconditional-uninitialized])
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
-    [ AC_MSG_RESULT([yes]) ],
-    [ AC_MSG_RESULT([no])
-      CFLAGS="$saved_CFLAGS"
-    ])
-
-saved_CFLAGS="$CFLAGS"
-CFLAGS="-fvisibility=hidden $CFLAGS"
-AC_MSG_CHECKING([if ${CC} supports -fvisibility=hidden])
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
-    [ AC_MSG_RESULT([yes]) ],
-    [ AC_MSG_RESULT([no])
-      CFLAGS="$saved_CFLAGS"
-    ])
+    CFLAGS="$SECP_TRY_APPEND_DEFAULT_CFLAGS_saved_CFLAGS"
+])
+SECP_TRY_APPEND_DEFAULT_CFLAGS(SECP_CFLAGS)
 
 ###
 ### Define config arguments
@@ -360,8 +366,9 @@ if test x"$use_ecmult_static_precomputation" != x"no"; then
     fi
     # If we're not cross-compiling, simply use the same compiler for building the static precompation code.
     CC_FOR_BUILD="$CC"
-    CFLAGS_FOR_BUILD="$CFLAGS"
+    SECP_CFLAGS_FOR_BUILD="$SECP_CFLAGS"
     CPPFLAGS_FOR_BUILD="$CPPFLAGS"
+    CFLAGS_FOR_BUILD="$CFLAGS"
     LDFLAGS_FOR_BUILD="$LDFLAGS"
   else
     AX_PROG_CC_FOR_BUILD
@@ -378,23 +385,13 @@ if test x"$use_ecmult_static_precomputation" != x"no"; then
     SAVE_LDFLAGS="$LDFLAGS"
     LDFLAGS="$LDFLAGS_FOR_BUILD"
 
-    warn_CFLAGS_FOR_BUILD="-Wall -Wextra -Wno-unused-function"
-    saved_CFLAGS="$CFLAGS"
-    CFLAGS="$warn_CFLAGS_FOR_BUILD $CFLAGS"
-    AC_MSG_CHECKING([if native ${CC_FOR_BUILD} supports ${warn_CFLAGS_FOR_BUILD}])
-    AC_COMPILE_IFELSE([AC_LANG_SOURCE([[char foo;]])],
-        [ AC_MSG_RESULT([yes]) ],
-        [ AC_MSG_RESULT([no])
-          CFLAGS="$saved_CFLAGS"
-        ])
+    SECP_TRY_APPEND_DEFAULT_CFLAGS(SECP_CFLAGS_FOR_BUILD)
 
     AC_MSG_CHECKING([for working native compiler: ${CC_FOR_BUILD}])
     AC_RUN_IFELSE(
       [AC_LANG_PROGRAM([], [])],
       [working_native_cc=yes],
       [working_native_cc=no],[:])
-
-    CFLAGS_FOR_BUILD="$CFLAGS"
 
     # Restore the environment
     cross_compiling=$save_cross_compiling
@@ -419,6 +416,7 @@ if test x"$use_ecmult_static_precomputation" != x"no"; then
   fi
 
   AC_SUBST(CC_FOR_BUILD)
+  AC_SUBST(SECP_CFLAGS_FOR_BUILD)
   AC_SUBST(CFLAGS_FOR_BUILD)
   AC_SUBST(CPPFLAGS_FOR_BUILD)
   AC_SUBST(LDFLAGS_FOR_BUILD)
@@ -490,6 +488,7 @@ AC_SUBST(SECP_INCLUDES)
 AC_SUBST(SECP_LIBS)
 AC_SUBST(SECP_TEST_LIBS)
 AC_SUBST(SECP_TEST_INCLUDES)
+AC_SUBST(SECP_CFLAGS)
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"$enable_coverage" = x"yes"])
 AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])
 AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$use_exhaustive_tests" != x"no"])
@@ -532,12 +531,14 @@ fi
 echo
 echo "  valgrind                = $enable_valgrind"
 echo "  CC                      = $CC"
+echo "  SECP_CFLAGS             = $SECP_CFLAGS"
 echo "  CFLAGS                  = $CFLAGS"
 echo "  CPPFLAGS                = $CPPFLAGS"
 echo "  LDFLAGS                 = $LDFLAGS"
 echo
 if test x"$set_precomp" = x"yes"; then
 echo "  CC_FOR_BUILD            = $CC_FOR_BUILD"
+echo "  SECP_CFLAGS_FOR_BUILD   = $SECP_CFLAGS_FOR_BUILD"
 echo "  CFLAGS_FOR_BUILD        = $CFLAGS_FOR_BUILD"
 echo "  CPPFLAGS_FOR_BUILD      = $CPPFLAGS_FOR_BUILD"
 echo "  LDFLAGS_FOR_BUILD       = $LDFLAGS_FOR_BUILD"
