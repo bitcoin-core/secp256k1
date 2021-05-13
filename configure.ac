@@ -366,8 +366,8 @@ if test x"$use_ecmult_static_precomputation" != x"no"; then
     fi
     # If we're not cross-compiling, simply use the same compiler for building the static precompation code.
     CC_FOR_BUILD="$CC"
-    SECP_CFLAGS_FOR_BUILD="$SECP_CFLAGS"
     CPPFLAGS_FOR_BUILD="$CPPFLAGS"
+    SECP_CFLAGS_FOR_BUILD="$SECP_CFLAGS"
     CFLAGS_FOR_BUILD="$CFLAGS"
     LDFLAGS_FOR_BUILD="$LDFLAGS"
   else
@@ -378,10 +378,10 @@ if test x"$use_ecmult_static_precomputation" != x"no"; then
     cross_compiling=no
     SAVE_CC="$CC"
     CC="$CC_FOR_BUILD"
-    SAVE_CFLAGS="$CFLAGS"
-    CFLAGS="$CFLAGS_FOR_BUILD"
     SAVE_CPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS_FOR_BUILD"
+    SAVE_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS_FOR_BUILD"
     SAVE_LDFLAGS="$LDFLAGS"
     LDFLAGS="$LDFLAGS_FOR_BUILD"
 
@@ -398,14 +398,14 @@ if test x"$use_ecmult_static_precomputation" != x"no"; then
     # Restore the environment
     cross_compiling=$save_cross_compiling
     CC="$SAVE_CC"
-    CFLAGS="$SAVE_CFLAGS"
     CPPFLAGS="$SAVE_CPPFLAGS"
+    CFLAGS="$SAVE_CFLAGS"
     LDFLAGS="$SAVE_LDFLAGS"
 
     if test x"$working_native_cc" = x"no"; then
       AC_MSG_RESULT([no])
       set_precomp=no
-      m4_define([please_set_for_build], [Please set CC_FOR_BUILD, CFLAGS_FOR_BUILD, CPPFLAGS_FOR_BUILD, and/or LDFLAGS_FOR_BUILD.])
+      m4_define([please_set_for_build], [Please set CC_FOR_BUILD, CPPFLAGS_FOR_BUILD, CFLAGS_FOR_BUILD, and/or LDFLAGS_FOR_BUILD.])
       if test x"$use_ecmult_static_precomputation" = x"yes";  then
         AC_MSG_ERROR([native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
       else
@@ -418,9 +418,9 @@ if test x"$use_ecmult_static_precomputation" != x"no"; then
   fi
 
   AC_SUBST(CC_FOR_BUILD)
+  AC_SUBST(CPPFLAGS_FOR_BUILD)
   AC_SUBST(SECP_CFLAGS_FOR_BUILD)
   AC_SUBST(CFLAGS_FOR_BUILD)
-  AC_SUBST(CPPFLAGS_FOR_BUILD)
   AC_SUBST(LDFLAGS_FOR_BUILD)
 else
   set_precomp=no
@@ -533,15 +533,15 @@ fi
 echo
 echo "  valgrind                = $enable_valgrind"
 echo "  CC                      = $CC"
+echo "  CPPFLAGS                = $CPPFLAGS"
 echo "  SECP_CFLAGS             = $SECP_CFLAGS"
 echo "  CFLAGS                  = $CFLAGS"
-echo "  CPPFLAGS                = $CPPFLAGS"
 echo "  LDFLAGS                 = $LDFLAGS"
 echo
 if test x"$set_precomp" = x"yes"; then
 echo "  CC_FOR_BUILD            = $CC_FOR_BUILD"
+echo "  CPPFLAGS_FOR_BUILD      = $CPPFLAGS_FOR_BUILD"
 echo "  SECP_CFLAGS_FOR_BUILD   = $SECP_CFLAGS_FOR_BUILD"
 echo "  CFLAGS_FOR_BUILD        = $CFLAGS_FOR_BUILD"
-echo "  CPPFLAGS_FOR_BUILD      = $CPPFLAGS_FOR_BUILD"
 echo "  LDFLAGS_FOR_BUILD       = $LDFLAGS_FOR_BUILD"
 fi
