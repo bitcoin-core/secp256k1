@@ -8,10 +8,6 @@ AH_TOP([#define LIBSECP256K1_CONFIG_H])
 AH_BOTTOM([#endif /*LIBSECP256K1_CONFIG_H*/])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 
-# Set -g if CFLAGS are not already set, which matches the default autoconf
-# behavior (see PROG_CC in the Autoconf manual) with the exception that we don't
-# set -O2 here because we set it in any case (see further down).
-: ${CFLAGS="-g"}
 LT_INIT
 
 # Make the compilation flags quiet unless V=1 is used.
@@ -84,7 +80,6 @@ esac
 # These executables are compiled from C source file for which our flags may not be appropriate,
 # e.g., -std=c89 flag has lead to undesirable warnings in the past.
 #
-# TODO We still touch the CFLAGS for --coverage and -O0/-O2.
 # TODO We should analogously not touch CPPFLAGS and LDFLAGS but currently there are no issues.
 AC_DEFUN([SECP_TRY_APPEND_DEFAULT_CFLAGS], [
     # Try to append -Werror=unknown-warning-option to CFLAGS temporarily. Otherwise clang will
@@ -220,10 +215,14 @@ AM_CONDITIONAL([VALGRIND_ENABLED],[test "$enable_valgrind" = "yes"])
 
 if test x"$enable_coverage" = x"yes"; then
     AC_DEFINE(COVERAGE, 1, [Define this symbol to compile out all VERIFY code])
-    CFLAGS="-O0 --coverage $CFLAGS"
+    SECP_CFLAGS="-O0 --coverage $SECP_CFLAGS"
     LDFLAGS="--coverage $LDFLAGS"
 else
-    CFLAGS="-O2 $CFLAGS"
+    # Most likely the CFLAGS already contain -O2 because that is autoconf's default.
+    # We still add it here because passing it twice is not an issue, and handling
+    # this case would just add unnecessary complexity (see #896).
+    SECP_CFLAGS="-O2 $SECP_CFLAGS"
+    SECP_CFLAGS_FOR_BUILD="-O2 $SECP_CFLAGS_FOR_BUILD"
 fi
 
 if test x"$req_asm" = x"auto"; then
