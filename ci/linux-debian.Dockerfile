@@ -2,6 +2,8 @@ FROM debian:stable
 
 RUN dpkg --add-architecture i386
 RUN dpkg --add-architecture s390x
+RUN dpkg --add-architecture armhf
+RUN dpkg --add-architecture arm64
 RUN apt-get update
 
 # dkpg-dev: to make pkg-config work in cross-builds
@@ -11,6 +13,8 @@ RUN apt-get install --no-install-recommends --no-upgrade -y \
         gcc clang libc6-dbg \
         gcc-i686-linux-gnu libc6-dev-i386-cross libc6-dbg:i386 \
         gcc-s390x-linux-gnu libc6-dev-s390x-cross libc6-dbg:s390x \
+        gcc-arm-linux-gnueabihf libc6-dev-armhf-cross libc6-dbg:armhf \
+        gcc-aarch64-linux-gnu libc6-dev-arm64-cross libc6-dbg:arm64 \
         wine gcc-mingw-w64-x86-64
 
 # Run a dummy command in wine to make it set up configuration
