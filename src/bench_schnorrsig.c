@@ -76,7 +76,8 @@ int main(void) {
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY | SECP256K1_CONTEXT_SIGN);
     /* Scratch space size was selected to allow fitting the maximum number of
      * points for the default iters value into a single ecmult_multi batch. */
-    data.scratch = secp256k1_scratch_space_create(data.ctx, 7 * 1024 * 1024);
+    /* TODO: this value was updated to support 100 times that */
+    data.scratch = secp256k1_scratch_space_create(data.ctx, 700 * 1024 * 1024);
     data.keypairs = (const secp256k1_keypair **)malloc(iters * sizeof(secp256k1_keypair *));
     data.pk = (const unsigned char **)malloc(iters * sizeof(unsigned char *));
     data.msgs = (const unsigned char **)malloc(iters * sizeof(unsigned char *));
@@ -109,7 +110,7 @@ int main(void) {
 
     run_benchmark("schnorrsig_sign", bench_schnorrsig_sign, NULL, NULL, (void *) &data, 10, iters);
     run_benchmark("schnorrsig_verify", bench_schnorrsig_verify, NULL, NULL, (void *) &data, 10, iters);
-    for (i = 1; i <= iters; i *= 2) {
+    for (i = 1; i <= iters; i = i*1.2 + 1) {
         char name[64];
         int divisible_iters;
         sprintf(name, "schnorrsig_batch_verify_%d", (int) i);
@@ -117,6 +118,7 @@ int main(void) {
         data.n = i;
         divisible_iters = iters - (iters % data.n);
         run_benchmark(name, bench_schnorrsig_verify_n, NULL, NULL, (void *) &data, 3, divisible_iters);
+        fflush(stdout);
     }
 
     for (i = 0; i < iters; i++) {
