@@ -13,7 +13,8 @@ env:
   EXPERIMENTAL: no
   CTIMETEST: yes
   BENCH: yes
-  ITERS: 2
+  TEST_ITERS:
+  BENCH_ITERS: 2
   MAKEFLAGS: -j2
 
 cat_logs_snippet: &CAT_LOGS
@@ -162,6 +163,7 @@ task:
     memory: 1G
   env:
     WRAPPER_CMD: qemu-s390x
+    TEST_ITERS: 16
     HOST: s390x-linux-gnu
     WITH_VALGRIND: no
     ECDH: yes
@@ -184,6 +186,7 @@ task:
     memory: 1G
   env:
     WRAPPER_CMD: qemu-arm
+    TEST_ITERS: 16
     HOST: arm-linux-gnueabihf
     WITH_VALGRIND: no
     ECDH: yes
@@ -207,6 +210,7 @@ task:
     memory: 1G
   env:
     WRAPPER_CMD: qemu-aarch64
+    TEST_ITERS: 16
     HOST: aarch64-linux-gnu
     WITH_VALGRIND: no
     ECDH: yes
@@ -227,6 +231,7 @@ task:
     memory: 1G
   env:
     WRAPPER_CMD: wine64-stable
+    TEST_ITERS: 16
     HOST: x86_64-w64-mingw32
     WITH_VALGRIND: no
     ECDH: yes
@@ -257,6 +262,7 @@ task:
       env:
         # The `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (https://www.valgrind.org/docs/manual/manual-core.html)
         WRAPPER_CMD: "valgrind --error-exitcode=42"
+        TEST_ITERS: 16
     - name: "UBSan, ASan, LSan"
       env:
         CFLAGS: "-fsanitize=undefined,address"
@@ -264,6 +270,7 @@ task:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
         ASAN_OPTIONS: "strict_string_checks=1:detect_stack_use_after_return=1:detect_leaks=1"
         LSAN_OPTIONS: "use_unaligned=1"
+        TEST_ITERS: 32
   # Try to cover many configurations with just a tiny matrix.
   matrix:
     - env:

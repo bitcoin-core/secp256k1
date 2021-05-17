@@ -32,6 +32,10 @@ file .libs/* || true
 # This tells `make check` to wrap test invocations.
 export LOG_COMPILER="$WRAPPER_CMD"
 
+# This limits the iterations in the tests and benchmarks.
+export SECP256K1_TEST_ITERS="$TEST_ITERS"
+export SECP256K1_BENCH_ITERS="$BENCH_ITERS"
+
 make "$BUILD"
 
 if [ "$BENCH" = "yes" ]
@@ -42,8 +46,6 @@ then
     then
         EXEC="$EXEC $WRAPPER_CMD"
     fi
-    # This limits the iterations in the benchmarks below to ITER iterations.
-    export SECP256K1_BENCH_ITERS="$ITERS"
     {
         $EXEC ./bench_ecmult
         $EXEC ./bench_internal
