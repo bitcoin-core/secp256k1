@@ -5,7 +5,6 @@ env:
   ASM: no
   BUILD: check
   WITH_VALGRIND: yes
-  RUN_VALGRIND: no
   EXTRAFLAGS:
   HOST:
   ECDH: no
@@ -162,9 +161,8 @@ task:
     cpu: 1
     memory: 1G
   env:
-    QEMU_CMD: qemu-s390x
+    WRAPPER_CMD: qemu-s390x
     HOST: s390x-linux-gnu
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -185,9 +183,8 @@ task:
     cpu: 1
     memory: 1G
   env:
-    QEMU_CMD: qemu-arm
+    WRAPPER_CMD: qemu-arm
     HOST: arm-linux-gnueabihf
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -209,9 +206,8 @@ task:
     cpu: 1
     memory: 1G
   env:
-    QEMU_CMD: qemu-aarch64
+    WRAPPER_CMD: qemu-aarch64
     HOST: aarch64-linux-gnu
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -230,9 +226,8 @@ task:
     cpu: 1
     memory: 1G
   env:
-    WINE_CMD: wine64-stable
+    WRAPPER_CMD: wine64-stable
     HOST: x86_64-w64-mingw32
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -260,7 +255,8 @@ task:
   matrix:
     - name: "Valgrind (memcheck)"
       env:
-        RUN_VALGRIND: yes
+        # The `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (https://www.valgrind.org/docs/manual/manual-core.html)
+        WRAPPER_CMD: "valgrind --error-exitcode=42"
     - name: "UBSan, ASan, LSan"
       env:
         CFLAGS: "-fsanitize=undefined,address"
