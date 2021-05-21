@@ -6471,7 +6471,7 @@ int main(int argc, char **argv) {
         count = strtol(argv[1], NULL, 0);
     } else {
         const char* env = getenv("SECP256K1_TEST_ITERS");
-        if (env) {
+        if (env && strlen(env) > 0) {
             count = strtol(env, NULL, 0);
         }
     }
