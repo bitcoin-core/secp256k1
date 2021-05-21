@@ -5,7 +5,6 @@ env:
   ASM: no
   BUILD: check
   WITH_VALGRIND: yes
-  RUN_VALGRIND: no
   EXTRAFLAGS:
   HOST:
   ECDH: no
@@ -14,7 +13,8 @@ env:
   EXPERIMENTAL: no
   CTIMETEST: yes
   BENCH: yes
-  ITERS: 2
+  TEST_ITERS:
+  BENCH_ITERS: 2
   MAKEFLAGS: -j2
 
 cat_logs_snippet: &CAT_LOGS
@@ -63,27 +63,8 @@ task:
     - env: {BUILD: distcheck, WITH_VALGRIND: no, CTIMETEST: no, BENCH: no}
     - env: {CPPFLAGS: -DDETERMINISTIC}
     - env: {CFLAGS: -O0, CTIMETEST: no}
-    - env:
-        CFLAGS:  "-fsanitize=undefined -fno-omit-frame-pointer"
-        LDFLAGS: "-fsanitize=undefined -fno-omit-frame-pointer"
-        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
-        ASM: x86_64
-        ECDH: yes
-        RECOVERY: yes
-        EXPERIMENTAL: yes
-        SCHNORRSIG: yes
-        CTIMETEST: no
     - env: { ECMULTGENPRECISION: 2 }
     - env: { ECMULTGENPRECISION: 8 }
-    - env:
-        RUN_VALGRIND: yes
-        ASM: x86_64
-        ECDH: yes
-        RECOVERY: yes
-        EXPERIMENTAL: yes
-        SCHNORRSIG: yes
-        EXTRAFLAGS: "--disable-openssl-tests"
-        BUILD:
   matrix:
     - env:
         CC: gcc
@@ -181,9 +162,9 @@ task:
     cpu: 1
     memory: 1G
   env:
-    QEMU_CMD: qemu-s390x
+    WRAPPER_CMD: qemu-s390x
+    TEST_ITERS: 16
     HOST: s390x-linux-gnu
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -204,9 +185,9 @@ task:
     cpu: 1
     memory: 1G
   env:
-    QEMU_CMD: qemu-arm
+    WRAPPER_CMD: qemu-arm
+    TEST_ITERS: 16
     HOST: arm-linux-gnueabihf
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -228,9 +209,9 @@ task:
     cpu: 1
     memory: 1G
   env:
-    QEMU_CMD: qemu-aarch64
+    WRAPPER_CMD: qemu-aarch64
+    TEST_ITERS: 16
     HOST: aarch64-linux-gnu
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -249,9 +230,9 @@ task:
     cpu: 1
     memory: 1G
   env:
-    WINE_CMD: wine64-stable
+    WRAPPER_CMD: wine64-stable
+    TEST_ITERS: 16
     HOST: x86_64-w64-mingw32
-    BUILD:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
@@ -262,3 +243,51 @@ task:
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
+
+# Sanitizers
+task:
+  container:
+    dockerfile: ci/linux-debian.Dockerfile
+    cpu: 1
+    memory: 1G
+  env:
+    ECDH: yes
+    RECOVERY: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG: yes
+    CTIMETEST: no
+    EXTRAFLAGS: "--disable-openssl-tests"
+  matrix:
+    - name: "Valgrind (memcheck)"
+      env:
+        # The `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (https://www.valgrind.org/docs/manual/manual-core.html)
+        WRAPPER_CMD: "valgrind --error-exitcode=42"
+        TEST_ITERS: 16
+    - name: "UBSan, ASan, LSan"
+      env:
+        CFLAGS: "-fsanitize=undefined,address"
+        CFLAGS_FOR_BUILD: "-fsanitize=undefined,address"
+        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
+        ASAN_OPTIONS: "strict_string_checks=1:detect_stack_use_after_return=1:detect_leaks=1"
+        LSAN_OPTIONS: "use_unaligned=1"
+        TEST_ITERS: 32
+  # Try to cover many configurations with just a tiny matrix.
+  matrix:
+    - env:
+        ASM: auto
+        STATICPRECOMPUTATION: yes
+    - env:
+        ASM: no
+        STATICPRECOMPUTATION: no
+        ECMULTGENPRECISION: 2
+  matrix:
+    - env:
+        CC: clang
+    - env:
+        HOST: i686-linux-gnu
+        CC: i686-linux-gnu-gcc
+  << : *MERGE_BASE
+  test_script:
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS
+
