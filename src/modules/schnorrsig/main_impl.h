@@ -265,7 +265,7 @@ static int secp256k1_schnorrsig_verify_batch_ecmult_callback(secp256k1_scalar *s
          * (-randomizer_cache[1], R2)
          * (-randomizer_cache[1]*e2, P2) */
         secp256k1_scalar_chacha20(&ecmult_context->randomizer_cache[0], &ecmult_context->randomizer_cache[1], ecmult_context->chacha_seed, idx / 4);
-        secp256k1_scalar_split_128(&ecmult_context->randomizer_cache[0], &ecmult_context->randomizer_cache[1], &ecmult_context->randomizer_cache[1]);
+        secp256k1_scalar_split_128_randomizer(&ecmult_context->randomizer_cache[0], &ecmult_context->randomizer_cache[1], &ecmult_context->randomizer_cache[1]);
     }
 
     /* R */
@@ -368,7 +368,7 @@ static int secp256k1_schnorrsig_verify_batch_sum_s(secp256k1_scalar *s, unsigned
         secp256k1_scalar term;
         if (i % 2 == 1) {
             secp256k1_scalar_chacha20(&randomizer_cache[0], &randomizer_cache[1], chacha_seed, i / 2);
-            secp256k1_scalar_split_128(&randomizer_cache[0], &randomizer_cache[1], &randomizer_cache[1]);
+            secp256k1_scalar_split_128_randomizer(&randomizer_cache[0], &randomizer_cache[1], &randomizer_cache[1]);
         }
 
         secp256k1_scalar_set_b32(&term, &sig[i][32], &overflow);
