@@ -57,10 +57,10 @@ void bench_schnorrsig_verify_n(void* arg, int iters) {
     for (j = 0; j < iters/data->n; j++) {
         for (i = 0; i < data->n; i++) {
             secp256k1_xonly_pubkey *pk_nonconst = (secp256k1_xonly_pubkey *)malloc(sizeof(*pk_nonconst));
-            CHECK(secp256k1_xonly_pubkey_parse(data->ctx, pk_nonconst, data->pk[i]) == 1);
+            CHECK(secp256k1_xonly_pubkey_parse(data->ctx, pk_nonconst, data->pk[i+j]) == 1);
             pk[i] = pk_nonconst;
         }
-        CHECK(secp256k1_schnorrsig_verify_batch(data->ctx, data->scratch, data->sigs, data->msgs, pk, data->n));
+        CHECK(secp256k1_schnorrsig_verify_batch(data->ctx, data->scratch, &data->sigs[j], &data->msgs[j], pk, data->n));
         for (i = 0; i < data->n; i++) {
             free((void *)pk[i]);
         }
