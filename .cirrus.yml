@@ -92,6 +92,7 @@ task:
         CC: i686-linux-gnu-gcc
     - env:
         CC: clang --target=i686-pc-linux-gnu -isystem /usr/i686-linux-gnu/include
+  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
