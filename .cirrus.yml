@@ -225,6 +225,27 @@ task:
   << : *CAT_LOGS
 
 task:
+  name: "ppc64le: Linux (Debian stable, QEMU)"
+  container:
+    dockerfile: ci/linux-debian.Dockerfile
+    cpu: 1
+    memory: 1G
+  env:
+    WRAPPER_CMD: qemu-ppc64le
+    TEST_ITERS: 16
+    HOST: powerpc64le-linux-gnu
+    WITH_VALGRIND: no
+    ECDH: yes
+    RECOVERY: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG: yes
+    CTIMETEST: no
+  << : *MERGE_BASE
+  test_script:
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS
+
+task:
   name: "x86_64 (mingw32-w64): Windows (Debian stable, Wine)"
   container:
     dockerfile: ci/linux-debian.Dockerfile
