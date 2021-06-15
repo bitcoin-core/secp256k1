@@ -42,8 +42,8 @@ AM_PROG_AS
 case $host_os in
   *darwin*)
      if  test x$cross_compiling != xyes; then
-       AC_PATH_PROG([BREW],brew,)
-       if test x$BREW != x; then
+       AC_CHECK_PROG([BREW], brew, brew)
+       if test x$BREW = xbrew; then
          # These Homebrew packages may be keg-only, meaning that they won't be found
          # in expected paths because they may conflict with system files. Ask
          # Homebrew where each one is located, then adjust paths accordingly.
@@ -58,10 +58,10 @@ case $host_os in
            VALGRIND_CPPFLAGS="-I$valgrind_prefix/include"
          fi
        else
-         AC_PATH_PROG([PORT],port,)
+         AC_CHECK_PROG([PORT], port, port)
          # If homebrew isn't installed and macports is, add the macports default paths
          # as a last resort.
-         if test x$PORT != x; then
+         if test x$PORT = xport; then
            CPPFLAGS="$CPPFLAGS -isystem /opt/local/include"
            LDFLAGS="$LDFLAGS -L/opt/local/lib"
          fi
