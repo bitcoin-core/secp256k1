@@ -11,7 +11,7 @@ RUN apt-get update
 # llvm: for llvm-symbolizer, which is used by clang's UBSan for symbolized stack traces
 RUN apt-get install --no-install-recommends --no-upgrade -y \
         git ca-certificates \
-        make automake libtool pkg-config dpkg-dev valgrind qemu-user \
+        make automake libtool pkg-config dpkg-dev valgrind qemu-user gcovr \
         gcc clang llvm libc6-dbg \
         gcc-i686-linux-gnu libc6-dev-i386-cross libc6-dbg:i386 libubsan1:i386 libasan5:i386 \
         gcc-s390x-linux-gnu libc6-dev-s390x-cross libc6-dbg:s390x \
