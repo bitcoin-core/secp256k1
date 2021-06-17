@@ -25,7 +25,11 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
     cb->fn(text, (void*)cb->data);
 }
 
-#ifdef DETERMINISTIC
+#if defined(COVERAGE)
+/* Do nothing in COVERAGE mode. This will make the compiler optimize away the actual branch,
+   and we get useful branch coverage within our test files.  */
+#define TEST_FAILURE(msg)
+#elif defined(DETERMINISTIC)
 #define TEST_FAILURE(msg) do { \
     fprintf(stderr, "%s\n", msg); \
     abort(); \
@@ -43,7 +47,17 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
 #define EXPECT(x,c) (x)
 #endif
 
-#ifdef DETERMINISTIC
+/* CHECK() is like assert(). We use it only in the tests. */
+#if defined(COVERAGE)
+/* Don't abort in coverage mode.
+   This avoids branches which are not expected to be taken.
+   We still use cond as usual to avoid unused variable warnings. */
+#define CHECK(cond) do { \
+    if (EXPECT(!(cond), 0)) { \
+        ; \
+    } \
+} while (0)
+#elif defined(DETERMINISTIC)
 #define CHECK(cond) do { \
     if (EXPECT(!(cond), 0)) { \
         TEST_FAILURE("test condition failed"); \
