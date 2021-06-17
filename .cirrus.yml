@@ -70,7 +70,7 @@ task:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
   gcovr_script:
-    - gcovr --print-summary --exclude 'src/bench*' --html --html-title "${CIRRUS_CHANGE_IN_REPO:0:7}, STATICPRECOMPUTATION=$STATICPRECOMPUTATION, WIDEMUL=$WIDEMUL" --html-details -o index.html
+    - gcovr --print-summary --exclude 'src/bench*' --exclude 'src/valgrind_ctime_test.c' --html --html-title "${CIRRUS_CHANGE_IN_REPO:0:7}, STATICPRECOMPUTATION=$STATICPRECOMPUTATION, WIDEMUL=$WIDEMUL" --html-details -o index.html
   coverage_report_artifacts:
     path: "**.html"
 

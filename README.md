@@ -92,12 +92,12 @@ Run the tests:
 
 To create a report, `gcovr` is recommended, as it includes branch coverage reporting:
 
-    $ gcovr --exclude 'src/bench*' --print-summary
+    $ gcovr --exclude 'src/bench*' --exclude 'src/valgrind_ctime_test.c' --print-summary
 
 To create a HTML report with coloured and annotated source code:
 
     $ mkdir -p coverage
-    $ gcovr --exclude 'src/bench*' --html --html-details -o coverage/coverage.html
+    $ gcovr --exclude 'src/bench*' --exclude 'src/valgrind_ctime_test.c' --html --html-details -o coverage/coverage.html
 
 Reporting a vulnerability
 ------------
