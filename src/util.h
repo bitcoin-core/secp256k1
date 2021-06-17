@@ -73,7 +73,11 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
 
 /* Like assert(), but when VERIFY is defined, and side-effect safe. */
 #if defined(COVERAGE)
-#define VERIFY_CHECK(check)
+/* Do nothing in coverage mode but try to stay syntactically correct.
+   This suppresses a lot of implicit branches introduced by shortcutting
+   operators at the cost of not being side-effect safe in coverage mode.
+   We rely on the compiler to eliminate the if (0) statement entirely. */
+#define VERIFY_CHECK(cond) do { if (0) (void)(cond); } while(0)
 #define VERIFY_SETUP(stmt)
 #elif defined(VERIFY)
 #define VERIFY_CHECK CHECK
