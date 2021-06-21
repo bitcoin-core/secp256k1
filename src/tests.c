@@ -2508,6 +2508,70 @@ void run_field_misc(void) {
     }
 }
 
+void test_fe_mul(const secp256k1_fe* a, const secp256k1_fe* b, int use_sqr)
+{
+    secp256k1_fe c, an, bn;
+    /* Variables in BE 32-byte format. */
+    unsigned char a32[32], b32[32], c32[32];
+    /* Variables in LE 16x uint16_t format. */
+    uint16_t a16[16], b16[16], c16[16];
+    /* Field modulus in LE 16x uint16_t format. */
+    static const uint16_t m16[16] = {
+        0xfc2f, 0xffff, 0xfffe, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+        0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
+    };
+    uint16_t t16[32];
+    int i;
+
+    /* Compute C = A * B in fe format. */
+    c = *a;
+    if (use_sqr) {
+        secp256k1_fe_sqr(&c, &c);
+    } else {
+        secp256k1_fe_mul(&c, &c, b);
+    }
+
+    /* Convert A, B, C into LE 16x uint16_t format. */
+    an = *a;
+    bn = *b;
+    secp256k1_fe_normalize_var(&c);
+    secp256k1_fe_normalize_var(&an);
+    secp256k1_fe_normalize_var(&bn);
+    secp256k1_fe_get_b32(a32, &an);
+    secp256k1_fe_get_b32(b32, &bn);
+    secp256k1_fe_get_b32(c32, &c);
+    for (i = 0; i < 16; ++i) {
+        a16[i] = a32[31 - 2*i] + ((uint16_t)a32[30 - 2*i] << 8);
+        b16[i] = b32[31 - 2*i] + ((uint16_t)b32[30 - 2*i] << 8);
+        c16[i] = c32[31 - 2*i] + ((uint16_t)c32[30 - 2*i] << 8);
+    }
+    /* Compute T = A * B in LE 16x uint16_t format. */
+    mulmod256(t16, a16, b16, m16);
+    /* Compare */
+    CHECK(secp256k1_memcmp_var(t16, c16, 32) == 0);
+}
+
+void run_fe_mul(void) {
+    int i;
+    for (i = 0; i < 100 * count; ++i) {
+        secp256k1_fe a, b, c, d;
+        random_fe(&a);
+        random_field_element_magnitude(&a);
+        random_fe(&b);
+        random_field_element_magnitude(&b);
+        random_fe_test(&c);
+        random_field_element_magnitude(&c);
+        random_fe_test(&d);
+        random_field_element_magnitude(&d);
+        test_fe_mul(&a, &a, 1);
+        test_fe_mul(&c, &c, 1);
+        test_fe_mul(&a, &b, 0);
+        test_fe_mul(&a, &c, 0);
+        test_fe_mul(&c, &b, 0);
+        test_fe_mul(&c, &d, 0);
+    }
+}
+
 void run_sqr(void) {
     secp256k1_fe x, s;
 
@@ -6512,6 +6576,7 @@ int main(int argc, char **argv) {
     /* field tests */
     run_field_misc();
     run_field_convert();
+    run_fe_mul();
     run_sqr();
     run_sqrt();
 
