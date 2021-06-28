@@ -2595,7 +2595,7 @@ void test_inverse_scalar(secp256k1_scalar* out, const secp256k1_scalar* x, int v
 {
     secp256k1_scalar l, r, t;
 
-    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse_var)(&l, x);  /* l = 1/x */
+    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse)(&l, x);  /* l = 1/x */
     if (out) *out = l;
     if (secp256k1_scalar_is_zero(x)) {
         CHECK(secp256k1_scalar_is_zero(&l));
@@ -2605,9 +2605,9 @@ void test_inverse_scalar(secp256k1_scalar* out, const secp256k1_scalar* x, int v
     CHECK(secp256k1_scalar_is_one(&t));                                          /* x*(1/x) == 1 */
     secp256k1_scalar_add(&r, x, &scalar_minus_one);                              /* r = x-1 */
     if (secp256k1_scalar_is_zero(&r)) return;
-    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse_var)(&r, &r); /* r = 1/(x-1) */
+    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse)(&r, &r); /* r = 1/(x-1) */
     secp256k1_scalar_add(&l, &scalar_minus_one, &l);                             /* l = 1/x-1 */
-    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse_var)(&l, &l); /* l = 1/(1/x-1) */
+    (var ? secp256k1_scalar_inverse_var : secp256k1_scalar_inverse)(&l, &l); /* l = 1/(1/x-1) */
     secp256k1_scalar_add(&l, &l, &secp256k1_scalar_one);                         /* l = 1/(1/x-1)+1 */
     secp256k1_scalar_add(&l, &r, &l);                                            /* l = 1/(1/x-1)+1 + 1/(x-1) */
     CHECK(secp256k1_scalar_is_zero(&l));                                         /* l == 0 */
