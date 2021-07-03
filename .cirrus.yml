@@ -51,6 +51,37 @@ merge_base_script_snippet: &MERGE_BASE
     - git merge FETCH_HEAD  # Merge base to detect silent merge conflicts
 
 task:
+  name: Code coverage
+  container:
+    dockerfile: ci/linux-debian.Dockerfile
+    cpu: 1
+    memory: 1G
+  env:
+    EXTRAFLAGS: "--enable-coverage"
+    ASM: no
+    ECDH: yes
+    RECOVERY: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG: yes
+    CTIMETEST: no
+    BENCH: no
+  matrix:
+    - env:
+        WIDEMUL: int128
+        STATICPRECOMPUTATION: yes
+    - env:
+        WIDEMUL: int64
+        STATICPRECOMPUTATION: no
+  << : *MERGE_BASE
+  test_script:
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS
+  gcovr_script:
+    - gcovr --print-summary --exclude 'src/bench*' --exclude 'src/valgrind_ctime_test.c' --html --html-title "${CIRRUS_CHANGE_IN_REPO:0:7}, STATICPRECOMPUTATION=$STATICPRECOMPUTATION, WIDEMUL=$WIDEMUL" --html-details -o index.html
+  coverage_report_artifacts:
+    path: "**.html"
+
+task:
   name: "x86_64: Linux (Debian stable)"
   container:
     dockerfile: ci/linux-debian.Dockerfile
@@ -319,4 +350,3 @@ task:
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
-
