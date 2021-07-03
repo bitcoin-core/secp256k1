@@ -564,6 +564,38 @@ void run_rfc6979_hmac_sha256_tests(void) {
     secp256k1_rfc6979_hmac_sha256_finalize(&rng);
 }
 
+void run_tagged_sha256_tests(void) {
+    int ecount = 0;
+    secp256k1_context *none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+    unsigned char tag[32] = { 0 };
+    unsigned char msg[32] = { 0 };
+    unsigned char hash32[32];
+    unsigned char hash_expected[32] = {
+        0x04, 0x7A, 0x5E, 0x17, 0xB5, 0x86, 0x47, 0xC1,
+        0x3C, 0xC6, 0xEB, 0xC0, 0xAA, 0x58, 0x3B, 0x62,
+        0xFB, 0x16, 0x43, 0x32, 0x68, 0x77, 0x40, 0x6C,
+        0xE2, 0x76, 0x55, 0x9A, 0x3B, 0xDE, 0x55, 0xB3
+    };
+
+    secp256k1_context_set_illegal_callback(none, counting_illegal_callback_fn, &ecount);
+
+    /* API test */
+    CHECK(secp256k1_tagged_sha256(none, hash32, tag, sizeof(tag), msg, sizeof(msg)) == 1);
+    CHECK(secp256k1_tagged_sha256(none, NULL, tag, sizeof(tag), msg, sizeof(msg)) == 0);
+    CHECK(ecount == 1);
+    CHECK(secp256k1_tagged_sha256(none, hash32, NULL, 0, msg, sizeof(msg)) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_tagged_sha256(none, hash32, tag, sizeof(tag), NULL, 0) == 0);
+    CHECK(ecount == 3);
+
+    /* Static test vector */
+    memcpy(tag, "tag", 3);
+    memcpy(msg, "msg", 3);
+    CHECK(secp256k1_tagged_sha256(none, hash32, tag, 3, msg, 3) == 1);
+    CHECK(secp256k1_memcmp_var(hash32, hash_expected, sizeof(hash32)) == 0);
+    secp256k1_context_destroy(none);
+}
+
 /***** RANDOM TESTS *****/
 
 void test_rand_bits(int rand32, int bits) {
@@ -6569,6 +6601,7 @@ int main(int argc, char **argv) {
     run_sha256_tests();
     run_hmac_sha256_tests();
     run_rfc6979_hmac_sha256_tests();
+    run_tagged_sha256_tests();
 
     /* scalar tests */
     run_scalar_tests();
