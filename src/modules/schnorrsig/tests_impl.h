@@ -122,7 +122,7 @@ void test_schnorrsig_api(void) {
     secp256k1_xonly_pubkey zero_pk;
     unsigned char sig[64];
     secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
-    secp256k1_schnorrsig_extraparams invalid_extraparams = { 0 };
+    secp256k1_schnorrsig_extraparams invalid_extraparams = {{ 0 }, NULL, NULL};
 
     /** setup **/
     secp256k1_context *none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
