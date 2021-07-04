@@ -219,7 +219,7 @@ void test_schnorrsig_api(void) {
 /* Checks that hash initialized by secp256k1_schnorrsig_sha256_tagged has the
  * expected state. */
 void test_schnorrsig_sha256_tagged(void) {
-    char tag[17] = "BIP0340/challenge";
+    unsigned char tag[17] = "BIP0340/challenge";
     secp256k1_sha256 sha;
     secp256k1_sha256 sha_optimized;
 
