@@ -47,6 +47,8 @@ static void secp256k1_nonce_function_bip340_sha256_tagged_aux(secp256k1_sha256 *
  * by using the correct tagged hash function. */
 static const unsigned char bip340_algo[13] = "BIP0340/nonce";
 
+static const unsigned char schnorrsig_extraparams_magic[4] = SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC;
+
 static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
     secp256k1_sha256 sha;
     unsigned char masked_key[32];
@@ -194,7 +196,7 @@ int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char
 
     if (extraparams != NULL) {
         ARG_CHECK(secp256k1_memcmp_var(extraparams->magic,
-                                       SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC,
+                                       schnorrsig_extraparams_magic,
                                        sizeof(extraparams->magic)) == 0);
         noncefp = extraparams->noncefp;
         ndata = extraparams->ndata;

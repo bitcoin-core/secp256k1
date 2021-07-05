@@ -122,7 +122,7 @@ void test_schnorrsig_api(void) {
     secp256k1_xonly_pubkey zero_pk;
     unsigned char sig[64];
     secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
-    secp256k1_schnorrsig_extraparams invalid_extraparams = { 0 };
+    secp256k1_schnorrsig_extraparams invalid_extraparams = {{ 0 }, NULL, NULL};
 
     /** setup **/
     secp256k1_context *none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
@@ -219,7 +219,7 @@ void test_schnorrsig_api(void) {
 /* Checks that hash initialized by secp256k1_schnorrsig_sha256_tagged has the
  * expected state. */
 void test_schnorrsig_sha256_tagged(void) {
-    char tag[17] = "BIP0340/challenge";
+    unsigned char tag[17] = "BIP0340/challenge";
     secp256k1_sha256 sha;
     secp256k1_sha256 sha_optimized;
 

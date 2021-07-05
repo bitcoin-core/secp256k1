@@ -320,3 +320,23 @@ task:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
 
+task:
+  name: "C++ -fpermissive"
+  container:
+    dockerfile: ci/linux-debian.Dockerfile
+    cpu: 1
+    memory: 1G
+  env:
+    # ./configure correctly errors out when given CC=g++.
+    # We hack around this by passing CC=g++ only to make.
+    CC: gcc
+    MAKEFLAGS: -j2 CC=g++ CFLAGS=-fpermissive
+    WERROR_CFLAGS:
+    EXPERIMENTAL: yes
+    ECDH: yes
+    RECOVERY: yes
+    SCHNORRSIG: yes
+  << : *MERGE_BASE
+  test_script:
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS

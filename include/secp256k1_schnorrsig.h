@@ -85,7 +85,7 @@ typedef struct {
     void* ndata;
 } secp256k1_schnorrsig_extraparams;
 
-#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC "\xda\x6f\xb3\x8c"
+#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC { 0xda, 0x6f, 0xb3, 0x8c }
 #define SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT {\
     SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC,\
     NULL,\
