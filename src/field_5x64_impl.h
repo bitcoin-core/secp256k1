@@ -15,6 +15,16 @@
 #include "field.h"
 #include "modinv64_impl.h"
 
+#if defined(USE_EXTERNAL_ASM)
+/* External assembler implementation */
+void secp256k1_fe_mul_55to5(uint64_t *r, const uint64_t *a, const uint64_t * SECP256K1_RESTRICT b);
+void secp256k1_fe_mul_45to5(uint64_t *r, const uint64_t *a, const uint64_t * SECP256K1_RESTRICT b);
+void secp256k1_fe_mul_44to5(uint64_t *r, const uint64_t *a, const uint64_t * SECP256K1_RESTRICT b);
+void secp256k1_fe_sqr_5to5(uint64_t *r, const uint64_t *a);
+void secp256k1_fe_sqr_4to5(uint64_t *r, const uint64_t *a);
+void secp256k1_fe_sqr_4to4(uint64_t *r, const uint64_t *a);
+#endif
+
 #ifdef VERIFY
 #define ON_VERIFY(x) x
 #else
@@ -708,10 +718,12 @@ SECP256K1_INLINE static void secp256k1_fe_add(secp256k1_fe *r, const secp256k1_f
 }
 
 static void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp256k1_fe * SECP256K1_RESTRICT b) {
+#ifndef USE_EXTERNAL_ASM
     uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4];
     uint64_t b0 = b->n[0], b1 = b->n[1], b2 = b->n[2], b3 = b->n[3], b4 = b->n[4];
     uint64_t c0 = 0, c1 = 0, c2 = 0, c3 = 0, c4 = 0, c5 = 0, c6 = 0, c7 = 0;
     uint64_t d0 = 0, d1 = 0, d2 = 0, d3 = 0, d4 = 0;
+#endif
 
 #ifdef VERIFY
     VERIFY_CHECK(a->magnitude <= 2047);
@@ -722,6 +734,9 @@ static void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp2
     VERIFY_CHECK(a != b);
 #endif
 
+#if defined(USE_EXTERNAL_ASM)
+    secp256k1_fe_mul_55to5(r->n, a->n, b->n);
+#else
     mul2(c0,c1,a4,0x1000003D1ULL);
     a4 = 0;
     add2(c0,c1,a0);
@@ -779,6 +794,7 @@ static void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp2
     add2(d3,d4,c3);
     r->n[3] = d3;
     r->n[4] = d4;
+#endif
 
 #ifdef VERIFY
     r->magnitude = 1;
@@ -789,10 +805,12 @@ static void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp2
 }
 
 static void secp256k1_fe_mul_prec(secp256k1_fe *r, const secp256k1_fe *a, const secp256k1_fe * SECP256K1_RESTRICT b_prec) {
+#ifndef USE_EXTERNAL_ASM
     uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4];
     uint64_t b0 = b_prec->n[0], b1 = b_prec->n[1], b2 = b_prec->n[2], b3 = b_prec->n[3];
     uint64_t c0 = 0, c1 = 0, c2 = 0, c3 = 0, c4 = 0, c5 = 0, c6 = 0, c7 = 0;
     uint64_t d0 = 0, d1 = 0, d2 = 0, d3 = 0, d4 = 0;
+#endif
 
 #ifdef VERIFY
     VERIFY_CHECK(a->magnitude <= 2048);
@@ -804,6 +822,9 @@ static void secp256k1_fe_mul_prec(secp256k1_fe *r, const secp256k1_fe *a, const 
     VERIFY_CHECK(a != b_prec);
 #endif
 
+#if defined(USE_EXTERNAL_ASM)
+    secp256k1_fe_mul_45to5(r->n, b_prec->n, a->n);
+#else
     mul2(c0,c1,a4,0x1000003D1ULL);
     a4 = 0;
     add2(c0,c1,a0);
@@ -848,6 +869,7 @@ static void secp256k1_fe_mul_prec(secp256k1_fe *r, const secp256k1_fe *a, const 
     add2(d3,d4,c3);
     r->n[3] = d3;
     r->n[4] = d4;
+#endif
 
 #ifdef VERIFY
     r->magnitude = 1;
@@ -858,10 +880,12 @@ static void secp256k1_fe_mul_prec(secp256k1_fe *r, const secp256k1_fe *a, const 
 }
 
 static void secp256k1_fe_mul_2prec(secp256k1_fe *r, const secp256k1_fe *a_prec, const secp256k1_fe * SECP256K1_RESTRICT b_prec) {
+#ifndef USE_EXTERNAL_ASM
     uint64_t a0 = a_prec->n[0], a1 = a_prec->n[1], a2 = a_prec->n[2], a3 = a_prec->n[3];
     uint64_t b0 = b_prec->n[0], b1 = b_prec->n[1], b2 = b_prec->n[2], b3 = b_prec->n[3];
     uint64_t c0 = 0, c1 = 0, c2 = 0, c3 = 0, c4 = 0, c5 = 0, c6 = 0, c7 = 0;
     uint64_t d0 = 0, d1 = 0, d2 = 0, d3 = 0, d4 = 0;
+#endif
 
 #ifdef VERIFY
     VERIFY_CHECK(a_prec->precomputed);
@@ -874,6 +898,9 @@ static void secp256k1_fe_mul_2prec(secp256k1_fe *r, const secp256k1_fe *a_prec, 
     VERIFY_CHECK(a_prec != b_prec);
 #endif
 
+#if defined(USE_EXTERNAL_ASM)
+    secp256k1_fe_mul_44to5(r->n, b_prec->n, a_prec->n);
+#else
     /* Compute 512-bit product. */
     c0 = 0;
     c1 = 0;
@@ -908,6 +935,7 @@ static void secp256k1_fe_mul_2prec(secp256k1_fe *r, const secp256k1_fe *a_prec, 
     add2(d3,d4,c3);
     r->n[3] = d3;
     r->n[4] = d4;
+#endif
 
 #ifdef VERIFY
     r->magnitude = 1;
@@ -918,15 +946,20 @@ static void secp256k1_fe_mul_2prec(secp256k1_fe *r, const secp256k1_fe *a_prec, 
 }
 
 static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a) {
+#ifndef USE_EXTERNAL_ASM
     uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4];
     uint64_t c0 = 0, c1 = 0, c2 = 0, c3 = 0, c4 = 0, c5 = 0, c6 = 0, c7 = 0;
     uint64_t d0 = 0, d1 = 0, d2 = 0, d3 = 0, d4 = 0;
+#endif
 
 #ifdef VERIFY
     VERIFY_CHECK(a->magnitude <= 2048);
     secp256k1_fe_verify(a);
 #endif
 
+#if defined(USE_EXTERNAL_ASM)
+    secp256k1_fe_sqr_5to5(r->n, a->n);
+#else
     /* Bring a to [0,2**256). */
     mul2(c0,c1,a4,0x1000003D1ULL);
     a4 = 0;
@@ -965,6 +998,7 @@ static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a) {
     add2(d3,d4,c3);
     r->n[3] = d3;
     r->n[4] = d4;
+#endif
 
 #ifdef VERIFY
     r->magnitude = 1;
@@ -975,9 +1009,11 @@ static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a) {
 }
 
 static void secp256k1_fe_sqr_prec(secp256k1_fe *r, const secp256k1_fe *a_prec) {
+#ifndef USE_EXTERNAL_ASM
     uint64_t a0 = a_prec->n[0], a1 = a_prec->n[1], a2 = a_prec->n[2], a3 = a_prec->n[3];
     uint64_t c0 = 0, c1 = 0, c2 = 0, c3 = 0, c4 = 0, c5 = 0, c6 = 0, c7 = 0;
     uint64_t d0 = 0, d1 = 0, d2 = 0, d3 = 0, d4 = 0;
+#endif
 
 #ifdef VERIFY
     VERIFY_CHECK(a_prec->precomputed);
@@ -985,6 +1021,9 @@ static void secp256k1_fe_sqr_prec(secp256k1_fe *r, const secp256k1_fe *a_prec) {
     secp256k1_fe_verify(a_prec);
 #endif
 
+#if defined(USE_EXTERNAL_ASM)
+    secp256k1_fe_sqr_4to5(r->n, a_prec->n);
+#else
     /* Compute 512-bit product. */
     c0 = 0;
     c1 = 0;
@@ -1013,6 +1052,7 @@ static void secp256k1_fe_sqr_prec(secp256k1_fe *r, const secp256k1_fe *a_prec) {
     add2(d3,d4,c3);
     r->n[3] = d3;
     r->n[4] = d4;
+#endif
 
 #ifdef VERIFY
     r->magnitude = 1;
@@ -1023,9 +1063,11 @@ static void secp256k1_fe_sqr_prec(secp256k1_fe *r, const secp256k1_fe *a_prec) {
 }
 
 static void secp256k1_fe_sqr_prec_oprec(secp256k1_fe *r_prec, const secp256k1_fe *a_prec) {
+#ifndef USE_EXTERNAL_ASM
     uint64_t a0 = a_prec->n[0], a1 = a_prec->n[1], a2 = a_prec->n[2], a3 = a_prec->n[3];
     uint64_t c0 = 0, c1 = 0, c2 = 0, c3 = 0, c4 = 0, c5 = 0, c6 = 0, c7 = 0;
     uint64_t d0 = 0, d1 = 0, d2 = 0, d3 = 0, d4 = 0;
+#endif
 
 #ifdef VERIFY
     VERIFY_CHECK(a_prec->precomputed);
@@ -1033,6 +1075,9 @@ static void secp256k1_fe_sqr_prec_oprec(secp256k1_fe *r_prec, const secp256k1_fe
     secp256k1_fe_verify(a_prec);
 #endif
 
+#if defined(USE_EXTERNAL_ASM)
+    secp256k1_fe_sqr_4to4(r_prec->n, a_prec->n);
+#else
     /* Compute 512-bit product. */
     c0 = 0;
     c1 = 0;
@@ -1073,6 +1118,7 @@ static void secp256k1_fe_sqr_prec_oprec(secp256k1_fe *r_prec, const secp256k1_fe
     r_prec->n[2] = d2;
     r_prec->n[3] = d3;
     r_prec->n[4] = 0;
+#endif
 
 #ifdef VERIFY
     r_prec->magnitude = 1;

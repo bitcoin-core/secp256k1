@@ -170,7 +170,7 @@ AC_ARG_ENABLE(external_default_callbacks,
 # Legal values are int64 (for [u]int64_t), int128 (for [unsigned] __int128), and auto (the default).
 AC_ARG_WITH([test-override-wide-multiply], [] ,[set_widemul=$withval], [set_widemul=auto])
 
-AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto],
+AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|x86_64_gen|arm|aarch64|no|auto],
 [assembly optimizations to use (experimental: arm) [default=auto]])],[req_asm=$withval], [req_asm=auto])
 
 AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
@@ -236,13 +236,13 @@ if test x"$req_asm" = x"auto"; then
 else
   set_asm=$req_asm
   case $set_asm in
-  x86_64)
+  x86_64|x86_64_gen|x86_64_mxaa|x86_64_maax)
     SECP_64BIT_ASM_CHECK
     if test x"$has_64bit_asm" != x"yes"; then
       AC_MSG_ERROR([x86_64 assembly optimization requested but not available])
     fi
     ;;
-  arm)
+  arm|aarch64)
     ;;
   no)
     ;;
@@ -254,12 +254,17 @@ fi
 
 # Select assembly optimization
 use_external_asm=no
+use_asm_x86_64=no
 
 case $set_asm in
 x86_64)
-  AC_DEFINE(USE_ASM_X86_64, 1, [Define this symbol to enable x86_64 assembly optimizations])
+  use_asm_x86_64=yes
   ;;
-arm)
+x86_64_gen|x86_64_mxaa|x86_64_maax)
+  use_asm_x86_64=yes
+  use_external_asm=yes
+  ;;
+arm|aarch64)
   use_external_asm=yes
   ;;
 no)
@@ -268,6 +273,10 @@ no)
   AC_MSG_ERROR([invalid assembly optimizations])
   ;;
 esac
+
+if test x"$use_asm_x86_64" = x"yes"; then
+  AC_DEFINE(USE_ASM_X86_64, 1, [Define this symbol in x86_64 inline assembly is used])
+fi
 
 if test x"$use_external_asm" = x"yes"; then
   AC_DEFINE(USE_EXTERNAL_ASM, 1, [Define this symbol if an external (non-inline) assembly implementation is used])
@@ -503,6 +512,10 @@ AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$use_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
+AM_CONDITIONAL([USE_ASM_AARCH64], [test x"$set_asm" = x"aarch64"])
+AM_CONDITIONAL([USE_ASM_X86_64_GEN], [test x"$set_asm" = x"x86_64_gen"])
+AM_CONDITIONAL([USE_ASM_X86_64_MXAA], [test x"$set_asm" = x"x86_64_mxaa"])
+AM_CONDITIONAL([USE_ASM_X86_64_MAAX], [test x"$set_asm" = x"x86_64_maax"])
 
 # Make sure nothing new is exported so that we don't break the cache.
 PKGCONFIG_PATH_TEMP="$PKG_CONFIG_PATH"
