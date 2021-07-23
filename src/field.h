@@ -25,7 +25,7 @@
 #include "util.h"
 
 #if defined(SECP256K1_WIDEMUL_INT128)
-#include "field_5x52.h"
+#include "field_5x64.h"
 #elif defined(SECP256K1_WIDEMUL_INT64)
 #include "field_10x26.h"
 #else
