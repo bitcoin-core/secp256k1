@@ -21,6 +21,189 @@
 #define ON_VERIFY(x)
 #endif
 
+#ifdef USE_ASM_X86_64
+
+/* Add a*b to [c0,c1]. c0,c1 must all be 0 on input. */
+#define mul2(c0,c1,a,b) do {\
+    VERIFY_CHECK(c0 == 0); \
+    VERIFY_CHECK(c1 == 0); \
+    __asm__ ( \
+        "mulq %[vb]\n" \
+        : [vc0]"=a"(c0), [vc1]"=d"(c1) \
+        : [va]"[vc0]"(a), [vb]"rm"(b) \
+        : "cc"); \
+} while(0)
+
+/* Add a**2 to [c0,c1]. c0,c1 must all be 0 on input. */
+#define sqr2(c0,c1,a) do {\
+    VERIFY_CHECK(c0 == 0); \
+    VERIFY_CHECK(c1 == 0); \
+    __asm__ ( \
+        "mulq %[va]\n" \
+        : [vc0]"=a"(c0), [vc1]"=d"(c1) \
+        : [va]"[vc0]"(a) \
+        : "cc"); \
+} while(0)
+
+/* Add a*b to [c0,c1,c2]. c2 must never overflow. */
+#define muladd3(c0,c1,c2,a,b) do {\
+    ON_VERIFY(uint64_t old_c2 = c2;) \
+    uint64_t ac = (a); \
+    __asm__ ( \
+        "mulq %[vb]\n" \
+        "addq %%rax, %[vc0]\n" \
+        "adcq %%rdx, %[vc1]\n" \
+        "adcq $0, %[vc2]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1), [vc2]"+r"(c2), [va]"+a"(ac) \
+        : [vb]"rm"(b) \
+        : "cc", "rdx"); \
+    ON_VERIFY(VERIFY_CHECK(c2 >= old_c2);) \
+} while(0)
+
+/* Add a**2 to [c0,c1,c2]. c2 must never overflow. */
+#define sqradd3(c0,c1,c2,a) do {\
+    ON_VERIFY(uint64_t old_c2 = c2;) \
+    uint64_t ac = (a); \
+    __asm__ ( \
+        "mulq %[va]\n" \
+        "addq %%rax, %[vc0]\n" \
+        "adcq %%rdx, %[vc1]\n" \
+        "adcq $0, %[vc2]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1), [vc2]"+r"(c2), [va]"+a"(ac) \
+        : \
+        : "cc", "rdx"); \
+    ON_VERIFY(VERIFY_CHECK(c2 >= old_c2);) \
+} while(0)
+
+/* Add 2*a*b to [c0,c1,c2]. c2 must never overflow. */
+#define mul2add3(c0,c1,c2,a,b) do {\
+    ON_VERIFY(uint64_t old_c2 = c2;) \
+    uint64_t ac = (a); \
+    __asm__ ( \
+        "mulq %[vb]\n" \
+        "addq %%rax, %[vc0]\n" \
+        "adcq %%rdx, %[vc1]\n" \
+        "adcq $0, %[vc2]\n" \
+        "addq %%rax, %[vc0]\n" \
+        "adcq %%rdx, %[vc1]\n" \
+        "adcq $0, %[vc2]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1), [vc2]"+r"(c2), [va]"+a"(ac) \
+        : [vb]"rm"(b) \
+        : "cc", "rdx"); \
+    ON_VERIFY(VERIFY_CHECK(c2 >= old_c2);) \
+} while(0)
+
+/* Add a*b to [c0,c1]. c1 must never overflow. */
+#define muladd2(c0,c1,a,b) do {\
+    ON_VERIFY(uint64_t old_c1 = c1;) \
+    uint64_t ac = (a); \
+    __asm__ ( \
+        "mulq %[vb]\n" \
+        "addq %%rax, %[vc0]\n" \
+        "adcq %%rdx, %[vc1]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1), [va]"+a"(ac) \
+        : [vb]"rm"(b) \
+        : "cc", "rdx"); \
+    ON_VERIFY(VERIFY_CHECK(c1 >= old_c1);) \
+} while(0)
+
+/* Add a**2 to [c0,c1. c1 must never overflow. */
+#define sqradd2(c0,c1,a) do {\
+    ON_VERIFY(uint64_t old_c1 = c1;) \
+    uint64_t ac = (a); \
+    __asm__ ( \
+        "mulq %[va]\n" \
+        "addq %%rax, %[vc0]\n" \
+        "adcq %%rdx, %[vc1]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1), [va]"+a"(ac) \
+        : \
+        : "cc", "rdx"); \
+    ON_VERIFY(VERIFY_CHECK(c1 >= old_c1);) \
+} while(0)
+
+/* Add [a0,a1,a2,a3,a4] t0 [c0,c1,c2,c3,c4]. C4 cannot overflow. */
+#define add5x5(c0,c1,c2,c3,c4,a0,a1,a2,a3,a4) do {\
+    ON_VERIFY(uint64_t old_c4 = c4;) \
+    __asm__ ( \
+        "addq %[va0], %[vc0]\n" \
+        "adcq %[va1], %[vc1]\n" \
+        "adcq %[va2], %[vc2]\n" \
+        "adcq %[va3], %[vc3]\n" \
+        "adcq %[va4], %[vc4]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1), [vc2]"+r"(c2), [vc3]"+r"(c3), [vc4]"+r"(c4) \
+        : [va0]"rm"(a0), [va1]"rm"(a1), [va2]"rm"(a2), [va3]"rm"(a3), [va4]"rm"(a4) \
+        : "cc" ); \
+    ON_VERIFY(VERIFY_CHECK(c4 >= old_c4);) \
+} while(0)
+
+/* Add a to [c0,c1,c2,c3]. c3 must never overflow. */
+#define add4(c0,c1,c2,c3,a) do {\
+    ON_VERIFY(uint64_t old_c3 = c3;) \
+    __asm__ ( \
+        "addq %[va], %[vc0]\n" \
+        "adcq $0, %[vc1]\n" \
+        "adcq $0, %[vc2]\n" \
+        "adcq $0, %[vc3]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1), [vc2]"+r"(c2), [vc3]"+r"(c3) \
+        : [va]"rm"(a) \
+        : "cc" ); \
+    ON_VERIFY(VERIFY_CHECK(c3 >= old_c3);) \
+} while(0)
+
+/* Add a to [c0,c1,c2,c3]. c3 may overflow. */
+#define add4o(c0,c1,c2,c3,a) do {\
+    __asm__ ( \
+        "addq %[va], %[vc0]\n" \
+        "adcq $0, %[vc1]\n" \
+        "adcq $0, %[vc2]\n" \
+        "adcq $0, %[vc3]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1), [vc2]"+r"(c2), [vc3]"+r"(c3) \
+        : [va]"rm"(a) \
+        : "cc" ); \
+} while(0)
+
+
+/* Add a to [c0,c1,c2]. c2 must never overflow. */
+#define add3(c0,c1,c2,a) do {\
+    ON_VERIFY(uint64_t old_c2 = c2;) \
+    __asm__ ( \
+        "addq %[va], %[vc0]\n" \
+        "adcq $0, %[vc1]\n" \
+        "adcq $0, %[vc2]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1), [vc2]"+r"(c2) \
+        : [va]"rm"(a) \
+        : "cc" ); \
+    ON_VERIFY(VERIFY_CHECK(c2 >= old_c2);) \
+} while(0)
+
+/* Add a to [c0,c1]. c1 must never overflow. */
+#define add2(c0,c1,a) do {\
+    ON_VERIFY(uint64_t old_c1 = c1;) \
+    __asm__ ( \
+        "addq %[va], %[vc0]\n" \
+        "adcq $0, %[vc1]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1) \
+        : [va]"rm"(a) \
+        : "cc" ); \
+    ON_VERIFY(VERIFY_CHECK(c1 >= old_c1);) \
+} while(0)
+
+/* Subtract a from [c0,c1]. c1 must never underflow. */
+#define sub2(c0,c1,a) do {\
+    ON_VERIFY(uint64_t old_c1 = c1;) \
+    __asm__ ( \
+        "subq %[va], %[vc0]\n" \
+        "sbbq $0, %[vc1]\n" \
+        : [vc0]"+r"(c0), [vc1]"+r"(c1) \
+        : [va]"rm"(a) \
+        : "cc" ); \
+    ON_VERIFY(VERIFY_CHECK(c1 <= old_c1);) \
+} while(0)
+
+#else
+
+/* Fallback using uint128_t. */
+
 /* Add a*b to [c0,c1]. c0,c1 must all be 0 on input. */
 #define mul2(c0,c1,a,b) do {\
     uint128_t t = (uint128_t)(a) * (b); \
@@ -190,6 +373,8 @@
     c1 = tmp; \
     VERIFY_CHECK((tmp >> 64) == 0); \
 } while(0)
+
+#endif
 
 #ifdef VERIFY
 static void secp256k1_fe_verify(const secp256k1_fe *a) {
