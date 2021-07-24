@@ -65,6 +65,9 @@ task:
     - env: {WIDEMUL: int128,  RECOVERY: yes,            EXPERIMENTAL: yes, SCHNORRSIG: yes}
     - env: {WIDEMUL: int128,                 ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes}
     - env: {WIDEMUL: int128,  ASM: x86_64}
+    - env: {WIDEMUL: int128,  ASM: x86_64_gen}
+    - env: {WIDEMUL: int128,  ASM: x86_64_maax}
+    - env: {WIDEMUL: int128,  ASM: x86_64_mxaa}
     - env: {                  RECOVERY: yes,            EXPERIMENTAL: yes, SCHNORRSIG: yes}
     - env: {                  STATICPRECOMPUTATION: no}
     - env: {BUILD: distcheck, WITH_VALGRIND: no, CTIMETEST: no, BENCH: no}
@@ -226,6 +229,11 @@ task:
     EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
+  matrix:
+    - env:
+        ASM: no
+    - env:
+        ASM: aarch64
   << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
