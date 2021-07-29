@@ -43,6 +43,12 @@ static void secp256k1_fe_normalize_weak(secp256k1_fe *r);
 /** Normalize a field element, without constant-time guarantee. */
 static void secp256k1_fe_normalize_var(secp256k1_fe *r);
 
+/** Normalize a field element to be usable as input to _prec functions. */
+static void secp256k1_fe_normalize_prec(secp256k1_fe *r);
+
+/** Simultaneously normalize weakly and precomputedly. */
+static void secp256k1_fe_normalize_weak_prec(secp256k1_fe *r);
+
 /** Verify whether a field element represents zero i.e. would normalize to a zero value. */
 static int secp256k1_fe_normalizes_to_zero(const secp256k1_fe *r);
 
@@ -95,6 +101,18 @@ static void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp2
 /** Sets a field element to be the square of another. Requires the input's magnitude to be at most 8.
  *  The output magnitude is 1 (but not guaranteed to be normalized). */
 static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a);
+
+/** Like secp256k1_fe_mul, but assumes b is prec-normalized. */
+static void secp256k1_fe_mul_prec(secp256k1_fe *r, const secp256k1_fe* a, const secp256k1_fe * SECP256K1_RESTRICT b_prec);
+
+/** Like secp256k1_fe_mul, but assumes both a and b are prec-normalized. */
+static void secp256k1_fe_mul_2prec(secp256k1_fe *r, const secp256k1_fe* a_prec, const secp256k1_fe * SECP256K1_RESTRICT b_prec);
+
+/** Like secp256k1_fe_sqr, but assumes a is prec-normalized. */
+static void secp256k1_fe_sqr_prec(secp256k1_fe *r, const secp256k1_fe* a_prec);
+
+/** Like secp256k1_fe_sqr, but assumes a is prec-normalized, and produces prec-normalized output r. */
+static void secp256k1_fe_sqr_prec_oprec(secp256k1_fe *r_prec, const secp256k1_fe* a_prec);
 
 /** If a has a square root, it is computed in r and 1 is returned. If a does not
  *  have a square root, the root of its negation is computed and 0 is returned.
