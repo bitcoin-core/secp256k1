@@ -13,7 +13,7 @@
 
 /* Noone will ever need more than a window size of 24. The code might
  * be correct for larger values of ECMULT_WINDOW_SIZE but this is not
- * not tested.
+ * tested.
  *
  * The following limitations are known, and there are probably more:
  * If WINDOW_G > 27 and size_t has 32 bits, then the code is incorrect
