@@ -187,13 +187,12 @@ task:
   << : *CAT_LOGS
 
 task:
-  name: "ARM32: Linux (Debian stable, QEMU)"
-  container:
+  name: "ARM32: Linux (Debian stable)"
+  arm_container:
     dockerfile: ci/linux-debian.Dockerfile
     cpu: 1
     memory: 1G
   env:
-    WRAPPER_CMD: qemu-arm
     TEST_ITERS: 16
     HOST: arm-linux-gnueabihf
     WITH_VALGRIND: no
@@ -211,13 +210,12 @@ task:
   << : *CAT_LOGS
 
 task:
-  name: "ARM64: Linux (Debian stable, QEMU)"
-  container:
+  name: "ARM64: Linux (Debian stable)"
+  arm_container:
     dockerfile: ci/linux-debian.Dockerfile
     cpu: 1
     memory: 1G
   env:
-    WRAPPER_CMD: qemu-aarch64
     TEST_ITERS: 16
     HOST: aarch64-linux-gnu
     WITH_VALGRIND: no
