@@ -177,6 +177,8 @@ AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
 [window size for ecmult precomputation for verification, specified as integer in range [2..24].]
 [Larger values result in possibly better performance at the cost of an exponentially larger precomputed table.]
 [The table will store 2^(SIZE-1) * 64 bytes of data but can be larger in memory due to platform-specific padding and alignment.]
+[A window size larger than 15 will require you delete the prebuilt ecmult_static_pre_g.h file so that it can be rebuilt.]
+[For very large window sizes, use "make -j 1" to reduce memory use during compilation.]
 ["auto" is a reasonable setting for desktop machines (currently 15). [default=auto]]
 )],
 [req_ecmult_window=$withval], [req_ecmult_window=auto])
