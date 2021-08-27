@@ -1,3 +1,5 @@
+.PHONY: clean-precomp precomp
+
 ACLOCAL_AMFLAGS = -I build-aux/m4
 
 # AM_CFLAGS will be automatically prepended to CFLAGS by Automake when compiling some foo
@@ -52,6 +54,7 @@ noinst_HEADERS += src/hash_impl.h
 noinst_HEADERS += src/field.h
 noinst_HEADERS += src/field_impl.h
 noinst_HEADERS += src/bench.h
+noinst_HEADERS += src/basic-config.h
 noinst_HEADERS += contrib/lax_der_parsing.h
 noinst_HEADERS += contrib/lax_der_parsing.c
 noinst_HEADERS += contrib/lax_der_privatekey_parsing.h
@@ -125,37 +128,39 @@ exhaustive_tests_LDFLAGS = -static
 TESTS += exhaustive_tests
 endif
 
-EXTRA_PROGRAMS = gen_ecmult_static_pre_g
+### Precomputed tables
+EXTRA_PROGRAMS = gen_ecmult_static_pre_g gen_ecmult_gen_static_prec_table
+CLEANFILES = $(EXTRA_PROGRAMS)
 gen_ecmult_static_pre_g_SOURCES = src/gen_ecmult_static_pre_g.c
-# See Automake manual, Section "Errors with distclean"
+gen_ecmult_gen_static_prec_table_SOURCES = src/gen_ecmult_gen_static_prec_table.c
+
+# See Automake manual, Section "Errors with distclean".
+# We don't list any dependencies for the prebuilt files here because
+# otherwise make's decision whether to rebuild them (even in the first
+# build by a normal user) depends on mtimes, and thus is very fragile.
+# This means that rebuilds of the prebuilt files always need to be
+# forced by deleting them, e.g., by invoking `make clean-precomp`.
 src/ecmult_static_pre_g.h:
 	$(MAKE) $(AM_MAKEFLAGS) gen_ecmult_static_pre_g$(EXEEXT)
 	./gen_ecmult_static_pre_g$(EXEEXT)
+src/ecmult_gen_static_prec_table.h:
+	$(MAKE) $(AM_MAKEFLAGS) gen_ecmult_gen_static_prec_table$(EXEEXT)
+	./gen_ecmult_gen_static_prec_table$(EXEEXT)
 
-if USE_ECMULT_STATIC_PRECOMPUTATION
-CPPFLAGS_FOR_BUILD +=-I$(top_srcdir) -I$(builddir)/src
+PRECOMP = src/ecmult_gen_static_prec_table.h src/ecmult_static_pre_g.h
+noinst_HEADERS += $(PRECOMP)
+precomp: $(PRECOMP)
 
-gen_ecmult_gen_static_prec_table_OBJECTS = gen_ecmult_gen_static_prec_table.o
-gen_ecmult_gen_static_prec_table_BIN = gen_ecmult_gen_static_prec_table$(BUILD_EXEEXT)
-$(gen_ecmult_gen_static_prec_table_OBJECTS): src/gen_ecmult_gen_static_prec_table.c src/libsecp256k1-config.h
-	$(CC_FOR_BUILD) $(DEFS) $(CPPFLAGS_FOR_BUILD) $(SECP_CFLAGS_FOR_BUILD) $(CFLAGS_FOR_BUILD) -c $< -o $@
+# Ensure the prebuilt files will be build first (only if they don't exist,
+# e.g., after `make maintainer-clean`).
+BUILT_SOURCES = $(PRECOMP)
 
-$(gen_ecmult_gen_static_prec_table_BIN): $(gen_ecmult_gen_static_prec_table_OBJECTS)
-	$(CC_FOR_BUILD) $(SECP_CFLAGS_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) $^ -o $@
+maintainer-clean-local: clean-precomp
 
-$(libsecp256k1_la_OBJECTS): src/ecmult_gen_static_prec_table.h
-$(tests_OBJECTS): src/ecmult_gen_static_prec_table.h
-$(exhaustive_tests_OBJECTS): src/ecmult_gen_static_prec_table.h
-$(bench_internal_OBJECTS): src/ecmult_gen_static_prec_table.h
-$(bench_ecmult_OBJECTS): src/ecmult_gen_static_prec_table.h
+clean-precomp:
+	rm -f $(PRECOMP)
 
-src/ecmult_gen_static_prec_table.h: $(gen_ecmult_gen_static_prec_table_BIN)
-	./$(gen_ecmult_gen_static_prec_table_BIN)
-
-CLEANFILES = $(gen_ecmult_gen_static_prec_table_BIN) src/ecmult_gen_static_prec_table.h
-endif
-
-EXTRA_DIST = autogen.sh src/gen_ecmult_gen_static_prec_table.c src/ecmult_static_pre_g.h src/basic-config.h
+EXTRA_DIST = autogen.sh SECURITY.md
 
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include

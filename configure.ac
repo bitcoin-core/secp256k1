@@ -125,9 +125,6 @@ AC_ARG_ENABLE(exhaustive_tests,
     [use_exhaustive_tests=$enableval],
     [use_exhaustive_tests=yes])
 
-# Force static precomputation. The code handling this will be removed in a later commit.
-use_ecmult_static_precomputation=yes
-
 AC_ARG_ENABLE(module_ecdh,
     AS_HELP_STRING([--enable-module-ecdh],[enable ECDH shared secret computation]),
     [enable_module_ecdh=$enableval],
