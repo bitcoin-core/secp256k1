@@ -39,7 +39,7 @@ void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 #endif
 
 /* If external callbacks are specified, define these so we can build and test without linker errors */
-#if defined USE_EXTERNAL_DEFAULT_CALLBACKS
+#ifdef USE_EXTERNAL_DEFAULT_CALLBACKS
 static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
     (void)data;
     fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
