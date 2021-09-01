@@ -38,6 +38,18 @@ void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 #include "modinv64_impl.h"
 #endif
 
+/* If external callbacks are specified, define these so we can build and test without linker errors */
+#if defined USE_EXTERNAL_DEFAULT_CALLBACKS
+static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
+    (void)data;
+    fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
+}
+static void secp256k1_default_error_callback_fn(const char* str, void* data) {
+    (void)data;
+    fprintf(stderr, "[libsecp256k1] internal consistency check failed: %s\n", str);
+}
+#endif
+
 static int count = 64;
 static secp256k1_context *ctx = NULL;
 
