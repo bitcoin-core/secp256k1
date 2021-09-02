@@ -1,0 +1,4 @@
+include_HEADERS += include/secp256k1_ellsq.h
+noinst_HEADERS += src/modules/ellsq/bench_impl.h
+noinst_HEADERS += src/modules/ellsq/main_impl.h
+noinst_HEADERS += src/modules/ellsq/tests_impl.h
