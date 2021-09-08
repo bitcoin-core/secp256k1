@@ -31,7 +31,7 @@ static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx
 
 /* For accelerating the computation of a*G:
  * To harden against timing attacks, use the following mechanism:
- * * Break up the multiplicand into groups of PREC_B bits, called n_0, n_1, n_2, ..., n_(PREC_N-1).
+ * * Break up the multiplicand into groups of PREC_BITS bits, called n_0, n_1, n_2, ..., n_(PREC_N-1).
  * * Compute sum(n_i * (PREC_G)^i * G + U_i, i=0 ... PREC_N-1), where:
  *   * U_i = U * 2^i, for i=0 ... PREC_N-2
  *   * U_i = U * (1-2^(PREC_N-1)), for i=PREC_N-1
@@ -43,18 +43,23 @@ static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx
  * The prec values are stored in secp256k1_ecmult_gen_prec_table[i][n_i] = n_i * (PREC_G)^i * G + U_i.
  */
 static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp256k1_gej *r, const secp256k1_scalar *gn) {
+    int bits = ECMULT_GEN_PREC_BITS;
+    int g = ECMULT_GEN_PREC_G(bits);
+    int n = ECMULT_GEN_PREC_N(bits);
+
     secp256k1_ge add;
     secp256k1_ge_storage adds;
     secp256k1_scalar gnb;
     int i, j, n_i;
+    
     memset(&adds, 0, sizeof(adds));
     *r = ctx->initial;
     /* Blind scalar/point multiplication by computing (n-b)G + bG instead of nG. */
     secp256k1_scalar_add(&gnb, gn, &ctx->blind);
     add.infinity = 0;
-    for (i = 0; i < ECMULT_GEN_PREC_N; i++) {
-        n_i = secp256k1_scalar_get_bits(&gnb, i * ECMULT_GEN_PREC_B, ECMULT_GEN_PREC_B);
-        for (j = 0; j < ECMULT_GEN_PREC_G; j++) {
+    for (i = 0; i < n; i++) {
+        n_i = secp256k1_scalar_get_bits(&gnb, i * bits, bits);
+        for (j = 0; j < g; j++) {
             /** This uses a conditional move to avoid any secret data in array indexes.
              *   _Any_ use of secret indexes has been demonstrated to result in timing
              *   sidechannels, even when the cache-line access patterns are uniform.
