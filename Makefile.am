@@ -28,6 +28,8 @@ noinst_HEADERS += src/ecmult_const.h
 noinst_HEADERS += src/ecmult_const_impl.h
 noinst_HEADERS += src/ecmult_gen.h
 noinst_HEADERS += src/ecmult_gen_impl.h
+noinst_HEADERS += src/ecmult_gen_prec.h
+noinst_HEADERS += src/ecmult_gen_prec_impl.h
 noinst_HEADERS += src/field_10x26.h
 noinst_HEADERS += src/field_10x26_impl.h
 noinst_HEADERS += src/field_5x52.h
@@ -143,6 +145,7 @@ $(gen_context_BIN): $(gen_context_OBJECTS)
 
 $(libsecp256k1_la_OBJECTS): src/ecmult_static_context.h
 $(tests_OBJECTS): src/ecmult_static_context.h
+$(exhaustive_tests_OBJECTS): src/ecmult_static_context.h
 $(bench_internal_OBJECTS): src/ecmult_static_context.h
 $(bench_ecmult_OBJECTS): src/ecmult_static_context.h
 

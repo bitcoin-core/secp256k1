@@ -10,9 +10,6 @@
 #include "libsecp256k1-config.h"
 #endif
 
-/* We can't require the precomputed tables when creating them. */
-#undef USE_ECMULT_STATIC_PRECOMPUTATION
-
 /* In principle we could use ASM, but this yields only a minor speedup in
    build time and it's very complicated. In particular when cross-compiling, we'd
    need to build the ASM for the build and the host machine. */
@@ -22,10 +19,9 @@
 #include "../include/secp256k1.h"
 #include "assumptions.h"
 #include "util.h"
-#include "field_impl.h"
-#include "scalar_impl.h"
-#include "group_impl.h"
-#include "ecmult_gen_impl.h"
+#include "group.h"
+#include "ecmult_gen.h"
+#include "ecmult_gen_prec_impl.h"
 
 static void default_error_callback_fn(const char* str, void* data) {
     (void)data;
@@ -63,10 +59,9 @@ int main(int argc, char **argv) {
     fprintf(fp, "#endif\n");
     fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_static_context[ECMULT_GEN_PREC_N][ECMULT_GEN_PREC_G] = {\n");
 
-    base = checked_malloc(&default_error_callback, SECP256K1_ECMULT_GEN_CONTEXT_PREALLOCATED_SIZE);
+    base = checked_malloc(&default_error_callback, ECMULT_GEN_PREC_TABLE_SIZE);
     prealloc = base;
-    secp256k1_ecmult_gen_context_init(&ctx);
-    secp256k1_ecmult_gen_context_build(&ctx, &prealloc);
+    secp256k1_ecmult_gen_create_prec_table(&ctx, &prealloc);
     for(outer = 0; outer != ECMULT_GEN_PREC_N; outer++) {
         fprintf(fp,"{\n");
         for(inner = 0; inner != ECMULT_GEN_PREC_G; inner++) {
@@ -84,7 +79,6 @@ int main(int argc, char **argv) {
         }
     }
     fprintf(fp,"};\n");
-    secp256k1_ecmult_gen_context_clear(&ctx);
     free(base);
 
     fprintf(fp, "#undef SC\n");

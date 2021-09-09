@@ -125,10 +125,8 @@ AC_ARG_ENABLE(exhaustive_tests,
     [use_exhaustive_tests=$enableval],
     [use_exhaustive_tests=yes])
 
-AC_ARG_ENABLE(ecmult_static_precomputation,
-    AS_HELP_STRING([--enable-ecmult-static-precomputation],[enable precomputed ecmult table for signing [default=auto]]),
-    [use_ecmult_static_precomputation=$enableval],
-    [use_ecmult_static_precomputation=auto])
+# Force static precomputation. The code handling this will be removed in a later commit.
+use_ecmult_static_precomputation=yes
 
 AC_ARG_ENABLE(module_ecdh,
     AS_HELP_STRING([--enable-module-ecdh],[enable ECDH shared secret computation]),

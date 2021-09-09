@@ -12,8 +12,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#undef USE_ECMULT_STATIC_PRECOMPUTATION
-
 #ifndef EXHAUSTIVE_TEST_ORDER
 /* see group_impl.h for allowable values */
 #define EXHAUSTIVE_TEST_ORDER 13
