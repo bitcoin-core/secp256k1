@@ -1022,12 +1022,32 @@ static void test_modinv32_uint16(uint16_t* out, const uint16_t* in, const uint16
     uint16_to_signed30(&x, in);
     nonzero = (x.v[0] | x.v[1] | x.v[2] | x.v[3] | x.v[4] | x.v[5] | x.v[6] | x.v[7] | x.v[8]) != 0;
     uint16_to_signed30(&m.modulus, mod);
-    mutate_sign_signed30(&m.modulus);
 
     /* compute 1/modulus mod 2^30 */
     m.modulus_inv30 = modinv2p64(m.modulus.v[0]) & 0x3fffffff;
     CHECK(((m.modulus_inv30 * m.modulus.v[0]) & 0x3fffffff) == 1);
 
+    /* Test secp256k1_jacobi32_maybe_var. */
+    if (nonzero) {
+        int jac;
+        uint16_t sqr[16], negone[16];
+        mulmod256(sqr, in, in, mod);
+        uint16_to_signed30(&x, sqr);
+        /* Compute jacobi symbol of in^2, which must be 1 (or uncomputable). */
+        jac = secp256k1_jacobi32_maybe_var(&x, &m);
+        CHECK(jac == 0 || jac == 1);
+        /* Then compute the jacobi symbol of -(in^2). x and -x have opposite
+         * jacobi symbols if and only if (mod % 4) == 3. */
+        negone[0] = mod[0] - 1;
+        for (i = 1; i < 16; ++i) negone[i] = mod[i];
+        mulmod256(sqr, sqr, negone, mod);
+        uint16_to_signed30(&x, sqr);
+        jac = secp256k1_jacobi32_maybe_var(&x, &m);
+        CHECK(jac == 0 || jac == 1 - (mod[0] & 2));
+    }
+
+    uint16_to_signed30(&x, in);
+    mutate_sign_signed30(&m.modulus);
     for (vartime = 0; vartime < 2; ++vartime) {
         /* compute inverse */
         (vartime ? secp256k1_modinv32_var : secp256k1_modinv32)(&x, &m);
@@ -1095,12 +1115,32 @@ static void test_modinv64_uint16(uint16_t* out, const uint16_t* in, const uint16
     uint16_to_signed62(&x, in);
     nonzero = (x.v[0] | x.v[1] | x.v[2] | x.v[3] | x.v[4]) != 0;
     uint16_to_signed62(&m.modulus, mod);
-    mutate_sign_signed62(&m.modulus);
 
     /* compute 1/modulus mod 2^62 */
     m.modulus_inv62 = modinv2p64(m.modulus.v[0]) & M62;
     CHECK(((m.modulus_inv62 * m.modulus.v[0]) & M62) == 1);
 
+    /* Test secp256k1_jacobi64_maybe_var. */
+    if (nonzero) {
+        int jac;
+        uint16_t sqr[16], negone[16];
+        mulmod256(sqr, in, in, mod);
+        uint16_to_signed62(&x, sqr);
+        /* Compute jacobi symbol of in^2, which must be 1 (or uncomputable). */
+        jac = secp256k1_jacobi64_maybe_var(&x, &m);
+        CHECK(jac == 0 || jac == 1);
+        /* Then compute the jacobi symbol of -(in^2). x and -x have opposite
+         * jacobi symbols if and only if (mod % 4) == 3. */
+        negone[0] = mod[0] - 1;
+        for (i = 1; i < 16; ++i) negone[i] = mod[i];
+        mulmod256(sqr, sqr, negone, mod);
+        uint16_to_signed62(&x, sqr);
+        jac = secp256k1_jacobi64_maybe_var(&x, &m);
+        CHECK(jac == 0 || jac == 1 - (mod[0] & 2));
+    }
+
+    uint16_to_signed62(&x, in);
+    mutate_sign_signed62(&m.modulus);
     for (vartime = 0; vartime < 2; ++vartime) {
         /* compute inverse */
         (vartime ? secp256k1_modinv64_var : secp256k1_modinv64)(&x, &m);
