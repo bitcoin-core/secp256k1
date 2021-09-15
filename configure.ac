@@ -166,6 +166,18 @@ AC_ARG_ENABLE(external_default_callbacks,
     [use_external_default_callbacks=$enableval],
     [use_external_default_callbacks=no])
 
+AC_ARG_ENABLE(dev_mode,
+    AS_HELP_STRING([--enable-dev-mode],[enables all modules including experimental, for development use only [default=no]]),
+    [use_benchmark=$enableval
+     use_tests=$enableval
+     use_experimental=$enableval
+     use_exhaustive_tests=$enableval
+     enable_module_ecdh=$enableval
+     enable_module_recovery=$enableval
+     enable_module_extrakeys=$enableval
+     enable_module_schnorrsig=$enableval],
+    [])
+
 # Test-only override of the (autodetected by the C code) "widemul" setting.
 # Legal values are int64 (for [u]int64_t), int128 (for [unsigned] __int128), and auto (the default).
 AC_ARG_WITH([test-override-wide-multiply], [] ,[set_widemul=$withval], [set_widemul=auto])
