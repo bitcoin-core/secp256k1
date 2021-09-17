@@ -3370,6 +3370,79 @@ void run_ec_combine(void) {
     }
 }
 
+void test_ec_grind(int size, int use_generator) {
+    secp256k1_pubkey master_pub;
+    secp256k1_scalar master_priv;
+    secp256k1_pubkey pubs[25];
+    unsigned char privs[25][32];
+    secp256k1_scalar privs_acc;
+    secp256k1_gej pubs_acc;
+    secp256k1_gej result;
+    unsigned char seed[32];
+    int ret = 0;
+    int i;
+    int overflow;
+
+    /* Choose a random master key (if !use_generator). */
+    if (use_generator) {
+        secp256k1_scalar_set_int(&master_priv, 1);
+    } else {
+        secp256k1_ge base;
+        secp256k1_gej basej;
+        random_scalar_order_test(&master_priv);
+        secp256k1_ecmult(&basej, NULL, NULL, &master_priv);
+        secp256k1_ge_set_gej(&base, &basej);
+        secp256k1_pubkey_save(&master_pub, &base);
+    }
+
+    /* Generate a random seed, and grind keypairs. */
+    for (i = 0; i < 100; ++i) {
+        secp256k1_testrand256_test(seed);
+        ret = secp256k1_ec_grind(ctx, pubs, &privs[0][0], size, seed, use_generator ? NULL : &master_pub);
+        if (ret) break;
+    }
+    CHECK(ret == 1);
+
+    /* Do a random walk over the outputs, accumulating private and public keys. */
+    secp256k1_scalar_set_int(&privs_acc, 0);
+    secp256k1_gej_set_infinity(&pubs_acc);
+    for (i = 0; i < size * 2; ++i) {
+        int pos = secp256k1_testrand_int(size);
+        secp256k1_scalar priv;
+        secp256k1_ge pub;
+        secp256k1_pubkey_load(ctx, &pub, &pubs[pos]);
+        secp256k1_scalar_set_b32(&priv, &privs[pos][0], &overflow);
+
+        /* privs_acc = privs_acc * 2 + privs[pos] */
+        secp256k1_scalar_add(&privs_acc, &privs_acc, &privs_acc);
+        secp256k1_scalar_add(&privs_acc, &privs_acc, &priv);
+
+        /* pubs_acc = pubs_acc * 2 + pubs[pos] */
+        secp256k1_gej_double_var(&pubs_acc, &pubs_acc, NULL);
+        secp256k1_gej_add_ge_var(&pubs_acc, &pubs_acc, &pub, NULL);
+    }
+
+    /* result = -(privs_acc * master_priv) * G + pubs_acc */
+    secp256k1_scalar_mul(&privs_acc, &privs_acc, &master_priv);
+    secp256k1_scalar_negate(&privs_acc, &privs_acc);
+    secp256k1_ecmult(&result, NULL, NULL, &privs_acc);
+    secp256k1_gej_add_var(&result, &result, &pubs_acc, NULL);
+
+    /* Verify the result matches expectations. */
+    CHECK(secp256k1_gej_is_infinity(&result));
+}
+
+void run_ec_grind(void) {
+    int i;
+    for (i = 0; i < count; ++i) {
+        int j;
+        for (j = 1; j <= 25; ++j) {
+            test_ec_grind(j, 0);
+            test_ec_grind(j, 1);
+        }
+    }
+}
+
 void test_group_decompress(const secp256k1_fe* x) {
     /* The input itself, normalized. */
     secp256k1_fe fex = *x;
@@ -6708,6 +6781,7 @@ int main(int argc, char **argv) {
     run_ecmult_const_tests();
     run_ecmult_multi_tests();
     run_ec_combine();
+    run_ec_grind();
 
     /* endomorphism tests */
     run_endomorphism_tests();

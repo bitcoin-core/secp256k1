@@ -50,6 +50,23 @@ static void bench_verify(void* arg, int iters) {
     }
 }
 
+#define GRIND_BATCH 24000
+
+static void bench_grind(void* arg, int iters) {
+    int i;
+    bench_verify_data* data = (bench_verify_data*)arg;
+    secp256k1_pubkey* pubs = malloc(GRIND_BATCH * sizeof(secp256k1_pubkey));
+    unsigned char* prvs = malloc(GRIND_BATCH * 32);
+    memcpy(prvs + 32*(GRIND_BATCH - 1), data->key, 32);
+
+    for (i = 0; i < iters / GRIND_BATCH; i++) {
+        CHECK(secp256k1_ec_grind(data->ctx, pubs, prvs, GRIND_BATCH, prvs + 32*(GRIND_BATCH-1), NULL) == 1);
+    }
+
+    free(pubs);
+    free(prvs);
+}
+
 #ifdef ENABLE_OPENSSL_TESTS
 static void bench_verify_openssl(void* arg, int iters) {
     int i;
@@ -104,6 +121,7 @@ int main(void) {
     CHECK(secp256k1_ec_pubkey_serialize(data.ctx, data.pubkey, &data.pubkeylen, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
 
     run_benchmark("ecdsa_verify", bench_verify, NULL, NULL, &data, 10, iters);
+    run_benchmark("ec_grind", bench_grind, NULL, NULL, &data, 10, iters * 1000);
 #ifdef ENABLE_OPENSSL_TESTS
     data.ec_group = EC_GROUP_new_by_curve_name(NID_secp256k1);
     run_benchmark("ecdsa_verify_openssl", bench_verify_openssl, NULL, NULL, &data, 10, iters);
