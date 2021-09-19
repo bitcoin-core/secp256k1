@@ -17,6 +17,7 @@ typedef struct {
 #ifdef VERIFY
     int magnitude;
     int normalized;
+    uint64_t precomputed; /* 64 bits to avoid padding bytes */
 #endif
 } secp256k1_fe;
 
@@ -35,7 +36,7 @@ typedef struct {
 }
 
 #ifdef VERIFY
-#define SECP256K1_FE_CONST(d7, d6, d5, d4, d3, d2, d1, d0) {SECP256K1_FE_CONST_INNER((d7), (d6), (d5), (d4), (d3), (d2), (d1), (d0)), 1, 1}
+#define SECP256K1_FE_CONST(d7, d6, d5, d4, d3, d2, d1, d0) {SECP256K1_FE_CONST_INNER((d7), (d6), (d5), (d4), (d3), (d2), (d1), (d0)), 1, 1, 1}
 #else
 #define SECP256K1_FE_CONST(d7, d6, d5, d4, d3, d2, d1, d0) {SECP256K1_FE_CONST_INNER((d7), (d6), (d5), (d4), (d3), (d2), (d1), (d0))}
 #endif

@@ -30,10 +30,8 @@ noinst_HEADERS += src/ecmult_gen.h
 noinst_HEADERS += src/ecmult_gen_impl.h
 noinst_HEADERS += src/field_10x26.h
 noinst_HEADERS += src/field_10x26_impl.h
-noinst_HEADERS += src/field_5x52.h
-noinst_HEADERS += src/field_5x52_impl.h
-noinst_HEADERS += src/field_5x52_int128_impl.h
-noinst_HEADERS += src/field_5x52_asm_impl.h
+noinst_HEADERS += src/field_5x64.h
+noinst_HEADERS += src/field_5x64_impl.h
 noinst_HEADERS += src/modinv32.h
 noinst_HEADERS += src/modinv32_impl.h
 noinst_HEADERS += src/modinv64.h
@@ -68,6 +66,18 @@ pkgconfig_DATA = libsecp256k1.pc
 if USE_EXTERNAL_ASM
 if USE_ASM_ARM
 libsecp256k1_common_la_SOURCES = src/asm/field_10x26_arm.s
+endif
+if USE_ASM_AARCH64
+libsecp256k1_common_la_SOURCES = src/asm/field_5x64_aarch64.s
+endif
+if USE_ASM_X86_64_GEN
+libsecp256k1_common_la_SOURCES = src/asm/field_5x64_x86_64_gen.s
+endif
+if USE_ASM_X86_64_MXAA
+libsecp256k1_common_la_SOURCES = src/asm/field_5x64_x86_64_mxaa.s
+endif
+if USE_ASM_X86_64_MAAX
+libsecp256k1_common_la_SOURCES = src/asm/field_5x64_x86_64_maax.s
 endif
 endif
 
