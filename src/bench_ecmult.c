@@ -17,6 +17,7 @@
 #include "bench.h"
 
 #define POINTS 32768
+#define BUFSIZE 32
 
 int snprintf(char *buf, size_t size, const char *fmt, ...);
 
@@ -171,20 +172,19 @@ static void bench_ecmult_2g_teardown(void* arg, int iters) {
 }
 
 static void run_ecmult_bench(bench_data* data, int iters) {
-    int bufsize = 32;
-    char str[bufsize];
-    snprintf(str, bufsize, "ecmult_gen");
+    char str[BUFSIZE];
+    snprintf(str, BUFSIZE, "ecmult_gen");
     run_benchmark(str, bench_ecmult_gen, bench_ecmult_setup, bench_ecmult_gen_teardown, data, 10, iters);
-    snprintf(str, bufsize, "ecmult_const");
+    snprintf(str, BUFSIZE, "ecmult_const");
     run_benchmark(str, bench_ecmult_const, bench_ecmult_setup, bench_ecmult_const_teardown, data, 10, iters);
     /* ecmult with non generator point */
-    snprintf(str, bufsize, "ecmult 1");
+    snprintf(str, BUFSIZE, "ecmult 1");
     run_benchmark(str, bench_ecmult_1, bench_ecmult_setup, bench_ecmult_1_teardown, data, 10, iters);
     /* ecmult with generator point */
-    snprintf(str, bufsize, "ecmult 1g");
+    snprintf(str, BUFSIZE, "ecmult 1g");
     run_benchmark(str, bench_ecmult_1g, bench_ecmult_setup, bench_ecmult_1g_teardown, data, 10, iters);
     /* ecmult with generator and non-generator point. The reported time is per point. */
-    snprintf(str, bufsize, "ecmult 2g");
+    snprintf(str, BUFSIZE, "ecmult 2g");
     run_benchmark(str, bench_ecmult_2g, bench_ecmult_setup, bench_ecmult_2g_teardown, data, 10, 2*iters);
 }
 
@@ -250,7 +250,6 @@ static void generate_scalar(uint32_t num, secp256k1_scalar* scalar) {
 }
 
 static void run_ecmult_multi_bench(bench_data* data, size_t count, int includes_g, int num_iters) {
-    int bufsize = 32;
     char str[32];
     static const secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
     size_t iters = 1 + num_iters / count;
@@ -274,7 +273,7 @@ static void run_ecmult_multi_bench(bench_data* data, size_t count, int includes_
     }
 
     /* Run the benchmark. */
-    snprintf(str, bufsize, includes_g ? "ecmult_multi %ig" : "ecmult_multi %i", (int)count);
+    snprintf(str, BUFSIZE, includes_g ? "ecmult_multi %ig" : "ecmult_multi %i", (int)count);
     run_benchmark(str, bench_ecmult_multi, bench_ecmult_multi_setup, bench_ecmult_multi_teardown, data, 10, count * iters);
 }
 
