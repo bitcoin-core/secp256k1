@@ -18,6 +18,8 @@
 
 #define POINTS 32768
 
+int snprintf(char *buf, size_t size, const char *fmt, ...);
+
 void help(char **argv) {
     printf("Benchmark EC multiplication algorithms\n");
     printf("\n");
@@ -247,6 +249,7 @@ static void generate_scalar(uint32_t num, secp256k1_scalar* scalar) {
 }
 
 static void run_ecmult_multi_bench(bench_data* data, size_t count, int includes_g, int num_iters) {
+    int bufsize = 32;
     char str[32];
     static const secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
     size_t iters = 1 + num_iters / count;
@@ -270,7 +273,7 @@ static void run_ecmult_multi_bench(bench_data* data, size_t count, int includes_
     }
 
     /* Run the benchmark. */
-    sprintf(str, includes_g ? "ecmult_multi %ig" : "ecmult_multi %i", (int)count);
+    snprintf(str, bufsize, includes_g ? "ecmult_multi %ig" : "ecmult_multi %i", (int)count);
     run_benchmark(str, bench_ecmult_multi, bench_ecmult_multi_setup, bench_ecmult_multi_teardown, data, 10, count * iters);
 }
 
