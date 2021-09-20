@@ -171,19 +171,20 @@ static void bench_ecmult_2g_teardown(void* arg, int iters) {
 }
 
 static void run_ecmult_bench(bench_data* data, int iters) {
-    char str[32];
-    sprintf(str, "ecmult_gen");
+    int bufsize = 32;
+    char str[bufsize];
+    snprintf(str, bufsize, "ecmult_gen");
     run_benchmark(str, bench_ecmult_gen, bench_ecmult_setup, bench_ecmult_gen_teardown, data, 10, iters);
-    sprintf(str, "ecmult_const");
+    snprintf(str, bufsize, "ecmult_const");
     run_benchmark(str, bench_ecmult_const, bench_ecmult_setup, bench_ecmult_const_teardown, data, 10, iters);
     /* ecmult with non generator point */
-    sprintf(str, "ecmult 1");
+    snprintf(str, bufsize, "ecmult 1");
     run_benchmark(str, bench_ecmult_1, bench_ecmult_setup, bench_ecmult_1_teardown, data, 10, iters);
     /* ecmult with generator point */
-    sprintf(str, "ecmult 1g");
+    snprintf(str, bufsize, "ecmult 1g");
     run_benchmark(str, bench_ecmult_1g, bench_ecmult_setup, bench_ecmult_1g_teardown, data, 10, iters);
     /* ecmult with generator and non-generator point. The reported time is per point. */
-    sprintf(str, "ecmult 2g");
+    snprintf(str, bufsize, "ecmult 2g");
     run_benchmark(str, bench_ecmult_2g, bench_ecmult_setup, bench_ecmult_2g_teardown, data, 10, 2*iters);
 }
 
