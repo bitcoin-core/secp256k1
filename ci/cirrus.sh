@@ -18,6 +18,7 @@ valgrind --version || true
     --with-ecmult-window="$ECMULTWINDOW" \
     --with-ecmult-gen-precision="$ECMULTGENPRECISION" \
     --enable-module-ecdh="$ECDH" --enable-module-recovery="$RECOVERY" \
+    --enable-module-ellsq="$ELLSQ" \
     --enable-module-schnorrsig="$SCHNORRSIG" \
     --enable-examples="$EXAMPLES" \
     --with-valgrind="$WITH_VALGRIND" \
