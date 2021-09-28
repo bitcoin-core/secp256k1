@@ -43,13 +43,7 @@ case $host_os in
          # These Homebrew packages may be keg-only, meaning that they won't be found
          # in expected paths because they may conflict with system files. Ask
          # Homebrew where each one is located, then adjust paths accordingly.
-         openssl_prefix=`$BREW --prefix openssl 2>/dev/null`
          valgrind_prefix=`$BREW --prefix valgrind 2>/dev/null`
-         if test x$openssl_prefix != x; then
-           PKG_CONFIG_PATH="$openssl_prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
-           export PKG_CONFIG_PATH
-           CRYPTO_CPPFLAGS="-I$openssl_prefix/include"
-         fi
          if test x$valgrind_prefix != x; then
            VALGRIND_CPPFLAGS="-I$valgrind_prefix/include"
          fi
@@ -120,11 +114,6 @@ AC_ARG_ENABLE(tests,
     AS_HELP_STRING([--enable-tests],[compile tests [default=yes]]),
     [use_tests=$enableval],
     [use_tests=yes])
-
-AC_ARG_ENABLE(openssl_tests,
-    AS_HELP_STRING([--enable-openssl-tests],[enable OpenSSL tests [default=auto]]),
-    [enable_openssl_tests=$enableval],
-    [enable_openssl_tests=auto])
 
 AC_ARG_ENABLE(experimental,
     AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]),
@@ -329,32 +318,6 @@ case $set_ecmult_gen_precision in
   ;;
 esac
 
-if test x"$use_tests" = x"yes"; then
-  SECP_OPENSSL_CHECK
-  if test x"$enable_openssl_tests" != x"no" && test x"$has_openssl_ec" = x"yes"; then
-      enable_openssl_tests=yes
-      AC_DEFINE(ENABLE_OPENSSL_TESTS, 1, [Define this symbol if OpenSSL EC functions are available])
-      SECP_TEST_INCLUDES="$SSL_CFLAGS $CRYPTO_CFLAGS $CRYPTO_CPPFLAGS"
-      SECP_TEST_LIBS="$CRYPTO_LIBS"
-
-      case $host in
-      *mingw*)
-        SECP_TEST_LIBS="$SECP_TEST_LIBS -lgdi32"
-        ;;
-      esac
-  else
-    if test x"$enable_openssl_tests" = x"yes"; then
-      AC_MSG_ERROR([OpenSSL tests requested but OpenSSL with EC support is not available])
-    fi
-    enable_openssl_tests=no
-  fi
-else
-  if test x"$enable_openssl_tests" = x"yes"; then
-    AC_MSG_ERROR([OpenSSL tests requested but tests are not enabled])
-  fi
-  enable_openssl_tests=no
-fi
-
 if test x"$enable_valgrind" = x"yes"; then
   SECP_INCLUDES="$SECP_INCLUDES $VALGRIND_CPPFLAGS"
 fi
@@ -519,7 +482,6 @@ echo "  with ecmult precomp     = $set_precomp"
 echo "  with external callbacks = $use_external_default_callbacks"
 echo "  with benchmarks         = $use_benchmark"
 echo "  with tests              = $use_tests"
-echo "  with openssl tests      = $enable_openssl_tests"
 echo "  with coverage           = $enable_coverage"
 echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"

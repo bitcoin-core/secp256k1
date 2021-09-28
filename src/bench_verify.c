@@ -11,13 +11,6 @@
 #include "util.h"
 #include "bench.h"
 
-#ifdef ENABLE_OPENSSL_TESTS
-#include <openssl/bn.h>
-#include <openssl/ecdsa.h>
-#include <openssl/obj_mac.h>
-#endif
-
-
 typedef struct {
     secp256k1_context *ctx;
     unsigned char msg[32];
@@ -26,9 +19,6 @@ typedef struct {
     size_t siglen;
     unsigned char pubkey[33];
     size_t pubkeylen;
-#ifdef ENABLE_OPENSSL_TESTS
-    EC_GROUP* ec_group;
-#endif
 } bench_verify_data;
 
 static void bench_verify(void* arg, int iters) {
@@ -49,36 +39,6 @@ static void bench_verify(void* arg, int iters) {
         data->sig[data->siglen - 3] ^= ((i >> 16) & 0xFF);
     }
 }
-
-#ifdef ENABLE_OPENSSL_TESTS
-static void bench_verify_openssl(void* arg, int iters) {
-    int i;
-    bench_verify_data* data = (bench_verify_data*)arg;
-
-    for (i = 0; i < iters; i++) {
-        data->sig[data->siglen - 1] ^= (i & 0xFF);
-        data->sig[data->siglen - 2] ^= ((i >> 8) & 0xFF);
-        data->sig[data->siglen - 3] ^= ((i >> 16) & 0xFF);
-        {
-            EC_KEY *pkey = EC_KEY_new();
-            const unsigned char *pubkey = &data->pubkey[0];
-            int result;
-
-            CHECK(pkey != NULL);
-            result = EC_KEY_set_group(pkey, data->ec_group);
-            CHECK(result);
-            result = (o2i_ECPublicKey(&pkey, &pubkey, data->pubkeylen)) != NULL;
-            CHECK(result);
-            result = ECDSA_verify(0, &data->msg[0], sizeof(data->msg), &data->sig[0], data->siglen, pkey) == (i == 0);
-            CHECK(result);
-            EC_KEY_free(pkey);
-        }
-        data->sig[data->siglen - 1] ^= (i & 0xFF);
-        data->sig[data->siglen - 2] ^= ((i >> 8) & 0xFF);
-        data->sig[data->siglen - 3] ^= ((i >> 16) & 0xFF);
-    }
-}
-#endif
 
 int main(void) {
     int i;
@@ -104,11 +64,6 @@ int main(void) {
     CHECK(secp256k1_ec_pubkey_serialize(data.ctx, data.pubkey, &data.pubkeylen, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
 
     run_benchmark("ecdsa_verify", bench_verify, NULL, NULL, &data, 10, iters);
-#ifdef ENABLE_OPENSSL_TESTS
-    data.ec_group = EC_GROUP_new_by_curve_name(NID_secp256k1);
-    run_benchmark("ecdsa_verify_openssl", bench_verify_openssl, NULL, NULL, &data, 10, iters);
-    EC_GROUP_free(data.ec_group);
-#endif
 
     secp256k1_context_destroy(data.ctx);
     return 0;
