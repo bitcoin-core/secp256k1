@@ -140,6 +140,8 @@ static SECP256K1_INLINE void *manual_alloc(void** prealloc_ptr, size_t alloc_siz
     VERIFY_CHECK((unsigned char*)*prealloc_ptr >= (unsigned char*)base);
     VERIFY_CHECK(((unsigned char*)*prealloc_ptr - (unsigned char*)base) % ALIGNMENT == 0);
     VERIFY_CHECK((unsigned char*)*prealloc_ptr - (unsigned char*)base + aligned_alloc_size <= max_size);
+    /* Avoid unused parameter warnings when building without VERIFY */
+    (void) base; (void) max_size;
     ret = *prealloc_ptr;
     *prealloc_ptr = (unsigned char*)*prealloc_ptr + aligned_alloc_size;
     return ret;
