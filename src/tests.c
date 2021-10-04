@@ -3435,8 +3435,6 @@ void test_pre_g_table(const secp256k1_ge_storage * pre_g, size_t n) {
     CHECK(0 < n);
 
     secp256k1_ge_from_storage(&p, &pre_g[0]);
-    secp256k1_fe_verify(&p.x);
-    secp256k1_fe_verify(&p.y);
     CHECK(secp256k1_ge_is_valid_var(&p));
 
     secp256k1_gej_set_ge(&g2, &p);
@@ -3449,8 +3447,6 @@ void test_pre_g_table(const secp256k1_ge_storage * pre_g, size_t n) {
         CHECK(!secp256k1_fe_normalizes_to_zero_var(&dpx) || !secp256k1_fe_normalizes_to_zero_var(&dpy));
 
         secp256k1_ge_from_storage(&q, &pre_g[i]);
-        secp256k1_fe_verify(&q.x);
-        secp256k1_fe_verify(&q.y);
         CHECK(secp256k1_ge_is_valid_var(&q));
 
         secp256k1_fe_negate(&dqx, &q.x, 1); secp256k1_fe_add(&dqx, &gg.x); secp256k1_fe_normalize_weak(&dqx);
