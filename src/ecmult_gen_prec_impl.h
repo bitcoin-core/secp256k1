@@ -12,14 +12,14 @@
 #include "field_impl.h"
 #include "ecmult_gen.h"
 
-static void secp256k1_ecmult_gen_create_prec_table(secp256k1_ge_storage* table) {
+static void secp256k1_ecmult_gen_create_prec_table(secp256k1_ge_storage* table, const secp256k1_ge* gen) {
     secp256k1_ge prec[ECMULT_GEN_PREC_N * ECMULT_GEN_PREC_G];
     secp256k1_gej gj;
     secp256k1_gej nums_gej;
     int i, j;
 
     /* get the generator */
-    secp256k1_gej_set_ge(&gj, &secp256k1_ge_const_g);
+    secp256k1_gej_set_ge(&gj, gen);
 
     /* Construct a group element with no known corresponding scalar (nothing up my sleeve). */
     {

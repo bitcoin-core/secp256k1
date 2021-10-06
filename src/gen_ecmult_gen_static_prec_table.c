@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[ECMULT_GEN_PREC_N][ECMULT_GEN_PREC_G] = {\n");
 
     table = checked_malloc(&default_error_callback, ECMULT_GEN_PREC_TABLE_SIZE);
-    secp256k1_ecmult_gen_create_prec_table(table);
+    secp256k1_ecmult_gen_create_prec_table(table, &secp256k1_ge_const_g);
     for(outer = 0; outer != ECMULT_GEN_PREC_N; outer++) {
         fprintf(fp,"{\n");
         for(inner = 0; inner != ECMULT_GEN_PREC_G; inner++) {
