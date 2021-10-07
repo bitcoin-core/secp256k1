@@ -12,7 +12,7 @@
 #include "group.h"
 #include "ecmult_gen.h"
 #include "hash_impl.h"
-#include "ecmult_static_context.h"
+#include "ecmult_gen_static_prec_table.h"
 
 static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context *ctx) {
     secp256k1_ecmult_gen_blind(ctx, NULL);

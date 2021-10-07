@@ -38,23 +38,24 @@ int main(int argc, char **argv) {
     secp256k1_ge_storage* table;
     int inner;
     int outer;
+    const char outfile[] = "src/ecmult_gen_static_prec_table.h";
     FILE* fp;
 
     (void)argc;
     (void)argv;
 
-    fp = fopen("src/ecmult_static_context.h","w");
+    fp = fopen(outfile, "w");
     if (fp == NULL) {
-        fprintf(stderr, "Could not open src/ecmult_static_context.h for writing!\n");
+        fprintf(stderr, "Could not open %s for writing!\n", outfile);
         return -1;
     }
 
-    fprintf(fp, "#ifndef SECP256K1_ECMULT_STATIC_CONTEXT_H\n");
-    fprintf(fp, "#define SECP256K1_ECMULT_STATIC_CONTEXT_H\n");
+    fprintf(fp, "#ifndef SECP256K1_ECMULT_GEN_STATIC_PREC_TABLE_H\n");
+    fprintf(fp, "#define SECP256K1_ECMULT_GEN_STATIC_PREC_TABLE_H\n");
     fprintf(fp, "#include \"src/group.h\"\n");
     fprintf(fp, "#define SC SECP256K1_GE_STORAGE_CONST\n");
     fprintf(fp, "#if ECMULT_GEN_PREC_N != %d || ECMULT_GEN_PREC_G != %d\n", ECMULT_GEN_PREC_N, ECMULT_GEN_PREC_G);
-    fprintf(fp, "   #error configuration mismatch, invalid ECMULT_GEN_PREC_N, ECMULT_GEN_PREC_G. Try deleting ecmult_static_context.h before the build.\n");
+    fprintf(fp, "   #error configuration mismatch, invalid ECMULT_GEN_PREC_N, ECMULT_GEN_PREC_G. Try deleting %s before the build.\n", outfile);
     fprintf(fp, "#endif\n");
     fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[ECMULT_GEN_PREC_N][ECMULT_GEN_PREC_G] = {\n");
 
