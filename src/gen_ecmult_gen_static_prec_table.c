@@ -52,11 +52,18 @@ int main(int argc, char **argv) {
 
     fprintf(fp, "#ifndef SECP256K1_ECMULT_GEN_STATIC_PREC_TABLE_H\n");
     fprintf(fp, "#define SECP256K1_ECMULT_GEN_STATIC_PREC_TABLE_H\n");
+
     fprintf(fp, "#include \"src/group.h\"\n");
+
     fprintf(fp, "#define SC SECP256K1_GE_STORAGE_CONST\n");
+
     fprintf(fp, "#if ECMULT_GEN_PREC_N != %d || ECMULT_GEN_PREC_G != %d\n", ECMULT_GEN_PREC_N, ECMULT_GEN_PREC_G);
     fprintf(fp, "   #error configuration mismatch, invalid ECMULT_GEN_PREC_N, ECMULT_GEN_PREC_G. Try deleting %s before the build.\n", outfile);
     fprintf(fp, "#endif\n");
+
+    fprintf(fp, "#ifdef EXHAUSTIVE_TEST_ORDER\n");
+    fprintf(fp, "static secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[ECMULT_GEN_PREC_N][ECMULT_GEN_PREC_G];\n");
+    fprintf(fp, "#else\n");
     fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[ECMULT_GEN_PREC_N][ECMULT_GEN_PREC_G] = {\n");
 
     table = checked_malloc(&default_error_callback, ECMULT_GEN_PREC_TABLE_SIZE);
@@ -80,8 +87,9 @@ int main(int argc, char **argv) {
     fprintf(fp,"};\n");
     free(table);
 
+    fprintf(fp, "#endif /* EXHAUSTIVE_TEST_ORDER */\n");
     fprintf(fp, "#undef SC\n");
-    fprintf(fp, "#endif\n");
+    fprintf(fp, "#endif /* SECP256K1_ECMULT_GEN_STATIC_PREC_TABLE_H */\n");
     fclose(fp);
 
     return 0;

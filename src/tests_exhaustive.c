@@ -22,6 +22,7 @@
 #include "assumptions.h"
 #include "group.h"
 #include "testrand_impl.h"
+#include "ecmult_gen_prec_impl.h"
 
 static int count = 2;
 
@@ -387,6 +388,9 @@ int main(int argc, char** argv) {
         }
         printf("running tests for core %lu (out of [0..%lu])\n", (unsigned long)this_core, (unsigned long)num_cores - 1);
     }
+
+    /* Recreate the ecmult_gen table using the right generator (as selected via EXHAUSTIVE_TEST_ORDER) */
+    secp256k1_ecmult_gen_create_prec_table(&secp256k1_ecmult_gen_prec_table[0][0], &secp256k1_ge_const_g);
 
     while (count--) {
         /* Build context */
