@@ -40,22 +40,21 @@ static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx
  * precomputed (call it prec(i, n_i)). The formula now becomes sum(prec(i, n_i), i=0 ... PREC_N-1).
  * None of the resulting prec group elements have a known scalar, and neither do any of
  * the intermediate sums while computing a*G.
- * The prec values are stored in secp256k1_ecmult_gen_prec_table[j][i] = (PREC_G)^j * i * G + U_i.
+ * The prec values are stored in secp256k1_ecmult_gen_prec_table[i][n_i] = n_i * (PREC_G)^i * G + U_i.
  */
 static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp256k1_gej *r, const secp256k1_scalar *gn) {
     secp256k1_ge add;
     secp256k1_ge_storage adds;
     secp256k1_scalar gnb;
-    int bits;
-    int i, j;
+    int i, j, n_i;
     memset(&adds, 0, sizeof(adds));
     *r = ctx->initial;
     /* Blind scalar/point multiplication by computing (n-b)G + bG instead of nG. */
     secp256k1_scalar_add(&gnb, gn, &ctx->blind);
     add.infinity = 0;
-    for (j = 0; j < ECMULT_GEN_PREC_N; j++) {
-        bits = secp256k1_scalar_get_bits(&gnb, j * ECMULT_GEN_PREC_B, ECMULT_GEN_PREC_B);
-        for (i = 0; i < ECMULT_GEN_PREC_G; i++) {
+    for (i = 0; i < ECMULT_GEN_PREC_N; i++) {
+        n_i = secp256k1_scalar_get_bits(&gnb, i * ECMULT_GEN_PREC_B, ECMULT_GEN_PREC_B);
+        for (j = 0; j < ECMULT_GEN_PREC_G; j++) {
             /** This uses a conditional move to avoid any secret data in array indexes.
              *   _Any_ use of secret indexes has been demonstrated to result in timing
              *   sidechannels, even when the cache-line access patterns are uniform.
@@ -66,12 +65,12 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
              *    by Dag Arne Osvik, Adi Shamir, and Eran Tromer
              *    (https://www.tau.ac.il/~tromer/papers/cache.pdf)
              */
-            secp256k1_ge_storage_cmov(&adds, &secp256k1_ecmult_gen_prec_table[j][i], i == bits);
+            secp256k1_ge_storage_cmov(&adds, &secp256k1_ecmult_gen_prec_table[i][j], j == n_i);
         }
         secp256k1_ge_from_storage(&add, &adds);
         secp256k1_gej_add_ge(r, r, &add);
     }
-    bits = 0;
+    n_i = 0;
     secp256k1_ge_clear(&add);
     secp256k1_scalar_clear(&gnb);
 }
