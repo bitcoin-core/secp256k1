@@ -135,12 +135,12 @@ src/ecmult_static_pre_g.h:
 if USE_ECMULT_STATIC_PRECOMPUTATION
 CPPFLAGS_FOR_BUILD +=-I$(top_srcdir) -I$(builddir)/src
 
-gen_context_OBJECTS = gen_context.o
-gen_context_BIN = gen_context$(BUILD_EXEEXT)
-$(gen_context_OBJECTS): src/gen_context.c src/libsecp256k1-config.h
+gen_ecmult_gen_static_prec_table_OBJECTS = gen_ecmult_gen_static_prec_table.o
+gen_ecmult_gen_static_prec_table_BIN = gen_ecmult_gen_static_prec_table$(BUILD_EXEEXT)
+$(gen_ecmult_gen_static_prec_table_OBJECTS): src/gen_ecmult_gen_static_prec_table.c src/libsecp256k1-config.h
 	$(CC_FOR_BUILD) $(DEFS) $(CPPFLAGS_FOR_BUILD) $(SECP_CFLAGS_FOR_BUILD) $(CFLAGS_FOR_BUILD) -c $< -o $@
 
-$(gen_context_BIN): $(gen_context_OBJECTS)
+$(gen_ecmult_gen_static_prec_table_BIN): $(gen_ecmult_gen_static_prec_table_OBJECTS)
 	$(CC_FOR_BUILD) $(SECP_CFLAGS_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) $^ -o $@
 
 $(libsecp256k1_la_OBJECTS): src/ecmult_gen_static_prec_table.h
@@ -149,13 +149,13 @@ $(exhaustive_tests_OBJECTS): src/ecmult_gen_static_prec_table.h
 $(bench_internal_OBJECTS): src/ecmult_gen_static_prec_table.h
 $(bench_ecmult_OBJECTS): src/ecmult_gen_static_prec_table.h
 
-src/ecmult_gen_static_prec_table.h: $(gen_context_BIN)
-	./$(gen_context_BIN)
+src/ecmult_gen_static_prec_table.h: $(gen_ecmult_gen_static_prec_table_BIN)
+	./$(gen_ecmult_gen_static_prec_table_BIN)
 
-CLEANFILES = $(gen_context_BIN) src/ecmult_gen_static_prec_table.h
+CLEANFILES = $(gen_ecmult_gen_static_prec_table_BIN) src/ecmult_gen_static_prec_table.h
 endif
 
-EXTRA_DIST = autogen.sh src/gen_context.c src/ecmult_static_pre_g.h src/basic-config.h
+EXTRA_DIST = autogen.sh src/gen_ecmult_gen_static_prec_table.c src/ecmult_static_pre_g.h src/basic-config.h
 
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include
