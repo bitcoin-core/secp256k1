@@ -103,6 +103,7 @@ int main(void) {
     data.pubkeylen = 33;
     CHECK(secp256k1_ec_pubkey_serialize(data.ctx, data.pubkey, &data.pubkeylen, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
 
+    print_output_table_header_row();
     run_benchmark("ecdsa_verify", bench_verify, NULL, NULL, &data, 10, iters);
 #ifdef ENABLE_OPENSSL_TESTS
     data.ec_group = EC_GROUP_new_by_curve_name(NID_secp256k1);

@@ -86,6 +86,7 @@ int main(void) {
         CHECK(secp256k1_xonly_pubkey_serialize(data.ctx, pk_char, &pk) == 1);
     }
 
+    print_output_table_header_row();
     run_benchmark("schnorrsig_sign", bench_schnorrsig_sign, NULL, NULL, (void *) &data, 10, iters);
     run_benchmark("schnorrsig_verify", bench_schnorrsig_verify, NULL, NULL, (void *) &data, 10, iters);
 

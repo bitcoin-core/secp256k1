@@ -52,6 +52,8 @@ int main(void) {
     /* create a context with no capabilities */
     data.ctx = secp256k1_context_create(SECP256K1_FLAGS_TYPE_CONTEXT);
 
+    print_output_table_header_row();
+
     run_benchmark("ecdh", bench_ecdh, bench_ecdh_setup, NULL, &data, 10, iters);
 
     secp256k1_context_destroy(data.ctx);
