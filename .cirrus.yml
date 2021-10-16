@@ -285,7 +285,6 @@ task:
     EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
-    EXTRAFLAGS: "--disable-openssl-tests"
   matrix:
     - name: "Valgrind (memcheck)"
       env:
