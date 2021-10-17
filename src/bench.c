@@ -80,6 +80,10 @@ static void bench_sign_run(void* arg, int iters) {
 # include "modules/ecdh/bench_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_RECOVERY
+# include "modules/recovery/bench_impl.h"
+#endif
+
 int main(void) {
     int i;
     secp256k1_pubkey pubkey;
@@ -119,6 +123,11 @@ int main(void) {
 #ifdef ENABLE_MODULE_ECDH
     /* ECDH benchmarks */
     run_ecdh_bench(iters);
+#endif
+
+#ifdef ENABLE_MODULE_RECOVERY
+    /* ECDSA recovery benchmarks */
+    run_recovery_bench(iters);
 #endif
 
     return 0;

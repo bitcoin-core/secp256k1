@@ -1,7 +1,6 @@
 bench
 bench_ecmult
 bench_schnorrsig
-bench_recover
 bench_internal
 tests
 exhaustive_tests
