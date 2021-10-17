@@ -26,7 +26,7 @@ make
 
 # Print information about binaries so that we can see that the architecture is correct
 file *tests* || true
-file bench_* || true
+file bench* || true
 file .libs/* || true
 
 # This tells `make check` to wrap test invocations.
@@ -49,8 +49,7 @@ then
     {
         $EXEC ./bench_ecmult
         $EXEC ./bench_internal
-        $EXEC ./bench_sign
-        $EXEC ./bench_verify
+        $EXEC ./bench
     } >> bench.log 2>&1
     if [ "$RECOVERY" = "yes" ]
     then
