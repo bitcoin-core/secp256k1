@@ -51,10 +51,6 @@ then
         $EXEC ./bench_internal
         $EXEC ./bench
     } >> bench.log 2>&1
-    if [ "$SCHNORRSIG" = "yes" ]
-    then
-        $EXEC ./bench_schnorrsig >> bench.log 2>&1
-    fi
 fi
 if [ "$CTIMETEST" = "yes" ]
 then
