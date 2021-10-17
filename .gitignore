@@ -1,5 +1,4 @@
 bench
-bench_ecdh
 bench_ecmult
 bench_schnorrsig
 bench_recover

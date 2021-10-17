@@ -76,6 +76,10 @@ static void bench_sign_run(void* arg, int iters) {
     }
 }
 
+#ifdef ENABLE_MODULE_ECDH
+# include "modules/ecdh/bench_impl.h"
+#endif
+
 int main(void) {
     int i;
     secp256k1_pubkey pubkey;
@@ -111,6 +115,11 @@ int main(void) {
     run_benchmark("ecdsa_sign", bench_sign_run, bench_sign_setup, NULL, &data, 10, iters);
 
     secp256k1_context_destroy(data.ctx);
+
+#ifdef ENABLE_MODULE_ECDH
+    /* ECDH benchmarks */
+    run_ecdh_bench(iters);
+#endif
 
     return 0;
 }
