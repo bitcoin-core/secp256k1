@@ -6,6 +6,9 @@ Each change falls into one of the following categories: Added, Changed, Deprecat
 
 ## [Unreleased]
 
+### Changed
+ - Enable modules schnorrsig, extrakeys and ECDH by default in ./configure
+
 ## [MAJOR.MINOR.PATCH] - YYYY-MM-DD
 
 ### Added/Changed/Deprecated/Removed/Fixed/Security
