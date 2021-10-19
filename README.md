@@ -100,6 +100,18 @@ To create a HTML report with coloured and annotated source code:
     $ mkdir -p coverage
     $ gcovr --exclude 'src/bench*' --html --html-details -o coverage/coverage.html
 
+Benchmark
+------------
+If configured with `--enable-benchmark` (which is the default), binaries for benchmarking the libsecp256k1 functions will be present in the root directory after the build.
+
+To print the benchmark result to the command line:
+
+    $ ./bench_name
+
+To create a CSV file for the benchmark result :
+
+    $ ./bench_name | sed '2d;s/ \{1,\}//g' > bench_name.csv
+
 Reporting a vulnerability
 ------------
 
