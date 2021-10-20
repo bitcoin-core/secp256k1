@@ -67,12 +67,12 @@ task:
   << : *LINUX_CONTAINER
   matrix: &ENV_MATRIX
     - env: {WIDEMUL:  int64,  RECOVERY: yes}
-    - env: {WIDEMUL:  int64,                 ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes}
+    - env: {WIDEMUL:  int64,                 ECDH: yes, SCHNORRSIG: yes}
     - env: {WIDEMUL: int128}
-    - env: {WIDEMUL: int128,  RECOVERY: yes,            EXPERIMENTAL: yes, SCHNORRSIG: yes}
-    - env: {WIDEMUL: int128,                 ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes}
+    - env: {WIDEMUL: int128,  RECOVERY: yes,            SCHNORRSIG: yes}
+    - env: {WIDEMUL: int128,                 ECDH: yes, SCHNORRSIG: yes}
     - env: {WIDEMUL: int128,  ASM: x86_64}
-    - env: {                  RECOVERY: yes,            EXPERIMENTAL: yes, SCHNORRSIG: yes}
+    - env: {                  RECOVERY: yes,            SCHNORRSIG: yes}
     - env: {BUILD: distcheck, WITH_VALGRIND: no, CTIMETEST: no, BENCH: no}
     - env: {CPPFLAGS: -DDETERMINISTIC}
     - env: {CFLAGS: -O0, CTIMETEST: no}
@@ -95,7 +95,6 @@ task:
     HOST: i686-linux-gnu
     ECDH: yes
     RECOVERY: yes
-    EXPERIMENTAL: yes
     SCHNORRSIG: yes
   matrix:
     - env:
@@ -178,7 +177,6 @@ task:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
-    EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
   << : *MERGE_BASE
@@ -198,12 +196,11 @@ task:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
-    EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
   matrix:
     - env: {}
-    - env: {ASM: arm}
+    - env: {EXPERIMENTAL: yes, ASM: arm}
   << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
@@ -219,7 +216,6 @@ task:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
-    EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
   << : *MERGE_BASE
@@ -237,7 +233,6 @@ task:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
-    EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
   << : *MERGE_BASE
@@ -255,7 +250,6 @@ task:
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
-    EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
   << : *MERGE_BASE
@@ -269,7 +263,6 @@ task:
   env:
     ECDH: yes
     RECOVERY: yes
-    EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
   matrix:
@@ -317,7 +310,6 @@ task:
     CC: gcc
     MAKEFLAGS: -j4 CC=g++ CFLAGS=-fpermissive\ -g
     WERROR_CFLAGS:
-    EXPERIMENTAL: yes
     ECDH: yes
     RECOVERY: yes
     SCHNORRSIG: yes

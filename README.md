@@ -17,9 +17,7 @@ Features:
 * Suitable for embedded systems.
 * Optional module for public key recovery.
 * Optional module for ECDH key exchange.
-* Optional module for Schnorr signatures according to [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki) (experimental).
-
-Experimental features have not received enough scrutiny to satisfy the standard of quality of this library but are made available for testing and review by the community. The APIs of these features should not be considered stable.
+* Optional module for Schnorr signatures according to [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki).
 
 Implementation details
 ----------------------
@@ -72,7 +70,6 @@ libsecp256k1 is built using autotools:
 Usage examples
 -----------
   Usage examples can be found in the [examples](examples) directory. To compile them you need to configure with `--enable-examples`.
-  For experimental modules, you will also need `--enable-experimental` as well as a flag for each individual module, e.g. `--enable-module-ecdh`.
   * [ECDSA example](examples/ecdsa.c)
   * [Schnorr Signatures example](examples/schnorr.c)
   * [Deriving a shared secret(ECDH) example](examples/ecdh.c)
