@@ -23,7 +23,20 @@ static int ecdh_hash_function_sha256(unsigned char *output, const unsigned char 
     return 1;
 }
 
+static int ecdh_hash_function_xonly_sha256(unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data) {
+    secp256k1_sha256 sha;
+    (void)data;
+    (void)y32;
+
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, x32, 32);
+    secp256k1_sha256_finalize(&sha, output);
+
+    return 1;
+}
+
 const secp256k1_ecdh_hash_function secp256k1_ecdh_hash_function_sha256 = ecdh_hash_function_sha256;
+const secp256k1_ecdh_hash_function secp256k1_ecdh_hash_function_xonly_sha256 = ecdh_hash_function_xonly_sha256;
 const secp256k1_ecdh_hash_function secp256k1_ecdh_hash_function_default = ecdh_hash_function_sha256;
 
 int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *output, const secp256k1_pubkey *point, const unsigned char *scalar, secp256k1_ecdh_hash_function hashfp, void *data) {

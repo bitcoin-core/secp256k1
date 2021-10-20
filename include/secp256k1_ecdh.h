@@ -29,6 +29,10 @@ typedef int (*secp256k1_ecdh_hash_function)(
  * Populates the output parameter with 32 bytes. */
 SECP256K1_API extern const secp256k1_ecdh_hash_function secp256k1_ecdh_hash_function_sha256;
 
+/** An implementation of SHA256 hash function that applies to the x-only part of a public key.
+ * Populates the output parameter with 32 bytes. */
+SECP256K1_API extern const secp256k1_ecdh_hash_function secp256k1_ecdh_hash_function_xonly_sha256;
+
 /** A default ECDH hash function (currently equal to secp256k1_ecdh_hash_function_sha256).
  * Populates the output parameter with 32 bytes. */
 SECP256K1_API extern const secp256k1_ecdh_hash_function secp256k1_ecdh_hash_function_default;
