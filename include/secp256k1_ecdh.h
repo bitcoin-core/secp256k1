@@ -60,6 +60,32 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdh(
   void *data
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
+#include "secp256k1_extrakeys.h"
+
+/** Compute an EC Diffie-Hellman secret in constant time (xonly version)
+ *  (Only present if extrakeys is enabled).
+ *
+ *  Returns: 1: exponentiation was successful
+ *           0: scalar was invalid (zero or overflow) or hashfp returned 0
+ *  Args:    ctx:        pointer to a context object.
+ *  Out:     output:     pointer to an array to be filled by hashfp.
+ *  In:      pubkey:     a pointer to a secp256k1_xonly_pubkey containing an initialized public key.
+ *           seckey:     a 32-byte scalar with which to multiply the point.
+ *           hashfp:     pointer to a hash function. If NULL,
+ *                       secp256k1_ecdh_hash_function_xonly_sha256 is used
+ *                       (in which case, 32 bytes will be written to output).
+ *           data:       arbitrary data pointer that is passed through to hashfp
+ *                       (can be NULL for secp256k1_ecdh_hash_function_xonly_sha256).
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdh_xonly(
+	const secp256k1_context* ctx,
+	unsigned char *output,
+	const secp256k1_xonly_pubkey *pubkey,
+	const unsigned char *scalar,
+	secp256k1_ecdh_hash_function hashfp,
+	void *data
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
 #ifdef __cplusplus
 }
 #endif
