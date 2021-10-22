@@ -344,6 +344,7 @@ void bench_context_sign(void* arg, int iters) {
 int main(int argc, char **argv) {
     bench_inv data;
     int iters = get_iters(20000);
+    print_output_table_header_row();
 
     if (have_flag(argc, argv, "scalar") || have_flag(argc, argv, "add")) run_benchmark("scalar_add", bench_scalar_add, bench_setup, NULL, &data, 10, iters*100);
     if (have_flag(argc, argv, "scalar") || have_flag(argc, argv, "negate")) run_benchmark("scalar_negate", bench_scalar_negate, bench_setup, NULL, &data, 10, iters*100);
