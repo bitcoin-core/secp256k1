@@ -116,9 +116,6 @@ void run_benchmark(char *name, void (*benchmark)(void*, int), void (*setup)(void
 int have_flag(int argc, char** argv, char *flag) {
     char** argm = argv + argc;
     argv++;
-    if (argv == argm) {
-        return 1;
-    }
     while (argv != NULL && argv != argm) {
         if (strcmp(*argv, flag) == 0) {
             return 1;
