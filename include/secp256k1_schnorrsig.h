@@ -111,7 +111,8 @@ typedef struct {
  *  In:    msg32: the 32-byte message being signed.
  *       keypair: pointer to an initialized keypair.
  *    aux_rand32: 32 bytes of fresh randomness. While recommended to provide
- *                this, it is only supplemental to security and can be NULL. See
+ *                this, it is only supplemental to security and can be NULL. A
+ *                NULL argument is treated the same as an all-zero one. See
  *                BIP-340 "Default Signing" for a full explanation of this
  *                argument and for guidance if randomness is expensive.
  */
