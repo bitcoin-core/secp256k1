@@ -38,7 +38,7 @@ void run_nonce_function_bip340_tests(void) {
     size_t algolen = sizeof(algo);
     secp256k1_sha256 sha;
     secp256k1_sha256 sha_optimized;
-    unsigned char nonce[32];
+    unsigned char nonce[32], nonce_z[32];
     unsigned char msg[32];
     size_t msglen = sizeof(msg);
     unsigned char key[32];
@@ -107,8 +107,11 @@ void run_nonce_function_bip340_tests(void) {
         CHECK(secp256k1_memcmp_var(nonce, nonce2, 32) != 0);
     }
 
-    /* NULL aux_rand argument is allowed. */
+    /* NULL aux_rand argument is allowed, and identical to passing all zero aux_rand. */
+    memset(aux_rand, 0, 32);
+    CHECK(nonce_function_bip340(nonce_z, msg, msglen, key, pk, algo, algolen, &aux_rand) == 1);
     CHECK(nonce_function_bip340(nonce, msg, msglen, key, pk, algo, algolen, NULL) == 1);
+    CHECK(secp256k1_memcmp_var(nonce_z, nonce, 32) == 0);
 }
 
 void test_schnorrsig_api(void) {
