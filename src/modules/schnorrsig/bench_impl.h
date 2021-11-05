@@ -45,9 +45,10 @@ void bench_schnorrsig_verify(void* arg, int iters) {
     }
 }
 
-void run_schnorrsig_bench(int iters) {
+void run_schnorrsig_bench(int iters, int argc, char** argv) {
     int i;
     bench_schnorrsig_data data;
+    int d = argc == 1;
 
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY | SECP256K1_CONTEXT_SIGN);
     data.keypairs = (const secp256k1_keypair **)malloc(iters * sizeof(secp256k1_keypair *));
@@ -81,8 +82,8 @@ void run_schnorrsig_bench(int iters) {
         CHECK(secp256k1_xonly_pubkey_serialize(data.ctx, pk_char, &pk) == 1);
     }
 
-    run_benchmark("schnorrsig_sign", bench_schnorrsig_sign, NULL, NULL, (void *) &data, 10, iters);
-    run_benchmark("schnorrsig_verify", bench_schnorrsig_verify, NULL, NULL, (void *) &data, 10, iters);
+    if (d || have_flag(argc, argv, "schnorrsig") || have_flag(argc, argv, "sign") || have_flag(argc, argv, "schnorrsig_sign")) run_benchmark("schnorrsig_sign", bench_schnorrsig_sign, NULL, NULL, (void *) &data, 10, iters);
+    if (d || have_flag(argc, argv, "schnorrsig") || have_flag(argc, argv, "verify") || have_flag(argc, argv, "schnorrsig_verify")) run_benchmark("schnorrsig_verify", bench_schnorrsig_verify, NULL, NULL, (void *) &data, 10, iters);
 
     for (i = 0; i < iters; i++) {
         free((void *)data.keypairs[i]);
