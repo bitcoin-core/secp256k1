@@ -309,7 +309,7 @@ static int secp256k1_ecdsa_sig_sign(const secp256k1_ecmult_gen_context *ctx, sec
     /* P.x = order is on the curve, so technically sig->r could end up being zero, which would be an invalid signature.
      * This is cryptographically unreachable as hitting it requires finding the discrete log of P.x = N.
      */
-    return !secp256k1_scalar_is_zero(sigr) & !secp256k1_scalar_is_zero(sigs);
+    return !secp256k1_scalar_is_zero(sigr) && !secp256k1_scalar_is_zero(sigs);
 }
 
 #endif /* SECP256K1_ECDSA_IMPL_H */
