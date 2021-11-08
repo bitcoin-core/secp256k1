@@ -11,6 +11,51 @@
 #include "util.h"
 #include "bench.h"
 
+void help(int default_iters) {
+    printf("Benchmarks the following algorithms:\n");
+    printf("    - ECDSA signing/verification\n");
+
+#ifdef ENABLE_MODULE_ECDH
+    printf("    - ECDH key exchange (optional module)\n");
+#endif
+
+#ifdef ENABLE_MODULE_RECOVERY
+    printf("    - Public key recovery (optional module)\n");
+#endif
+
+#ifdef ENABLE_MODULE_SCHNORRSIG
+    printf("    - Schnorr signatures (optional module)\n");
+#endif
+
+    printf("\n");
+    printf("The default number of iterations for each benchmark is %d. This can be\n", default_iters);
+    printf("customized using the SECP256K1_BENCH_ITERS environment variable.\n");
+    printf("\n");
+    printf("Usage: ./bench [args]\n");
+    printf("By default, all benchmarks will be run.\n");
+    printf("args:\n");
+    printf("    help              : display this help and exit\n");
+    printf("    ecdsa             : all ECDSA algorithms--sign, verify, recovery (if enabled)\n");
+    printf("    ecdsa_sign        : ECDSA siging algorithm\n");
+    printf("    ecdsa_verify      : ECDSA verification algorithm\n");
+
+#ifdef ENABLE_MODULE_RECOVERY
+    printf("    ecdsa_recover     : ECDSA public key recovery algorithm\n");
+#endif
+
+#ifdef ENABLE_MODULE_ECDH
+    printf("    ecdh              : ECDH key exchange algorithm\n");
+#endif
+
+#ifdef ENABLE_MODULE_SCHNORRSIG
+    printf("    schnorrsig        : all Schnorr signature algorithms (sign, verify)\n");
+    printf("    schnorrsig_sign   : Schnorr sigining algorithm\n");
+    printf("    schnorrsig_verify : Schnorr verification algorithm\n");
+#endif
+
+    printf("\n");
+}
+
 typedef struct {
     secp256k1_context *ctx;
     unsigned char msg[32];
@@ -95,7 +140,52 @@ int main(int argc, char** argv) {
     bench_verify_data data;
 
     int d = argc == 1;
-    int iters = get_iters(20000);
+    int default_iters = 20000;
+    int iters = get_iters(default_iters);
+
+    /* Check for invalid user arguments */
+    char* valid_args[] = {"ecdsa", "verify", "ecdsa_verify", "sign", "ecdsa_sign", "ecdh", "recover",
+                         "ecdsa_recover", "schnorrsig", "schnorrsig_verify", "schnorrsig_sign"};
+    size_t valid_args_size = sizeof(valid_args)/sizeof(valid_args[0]);
+    int invalid_args = have_invalid_args(argc, argv, valid_args, valid_args_size);
+
+    if (argc > 1) {
+        if (have_flag(argc, argv, "-h")
+           || have_flag(argc, argv, "--help")
+           || have_flag(argc, argv, "help")) {
+            help(default_iters);
+            return 0;
+        } else if (invalid_args) {
+            fprintf(stderr, "./bench: unrecognized argument.\n\n");
+            help(default_iters);
+            return 1;
+        }
+    }
+
+/* Check if the user tries to benchmark optional module without building it */
+#ifndef ENABLE_MODULE_ECDH
+    if (have_flag(argc, argv, "ecdh")) { 
+        fprintf(stderr, "./bench: ECDH module not enabled.\n");
+        fprintf(stderr, "Use ./configure --enable-module-ecdh.\n\n");
+        return 1;
+    }
+#endif
+
+#ifndef ENABLE_MODULE_RECOVERY
+    if (have_flag(argc, argv, "recover") || have_flag(argc, argv, "ecdsa_recover")) { 
+        fprintf(stderr, "./bench: Public key recovery module not enabled.\n");
+        fprintf(stderr, "Use ./configure --enable-module-recovery.\n\n");
+        return 1;
+    }
+#endif
+
+#ifndef ENABLE_MODULE_SCHNORRSIG
+    if (have_flag(argc, argv, "schnorrsig") || have_flag(argc, argv, "schnorrsig_sign") || have_flag(argc, argv, "schnorrsig_verify")) { 
+        fprintf(stderr, "./bench: Schnorr signatures module not enabled.\n");
+        fprintf(stderr, "Use ./configure --enable-module-schnorrsig.\n\n");
+        return 1;
+    }
+#endif
 
     /* ECDSA verification benchmark */
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
