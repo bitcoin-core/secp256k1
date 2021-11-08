@@ -4,12 +4,6 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
-/* Autotools creates libsecp256k1-config.h, of which ECMULT_GEN_PREC_BITS is needed.
-   ifndef guard so downstream users can define their own if they do not use autotools. */
-#if !defined(ECMULT_GEN_PREC_BITS)
-#include "libsecp256k1-config.h"
-#endif
-
 /* In principle we could use ASM, but this yields only a minor speedup in
    build time and it's very complicated. In particular when cross-compiling, we'd
    need to build the ASM for the build and the host machine. */
@@ -24,16 +18,9 @@
 #include "ecmult_gen_prec_impl.h"
 
 int main(int argc, char **argv) {
-    secp256k1_ge_storage* table;
-    int inner;
-    int outer;
     const char outfile[] = "src/ecmult_gen_static_prec_table.h";
     FILE* fp;
-
-    int bits = ECMULT_GEN_PREC_BITS;
-    int g = ECMULT_GEN_PREC_G(bits);
-    int n = ECMULT_GEN_PREC_N(bits);
-    table = checked_malloc(&default_error_callback, n * g * sizeof(secp256k1_ge_storage));
+    int bits;
 
     (void)argc;
     (void)argv;
@@ -51,36 +38,41 @@ int main(int argc, char **argv) {
 
     fprintf(fp, "#define SC SECP256K1_GE_STORAGE_CONST\n");
 
-    fprintf(fp, "#if ECMULT_GEN_PREC_BITS != %d\n", bits);
-    fprintf(fp, "   #error configuration mismatch, invalid ECMULT_GEN_PREC_BITS. Try deleting ecmult_static_context.h before the build.\n");
-    fprintf(fp, "#endif\n");
-
     fprintf(fp, "#ifdef EXHAUSTIVE_TEST_ORDER\n");
     fprintf(fp, "static secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[ECMULT_GEN_PREC_N(ECMULT_GEN_PREC_BITS)][ECMULT_GEN_PREC_G(ECMULT_GEN_PREC_BITS)];\n");
     fprintf(fp, "#else\n");
     fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[ECMULT_GEN_PREC_N(ECMULT_GEN_PREC_BITS)][ECMULT_GEN_PREC_G(ECMULT_GEN_PREC_BITS)] = {\n");
 
-    secp256k1_ecmult_gen_create_prec_table(table, &secp256k1_ge_const_g, bits);
+    for (bits = 2; bits <= 8; bits *= 2) {
+        int g = ECMULT_GEN_PREC_G(bits);
+        int n = ECMULT_GEN_PREC_N(bits);
+        int inner, outer;
 
-    for(outer = 0; outer != n; outer++) {
-        fprintf(fp,"{\n");
-        for(inner = 0; inner != g; inner++) {
-            fprintf(fp,"    SC(%uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu)", SECP256K1_GE_STORAGE_CONST_GET(table[outer * g + inner]));
-            if (inner != g - 1) {
-                fprintf(fp,",\n");
+        secp256k1_ge_storage* table = checked_malloc(&default_error_callback, n * g * sizeof(secp256k1_ge_storage));
+        secp256k1_ecmult_gen_create_prec_table(table, &secp256k1_ge_const_g, bits);
+
+        fprintf(fp, "#if ECMULT_GEN_PREC_BITS == %d\n", bits);
+        for(outer = 0; outer != n; outer++) {
+            fprintf(fp,"{\n");
+            for(inner = 0; inner != g; inner++) {
+                fprintf(fp,"    SC(%uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu)", SECP256K1_GE_STORAGE_CONST_GET(table[outer * g + inner]));
+                if (inner != g - 1) {
+                    fprintf(fp,",\n");
+                } else {
+                    fprintf(fp,"\n");
+                }
+            }
+            if (outer != n - 1) {
+                fprintf(fp,"},\n");
             } else {
-                fprintf(fp,"\n");
+                fprintf(fp,"}\n");
             }
         }
-        if (outer != n - 1) {
-            fprintf(fp,"},\n");
-        } else {
-            fprintf(fp,"}\n");
-        }
+        fprintf(fp, "#endif\n");
+        free(table);
     }
-    fprintf(fp,"};\n");
-    free(table);
 
+    fprintf(fp, "};\n");
     fprintf(fp, "#endif /* EXHAUSTIVE_TEST_ORDER */\n");
     fprintf(fp, "#undef SC\n");
     fprintf(fp, "#endif /* SECP256K1_ECMULT_GEN_STATIC_PREC_TABLE_H */\n");
