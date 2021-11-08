@@ -1,10 +1,5 @@
-bench_inv
-bench_ecdh
+bench
 bench_ecmult
-bench_schnorrsig
-bench_sign
-bench_verify
-bench_recover
 bench_internal
 tests
 exhaustive_tests
