@@ -25,6 +25,33 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
     cb->fn(text, (void*)cb->data);
 }
 
+#ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
+static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
+    (void)data;
+    fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
+    abort();
+}
+static void secp256k1_default_error_callback_fn(const char* str, void* data) {
+    (void)data;
+    fprintf(stderr, "[libsecp256k1] internal consistency check failed: %s\n", str);
+    abort();
+}
+#else
+void secp256k1_default_illegal_callback_fn(const char* str, void* data);
+void secp256k1_default_error_callback_fn(const char* str, void* data);
+#endif
+
+static const secp256k1_callback default_illegal_callback = {
+    secp256k1_default_illegal_callback_fn,
+    NULL
+};
+
+static const secp256k1_callback default_error_callback = {
+    secp256k1_default_error_callback_fn,
+    NULL
+};
+
+
 #ifdef DETERMINISTIC
 #define TEST_FAILURE(msg) do { \
     fprintf(stderr, "%s\n", msg); \

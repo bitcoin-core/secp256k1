@@ -23,17 +23,6 @@
 #include "ecmult_gen.h"
 #include "ecmult_gen_prec_impl.h"
 
-static void default_error_callback_fn(const char* str, void* data) {
-    (void)data;
-    fprintf(stderr, "[libsecp256k1] internal consistency check failed: %s\n", str);
-    abort();
-}
-
-static const secp256k1_callback default_error_callback = {
-    default_error_callback_fn,
-    NULL
-};
-
 int main(int argc, char **argv) {
     secp256k1_ge_storage* table;
     int inner;
