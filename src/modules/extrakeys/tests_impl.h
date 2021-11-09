@@ -359,6 +359,9 @@ void test_keypair(void) {
     secp256k1_context *none = api_test_context(SECP256K1_CONTEXT_NONE, &ecount);
     secp256k1_context *sign = api_test_context(SECP256K1_CONTEXT_SIGN, &ecount);
     secp256k1_context *verify = api_test_context(SECP256K1_CONTEXT_VERIFY, &ecount);
+    secp256k1_context *sttc = secp256k1_context_clone(secp256k1_context_no_precomp);
+    secp256k1_context_set_error_callback(sttc, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_illegal_callback(sttc, counting_illegal_callback_fn, &ecount);
 
     CHECK(sizeof(zeros96) == sizeof(keypair));
     memset(overflows, 0xFF, sizeof(overflows));
@@ -366,18 +369,22 @@ void test_keypair(void) {
     /* Test keypair_create */
     ecount = 0;
     secp256k1_testrand256(sk);
-    CHECK(secp256k1_keypair_create(none, &keypair, sk) == 0);
-    CHECK(secp256k1_memcmp_var(zeros96, &keypair, sizeof(keypair)) == 0);
+    CHECK(secp256k1_keypair_create(none, &keypair, sk) == 1);
+    CHECK(secp256k1_memcmp_var(zeros96, &keypair, sizeof(keypair)) != 0);
+    CHECK(ecount == 0);
+    CHECK(secp256k1_keypair_create(verify, &keypair, sk) == 1);
+    CHECK(secp256k1_memcmp_var(zeros96, &keypair, sizeof(keypair)) != 0);
+    CHECK(ecount == 0);
+    CHECK(secp256k1_keypair_create(sign, NULL, sk) == 0);
     CHECK(ecount == 1);
-    CHECK(secp256k1_keypair_create(verify, &keypair, sk) == 0);
+    CHECK(secp256k1_keypair_create(sign, &keypair, NULL) == 0);
     CHECK(secp256k1_memcmp_var(zeros96, &keypair, sizeof(keypair)) == 0);
     CHECK(ecount == 2);
     CHECK(secp256k1_keypair_create(sign, &keypair, sk) == 1);
-    CHECK(secp256k1_keypair_create(sign, NULL, sk) == 0);
-    CHECK(ecount == 3);
-    CHECK(secp256k1_keypair_create(sign, &keypair, NULL) == 0);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_keypair_create(sttc, &keypair, sk) == 0);
     CHECK(secp256k1_memcmp_var(zeros96, &keypair, sizeof(keypair)) == 0);
-    CHECK(ecount == 4);
+    CHECK(ecount == 3);
 
     /* Invalid secret key */
     CHECK(secp256k1_keypair_create(sign, &keypair, zeros96) == 0);
@@ -459,6 +466,7 @@ void test_keypair(void) {
     secp256k1_context_destroy(none);
     secp256k1_context_destroy(sign);
     secp256k1_context_destroy(verify);
+    secp256k1_context_destroy(sttc);
 }
 
 void test_keypair_add(void) {

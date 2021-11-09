@@ -143,10 +143,12 @@ void run_context_tests(int use_prealloc) {
     secp256k1_context *sign;
     secp256k1_context *vrfy;
     secp256k1_context *both;
+    secp256k1_context *sttc;
     void *none_prealloc = NULL;
     void *sign_prealloc = NULL;
     void *vrfy_prealloc = NULL;
     void *both_prealloc = NULL;
+    void *sttc_prealloc = NULL;
 
     secp256k1_gej pubj;
     secp256k1_ge pub;
@@ -158,26 +160,30 @@ void run_context_tests(int use_prealloc) {
         sign_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_SIGN));
         vrfy_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_VERIFY));
         both_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY));
+        sttc_prealloc = malloc(secp256k1_context_preallocated_clone_size(secp256k1_context_no_precomp));
         CHECK(none_prealloc != NULL);
         CHECK(sign_prealloc != NULL);
         CHECK(vrfy_prealloc != NULL);
         CHECK(both_prealloc != NULL);
+        CHECK(sttc_prealloc != NULL);
         none = secp256k1_context_preallocated_create(none_prealloc, SECP256K1_CONTEXT_NONE);
         sign = secp256k1_context_preallocated_create(sign_prealloc, SECP256K1_CONTEXT_SIGN);
         vrfy = secp256k1_context_preallocated_create(vrfy_prealloc, SECP256K1_CONTEXT_VERIFY);
         both = secp256k1_context_preallocated_create(both_prealloc, SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+        sttc = secp256k1_context_preallocated_clone(secp256k1_context_no_precomp, sttc_prealloc);
     } else {
         none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
         sign = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
         vrfy = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
         both = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+        sttc = secp256k1_context_clone(secp256k1_context_no_precomp);
     }
 
     memset(&zero_pubkey, 0, sizeof(zero_pubkey));
 
     ecount = 0;
     ecount2 = 10;
-    secp256k1_context_set_illegal_callback(vrfy, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_illegal_callback(sttc, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(sign, counting_illegal_callback_fn, &ecount2);
     /* set error callback (to a function that still aborts in case malloc() fails in secp256k1_context_clone() below) */
     secp256k1_context_set_error_callback(sign, secp256k1_default_illegal_callback_fn, NULL);
@@ -189,6 +195,7 @@ void run_context_tests(int use_prealloc) {
     CHECK(secp256k1_context_preallocated_clone_size(sign) == secp256k1_context_preallocated_size(SECP256K1_CONTEXT_SIGN));
     CHECK(secp256k1_context_preallocated_clone_size(vrfy) == secp256k1_context_preallocated_size(SECP256K1_CONTEXT_VERIFY));
     CHECK(secp256k1_context_preallocated_clone_size(both) == secp256k1_context_preallocated_size(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY));
+    CHECK(secp256k1_context_preallocated_clone_size(sttc) >= sizeof(secp256k1_context));
 
     /*** clone and destroy all of them to make sure cloning was complete ***/
     {
@@ -252,12 +259,12 @@ void run_context_tests(int use_prealloc) {
 
     /* Verify context-type checking illegal-argument errors. */
     memset(ctmp, 1, 32);
-    CHECK(secp256k1_ec_pubkey_create(vrfy, &pubkey, ctmp) == 0);
+    CHECK(secp256k1_ec_pubkey_create(sttc, &pubkey, ctmp) == 0);
     CHECK(ecount == 1);
     VG_UNDEF(&pubkey, sizeof(pubkey));
     CHECK(secp256k1_ec_pubkey_create(sign, &pubkey, ctmp) == 1);
     VG_CHECK(&pubkey, sizeof(pubkey));
-    CHECK(secp256k1_ecdsa_sign(vrfy, &sig, ctmp, ctmp, NULL, NULL) == 0);
+    CHECK(secp256k1_ecdsa_sign(sttc, &sig, ctmp, ctmp, NULL, NULL) == 0);
     CHECK(ecount == 2);
     VG_UNDEF(&sig, sizeof(sig));
     CHECK(secp256k1_ecdsa_sign(sign, &sig, ctmp, ctmp, NULL, NULL) == 1);
@@ -265,33 +272,33 @@ void run_context_tests(int use_prealloc) {
     CHECK(ecount2 == 10);
     CHECK(secp256k1_ecdsa_verify(sign, &sig, ctmp, &pubkey) == 1);
     CHECK(ecount2 == 10);
-    CHECK(secp256k1_ecdsa_verify(vrfy, &sig, ctmp, &pubkey) == 1);
+    CHECK(secp256k1_ecdsa_verify(sttc, &sig, ctmp, &pubkey) == 1);
     CHECK(ecount == 2);
     CHECK(secp256k1_ec_pubkey_tweak_add(sign, &pubkey, ctmp) == 1);
     CHECK(ecount2 == 10);
-    CHECK(secp256k1_ec_pubkey_tweak_add(vrfy, &pubkey, ctmp) == 1);
+    CHECK(secp256k1_ec_pubkey_tweak_add(sttc, &pubkey, ctmp) == 1);
     CHECK(ecount == 2);
     CHECK(secp256k1_ec_pubkey_tweak_mul(sign, &pubkey, ctmp) == 1);
     CHECK(ecount2 == 10);
-    CHECK(secp256k1_ec_pubkey_negate(vrfy, &pubkey) == 1);
+    CHECK(secp256k1_ec_pubkey_negate(sttc, &pubkey) == 1);
     CHECK(ecount == 2);
     CHECK(secp256k1_ec_pubkey_negate(sign, &pubkey) == 1);
     CHECK(ecount == 2);
     CHECK(secp256k1_ec_pubkey_negate(sign, NULL) == 0);
     CHECK(ecount2 == 11);
-    CHECK(secp256k1_ec_pubkey_negate(vrfy, &zero_pubkey) == 0);
+    CHECK(secp256k1_ec_pubkey_negate(sttc, &zero_pubkey) == 0);
     CHECK(ecount == 3);
-    CHECK(secp256k1_ec_pubkey_tweak_mul(vrfy, &pubkey, ctmp) == 1);
+    CHECK(secp256k1_ec_pubkey_tweak_mul(sttc, &pubkey, ctmp) == 1);
     CHECK(ecount == 3);
-    CHECK(secp256k1_context_randomize(vrfy, ctmp) == 1);
+    CHECK(secp256k1_context_randomize(sttc, ctmp) == 1);
     CHECK(ecount == 3);
-    CHECK(secp256k1_context_randomize(vrfy, NULL) == 1);
+    CHECK(secp256k1_context_randomize(sttc, NULL) == 1);
     CHECK(ecount == 3);
     CHECK(secp256k1_context_randomize(sign, ctmp) == 1);
     CHECK(ecount2 == 11);
     CHECK(secp256k1_context_randomize(sign, NULL) == 1);
     CHECK(ecount2 == 11);
-    secp256k1_context_set_illegal_callback(vrfy, NULL, NULL);
+    secp256k1_context_set_illegal_callback(sttc, NULL, NULL);
     secp256k1_context_set_illegal_callback(sign, NULL, NULL);
 
     /* obtain a working nonce */
@@ -313,15 +320,18 @@ void run_context_tests(int use_prealloc) {
         secp256k1_context_preallocated_destroy(sign);
         secp256k1_context_preallocated_destroy(vrfy);
         secp256k1_context_preallocated_destroy(both);
+        secp256k1_context_preallocated_destroy(sttc);
         free(none_prealloc);
         free(sign_prealloc);
         free(vrfy_prealloc);
         free(both_prealloc);
+        free(sttc_prealloc);
     } else {
         secp256k1_context_destroy(none);
         secp256k1_context_destroy(sign);
         secp256k1_context_destroy(vrfy);
         secp256k1_context_destroy(both);
+        secp256k1_context_destroy(sttc);
     }
     /* Defined as no-op. */
     secp256k1_context_destroy(NULL);

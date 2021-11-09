@@ -132,16 +132,19 @@ void test_schnorrsig_api(void) {
     secp256k1_context *sign = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
     secp256k1_context *vrfy = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
     secp256k1_context *both = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+    secp256k1_context *sttc = secp256k1_context_clone(secp256k1_context_no_precomp);
     int ecount;
 
     secp256k1_context_set_error_callback(none, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_error_callback(sign, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_error_callback(vrfy, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_error_callback(both, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_error_callback(sttc, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(none, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(sign, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(vrfy, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(both, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_illegal_callback(sttc, counting_illegal_callback_fn, &ecount);
 
     secp256k1_testrand256(sk1);
     secp256k1_testrand256(sk2);
@@ -157,42 +160,46 @@ void test_schnorrsig_api(void) {
 
     /** main test body **/
     ecount = 0;
-    CHECK(secp256k1_schnorrsig_sign(none, sig, msg, &keypairs[0], NULL) == 0);
-    CHECK(ecount == 1);
-    CHECK(secp256k1_schnorrsig_sign(vrfy, sig, msg, &keypairs[0], NULL) == 0);
-    CHECK(ecount == 2);
+    CHECK(secp256k1_schnorrsig_sign(none, sig, msg, &keypairs[0], NULL) == 1);
+    CHECK(ecount == 0);
+    CHECK(secp256k1_schnorrsig_sign(vrfy, sig, msg, &keypairs[0], NULL) == 1);
+    CHECK(ecount == 0);
     CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, &keypairs[0], NULL) == 1);
-    CHECK(ecount == 2);
+    CHECK(ecount == 0);
     CHECK(secp256k1_schnorrsig_sign(sign, NULL, msg, &keypairs[0], NULL) == 0);
-    CHECK(ecount == 3);
+    CHECK(ecount == 1);
     CHECK(secp256k1_schnorrsig_sign(sign, sig, NULL, &keypairs[0], NULL) == 0);
-    CHECK(ecount == 4);
+    CHECK(ecount == 2);
     CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, NULL, NULL) == 0);
-    CHECK(ecount == 5);
+    CHECK(ecount == 3);
     CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, &invalid_keypair, NULL) == 0);
-    CHECK(ecount == 6);
+    CHECK(ecount == 4);
+    CHECK(secp256k1_schnorrsig_sign(sttc, sig, msg, &keypairs[0], NULL) == 0);
+    CHECK(ecount == 5);
 
     ecount = 0;
-    CHECK(secp256k1_schnorrsig_sign_custom(none, sig, msg, sizeof(msg), &keypairs[0], &extraparams) == 0);
-    CHECK(ecount == 1);
-    CHECK(secp256k1_schnorrsig_sign_custom(vrfy, sig, msg, sizeof(msg), &keypairs[0], &extraparams) == 0);
-    CHECK(ecount == 2);
+    CHECK(secp256k1_schnorrsig_sign_custom(none, sig, msg, sizeof(msg), &keypairs[0], &extraparams) == 1);
+    CHECK(ecount == 0);
+    CHECK(secp256k1_schnorrsig_sign_custom(vrfy, sig, msg, sizeof(msg), &keypairs[0], &extraparams) == 1);
+    CHECK(ecount == 0);
     CHECK(secp256k1_schnorrsig_sign_custom(sign, sig, msg, sizeof(msg), &keypairs[0], &extraparams) == 1);
-    CHECK(ecount == 2);
+    CHECK(ecount == 0);
     CHECK(secp256k1_schnorrsig_sign_custom(sign, NULL, msg, sizeof(msg), &keypairs[0], &extraparams) == 0);
-    CHECK(ecount == 3);
+    CHECK(ecount == 1);
     CHECK(secp256k1_schnorrsig_sign_custom(sign, sig, NULL, sizeof(msg), &keypairs[0], &extraparams) == 0);
-    CHECK(ecount == 4);
+    CHECK(ecount == 2);
     CHECK(secp256k1_schnorrsig_sign_custom(sign, sig, NULL, 0, &keypairs[0], &extraparams) == 1);
-    CHECK(ecount == 4);
+    CHECK(ecount == 2);
     CHECK(secp256k1_schnorrsig_sign_custom(sign, sig, msg, sizeof(msg), NULL, &extraparams) == 0);
-    CHECK(ecount == 5);
+    CHECK(ecount == 3);
     CHECK(secp256k1_schnorrsig_sign_custom(sign, sig, msg, sizeof(msg), &invalid_keypair, &extraparams) == 0);
-    CHECK(ecount == 6);
+    CHECK(ecount == 4);
     CHECK(secp256k1_schnorrsig_sign_custom(sign, sig, msg, sizeof(msg), &keypairs[0], NULL) == 1);
-    CHECK(ecount == 6);
+    CHECK(ecount == 4);
     CHECK(secp256k1_schnorrsig_sign_custom(sign, sig, msg, sizeof(msg), &keypairs[0], &invalid_extraparams) == 0);
-    CHECK(ecount == 7);
+    CHECK(ecount == 5);
+    CHECK(secp256k1_schnorrsig_sign_custom(sttc, sig, msg, sizeof(msg), &keypairs[0], &extraparams) == 0);
+    CHECK(ecount == 6);
 
     ecount = 0;
     CHECK(secp256k1_schnorrsig_sign(sign, sig, msg, &keypairs[0], NULL) == 1);
@@ -217,6 +224,7 @@ void test_schnorrsig_api(void) {
     secp256k1_context_destroy(sign);
     secp256k1_context_destroy(vrfy);
     secp256k1_context_destroy(both);
+    secp256k1_context_destroy(sttc);
 }
 
 /* Checks that hash initialized by secp256k1_schnorrsig_sha256_tagged has the
