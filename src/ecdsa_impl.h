@@ -304,12 +304,12 @@ static int secp256k1_ecdsa_sig_sign(const secp256k1_ecmult_gen_context *ctx, sec
     high = secp256k1_scalar_is_high(sigs);
     secp256k1_scalar_cond_negate(sigs, high);
     if (recid) {
-            *recid ^= high;
+        *recid ^= high;
     }
     /* P.x = order is on the curve, so technically sig->r could end up being zero, which would be an invalid signature.
      * This is cryptographically unreachable as hitting it requires finding the discrete log of P.x = N.
      */
-    return !secp256k1_scalar_is_zero(sigr) & !secp256k1_scalar_is_zero(sigs);
+    return (int)(!secp256k1_scalar_is_zero(sigr)) & (int)(!secp256k1_scalar_is_zero(sigs));
 }
 
 #endif /* SECP256K1_ECDSA_IMPL_H */
