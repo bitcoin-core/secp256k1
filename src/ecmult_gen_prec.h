@@ -9,8 +9,8 @@
 
 #include "ecmult_gen.h"
 
-static const size_t ECMULT_GEN_PREC_TABLE_SIZE = ROUND_TO_ALIGN(sizeof(*((secp256k1_ecmult_gen_context*) NULL)->prec));
+static const size_t ECMULT_GEN_PREC_TABLE_SIZE = ECMULT_GEN_PREC_N * ECMULT_GEN_PREC_G * sizeof(secp256k1_ge_storage);
 
-static void secp256k1_ecmult_gen_create_prec_table(secp256k1_ecmult_gen_context *ctx, void **prealloc);
+static void secp256k1_ecmult_gen_create_prec_table(secp256k1_ge_storage* table);
 
 #endif /* SECP256K1_ECMULT_GEN_PREC_H */

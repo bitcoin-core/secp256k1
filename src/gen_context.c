@@ -35,8 +35,7 @@ static const secp256k1_callback default_error_callback = {
 };
 
 int main(int argc, char **argv) {
-    secp256k1_ecmult_gen_context ctx;
-    void *prealloc, *base;
+    secp256k1_ge_storage* table;
     int inner;
     int outer;
     FILE* fp;
@@ -59,13 +58,12 @@ int main(int argc, char **argv) {
     fprintf(fp, "#endif\n");
     fprintf(fp, "static const secp256k1_ge_storage secp256k1_ecmult_static_context[ECMULT_GEN_PREC_N][ECMULT_GEN_PREC_G] = {\n");
 
-    base = checked_malloc(&default_error_callback, ECMULT_GEN_PREC_TABLE_SIZE);
-    prealloc = base;
-    secp256k1_ecmult_gen_create_prec_table(&ctx, &prealloc);
+    table = checked_malloc(&default_error_callback, ECMULT_GEN_PREC_TABLE_SIZE);
+    secp256k1_ecmult_gen_create_prec_table(table);
     for(outer = 0; outer != ECMULT_GEN_PREC_N; outer++) {
         fprintf(fp,"{\n");
         for(inner = 0; inner != ECMULT_GEN_PREC_G; inner++) {
-            fprintf(fp,"    SC(%uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu)", SECP256K1_GE_STORAGE_CONST_GET((*ctx.prec)[outer][inner]));
+            fprintf(fp,"    SC(%uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu, %uu)", SECP256K1_GE_STORAGE_CONST_GET(table[outer * ECMULT_GEN_PREC_G + inner]));
             if (inner != ECMULT_GEN_PREC_G - 1) {
                 fprintf(fp,",\n");
             } else {
@@ -79,7 +77,7 @@ int main(int argc, char **argv) {
         }
     }
     fprintf(fp,"};\n");
-    free(base);
+    free(table);
 
     fprintf(fp, "#undef SC\n");
     fprintf(fp, "#endif\n");

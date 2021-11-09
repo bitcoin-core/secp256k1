@@ -12,14 +12,11 @@
 #include "field_impl.h"
 #include "ecmult_gen.h"
 
-static void secp256k1_ecmult_gen_create_prec_table(secp256k1_ecmult_gen_context *ctx, void **prealloc) {
+static void secp256k1_ecmult_gen_create_prec_table(secp256k1_ge_storage* table) {
     secp256k1_ge prec[ECMULT_GEN_PREC_N * ECMULT_GEN_PREC_G];
     secp256k1_gej gj;
     secp256k1_gej nums_gej;
     int i, j;
-    size_t const prealloc_size = ECMULT_GEN_PREC_TABLE_SIZE;
-    void* const base = *prealloc;
-    ctx->prec = (secp256k1_ge_storage (*)[ECMULT_GEN_PREC_N][ECMULT_GEN_PREC_G])manual_alloc(prealloc, prealloc_size, base, prealloc_size);
 
     /* get the generator */
     secp256k1_gej_set_ge(&gj, &secp256k1_ge_const_g);
@@ -70,7 +67,7 @@ static void secp256k1_ecmult_gen_create_prec_table(secp256k1_ecmult_gen_context 
     }
     for (j = 0; j < ECMULT_GEN_PREC_N; j++) {
         for (i = 0; i < ECMULT_GEN_PREC_G; i++) {
-            secp256k1_ge_to_storage(&(*ctx->prec)[j][i], &prec[j*ECMULT_GEN_PREC_G + i]);
+            secp256k1_ge_to_storage(&table[j*ECMULT_GEN_PREC_G + i], &prec[j*ECMULT_GEN_PREC_G + i]);
         }
     }
 }
