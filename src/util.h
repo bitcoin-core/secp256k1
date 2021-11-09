@@ -142,38 +142,6 @@ static SECP256K1_INLINE void *checked_realloc(const secp256k1_callback* cb, void
 
 #define ROUND_TO_ALIGN(size) ((((size) + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT)
 
-/* Assume there is a contiguous memory object with bounds [base, base + max_size)
- * of which the memory range [base, *prealloc_ptr) is already allocated for usage,
- * where *prealloc_ptr is an aligned pointer. In that setting, this functions
- * reserves the subobject [*prealloc_ptr, *prealloc_ptr + alloc_size) of
- * alloc_size bytes by increasing *prealloc_ptr accordingly, taking into account
- * alignment requirements.
- *
- * The function returns an aligned pointer to the newly allocated subobject.
- *
- * This is useful for manual memory management: if we're simply given a block
- * [base, base + max_size), the caller can use this function to allocate memory
- * in this block and keep track of the current allocation state with *prealloc_ptr.
- *
- * It is VERIFY_CHECKed that there is enough space left in the memory object and
- * *prealloc_ptr is aligned relative to base.
- */
-static SECP256K1_INLINE void *manual_alloc(void** prealloc_ptr, size_t alloc_size, void* base, size_t max_size) {
-    size_t aligned_alloc_size = ROUND_TO_ALIGN(alloc_size);
-    void* ret;
-    VERIFY_CHECK(prealloc_ptr != NULL);
-    VERIFY_CHECK(*prealloc_ptr != NULL);
-    VERIFY_CHECK(base != NULL);
-    VERIFY_CHECK((unsigned char*)*prealloc_ptr >= (unsigned char*)base);
-    VERIFY_CHECK(((unsigned char*)*prealloc_ptr - (unsigned char*)base) % ALIGNMENT == 0);
-    VERIFY_CHECK((unsigned char*)*prealloc_ptr - (unsigned char*)base + aligned_alloc_size <= max_size);
-    /* Avoid unused parameter warnings when building without VERIFY */
-    (void) base; (void) max_size;
-    ret = *prealloc_ptr;
-    *prealloc_ptr = (unsigned char*)*prealloc_ptr + aligned_alloc_size;
-    return ret;
-}
-
 /* Macro for restrict, when available and not in a VERIFY build. */
 #if defined(SECP256K1_BUILD) && defined(VERIFY)
 # define SECP256K1_RESTRICT
