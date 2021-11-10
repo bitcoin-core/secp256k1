@@ -19,16 +19,7 @@ AC_PATH_TOOL(AR, ar)
 AC_PATH_TOOL(RANLIB, ranlib)
 AC_PATH_TOOL(STRIP, strip)
 
-# Save definition of AC_PROG_CC because AM_PROG_CC_C_O in automake<=1.13 will
-# redefine AC_PROG_CC to exit with an error, which avoids the user calling it
-# accidentally and screwing up the effect of AM_PROG_CC_C_O. However, we'll need
-# AC_PROG_CC later on in AX_PROG_CC_FOR_BUILD, where its usage is fine, and
-# we'll carefully make sure not to call AC_PROG_CC anywhere else.
-m4_copy([AC_PROG_CC], [saved_AC_PROG_CC])
 AM_PROG_CC_C_O
-# Restore AC_PROG_CC
-m4_rename_force([saved_AC_PROG_CC], [AC_PROG_CC])
-
 AC_PROG_CC_C89
 if test x"$ac_cv_prog_cc_c89" = x"no"; then
   AC_MSG_ERROR([c89 compiler support required])
@@ -208,7 +199,6 @@ else
     # We still add it here because passing it twice is not an issue, and handling
     # this case would just add unnecessary complexity (see #896).
     SECP_CFLAGS="-O2 $SECP_CFLAGS"
-    SECP_CFLAGS_FOR_BUILD="-O2 $SECP_CFLAGS_FOR_BUILD"
 fi
 
 if test x"$req_asm" = x"auto"; then
@@ -320,77 +310,6 @@ fi
 # Add -Werror and similar flags passed from the outside (for testing, e.g., in CI)
 SECP_CFLAGS="$SECP_CFLAGS $WERROR_CFLAGS"
 
-# Handle static precomputation (after everything which modifies CFLAGS and friends)
-if test x"$use_ecmult_static_precomputation" != x"no"; then
-  if test x"$cross_compiling" = x"no"; then
-    set_precomp=yes
-    if test x"${CC_FOR_BUILD+x}${CFLAGS_FOR_BUILD+x}${CPPFLAGS_FOR_BUILD+x}${LDFLAGS_FOR_BUILD+x}" != x; then
-      AC_MSG_WARN([CC_FOR_BUILD, CFLAGS_FOR_BUILD, CPPFLAGS_FOR_BUILD, and/or LDFLAGS_FOR_BUILD is set but ignored because we are not cross-compiling.])
-    fi
-    # If we're not cross-compiling, simply use the same compiler for building the static precompation code.
-    CC_FOR_BUILD="$CC"
-    CPPFLAGS_FOR_BUILD="$CPPFLAGS"
-    SECP_CFLAGS_FOR_BUILD="$SECP_CFLAGS"
-    CFLAGS_FOR_BUILD="$CFLAGS"
-    LDFLAGS_FOR_BUILD="$LDFLAGS"
-  else
-    AX_PROG_CC_FOR_BUILD
-
-    # Temporarily switch to an environment for the native compiler
-    save_cross_compiling=$cross_compiling
-    cross_compiling=no
-    SAVE_CC="$CC"
-    CC="$CC_FOR_BUILD"
-    SAVE_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS_FOR_BUILD"
-    SAVE_CFLAGS="$CFLAGS"
-    CFLAGS="$CFLAGS_FOR_BUILD"
-    SAVE_LDFLAGS="$LDFLAGS"
-    LDFLAGS="$LDFLAGS_FOR_BUILD"
-
-    SECP_TRY_APPEND_DEFAULT_CFLAGS(SECP_CFLAGS_FOR_BUILD)
-
-    AC_MSG_CHECKING([for working native compiler: ${CC_FOR_BUILD}])
-    AC_RUN_IFELSE(
-      [AC_LANG_PROGRAM([], [])],
-      [working_native_cc=yes],
-      [working_native_cc=no],[:])
-
-    # Restore the environment
-    cross_compiling=$save_cross_compiling
-    CC="$SAVE_CC"
-    CPPFLAGS="$SAVE_CPPFLAGS"
-    CFLAGS="$SAVE_CFLAGS"
-    LDFLAGS="$SAVE_LDFLAGS"
-
-    if test x"$working_native_cc" = x"no"; then
-      AC_MSG_RESULT([no])
-      set_precomp=no
-      m4_define([please_set_for_build], [Please set CC_FOR_BUILD, CPPFLAGS_FOR_BUILD, CFLAGS_FOR_BUILD, and/or LDFLAGS_FOR_BUILD.])
-      if test x"$use_ecmult_static_precomputation" = x"yes";  then
-        AC_MSG_ERROR([native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
-      else
-        AC_MSG_WARN([Disabling statically generated ecmult table because the native compiler ${CC_FOR_BUILD} does not produce working binaries. please_set_for_build])
-      fi
-    else
-      AC_MSG_RESULT([yes])
-      set_precomp=yes
-    fi
-  fi
-
-  AC_SUBST(CC_FOR_BUILD)
-  AC_SUBST(CPPFLAGS_FOR_BUILD)
-  AC_SUBST(SECP_CFLAGS_FOR_BUILD)
-  AC_SUBST(CFLAGS_FOR_BUILD)
-  AC_SUBST(LDFLAGS_FOR_BUILD)
-else
-  set_precomp=no
-fi
-
-if test x"$set_precomp" = x"yes"; then
-  AC_DEFINE(USE_ECMULT_STATIC_PRECOMPUTATION, 1, [Define this symbol to use a statically generated ecmult table])
-fi
-
 ###
 ### Handle module options
 ###
@@ -456,7 +375,6 @@ AM_CONDITIONAL([ENABLE_COVERAGE], [test x"$enable_coverage" = x"yes"])
 AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])
 AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$use_exhaustive_tests" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
-AM_CONDITIONAL([USE_ECMULT_STATIC_PRECOMPUTATION], [test x"$set_precomp" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"yes"])
@@ -473,7 +391,6 @@ AC_OUTPUT
 
 echo
 echo "Build Options:"
-echo "  with ecmult precomp     = $set_precomp"
 echo "  with external callbacks = $use_external_default_callbacks"
 echo "  with benchmarks         = $use_benchmark"
 echo "  with tests              = $use_tests"
@@ -497,11 +414,3 @@ echo "  CPPFLAGS                = $CPPFLAGS"
 echo "  SECP_CFLAGS             = $SECP_CFLAGS"
 echo "  CFLAGS                  = $CFLAGS"
 echo "  LDFLAGS                 = $LDFLAGS"
-echo
-if test x"$set_precomp" = x"yes"; then
-echo "  CC_FOR_BUILD            = $CC_FOR_BUILD"
-echo "  CPPFLAGS_FOR_BUILD      = $CPPFLAGS_FOR_BUILD"
-echo "  SECP_CFLAGS_FOR_BUILD   = $SECP_CFLAGS_FOR_BUILD"
-echo "  CFLAGS_FOR_BUILD        = $CFLAGS_FOR_BUILD"
-echo "  LDFLAGS_FOR_BUILD       = $LDFLAGS_FOR_BUILD"
-fi
