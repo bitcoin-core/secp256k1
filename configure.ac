@@ -21,7 +21,7 @@ AC_PATH_TOOL(STRIP, strip)
 
 # Save definition of AC_PROG_CC because AM_PROG_CC_C_O in automake<=1.13 will
 # redefine AC_PROG_CC to exit with an error, which avoids the user calling it
-# accidently and screwing up the effect of AM_PROG_CC_C_O. However, we'll need
+# accidentally and screwing up the effect of AM_PROG_CC_C_O. However, we'll need
 # AC_PROG_CC later on in AX_PROG_CC_FOR_BUILD, where its usage is fine, and
 # we'll carefully make sure not to call AC_PROG_CC anywhere else.
 m4_copy([AC_PROG_CC], [saved_AC_PROG_CC])
