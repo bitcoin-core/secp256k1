@@ -43,8 +43,8 @@ case $host_os in
          # These Homebrew packages may be keg-only, meaning that they won't be found
          # in expected paths because they may conflict with system files. Ask
          # Homebrew where each one is located, then adjust paths accordingly.
-         valgrind_prefix=`$BREW --prefix valgrind 2>/dev/null`
-         if test x$valgrind_prefix != x; then
+         if $BREW list --versions valgrind >/dev/null; then
+           valgrind_prefix=`$BREW --prefix valgrind 2>/dev/null`
            VALGRIND_CPPFLAGS="-I$valgrind_prefix/include"
          fi
        else
