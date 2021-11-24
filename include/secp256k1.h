@@ -264,7 +264,7 @@ SECP256K1_API void secp256k1_context_destroy(
  *  undefined.
  *
  *  When this function has not been called (or called with fn==NULL), then the
- *  default handler will be used. The library provides a default handler which
+ *  default handler will be used. The library provides a default handler which
  *  writes the message to stderr and calls abort. This default handler can be
  *  replaced at link time if the preprocessor macro
  *  USE_EXTERNAL_DEFAULT_CALLBACKS is defined, which is the case if the build
