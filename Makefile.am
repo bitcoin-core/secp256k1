@@ -119,7 +119,7 @@ endif
 if USE_EXHAUSTIVE_TESTS
 noinst_PROGRAMS += exhaustive_tests
 exhaustive_tests_SOURCES = src/tests_exhaustive.c
-exhaustive_tests_CPPFLAGS = -I$(top_srcdir)/src $(SECP_INCLUDES)
+exhaustive_tests_CPPFLAGS = $(SECP_INCLUDES)
 if !ENABLE_COVERAGE
 exhaustive_tests_CPPFLAGS += -DVERIFY
 endif
@@ -131,8 +131,14 @@ endif
 ### Precomputed tables
 EXTRA_PROGRAMS = gen_ecmult_static_pre_g gen_ecmult_gen_static_prec_table
 CLEANFILES = $(EXTRA_PROGRAMS)
+
 gen_ecmult_static_pre_g_SOURCES = src/gen_ecmult_static_pre_g.c
+gen_ecmult_static_pre_g_CPPFLAGS = $(SECP_INCLUDES)
+gen_ecmult_static_pre_g_LDADD = $(SECP_LIBS) $(COMMON_LIB)
+
 gen_ecmult_gen_static_prec_table_SOURCES = src/gen_ecmult_gen_static_prec_table.c
+gen_ecmult_gen_static_prec_table_CPPFLAGS = $(SECP_INCLUDES)
+gen_ecmult_gen_static_prec_table_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 
 # See Automake manual, Section "Errors with distclean".
 # We don't list any dependencies for the prebuilt files here because
