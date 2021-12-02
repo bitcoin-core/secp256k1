@@ -47,7 +47,7 @@
 
 /* The number of objects allocated on the scratch space for ecmult_multi algorithms */
 #define PIPPENGER_SCRATCH_OBJECTS 6
-#define STRAUSS_SCRATCH_OBJECTS 6
+#define STRAUSS_SCRATCH_OBJECTS 7
 
 #define PIPPENGER_MAX_BUCKET_WINDOW 12
 
@@ -365,6 +365,9 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callba
         return 1;
     }
 
+    /* We allocate STRAUSS_SCRATCH_OBJECTS objects on the scratch space. If these
+     * allocations change, make sure to update the STRAUSS_SCRATCH_OBJECTS
+     * constant and strauss_scratch_size accordingly. */
     points = (secp256k1_gej*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_gej));
     scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_scalar));
     state.prej = (secp256k1_gej*)secp256k1_scratch_alloc(error_callback, scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_gej));
@@ -659,8 +662,12 @@ static int secp256k1_ecmult_pippenger_batch(const secp256k1_callback* error_call
     if (inp_g_sc == NULL && n_points == 0) {
         return 1;
     }
-
     bucket_window = secp256k1_pippenger_bucket_window(n_points);
+
+    /* We allocate PIPPENGER_SCRATCH_OBJECTS objects on the scratch space. If
+     * these allocations change, make sure to update the
+     * PIPPENGER_SCRATCH_OBJECTS constant and pippenger_scratch_size
+     * accordingly. */
     points = (secp256k1_ge *) secp256k1_scratch_alloc(error_callback, scratch, entries * sizeof(*points));
     scalars = (secp256k1_scalar *) secp256k1_scratch_alloc(error_callback, scratch, entries * sizeof(*scalars));
     state_space = (struct secp256k1_pippenger_state *) secp256k1_scratch_alloc(error_callback, scratch, sizeof(*state_space));
@@ -668,7 +675,6 @@ static int secp256k1_ecmult_pippenger_batch(const secp256k1_callback* error_call
         secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
         return 0;
     }
-
     state_space->ps = (struct secp256k1_pippenger_point_state *) secp256k1_scratch_alloc(error_callback, scratch, entries * sizeof(*state_space->ps));
     state_space->wnaf_na = (int *) secp256k1_scratch_alloc(error_callback, scratch, entries*(WNAF_SIZE(bucket_window+1)) * sizeof(int));
     buckets = (secp256k1_gej *) secp256k1_scratch_alloc(error_callback, scratch, (1<<bucket_window) * sizeof(*buckets));
