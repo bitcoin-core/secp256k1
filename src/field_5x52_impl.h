@@ -22,11 +22,18 @@
 #endif
 
 /** Implements arithmetic modulo FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFE FFFFFC2F,
- *  represented as 5 uint64_t's in base 2^52. The values are allowed to contain >52 each. In particular,
- *  each FieldElem has a 'magnitude' associated with it. Internally, a magnitude M means each element
- *  is at most M*(2^53-1), except the most significant one, which is limited to M*(2^49-1). All operations
- *  accept any input with magnitude at most M, and have different rules for propagating magnitude to their
- *  output.
+ *  represented as 5 uint64_t's in base 2^52, least significant first. Note that the limbs are allowed to
+ *  contain >52 bits each.
+ *
+ *  Each field element has a 'magnitude' associated with it. Internally, a magnitude M means:
+ *  - 2*M*(2^48-1) is the max (inclusive) of the most significant limb
+ *  - 2*M*(2^52-1) is the max (inclusive) of the remaining limbs
+ *
+ *  Operations have different rules for propagating magnitude to their outputs. If an operation takes a
+ *  magnitude M as a parameter, that means the magnitude of input field elements can be at most M (inclusive).
+ *
+ *  Each field element also has a 'normalized' flag. A field element is normalized if its magnitude is either
+ *  0 or 1, and its value is already reduced modulo the order of the field.
  */
 
 #ifdef VERIFY
