@@ -56,7 +56,6 @@ static void secp256k1_ecmult_odd_multiples_table_globalz_windowa(secp256k1_ge *p
     secp256k1_fe_cmov(&(r)->y, &neg_y, (n) != abs_n); \
 } while(0)
 
-
 /** Convert a number to WNAF notation.
  *  The number becomes represented by sum(2^{wi} * wnaf[i], i=0..WNAF_SIZE(w)+1) - return_val.
  *  It has the following guarantees:
@@ -72,7 +71,7 @@ static void secp256k1_ecmult_odd_multiples_table_globalz_windowa(secp256k1_ge *p
  */
 static int secp256k1_wnaf_const(int *wnaf, const secp256k1_scalar *scalar, int w, int size) {
     int global_sign;
-    int skew = 0;
+    int skew;
     int word = 0;
 
     /* 1 2 3 */
@@ -80,9 +79,7 @@ static int secp256k1_wnaf_const(int *wnaf, const secp256k1_scalar *scalar, int w
     int u;
 
     int flip;
-    int bit;
-    secp256k1_scalar s;
-    int not_neg_one;
+    secp256k1_scalar s = *scalar;
 
     VERIFY_CHECK(w > 0);
     VERIFY_CHECK(size > 0);
@@ -90,33 +87,19 @@ static int secp256k1_wnaf_const(int *wnaf, const secp256k1_scalar *scalar, int w
     /* Note that we cannot handle even numbers by negating them to be odd, as is
      * done in other implementations, since if our scalars were specified to have
      * width < 256 for performance reasons, their negations would have width 256
-     * and we'd lose any performance benefit. Instead, we use a technique from
-     * Section 4.2 of the Okeya/Tagaki paper, which is to add either 1 (for even)
-     * or 2 (for odd) to the number we are encoding, returning a skew value indicating
+     * and we'd lose any performance benefit. Instead, we use a variation of a
+     * technique from Section 4.2 of the Okeya/Tagaki paper, which is to add 1 to the
+     * number we are encoding when it is even, returning a skew value indicating
      * this, and having the caller compensate after doing the multiplication.
      *
      * In fact, we _do_ want to negate numbers to minimize their bit-lengths (and in
      * particular, to ensure that the outputs from the endomorphism-split fit into
-     * 128 bits). If we negate, the parity of our number flips, inverting which of
-     * {1, 2} we want to add to the scalar when ensuring that it's odd. Further
-     * complicating things, -1 interacts badly with `secp256k1_scalar_cadd_bit` and
-     * we need to special-case it in this logic. */
-    flip = secp256k1_scalar_is_high(scalar);
-    /* We add 1 to even numbers, 2 to odd ones, noting that negation flips parity */
-    bit = flip ^ !secp256k1_scalar_is_even(scalar);
-    /* We check for negative one, since adding 2 to it will cause an overflow */
-    secp256k1_scalar_negate(&s, scalar);
-    not_neg_one = !secp256k1_scalar_is_one(&s);
-    s = *scalar;
-    secp256k1_scalar_cadd_bit(&s, bit, not_neg_one);
-    /* If we had negative one, flip == 1, s.d[0] == 0, bit == 1, so caller expects
-     * that we added two to it and flipped it. In fact for -1 these operations are
-     * identical. We only flipped, but since skewing is required (in the sense that
-     * the skew must be 1 or 2, never zero) and flipping is not, we need to change
-     * our flags to claim that we only skewed. */
+     * 128 bits). If we negate, the parity of our number flips, affecting whether
+     * we want to add to the scalar to ensure that it's odd. */
+    flip = secp256k1_scalar_is_high(&s);
+    skew = flip ^ secp256k1_scalar_is_even(&s);
+    secp256k1_scalar_cadd_bit(&s, 0, skew);
     global_sign = secp256k1_scalar_cond_negate(&s, flip);
-    global_sign *= not_neg_one * 2 - 1;
-    skew = 1 << bit;
 
     /* 4 */
     u_last = secp256k1_scalar_shr_int(&s, w);
@@ -236,19 +219,17 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
         /* Correct for wNAF skew */
         secp256k1_gej tmp;
         secp256k1_ge a_1;
-
         secp256k1_ge_neg(&a_1, a);
-        secp256k1_gej_add_ge(r, r, &a_1);
+
         secp256k1_gej_add_ge(&tmp, r, &a_1);
-        secp256k1_gej_cmov(r, &tmp, skew_1 == 2);
+        secp256k1_gej_cmov(r, &tmp, skew_1);
 
         if (size > 128) {
             secp256k1_ge a_lam;
             secp256k1_ge_mul_lambda(&a_lam, &a_1);
 
-            secp256k1_gej_add_ge(r, r, &a_lam);
             secp256k1_gej_add_ge(&tmp, r, &a_lam);
-            secp256k1_gej_cmov(r, &tmp, skew_lam == 2);
+            secp256k1_gej_cmov(r, &tmp, skew_lam);
         }
     }
 }
