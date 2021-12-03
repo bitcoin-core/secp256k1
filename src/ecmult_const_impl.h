@@ -234,36 +234,21 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
 
     {
         /* Correct for wNAF skew */
-        secp256k1_ge correction = *a;
-        secp256k1_ge_storage correction_1_stor;
-        secp256k1_ge_storage correction_lam_stor;
-        secp256k1_ge_storage a2_stor;
-        secp256k1_gej tmpj;
-        secp256k1_gej_set_ge(&tmpj, &correction);
-        secp256k1_gej_double_var(&tmpj, &tmpj, NULL);
-        secp256k1_ge_set_gej(&correction, &tmpj);
-        secp256k1_ge_to_storage(&correction_1_stor, a);
-        if (size > 128) {
-            secp256k1_ge_to_storage(&correction_lam_stor, a);
-        }
-        secp256k1_ge_to_storage(&a2_stor, &correction);
+        secp256k1_gej tmp;
+        secp256k1_ge a_1;
 
-        /* For odd numbers this is 2a (so replace it), for even ones a (so no-op) */
-        secp256k1_ge_storage_cmov(&correction_1_stor, &a2_stor, skew_1 == 2);
-        if (size > 128) {
-            secp256k1_ge_storage_cmov(&correction_lam_stor, &a2_stor, skew_lam == 2);
-        }
-
-        /* Apply the correction */
-        secp256k1_ge_from_storage(&correction, &correction_1_stor);
-        secp256k1_ge_neg(&correction, &correction);
-        secp256k1_gej_add_ge(r, r, &correction);
+        secp256k1_ge_neg(&a_1, a);
+        secp256k1_gej_add_ge(r, r, &a_1);
+        secp256k1_gej_add_ge(&tmp, r, &a_1);
+        secp256k1_gej_cmov(r, &tmp, skew_1 == 2);
 
         if (size > 128) {
-            secp256k1_ge_from_storage(&correction, &correction_lam_stor);
-            secp256k1_ge_neg(&correction, &correction);
-            secp256k1_ge_mul_lambda(&correction, &correction);
-            secp256k1_gej_add_ge(r, r, &correction);
+            secp256k1_ge a_lam;
+            secp256k1_ge_mul_lambda(&a_lam, &a_1);
+
+            secp256k1_gej_add_ge(r, r, &a_lam);
+            secp256k1_gej_add_ge(&tmp, r, &a_lam);
+            secp256k1_gej_cmov(r, &tmp, skew_lam == 2);
         }
     }
 }
