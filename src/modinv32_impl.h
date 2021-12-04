@@ -185,51 +185,52 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t zeta, uint32_t f0, uint32_
      * permits left shifting (which is UB for negative numbers). The range
      * being inside [-2^31,2^31) means that casting to signed works correctly.
      */
-    uint32_t u = 1, v = 0, q = 0, r = 1;
-    uint32_t c1, c2, f = f0, g = g0, x, y, z;
+    int32_t u = (int32_t)1 << 30, v = 0, q = 0, r = (int32_t)1 << 30, y, z;
+    int32_t delta = ~zeta;
+    uint32_t c1, c2, f = f0, g = g0, x;
     int i;
 
     for (i = 0; i < 30; ++i) {
         VERIFY_CHECK((f & 1) == 1); /* f must always be odd */
-        VERIFY_CHECK((u * f0 + v * g0) == f << i);
-        VERIFY_CHECK((q * f0 + r * g0) == g << i);
-        /* Compute conditional masks for (zeta < 0) and for (g & 1). */
-        c1 = zeta >> 31;
+        VERIFY_CHECK(((u >> (30 - i)) * f0 + (v >> (30 - i)) * g0) == f << i);
+        VERIFY_CHECK(((q >> (30 - i)) * f0 + (r >> (30 - i)) * g0) == g << i);
+        /* Compute conditional masks for (delta < 0) and for (g & 1). */
+        c1 = delta >> 31;
         c2 = -(g & 1);
-        /* Compute x,y,z, conditionally negated versions of f,u,v. */
-        x = (f ^ c1) - c1;
-        y = (u ^ c1) - c1;
-        z = (v ^ c1) - c1;
-        /* Conditionally add x,y,z to g,q,r. */
-        g += x & c2;
-        q += y & c2;
-        r += z & c2;
-        /* In what follows, c1 is a condition mask for (zeta < 0) and (g & 1). */
-        c1 &= c2;
-        /* Conditionally change zeta into -zeta-2 or zeta-1. */
-        zeta = (zeta ^ c1) - 1;
+        /* Compute x,y,z, conditionally complemented versions of f,u,v. */
+        x = f ^ c1;
+        y = u ^ c1;
+        z = v ^ c1;
+        /* Conditionally subtract x,y,z from g,q,r. */
+        g -= x & c2;
+        q -= y & c2;
+        r -= z & c2;
+        /* In what follows, c2 is a condition mask for (delta >= 0) and (g & 1). */
+        c2 &= ~c1;
+        /* Conditionally change delta into -delta or delta+1. */
+        delta = (delta ^ c2) + 1;
         /* Conditionally add g,q,r to f,u,v. */
-        f += g & c1;
-        u += q & c1;
-        v += r & c1;
+        f += g & c2;
+        u += q & c2;
+        v += r & c2;
         /* Shifts */
         g >>= 1;
-        u <<= 1;
-        v <<= 1;
-        /* Bounds on zeta that follow from the bounds on iteration count (max 20*30 divsteps). */
-        VERIFY_CHECK(zeta >= -601 && zeta <= 601);
+        q >>= 1;
+        r >>= 1;
+        /* Bounds on delta that follow from the bounds on iteration count (max 20*30 divsteps). */
+        VERIFY_CHECK(delta >= -600 && delta <= 600);
     }
     /* Return data in t and return value. */
-    t->u = (int32_t)u;
-    t->v = (int32_t)v;
-    t->q = (int32_t)q;
-    t->r = (int32_t)r;
+    t->u = u;
+    t->v = v;
+    t->q = q;
+    t->r = r;
     /* The determinant of t must be a power of two. This guarantees that multiplication with t
      * does not change the gcd of f and g, apart from adding a power-of-2 factor to it (which
      * will be divided out again). As each divstep's individual matrix has determinant 2, the
      * aggregate of 30 of them will have determinant 2^30. */
     VERIFY_CHECK((int64_t)t->u * t->r - (int64_t)t->v * t->q == ((int64_t)1) << 30);
-    return zeta;
+    return ~delta;
 }
 
 /* Compute the transition matrix and eta for 30 divsteps (variable time).

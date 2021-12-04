@@ -172,45 +172,46 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
      * permits left shifting (which is UB for negative numbers). The range
      * being inside [-2^63,2^63) means that casting to signed works correctly.
      */
-    uint64_t u = 8, v = 0, q = 0, r = 8;
-    uint64_t c1, c2, f = f0, g = g0, x, y, z;
+    int64_t u = (int64_t)1 << 62, v = 0, q = 0, r = (int64_t)1 << 62, y, z;
+    int64_t delta = ~zeta;
+    uint64_t c1, c2, f = f0, g = g0, x;
     int i;
 
     for (i = 3; i < 62; ++i) {
         VERIFY_CHECK((f & 1) == 1); /* f must always be odd */
-        VERIFY_CHECK((u * f0 + v * g0) == f << i);
-        VERIFY_CHECK((q * f0 + r * g0) == g << i);
-        /* Compute conditional masks for (zeta < 0) and for (g & 1). */
-        c1 = zeta >> 63;
+        VERIFY_CHECK(((u >> (62 - i)) * f0 + (v >> (62 - i)) * g0) == f << i);
+        VERIFY_CHECK(((q >> (62 - i)) * f0 + (r >> (62 - i)) * g0) == g << i);
+        /* Compute conditional masks for (delta < 0) and for (g & 1). */
+        c1 = delta >> 63;
         c2 = -(g & 1);
-        /* Compute x,y,z, conditionally negated versions of f,u,v. */
-        x = (f ^ c1) - c1;
-        y = (u ^ c1) - c1;
-        z = (v ^ c1) - c1;
-        /* Conditionally add x,y,z to g,q,r. */
-        g += x & c2;
-        q += y & c2;
-        r += z & c2;
-        /* In what follows, c1 is a condition mask for (zeta < 0) and (g & 1). */
-        c1 &= c2;
-        /* Conditionally change zeta into -zeta-2 or zeta-1. */
-        zeta = (zeta ^ c1) - 1;
+        /* Compute x,y,z, conditionally complemented versions of f,u,v. */
+        x = f ^ c1;
+        y = u ^ c1;
+        z = v ^ c1;
+        /* Conditionally subtract x,y,z from g,q,r. */
+        g -= x & c2;
+        q -= y & c2;
+        r -= z & c2;
+        /* In what follows, c2 is a condition mask for (delta >= 0) and (g & 1). */
+        c2 &= ~c1;
+        /* Conditionally change delta into -delta or delta+1. */
+        delta = (delta ^ c2) + 1;
         /* Conditionally add g,q,r to f,u,v. */
-        f += g & c1;
-        u += q & c1;
-        v += r & c1;
+        f += g & c2;
+        u += q & c2;
+        v += r & c2;
         /* Shifts */
         g >>= 1;
-        u <<= 1;
-        v <<= 1;
-        /* Bounds on zeta that follow from the bounds on iteration count (max 10*59 divsteps). */
-        VERIFY_CHECK(zeta >= -591 && zeta <= 591);
+        q >>= 1;
+        r >>= 1;
+        /* Bounds on delta that follow from the bounds on iteration count (max 10*59 divsteps). */
+        VERIFY_CHECK(delta >= -590 && delta <= 590);
     }
     /* Return data in t and return value. */
-    t->u = (int64_t)u;
-    t->v = (int64_t)v;
-    t->q = (int64_t)q;
-    t->r = (int64_t)r;
+    t->u = u;
+    t->v = v;
+    t->q = q;
+    t->r = r;
 #ifdef VERIFY
     /* The determinant of t must be a power of two. This guarantees that multiplication with t
      * does not change the gcd of f and g, apart from adding a power-of-2 factor to it (which
@@ -220,7 +221,7 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
      * 2^65. */
     VERIFY_CHECK(secp256k1_modinv64_det_check_pow2(t, 65));
 #endif
-    return zeta;
+    return ~delta;
 }
 
 /* Compute the transition matrix and eta for 62 divsteps (variable time, eta=-delta).
