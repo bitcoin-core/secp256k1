@@ -159,6 +159,7 @@ static int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k
 
 #ifndef VERIFY
 static void secp256k1_fe_verify(const secp256k1_fe *a) { (void)a; }
+static void secp256k1_fe_verify_magnitude(const secp256k1_fe *a, int m) { (void)a; (void)m; }
 #else
 static void secp256k1_fe_impl_verify(const secp256k1_fe *a);
 static void secp256k1_fe_verify(const secp256k1_fe *a) {
@@ -170,6 +171,12 @@ static void secp256k1_fe_verify(const secp256k1_fe *a) {
     if (a->normalized) VERIFY_CHECK(a->magnitude <= 1);
     /* Invoke implementation-specific checks. */
     secp256k1_fe_impl_verify(a);
+}
+
+static void secp256k1_fe_verify_magnitude(const secp256k1_fe *a, int m) {
+    VERIFY_CHECK(m >= 0);
+    VERIFY_CHECK(m <= 32);
+    VERIFY_CHECK(a->magnitude <= m);
 }
 
 static void secp256k1_fe_impl_normalize(secp256k1_fe *r);
