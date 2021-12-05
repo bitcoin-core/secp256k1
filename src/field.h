@@ -139,4 +139,11 @@ static void secp256k1_fe_half(secp256k1_fe *r);
  *  magnitude set to 'm' and is normalized if (and only if) 'm' is zero. */
 static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m);
 
+#ifdef VERIFY
+
+/** Assert a context-specific limit m on the magnitude of a. m cannot be outside the intrinsic range of magnitudes supported by this field implementation. */
+static void secp256k1_fe_verify_magnitude(const secp256k1_fe *a, int m);
+
+#endif
+
 #endif /* SECP256K1_FIELD_H */

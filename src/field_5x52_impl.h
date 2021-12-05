@@ -56,6 +56,13 @@ static void secp256k1_fe_verify(const secp256k1_fe *a) {
     }
     VERIFY_CHECK(r == 1);
 }
+
+static void secp256k1_fe_verify_magnitude(const secp256k1_fe *a, int m) {
+    VERIFY_CHECK(m >= 0);
+    VERIFY_CHECK(m <= 2048);
+    VERIFY_CHECK(a->magnitude <= m);
+}
+
 #endif
 
 static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m) {
