@@ -89,9 +89,9 @@ static void uncounting_illegal_callback_fn(const char* str, void* data) {
     (*p)--;
 }
 
-static void random_field_element_magnitude(secp256k1_fe *fe) {
+static void random_field_element_magnitude(secp256k1_fe *fe, int m) {
     secp256k1_fe zero;
-    int n = secp256k1_testrand_int(9);
+    int n = secp256k1_testrand_int(m + 1);
     secp256k1_fe_normalize(fe);
     if (n == 0) {
         return;
@@ -119,6 +119,30 @@ static void random_fe_non_zero_test(secp256k1_fe *fe) {
     do {
         random_fe_test(fe);
     } while(secp256k1_fe_is_zero(fe));
+}
+
+static void random_fe_magnitude(secp256k1_fe *fe) {
+    random_field_element_magnitude(fe, 8);
+}
+
+static void random_ge_x_magnitude(secp256k1_ge *ge) {
+    random_field_element_magnitude(&ge->x, SECP256K1_GE_X_MAGNITUDE_MAX);
+}
+
+static void random_ge_y_magnitude(secp256k1_ge *ge) {
+    random_field_element_magnitude(&ge->y, SECP256K1_GE_Y_MAGNITUDE_MAX);
+}
+
+static void random_gej_x_magnitude(secp256k1_gej *gej) {
+    random_field_element_magnitude(&gej->x, SECP256K1_GEJ_X_MAGNITUDE_MAX);
+}
+
+static void random_gej_y_magnitude(secp256k1_gej *gej) {
+    random_field_element_magnitude(&gej->y, SECP256K1_GEJ_Y_MAGNITUDE_MAX);
+}
+
+static void random_gej_z_magnitude(secp256k1_gej *gej) {
+    random_field_element_magnitude(&gej->z, SECP256K1_GEJ_Z_MAGNITUDE_MAX);
 }
 
 static void random_group_element_test(secp256k1_ge *ge) {
@@ -3279,13 +3303,13 @@ static void run_fe_mul(void) {
     for (i = 0; i < 100 * COUNT; ++i) {
         secp256k1_fe a, b, c, d;
         random_fe(&a);
-        random_field_element_magnitude(&a);
+        random_fe_magnitude(&a);
         random_fe(&b);
-        random_field_element_magnitude(&b);
+        random_fe_magnitude(&b);
         random_fe_test(&c);
-        random_field_element_magnitude(&c);
+        random_fe_magnitude(&c);
         random_fe_test(&d);
-        random_field_element_magnitude(&d);
+        random_fe_magnitude(&d);
         test_fe_mul(&a, &a, 1);
         test_fe_mul(&c, &c, 1);
         test_fe_mul(&a, &b, 0);
@@ -3759,17 +3783,17 @@ static void test_ge(void) {
         secp256k1_gej_set_ge(&gej[3 + 4 * i], &ge[3 + 4 * i]);
         random_group_element_jacobian_test(&gej[4 + 4 * i], &ge[4 + 4 * i]);
         for (j = 0; j < 4; j++) {
-            random_field_element_magnitude(&ge[1 + j + 4 * i].x);
-            random_field_element_magnitude(&ge[1 + j + 4 * i].y);
-            random_field_element_magnitude(&gej[1 + j + 4 * i].x);
-            random_field_element_magnitude(&gej[1 + j + 4 * i].y);
-            random_field_element_magnitude(&gej[1 + j + 4 * i].z);
+            random_ge_x_magnitude(&ge[1 + j + 4 * i]);
+            random_ge_y_magnitude(&ge[1 + j + 4 * i]);
+            random_gej_x_magnitude(&gej[1 + j + 4 * i]);
+            random_gej_y_magnitude(&gej[1 + j + 4 * i]);
+            random_gej_z_magnitude(&gej[1 + j + 4 * i]);
         }
     }
 
     /* Generate random zf, and zfi2 = 1/zf^2, zfi3 = 1/zf^3 */
     random_fe_non_zero_test(&zf);
-    random_field_element_magnitude(&zf);
+    random_fe_magnitude(&zf);
     secp256k1_fe_inv_var(&zfi3, &zf);
     secp256k1_fe_sqr(&zfi2, &zfi3);
     secp256k1_fe_mul(&zfi3, &zfi3, &zfi2);
@@ -3805,8 +3829,8 @@ static void test_ge(void) {
                 secp256k1_ge ge2_zfi = ge[i2]; /* the second term with x and y rescaled for z = 1/zf */
                 secp256k1_fe_mul(&ge2_zfi.x, &ge2_zfi.x, &zfi2);
                 secp256k1_fe_mul(&ge2_zfi.y, &ge2_zfi.y, &zfi3);
-                random_field_element_magnitude(&ge2_zfi.x);
-                random_field_element_magnitude(&ge2_zfi.y);
+                random_ge_x_magnitude(&ge2_zfi);
+                random_ge_y_magnitude(&ge2_zfi);
                 secp256k1_gej_add_zinv_var(&resj, &gej[i1], &ge2_zfi, &zf);
                 ge_equals_gej(&ref, &resj);
             }
