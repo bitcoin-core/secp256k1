@@ -77,6 +77,8 @@ static void secp256k1_ge_verify(const secp256k1_ge *a) {
 #ifdef VERIFY
     secp256k1_fe_verify(&a->x);
     secp256k1_fe_verify(&a->y);
+    secp256k1_fe_verify_magnitude(&a->x, SECP256K1_GE_X_MAGNITUDE_MAX);
+    secp256k1_fe_verify_magnitude(&a->y, SECP256K1_GE_Y_MAGNITUDE_MAX);
     VERIFY_CHECK(a->infinity == 0 || a->infinity == 1);
 #endif
     (void)a;
@@ -87,6 +89,9 @@ static void secp256k1_gej_verify(const secp256k1_gej *a) {
     secp256k1_fe_verify(&a->x);
     secp256k1_fe_verify(&a->y);
     secp256k1_fe_verify(&a->z);
+    secp256k1_fe_verify_magnitude(&a->x, SECP256K1_GEJ_X_MAGNITUDE_MAX);
+    secp256k1_fe_verify_magnitude(&a->y, SECP256K1_GEJ_Y_MAGNITUDE_MAX);
+    secp256k1_fe_verify_magnitude(&a->z, SECP256K1_GEJ_Z_MAGNITUDE_MAX);
     VERIFY_CHECK(a->infinity == 0 || a->infinity == 1);
 #endif
     (void)a;
@@ -358,7 +363,6 @@ static int secp256k1_gej_eq_x_var(const secp256k1_fe *x, const secp256k1_gej *a)
     secp256k1_fe_verify(x);
     secp256k1_gej_verify(a);
 #ifdef VERIFY
-    VERIFY_CHECK(a->x.magnitude <= 31);
     VERIFY_CHECK(!a->infinity);
 #endif
 
