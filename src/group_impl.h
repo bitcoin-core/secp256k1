@@ -67,15 +67,15 @@ static const secp256k1_fe secp256k1_fe_const_b = SECP256K1_FE_CONST(0, 0, 0, 0, 
 #ifdef VERIFY
 static void secp256k1_ge_verify(const secp256k1_ge *a) {
     VERIFY_CHECK(a->infinity == 0 || a->infinity == 1);
-    secp256k1_fe_verify_magnitude(&a->x, 8);
-    secp256k1_fe_verify_magnitude(&a->y, 8);
+    secp256k1_fe_verify_magnitude(&a->x, 6);
+    secp256k1_fe_verify_magnitude(&a->y, 4);
 }
 
 static void secp256k1_gej_verify(const secp256k1_gej *a) {
     VERIFY_CHECK(a->infinity == 0 || a->infinity == 1);
-    secp256k1_fe_verify_magnitude(&a->x, 8);
-    secp256k1_fe_verify_magnitude(&a->y, 8);
-    secp256k1_fe_verify_magnitude(&a->z, 8);
+    secp256k1_fe_verify_magnitude(&a->x, 6);
+    secp256k1_fe_verify_magnitude(&a->y, 4);
+    secp256k1_fe_verify_magnitude(&a->z, 2);
 }
 #endif
 
