@@ -292,7 +292,7 @@ int main(int argc, char **argv) {
            || have_flag(argc, argv, "--help")
            || have_flag(argc, argv, "help")) {
             help(argv);
-            return 1;
+            return 0;
         } else if(have_flag(argc, argv, "pippenger_wnaf")) {
             printf("Using pippenger_wnaf:\n");
             data.ecmult_multi = secp256k1_ecmult_pippenger_batch_single;
