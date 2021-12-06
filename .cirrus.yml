@@ -290,7 +290,7 @@ task:
       env:
         # The `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (https://www.valgrind.org/docs/manual/manual-core.html)
         WRAPPER_CMD: "valgrind --error-exitcode=42"
-        SECP256K1_TEST_ITERS: 16
+        SECP256K1_TEST_ITERS: 2
     - name: "UBSan, ASan, LSan"
       env:
         CFLAGS: "-fsanitize=undefined,address -g"
