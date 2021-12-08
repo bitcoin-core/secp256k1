@@ -153,27 +153,20 @@ static void secp256k1_modinv64_normalize_62(secp256k1_modinv64_signed62 *r, int6
 #endif
 }
 
-/* Compute the transition matrix and eta for 59 divsteps (where zeta=-(delta+1/2)).
+/* Compute the transition matrix and theta for 59 divsteps (where theta=delta-1/2)
  * Note that the transformation matrix is scaled by 2^62 and not 2^59.
  *
- * Input:  zeta: initial zeta
- *         f0:   bottom limb of initial f
- *         g0:   bottom limb of initial g
+ * Input:  theta: initial theta
+ *         f0:    bottom limb of initial f
+ *         g0:    bottom limb of initial g
  * Output: t: transition matrix
- * Return: final zeta
+ * Return: final theta
  *
  * Implements the divsteps_n_matrix function from the explanation.
  */
-static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_t g0, secp256k1_modinv64_trans2x2 *t) {
-    /* u,v,q,r are the elements of the transformation matrix being built up,
-     * starting with the identity matrix times 8 (because the caller expects
-     * a result scaled by 2^62). Semantically they are signed integers
-     * in range [-2^62,2^62], but here represented as unsigned mod 2^64. This
-     * permits left shifting (which is UB for negative numbers). The range
-     * being inside [-2^63,2^63) means that casting to signed works correctly.
-     */
+static int64_t secp256k1_modinv64_divsteps_59(int64_t theta, uint64_t f0, uint64_t g0, secp256k1_modinv64_trans2x2 *t) {
+    /* The transformation matrix being built up, scaled by 2^62. */
     int64_t u = (int64_t)1 << 62, v = 0, q = 0, r = (int64_t)1 << 62, y, z;
-    int64_t delta = ~zeta;
     uint64_t c1, c2, f = f0, g = g0, x;
     int i;
 
@@ -181,8 +174,8 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
         VERIFY_CHECK((f & 1) == 1); /* f must always be odd */
         VERIFY_CHECK(((u >> (62 - i)) * f0 + (v >> (62 - i)) * g0) == f << i);
         VERIFY_CHECK(((q >> (62 - i)) * f0 + (r >> (62 - i)) * g0) == g << i);
-        /* Compute conditional masks for (delta < 0) and for (g & 1). */
-        c1 = delta >> 63;
+        /* Compute conditional masks for (theta < 0) and for (g & 1). */
+        c1 = theta >> 63;
         c2 = -(g & 1);
         /* Compute x,y,z, conditionally complemented versions of f,u,v. */
         x = f ^ c1;
@@ -192,10 +185,10 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
         g -= x & c2;
         q -= y & c2;
         r -= z & c2;
-        /* In what follows, c2 is a condition mask for (delta >= 0) and (g & 1). */
+        /* In what follows, c2 is a condition mask for (theta >= 0) and (g & 1). */
         c2 &= ~c1;
-        /* Conditionally change delta into -delta or delta+1. */
-        delta = (delta ^ c2) + 1;
+        /* Conditionally change theta into -theta or theta+1. */
+        theta = (theta ^ c2) + 1;
         /* Conditionally add g,q,r to f,u,v. */
         f += g & c2;
         u += q & c2;
@@ -204,8 +197,8 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
         g >>= 1;
         q >>= 1;
         r >>= 1;
-        /* Bounds on delta that follow from the bounds on iteration count (max 10*59 divsteps). */
-        VERIFY_CHECK(delta >= -590 && delta <= 590);
+        /* Bounds on theta that follow from the bounds on iteration count (max 10*59 divsteps). */
+        VERIFY_CHECK(theta >= -590 && theta <= 590);
     }
     /* Return data in t and return value. */
     t->u = u;
@@ -221,7 +214,7 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
      * 2^65. */
     VERIFY_CHECK(secp256k1_modinv64_det_check_pow2(t, 65));
 #endif
-    return ~delta;
+    return theta;
 }
 
 /* Compute the transition matrix and eta for 62 divsteps (variable time, eta=-delta).
@@ -235,7 +228,12 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
  * Implements the divsteps_n_matrix_var function from the explanation.
  */
 static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint64_t g0, secp256k1_modinv64_trans2x2 *t) {
-    /* Transformation matrix; see comments in secp256k1_modinv64_divsteps_62. */
+    /* u,v,q,r are the elements of the transformation matrix being built up,
+     * starting with the identity matrix. Semantically they are signed integers
+     * in range [-2^62,2^62], but here represented as unsigned mod 2^64. This
+     * permits left shifting (which is UB for negative numbers). The range
+     * being inside [-2^63,2^63) means that casting to signed works correctly.
+     */
     uint64_t u = 1, v = 0, q = 0, r = 1;
     uint64_t f = f0, g = g0, m;
     uint32_t w;
@@ -496,19 +494,19 @@ static void secp256k1_modinv64_update_fg_62_var(int len, secp256k1_modinv64_sign
 
 /* Compute the inverse of x modulo modinfo->modulus, and replace x with it (constant time in x). */
 static void secp256k1_modinv64(secp256k1_modinv64_signed62 *x, const secp256k1_modinv64_modinfo *modinfo) {
-    /* Start with d=0, e=1, f=modulus, g=x, zeta=-1. */
+    /* Start with d=0, e=1, f=modulus, g=x, theta=0. */
     secp256k1_modinv64_signed62 d = {{0, 0, 0, 0, 0}};
     secp256k1_modinv64_signed62 e = {{1, 0, 0, 0, 0}};
     secp256k1_modinv64_signed62 f = modinfo->modulus;
     secp256k1_modinv64_signed62 g = *x;
     int i;
-    int64_t zeta = -1; /* zeta = -(delta+1/2); delta starts at 1/2. */
+    int64_t theta = 0; /* theta = delta-1/2; delta starts at 1/2. */
 
     /* Do 10 iterations of 59 divsteps each = 590 divsteps. This suffices for 256-bit inputs. */
     for (i = 0; i < 10; ++i) {
         /* Compute transition matrix and new zeta after 59 divsteps. */
         secp256k1_modinv64_trans2x2 t;
-        zeta = secp256k1_modinv64_divsteps_59(zeta, f.v[0], g.v[0], &t);
+        theta = secp256k1_modinv64_divsteps_59(theta, f.v[0], g.v[0], &t);
         /* Update d,e using that transition matrix. */
         secp256k1_modinv64_update_de_62(&d, &e, &t, modinfo);
         /* Update f,g using that transition matrix. */
