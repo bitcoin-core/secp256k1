@@ -185,9 +185,13 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t theta, uint32_t f0, uint32
     int i;
 
     for (i = 0; i < 30; ++i) {
-        VERIFY_CHECK((f & 1) == 1); /* f must always be odd */
-        VERIFY_CHECK(((u >> (30 - i)) * f0 + (v >> (30 - i)) * g0) == f << i);
-        VERIFY_CHECK(((q >> (30 - i)) * f0 + (r >> (30 - i)) * g0) == g << i);
+        /* f must always be odd */
+        VERIFY_CHECK((f & 1) == 1);
+        /* Applying the matrix so far to the initial f,g gives current f,g. */
+        VERIFY_CHECK((u >> (30 - i)) * f0 + (v >> (30 - i)) * g0 == f << i);
+        VERIFY_CHECK((q >> (30 - i)) * f0 + (r >> (30 - i)) * g0 == g << i);
+        /* At the beginning of every loop, the matrix variables are even. */
+        VERIFY_CHECK(!((u | v | q | r) & 1));
         /* Compute conditional masks for (theta < 0) and for (g & 1). */
         c1 = theta >> 31;
         c2 = -(g & 1);
@@ -219,6 +223,9 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t theta, uint32_t f0, uint32
     t->v = v;
     t->q = q;
     t->r = r;
+    /* Applying the final matrix to the initial f,g gives final f,g. */
+    VERIFY_CHECK(u * f0 + v * g0 == f << 30);
+    VERIFY_CHECK(q * f0 + r * g0 == g << 30);
     /* The determinant of t must be a power of two. This guarantees that multiplication with t
      * does not change the gcd of f and g, apart from adding a power-of-2 factor to it (which
      * will be divided out again). As each divstep's individual matrix has determinant 2, the
