@@ -154,7 +154,9 @@ static void secp256k1_modinv64_normalize_62(secp256k1_modinv64_signed62 *r, int6
 }
 
 /* Compute the transition matrix and theta for 59 divsteps (where theta=delta-1/2)
- * Note that the transformation matrix is scaled by 2^62 and not 2^59.
+ * Although only 59 divsteps are performed, the resulting transformation matrix
+ * is scaled by 2^62 to allow reuse of _update_de_62 and _update_fg_62 between
+ * _modinv64 and _modinv64_var.
  *
  * Input:  theta: initial theta
  *         f0:    bottom limb of initial f
@@ -173,11 +175,11 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t theta, uint64_t f0, uint64
     for (i = 3; i < 62; ++i) {
         /* f must always be odd */
         VERIFY_CHECK((f & 1) == 1);
+        /* Minimum trailing zeros count for matrix elements decreases in each iteration */
+        VERIFY_CHECK(!((u | v | q | r) & (0xFFFFFFFFFFFFFFFFULL >> (i - 1))));
         /* Applying the matrix so far to the initial f,g gives current f,g. */
         VERIFY_CHECK((u >> (62 - i)) * f0 + (v >> (62 - i)) * g0 == f << i);
         VERIFY_CHECK((q >> (62 - i)) * f0 + (r >> (62 - i)) * g0 == g << i);
-        /* At the beginning of every loop, the matrix variables are even. */
-        VERIFY_CHECK(!((u | v | q | r) & 1));
         /* Compute conditional masks for (theta < 0) and for (g & 1). */
         c1 = theta >> 63;
         c2 = -(g & 1);
@@ -215,10 +217,9 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t theta, uint64_t f0, uint64
     VERIFY_CHECK(q * f0 + r * g0 == g << 62);
     /* The determinant of t must be a power of two. This guarantees that multiplication with t
      * does not change the gcd of f and g, apart from adding a power-of-2 factor to it (which
-     * will be divided out again). As each divstep's individual matrix has determinant 2, the
-     * aggregate of 59 of them will have determinant 2^59. Multiplying with the initial
-     * 8*identity (which has determinant 2^6) means the overall outputs has determinant
-     * 2^65. */
+     * will be divided out again). As each divstep's individual matrix has determinant 2^-1,
+     * the aggregate of 59 of them will have determinant 2^-59. Multiplying with the initial
+     * 2^62*identity (which has determinant 2^124) means the result has determinant 2^65. */
     VERIFY_CHECK(secp256k1_modinv64_det_check_pow2(t, 65));
 #endif
     return theta;
