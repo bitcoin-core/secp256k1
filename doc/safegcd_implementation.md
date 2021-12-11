@@ -697,7 +697,7 @@ def divsteps_n_matrix(theta, f, g):
         # Conditionally subtract x, y, z from g, q, r.
         g, q, r = g - (x & c2), q - (y & c2), r - (z & c2)
         c3 = ~c1 & c2
-        # Conditionally completement theta, and then increment it by 1.
+        # Conditionally complement theta, and then increment it by 1.
         theta = (theta ^ c3) + 1
         # Conditionally add g, q, r to f, u, v.
         f, u, v = f + (g & c3), u + (q & c3), v + (r & c3)

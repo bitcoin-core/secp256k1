@@ -187,11 +187,11 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t theta, uint32_t f0, uint32
     for (i = 0; i < 30; ++i) {
         /* f must always be odd */
         VERIFY_CHECK((f & 1) == 1);
+        /* Minimum trailing zeros count for matrix elements decreases in each iteration */
+        VERIFY_CHECK(!((u | v | q | r) & (0xFFFFFFFFULL >> (i + 2))));
         /* Applying the matrix so far to the initial f,g gives current f,g. */
         VERIFY_CHECK((u >> (30 - i)) * f0 + (v >> (30 - i)) * g0 == f << i);
         VERIFY_CHECK((q >> (30 - i)) * f0 + (r >> (30 - i)) * g0 == g << i);
-        /* At the beginning of every loop, the matrix variables are even. */
-        VERIFY_CHECK(!((u | v | q | r) & 1));
         /* Compute conditional masks for (theta < 0) and for (g & 1). */
         c1 = theta >> 31;
         c2 = -(g & 1);
@@ -228,8 +228,9 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t theta, uint32_t f0, uint32
     VERIFY_CHECK(q * f0 + r * g0 == g << 30);
     /* The determinant of t must be a power of two. This guarantees that multiplication with t
      * does not change the gcd of f and g, apart from adding a power-of-2 factor to it (which
-     * will be divided out again). As each divstep's individual matrix has determinant 2, the
-     * aggregate of 30 of them will have determinant 2^30. */
+     * will be divided out again). As each divstep's individual matrix has determinant 2^-1,
+     * the aggregate of 30 of them will have determinant 2^-30. Multiplying with the initial
+     * 2^30*identity (which has determinant 2^60) means the result has determinant 2^30. */
     VERIFY_CHECK((int64_t)t->u * t->r - (int64_t)t->v * t->q == ((int64_t)1) << 30);
     return theta;
 }
