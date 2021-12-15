@@ -130,16 +130,12 @@ TESTS += exhaustive_tests
 endif
 
 ### Precomputed tables
-EXTRA_PROGRAMS = gen_ecmult_static_pre_g gen_ecmult_gen_static_prec_table
+EXTRA_PROGRAMS = precompute
 CLEANFILES = $(EXTRA_PROGRAMS)
 
-gen_ecmult_static_pre_g_SOURCES = src/gen_ecmult_static_pre_g.c
-gen_ecmult_static_pre_g_CPPFLAGS = $(SECP_INCLUDES)
-gen_ecmult_static_pre_g_LDADD = $(SECP_LIBS) $(COMMON_LIB)
-
-gen_ecmult_gen_static_prec_table_SOURCES = src/gen_ecmult_gen_static_prec_table.c
-gen_ecmult_gen_static_prec_table_CPPFLAGS = $(SECP_INCLUDES)
-gen_ecmult_gen_static_prec_table_LDADD = $(SECP_LIBS) $(COMMON_LIB)
+precompute_SOURCES = src/precompute.c
+precompute_CPPFLAGS = $(SECP_INCLUDES)
+precompute_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 
 # See Automake manual, Section "Errors with distclean".
 # We don't list any dependencies for the prebuilt files here because
@@ -148,11 +144,12 @@ gen_ecmult_gen_static_prec_table_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 # This means that rebuilds of the prebuilt files always need to be
 # forced by deleting them, e.g., by invoking `make clean-precomp`.
 src/ecmult_static_pre_g.h:
-	$(MAKE) $(AM_MAKEFLAGS) gen_ecmult_static_pre_g$(EXEEXT)
-	./gen_ecmult_static_pre_g$(EXEEXT)
+	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
+	./precompute$(EXEEXT) ecmult
+
 src/ecmult_gen_static_prec_table.h:
-	$(MAKE) $(AM_MAKEFLAGS) gen_ecmult_gen_static_prec_table$(EXEEXT)
-	./gen_ecmult_gen_static_prec_table$(EXEEXT)
+	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
+	./precompute$(EXEEXT) ecmult_gen
 
 PRECOMP = src/ecmult_gen_static_prec_table.h src/ecmult_static_pre_g.h
 noinst_HEADERS += $(PRECOMP)
