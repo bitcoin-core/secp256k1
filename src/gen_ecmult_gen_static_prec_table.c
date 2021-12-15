@@ -14,13 +14,10 @@
 #include "ecmult_gen.h"
 #include "ecmult_gen_prec_impl.h"
 
-int main(int argc, char **argv) {
+static int precompute_ecmult_gen(void) {
     const char outfile[] = "src/ecmult_gen_static_prec_table.h";
     FILE* fp;
     int bits;
-
-    (void)argc;
-    (void)argv;
 
     fp = fopen(outfile, "w");
     if (fp == NULL) {
@@ -80,4 +77,8 @@ int main(int argc, char **argv) {
     fclose(fp);
 
     return 0;
+}
+
+int main(void) {
+    return precompute_ecmult_gen();
 }

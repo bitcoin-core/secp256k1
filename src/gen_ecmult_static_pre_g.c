@@ -20,10 +20,10 @@
 #include "group_impl.h"
 #include "ecmult.h"
 
-void print_table(FILE *fp, const char *name, int window_g, const secp256k1_gej *gen, int with_conditionals) {
-    static secp256k1_gej gj;
-    static secp256k1_ge ge, dgen;
-    static secp256k1_ge_storage ges;
+static void precompute_ecmult_print_table(FILE *fp, const char *name, int window_g, const secp256k1_gej *gen, int with_conditionals) {
+    secp256k1_gej gj;
+    secp256k1_ge ge, dgen;
+    secp256k1_ge_storage ges;
     int j;
     int i;
 
@@ -61,19 +61,19 @@ void print_table(FILE *fp, const char *name, int window_g, const secp256k1_gej *
     fprintf(fp, "};\n");
 }
 
-void print_two_tables(FILE *fp, int window_g, const secp256k1_ge *g, int with_conditionals) {
+static void precompute_ecmult_print_two_tables(FILE *fp, int window_g, const secp256k1_ge *g, int with_conditionals) {
     secp256k1_gej gj;
     int i;
 
     secp256k1_gej_set_ge(&gj, g);
-    print_table(fp, "secp256k1_pre_g", window_g, &gj, with_conditionals);
+    precompute_ecmult_print_table(fp, "secp256k1_pre_g", window_g, &gj, with_conditionals);
     for (i = 0; i < 128; ++i) {
         secp256k1_gej_double_var(&gj, &gj, NULL);
     }
-    print_table(fp, "secp256k1_pre_g_128", window_g, &gj, with_conditionals);
+    precompute_ecmult_print_table(fp, "secp256k1_pre_g_128", window_g, &gj, with_conditionals);
 }
 
-int main(void) {
+static int precompute_ecmult(void) {
     const secp256k1_ge g = SECP256K1_G;
     const secp256k1_ge g_13 = SECP256K1_G_ORDER_13;
     const secp256k1_ge g_199 = SECP256K1_G_ORDER_199;
@@ -107,12 +107,12 @@ int main(void) {
     fprintf(fp, "#if EXHAUSTIVE_TEST_ORDER == 13\n");
     fprintf(fp, "#define WINDOW_G %d\n", window_g_13);
 
-    print_two_tables(fp, window_g_13, &g_13, 0);
+    precompute_ecmult_print_two_tables(fp, window_g_13, &g_13, 0);
 
     fprintf(fp, "#elif EXHAUSTIVE_TEST_ORDER == 199\n");
     fprintf(fp, "#define WINDOW_G %d\n", window_g_199);
 
-    print_two_tables(fp, window_g_199, &g_199, 0);
+    precompute_ecmult_print_two_tables(fp, window_g_199, &g_199, 0);
 
     fprintf(fp, "#else\n");
     fprintf(fp, "   #error No known generator for the specified exhaustive test group order.\n");
@@ -120,12 +120,15 @@ int main(void) {
     fprintf(fp, "#else /* !defined(EXHAUSTIVE_TEST_ORDER) */\n");
     fprintf(fp, "#define WINDOW_G ECMULT_WINDOW_SIZE\n");
 
-    print_two_tables(fp, ECMULT_WINDOW_SIZE, &g, 1);
+    precompute_ecmult_print_two_tables(fp, ECMULT_WINDOW_SIZE, &g, 1);
 
     fprintf(fp, "#endif\n");
     fprintf(fp, "#undef S\n");
     fprintf(fp, "#endif\n");
     fclose(fp);
-
     return 0;
+}
+
+int main(void) {
+    return precompute_ecmult();
 }
