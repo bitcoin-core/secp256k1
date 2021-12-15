@@ -7,7 +7,6 @@ env:
   MAKEFLAGS: -j2
   BUILD: check
   ### secp256k1 config
-  STATICPRECOMPUTATION: yes
   ECMULTGENPRECISION: auto
   ASM: no
   WIDEMUL: auto
@@ -66,7 +65,6 @@ task:
     - env: {WIDEMUL: int128,                 ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes}
     - env: {WIDEMUL: int128,  ASM: x86_64}
     - env: {                  RECOVERY: yes,            EXPERIMENTAL: yes, SCHNORRSIG: yes}
-    - env: {                  STATICPRECOMPUTATION: no}
     - env: {BUILD: distcheck, WITH_VALGRIND: no, CTIMETEST: no, BENCH: no}
     - env: {CPPFLAGS: -DDETERMINISTIC}
     - env: {CFLAGS: -O0, CTIMETEST: no}
@@ -302,10 +300,8 @@ task:
   matrix:
     - env:
         ASM: auto
-        STATICPRECOMPUTATION: yes
     - env:
         ASM: no
-        STATICPRECOMPUTATION: no
         ECMULTGENPRECISION: 2
   matrix:
     - env:
