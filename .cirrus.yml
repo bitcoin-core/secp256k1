@@ -7,6 +7,7 @@ env:
   MAKEFLAGS: -j2
   BUILD: check
   ### secp256k1 config
+  ECMULTWINDOW: auto
   ECMULTGENPRECISION: auto
   ASM: no
   WIDEMUL: auto
@@ -68,8 +69,8 @@ task:
     - env: {BUILD: distcheck, WITH_VALGRIND: no, CTIMETEST: no, BENCH: no}
     - env: {CPPFLAGS: -DDETERMINISTIC}
     - env: {CFLAGS: -O0, CTIMETEST: no}
-    - env: { ECMULTGENPRECISION: 2 }
-    - env: { ECMULTGENPRECISION: 8 }
+    - env: { ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
+    - env: { ECMULTGENPRECISION: 8, ECMULTWINDOW: 4 }
   matrix:
     - env:
         CC: gcc
@@ -303,6 +304,7 @@ task:
     - env:
         ASM: no
         ECMULTGENPRECISION: 2
+        ECMULTWINDOW: 2
   matrix:
     - env:
         CC: clang
