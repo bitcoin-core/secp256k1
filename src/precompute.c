@@ -25,7 +25,7 @@
 #include "ecmult_gen_prec_impl.h"
 #include "ecmult_prec_impl.h"
 
-static void precompute_ecmult_print_table(FILE *fp, const char *name, int window_g, const secp256k1_ge_storage* table, int with_conditionals) {
+static void precompute_ecmult_print_table(FILE *fp, const char *name, int window_g, const secp256k1_ge_storage* table) {
     int j;
     int i;
 
@@ -37,29 +37,25 @@ static void precompute_ecmult_print_table(FILE *fp, const char *name, int window
 
     j = 1;
     for(i = 3; i <= window_g; ++i) {
-        if (with_conditionals) {
-            fprintf(fp, "#if ECMULT_TABLE_SIZE(WINDOW_G) > %ld\n", ECMULT_TABLE_SIZE(i-1));
-        }
+        fprintf(fp, "#if ECMULT_TABLE_SIZE(WINDOW_G) > %ld\n", ECMULT_TABLE_SIZE(i-1));
         for(;j < ECMULT_TABLE_SIZE(i); ++j) {
             fprintf(fp, ",S(%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32
                           ",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32")\n",
                         SECP256K1_GE_STORAGE_CONST_GET(table[j]));
         }
-        if (with_conditionals) {
-            fprintf(fp, "#endif\n");
-        }
+        fprintf(fp, "#endif\n");
     }
     fprintf(fp, "};\n");
 }
 
-static void precompute_ecmult_print_two_tables(FILE *fp, int window_g, const secp256k1_ge *g, int with_conditionals) {
+static void precompute_ecmult_print_two_tables(FILE *fp, int window_g, const secp256k1_ge *g) {
     secp256k1_ge_storage* table = malloc(ECMULT_TABLE_SIZE(window_g) * sizeof(secp256k1_ge_storage));
     secp256k1_ge_storage* table_128 = malloc(ECMULT_TABLE_SIZE(window_g) * sizeof(secp256k1_ge_storage));
 
     secp256k1_ecmult_create_prec_two_tables(table, table_128, window_g, g);
 
-    precompute_ecmult_print_table(fp, "secp256k1_pre_g", window_g, table, with_conditionals);
-    precompute_ecmult_print_table(fp, "secp256k1_pre_g_128", window_g, table_128, with_conditionals);
+    precompute_ecmult_print_table(fp, "secp256k1_pre_g", window_g, table);
+    precompute_ecmult_print_table(fp, "secp256k1_pre_g_128", window_g, table_128);
 
     free(table);
     free(table_128);
@@ -106,7 +102,7 @@ static int precompute_ecmult(void) {
     fprintf(fp, "#else /* !defined(EXHAUSTIVE_TEST_ORDER) */\n");
     fprintf(fp, "#define WINDOW_G ECMULT_WINDOW_SIZE\n");
 
-    precompute_ecmult_print_two_tables(fp, ECMULT_WINDOW_SIZE, &g, 1);
+    precompute_ecmult_print_two_tables(fp, ECMULT_WINDOW_SIZE, &g);
 
     fprintf(fp, "#endif /* EXHAUSTIVE_TEST_ORDER */\n");
     fprintf(fp, "#undef S\n");
