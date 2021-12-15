@@ -44,34 +44,6 @@
     } \
 } while(0)
 
-#ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
-#include <stdlib.h>
-#include <stdio.h>
-static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
-    (void)data;
-    fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
-    abort();
-}
-static void secp256k1_default_error_callback_fn(const char* str, void* data) {
-    (void)data;
-    fprintf(stderr, "[libsecp256k1] internal consistency check failed: %s\n", str);
-    abort();
-}
-#else
-void secp256k1_default_illegal_callback_fn(const char* str, void* data);
-void secp256k1_default_error_callback_fn(const char* str, void* data);
-#endif
-
-static const secp256k1_callback default_illegal_callback = {
-    secp256k1_default_illegal_callback_fn,
-    NULL
-};
-
-static const secp256k1_callback default_error_callback = {
-    secp256k1_default_error_callback_fn,
-    NULL
-};
-
 struct secp256k1_context_struct {
     secp256k1_ecmult_gen_context ecmult_gen_ctx;
     secp256k1_callback illegal_callback;
@@ -88,7 +60,7 @@ static const secp256k1_context secp256k1_context_no_precomp_ = {
 const secp256k1_context *secp256k1_context_no_precomp = &secp256k1_context_no_precomp_;
 
 size_t secp256k1_context_preallocated_size(unsigned int flags) {
-    size_t ret = ROUND_TO_ALIGN(sizeof(secp256k1_context));
+    size_t ret = sizeof(secp256k1_context);
     /* A return value of 0 is reserved as an indicator for errors when we call this function internally. */
     VERIFY_CHECK(ret != 0);
 
@@ -98,23 +70,16 @@ size_t secp256k1_context_preallocated_size(unsigned int flags) {
             return 0;
     }
 
-    if (flags & SECP256K1_FLAGS_BIT_CONTEXT_SIGN) {
-        ret += SECP256K1_ECMULT_GEN_CONTEXT_PREALLOCATED_SIZE;
-    }
     return ret;
 }
 
 size_t secp256k1_context_preallocated_clone_size(const secp256k1_context* ctx) {
-    size_t ret = ROUND_TO_ALIGN(sizeof(secp256k1_context));
+    size_t ret = sizeof(secp256k1_context);
     VERIFY_CHECK(ctx != NULL);
-    if (secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx)) {
-        ret += SECP256K1_ECMULT_GEN_CONTEXT_PREALLOCATED_SIZE;
-    }
     return ret;
 }
 
 secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigned int flags) {
-    void* const base = prealloc;
     size_t prealloc_size;
     secp256k1_context* ret;
 
@@ -127,20 +92,16 @@ secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigne
         return NULL;
     }
     VERIFY_CHECK(prealloc != NULL);
-    ret = (secp256k1_context*)manual_alloc(&prealloc, sizeof(secp256k1_context), base, prealloc_size);
+    ret = (secp256k1_context*)prealloc;
     ret->illegal_callback = default_illegal_callback;
     ret->error_callback = default_error_callback;
 
-    secp256k1_ecmult_gen_context_init(&ret->ecmult_gen_ctx);
-
     /* Flags have been checked by secp256k1_context_preallocated_size. */
     VERIFY_CHECK((flags & SECP256K1_FLAGS_TYPE_MASK) == SECP256K1_FLAGS_TYPE_CONTEXT);
-    if (flags & SECP256K1_FLAGS_BIT_CONTEXT_SIGN) {
-        secp256k1_ecmult_gen_context_build(&ret->ecmult_gen_ctx, &prealloc);
-    }
+    secp256k1_ecmult_gen_context_build(&ret->ecmult_gen_ctx);
     ret->declassify = !!(flags & SECP256K1_FLAGS_BIT_CONTEXT_DECLASSIFY);
 
-    return (secp256k1_context*) ret;
+    return ret;
 }
 
 secp256k1_context* secp256k1_context_create(unsigned int flags) {
@@ -155,15 +116,12 @@ secp256k1_context* secp256k1_context_create(unsigned int flags) {
 }
 
 secp256k1_context* secp256k1_context_preallocated_clone(const secp256k1_context* ctx, void* prealloc) {
-    size_t prealloc_size;
     secp256k1_context* ret;
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(prealloc != NULL);
 
-    prealloc_size = secp256k1_context_preallocated_clone_size(ctx);
     ret = (secp256k1_context*)prealloc;
-    memcpy(ret, ctx, prealloc_size);
-    secp256k1_ecmult_gen_context_finalize_memcpy(&ret->ecmult_gen_ctx, &ctx->ecmult_gen_ctx);
+    *ret = *ctx;
     return ret;
 }
 

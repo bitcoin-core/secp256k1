@@ -1,3 +1,5 @@
+.PHONY: clean-precomp precomp
+
 ACLOCAL_AMFLAGS = -I build-aux/m4
 
 # AM_CFLAGS will be automatically prepended to CFLAGS by Automake when compiling some foo
@@ -28,6 +30,8 @@ noinst_HEADERS += src/ecmult_const.h
 noinst_HEADERS += src/ecmult_const_impl.h
 noinst_HEADERS += src/ecmult_gen.h
 noinst_HEADERS += src/ecmult_gen_impl.h
+noinst_HEADERS += src/ecmult_gen_prec.h
+noinst_HEADERS += src/ecmult_gen_prec_impl.h
 noinst_HEADERS += src/field_10x26.h
 noinst_HEADERS += src/field_10x26_impl.h
 noinst_HEADERS += src/field_5x52.h
@@ -50,6 +54,7 @@ noinst_HEADERS += src/hash_impl.h
 noinst_HEADERS += src/field.h
 noinst_HEADERS += src/field_impl.h
 noinst_HEADERS += src/bench.h
+noinst_HEADERS += src/basic-config.h
 noinst_HEADERS += contrib/lax_der_parsing.h
 noinst_HEADERS += contrib/lax_der_parsing.c
 noinst_HEADERS += contrib/lax_der_privatekey_parsing.h
@@ -115,7 +120,7 @@ endif
 if USE_EXHAUSTIVE_TESTS
 noinst_PROGRAMS += exhaustive_tests
 exhaustive_tests_SOURCES = src/tests_exhaustive.c
-exhaustive_tests_CPPFLAGS = -I$(top_srcdir)/src $(SECP_INCLUDES)
+exhaustive_tests_CPPFLAGS = $(SECP_INCLUDES)
 if !ENABLE_COVERAGE
 exhaustive_tests_CPPFLAGS += -DVERIFY
 endif
@@ -124,36 +129,45 @@ exhaustive_tests_LDFLAGS = -static
 TESTS += exhaustive_tests
 endif
 
-EXTRA_PROGRAMS = gen_ecmult_static_pre_g
+### Precomputed tables
+EXTRA_PROGRAMS = gen_ecmult_static_pre_g gen_ecmult_gen_static_prec_table
+CLEANFILES = $(EXTRA_PROGRAMS)
+
 gen_ecmult_static_pre_g_SOURCES = src/gen_ecmult_static_pre_g.c
-# See Automake manual, Section "Errors with distclean"
+gen_ecmult_static_pre_g_CPPFLAGS = $(SECP_INCLUDES)
+gen_ecmult_static_pre_g_LDADD = $(SECP_LIBS) $(COMMON_LIB)
+
+gen_ecmult_gen_static_prec_table_SOURCES = src/gen_ecmult_gen_static_prec_table.c
+gen_ecmult_gen_static_prec_table_CPPFLAGS = $(SECP_INCLUDES)
+gen_ecmult_gen_static_prec_table_LDADD = $(SECP_LIBS) $(COMMON_LIB)
+
+# See Automake manual, Section "Errors with distclean".
+# We don't list any dependencies for the prebuilt files here because
+# otherwise make's decision whether to rebuild them (even in the first
+# build by a normal user) depends on mtimes, and thus is very fragile.
+# This means that rebuilds of the prebuilt files always need to be
+# forced by deleting them, e.g., by invoking `make clean-precomp`.
 src/ecmult_static_pre_g.h:
 	$(MAKE) $(AM_MAKEFLAGS) gen_ecmult_static_pre_g$(EXEEXT)
 	./gen_ecmult_static_pre_g$(EXEEXT)
+src/ecmult_gen_static_prec_table.h:
+	$(MAKE) $(AM_MAKEFLAGS) gen_ecmult_gen_static_prec_table$(EXEEXT)
+	./gen_ecmult_gen_static_prec_table$(EXEEXT)
 
-if USE_ECMULT_STATIC_PRECOMPUTATION
-CPPFLAGS_FOR_BUILD +=-I$(top_srcdir) -I$(builddir)/src
+PRECOMP = src/ecmult_gen_static_prec_table.h src/ecmult_static_pre_g.h
+noinst_HEADERS += $(PRECOMP)
+precomp: $(PRECOMP)
 
-gen_context_OBJECTS = gen_context.o
-gen_context_BIN = gen_context$(BUILD_EXEEXT)
-$(gen_context_OBJECTS): src/gen_context.c src/libsecp256k1-config.h
-	$(CC_FOR_BUILD) $(DEFS) $(CPPFLAGS_FOR_BUILD) $(SECP_CFLAGS_FOR_BUILD) $(CFLAGS_FOR_BUILD) -c $< -o $@
+# Ensure the prebuilt files will be build first (only if they don't exist,
+# e.g., after `make maintainer-clean`).
+BUILT_SOURCES = $(PRECOMP)
 
-$(gen_context_BIN): $(gen_context_OBJECTS)
-	$(CC_FOR_BUILD) $(SECP_CFLAGS_FOR_BUILD) $(CFLAGS_FOR_BUILD) $(LDFLAGS_FOR_BUILD) $^ -o $@
+maintainer-clean-local: clean-precomp
 
-$(libsecp256k1_la_OBJECTS): src/ecmult_static_context.h
-$(tests_OBJECTS): src/ecmult_static_context.h
-$(bench_internal_OBJECTS): src/ecmult_static_context.h
-$(bench_ecmult_OBJECTS): src/ecmult_static_context.h
+clean-precomp:
+	rm -f $(PRECOMP)
 
-src/ecmult_static_context.h: $(gen_context_BIN)
-	./$(gen_context_BIN)
-
-CLEANFILES = $(gen_context_BIN) src/ecmult_static_context.h
-endif
-
-EXTRA_DIST = autogen.sh src/gen_context.c src/ecmult_static_pre_g.h src/basic-config.h
+EXTRA_DIST = autogen.sh SECURITY.md
 
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include
