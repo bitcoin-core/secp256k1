@@ -66,18 +66,19 @@ task:
   name: "x86_64: Linux (Debian stable)"
   << : *LINUX_CONTAINER
   matrix: &ENV_MATRIX
-    - env: {WIDEMUL:  int64,  RECOVERY: yes}
-    - env: {WIDEMUL:  int64,                 ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes}
-    - env: {WIDEMUL: int128}
-    - env: {WIDEMUL: int128,  RECOVERY: yes,            EXPERIMENTAL: yes, SCHNORRSIG: yes}
-    - env: {WIDEMUL: int128,                 ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes}
-    - env: {WIDEMUL: int128,  ASM: x86_64}
-    - env: {                  RECOVERY: yes,            EXPERIMENTAL: yes, SCHNORRSIG: yes}
-    - env: {BUILD: distcheck, WITH_VALGRIND: no, CTIMETEST: no, BENCH: no}
-    - env: {CPPFLAGS: -DDETERMINISTIC}
-    - env: {CFLAGS: -O0, CTIMETEST: no}
-    - env: { ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
-    - env: { ECMULTGENPRECISION: 8, ECMULTWINDOW: 4 }
+    # Enable all modules and test with all common configuration (WIDEMUL, ASM, some ECMULTWINDOW, some ECMULTGENPRECISION).
+    # Sneak in rare build options (CFLAGS: "-O0 -g", CTIMETEST: no, WITH_VALGRIND: no, BENCH: no, CPPFLAGS: -DDETERMINISTIC) at random positions.
+    - env: { WIDEMUL:  int64, RECOVERY: yes, ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes }
+    - env: { WIDEMUL:  int64, RECOVERY: yes, ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes, CFLAGS: "-O0 -g", CTIMETEST: no, WITH_VALGRIND: no }
+    - env: { WIDEMUL: int128, RECOVERY: yes, ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes }
+    - env: { WIDEMUL: int128, RECOVERY: yes, ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes, ASM: x86_64 }
+    - env: { WIDEMUL: int128, RECOVERY: yes, ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes, ASM: x86_64, ECMULTWINDOW: 4, ECMULTGENPRECISION: 2 }
+    - env: { WIDEMUL: int128, RECOVERY: yes, ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes,              ECMULTWINDOW: 8, ECMULTGENPRECISION: 8, CPPFLAGS: -DDETERMINISTIC }
+    - env: { WIDEMUL: int128, RECOVERY: yes, ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes, CFLAGS: "-O0 -g", CTIMETEST: no, BENCH: no }
+    # No special settings, this is also useful to test autodetection
+    - env: { }
+    # Only non-experimental modules
+    - env: {                  RECOVERY: yes, ECDH: yes }
   matrix:
     - env:
         CC: gcc
