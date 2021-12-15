@@ -64,7 +64,7 @@ noinst_HEADERS += contrib/lax_der_privatekey_parsing.c
 
 PRECOMPUTED_LIB = libsecp256k1_precomputed.la
 noinst_LTLIBRARIES = $(PRECOMPUTED_LIB)
-libsecp256k1_precomputed_la_SOURCES = src/precomputed_ecmult_gen.c
+libsecp256k1_precomputed_la_SOURCES = src/precomputed_ecmult.c src/precomputed_ecmult_gen.c
 libsecp256k1_precomputed_la_CPPFLAGS = $(SECP_INCLUDES)
 
 if USE_EXTERNAL_ASM
@@ -154,7 +154,11 @@ precompute_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 # forced by deleting them, e.g., by invoking `make clean-precomp`.
 src/precomputed_ecmult.h:
 	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
-	./precompute$(EXEEXT) ecmult
+	./precompute$(EXEEXT) ecmult_h
+
+src/precomputed_ecmult.c:
+	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
+	./precompute$(EXEEXT) ecmult_c
 
 src/precomputed_ecmult_gen.h:
 	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
@@ -164,7 +168,7 @@ src/precomputed_ecmult_gen.c:
 	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
 	./precompute$(EXEEXT) ecmult_gen_c
 
-PRECOMP = src/precomputed_ecmult_gen.h src/precomputed_ecmult_gen.c src/precomputed_ecmult.h
+PRECOMP = src/precomputed_ecmult_gen.h src/precomputed_ecmult_gen.c src/precomputed_ecmult.h src/precomputed_ecmult.c
 noinst_HEADERS += $(PRECOMP)
 precomp: $(PRECOMP)
 
