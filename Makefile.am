@@ -60,12 +60,17 @@ noinst_HEADERS += contrib/lax_der_parsing.c
 noinst_HEADERS += contrib/lax_der_privatekey_parsing.h
 noinst_HEADERS += contrib/lax_der_privatekey_parsing.c
 
+PRECOMPUTED_LIB = libsecp256k1_precomputed.la
+noinst_LTLIBRARIES = $(PRECOMPUTED_LIB)
+libsecp256k1_precomputed_la_SOURCES = src/precomputed_ecmult_gen.c
+libsecp256k1_precomputed_la_CPPFLAGS = $(SECP_INCLUDES)
+
 if USE_EXTERNAL_ASM
 COMMON_LIB = libsecp256k1_common.la
-noinst_LTLIBRARIES = $(COMMON_LIB)
 else
 COMMON_LIB =
 endif
+noinst_LTLIBRARIES += $(COMMON_LIB)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsecp256k1.pc
@@ -78,7 +83,7 @@ endif
 
 libsecp256k1_la_SOURCES = src/secp256k1.c
 libsecp256k1_la_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/src $(SECP_INCLUDES)
-libsecp256k1_la_LIBADD = $(SECP_LIBS) $(COMMON_LIB)
+libsecp256k1_la_LIBADD = $(SECP_LIBS) $(COMMON_LIB) $(PRECOMPUTED_LIB)
 libsecp256k1_la_LDFLAGS = -no-undefined
 
 if VALGRIND_ENABLED
@@ -91,10 +96,10 @@ noinst_PROGRAMS += bench bench_internal bench_ecmult
 bench_SOURCES = src/bench.c
 bench_LDADD = libsecp256k1.la $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB)
 bench_internal_SOURCES = src/bench_internal.c
-bench_internal_LDADD = $(SECP_LIBS) $(COMMON_LIB)
+bench_internal_LDADD = $(SECP_LIBS) $(COMMON_LIB) $(PRECOMPUTED_LIB)
 bench_internal_CPPFLAGS = $(SECP_INCLUDES)
 bench_ecmult_SOURCES = src/bench_ecmult.c
-bench_ecmult_LDADD = $(SECP_LIBS) $(COMMON_LIB)
+bench_ecmult_LDADD = $(SECP_LIBS) $(COMMON_LIB) $(PRECOMPUTED_LIB)
 bench_ecmult_CPPFLAGS = $(SECP_INCLUDES)
 endif
 
@@ -112,7 +117,7 @@ endif
 if !ENABLE_COVERAGE
 tests_CPPFLAGS += -DVERIFY
 endif
-tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB)
+tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB) $(PRECOMPUTED_LIB)
 tests_LDFLAGS = -static
 TESTS += tests
 endif
@@ -124,17 +129,19 @@ exhaustive_tests_CPPFLAGS = $(SECP_INCLUDES)
 if !ENABLE_COVERAGE
 exhaustive_tests_CPPFLAGS += -DVERIFY
 endif
+# Note: do not include $(PRECOMPUTED_LIB) in exhaustive_tests
 exhaustive_tests_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 exhaustive_tests_LDFLAGS = -static
 TESTS += exhaustive_tests
 endif
 
-### Precomputed tables
+### Generating precomputed tables
 EXTRA_PROGRAMS = precompute
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 precompute_SOURCES = src/precompute.c
 precompute_CPPFLAGS = $(SECP_INCLUDES)
+# Note: do not include $(PRECOMPUTED_LIB) in precompute
 precompute_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 
 # See Automake manual, Section "Errors with distclean".
@@ -149,13 +156,17 @@ src/precomputed_ecmult.h:
 
 src/precomputed_ecmult_gen.h:
 	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
-	./precompute$(EXEEXT) ecmult_gen
+	./precompute$(EXEEXT) ecmult_gen_h
 
-PRECOMP = src/precomputed_ecmult_gen.h src/precomputed_ecmult.h
+src/precomputed_ecmult_gen.c:
+	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
+	./precompute$(EXEEXT) ecmult_gen_c
+
+PRECOMP = src/precomputed_ecmult_gen.h src/precomputed_ecmult_gen.c src/precomputed_ecmult.h
 noinst_HEADERS += $(PRECOMP)
 precomp: $(PRECOMP)
 
-# Ensure the prebuilt files will be build first (only if they don't exist,
+# Ensure the prebuilt files will be built first (only if they don't exist,
 # e.g., after `make maintainer-clean`).
 BUILT_SOURCES = $(PRECOMP)
 
