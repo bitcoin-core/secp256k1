@@ -61,10 +61,7 @@ static void precompute_ecmult_print_two_tables(FILE *fp, int window_g, const sec
     free(table_128);
 }
 
-static int precompute_ecmult(int h_file) {
-    static const char outfile_c[] = "src/precomputed_ecmult.c";
-    static const char outfile_h[] = "src/precomputed_ecmult.h";
-    const char* outfile = h_file ? outfile_h : outfile_c;
+static int precompute_ecmult(const char* outfile, int h_file) {
     const secp256k1_ge g = SECP256K1_G;
     const int window_g_13 = 4;
     const int window_g_199 = 8;
@@ -134,10 +131,7 @@ static int precompute_ecmult(int h_file) {
     return 0;
 }
 
-static int precompute_ecmult_gen(int h_file) {
-    static const char outfile_c[] = "src/precomputed_ecmult_gen.c";
-    static const char outfile_h[] = "src/precomputed_ecmult_gen.h";
-    const char* outfile = h_file ? outfile_h : outfile_c;
+static int precompute_ecmult_gen(const char* outfile, int h_file) {
     FILE *fp;
     int bits;
 
@@ -225,16 +219,17 @@ static int precompute_ecmult_gen(int h_file) {
 }
 
 int main(int argc, char** argv) {
-    if (argc == 2 && !strcmp(argv[1], "ecmult_c")) {
-        return precompute_ecmult(0);
-    } else if (argc == 2 && !strcmp(argv[1], "ecmult_h")) {
-        return precompute_ecmult(1);
-    } else if (argc == 2 && !strcmp(argv[1], "ecmult_gen_c")) {
-        return precompute_ecmult_gen(0);
-    } else if (argc == 2 && !strcmp(argv[1], "ecmult_gen_h")) {
-        return precompute_ecmult_gen(1);
+    if (argc == 2 && strlen(argv[1]) >= 8 && !strcmp(argv[1] + strlen(argv[1]) - 8, "ecmult.c")) {
+        return precompute_ecmult(argv[1], 0);
+    } else if (argc == 2 && strlen(argv[1]) >= 8 && !strcmp(argv[1] + strlen(argv[1]) - 8, "ecmult.h")) {
+        return precompute_ecmult(argv[1], 1);
+    } else if (argc == 2 && strlen(argv[1]) >= 12 && !strcmp(argv[1] + strlen(argv[1]) - 12, "ecmult_gen.c")) {
+        return precompute_ecmult_gen(argv[1], 0);
+    } else if (argc == 2 && strlen(argv[1]) >= 12 && !strcmp(argv[1] + strlen(argv[1]) - 12, "ecmult_gen.h")) {
+        return precompute_ecmult_gen(argv[1], 1);
     } else {
-        fprintf(stderr, "Usage: ./precompute [ecmult_c|ecmult_h|ecmult_gen_c|ecmult_gen_h]\n");
+        fprintf(stderr, "Usage: ./precompute FILE\n");
+        fprintf(stderr, "Where FILE ends in ecmult.c, ecmult.h, ecmult_gen.c, or ecmult_gen.h\n");
         return 1;
     }
 }

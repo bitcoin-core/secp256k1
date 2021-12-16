@@ -152,21 +152,9 @@ precompute_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 # build by a normal user) depends on mtimes, and thus is very fragile.
 # This means that rebuilds of the prebuilt files always need to be
 # forced by deleting them, e.g., by invoking `make clean-precomp`.
-src/precomputed_ecmult.h:
+src/precomputed_%:
 	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
-	./precompute$(EXEEXT) ecmult_h
-
-src/precomputed_ecmult.c:
-	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
-	./precompute$(EXEEXT) ecmult_c
-
-src/precomputed_ecmult_gen.h:
-	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
-	./precompute$(EXEEXT) ecmult_gen_h
-
-src/precomputed_ecmult_gen.c:
-	$(MAKE) $(AM_MAKEFLAGS) precompute$(EXEEXT)
-	./precompute$(EXEEXT) ecmult_gen_c
+	./precompute$(EXEEXT) $@
 
 PRECOMP = src/precomputed_ecmult_gen.h src/precomputed_ecmult_gen.c src/precomputed_ecmult.h src/precomputed_ecmult.c
 noinst_HEADERS += $(PRECOMP)
