@@ -2,15 +2,15 @@
 /* This file contains an array secp256k1_pre_g with odd multiples of the base point G and
  * an array secp256k1_pre_g_128 with odd multiples of 2^128*G for accelerating the computation of a*P + b*G.
  */
-#ifndef SECP256K1_ECMULT_STATIC_PRE_G_H
-#define SECP256K1_ECMULT_STATIC_PRE_G_H
+#ifndef SECP256K1_PRECOMPUTED_ECMULT_H
+#define SECP256K1_PRECOMPUTED_ECMULT_H
 #include "group.h"
 #ifdef S
    #error macro identifier S already in use.
 #endif
 #define S(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) SECP256K1_GE_STORAGE_CONST(0x##a##u,0x##b##u,0x##c##u,0x##d##u,0x##e##u,0x##f##u,0x##g##u,0x##h##u,0x##i##u,0x##j##u,0x##k##u,0x##l##u,0x##m##u,0x##n##u,0x##o##u,0x##p##u)
 #if ECMULT_TABLE_SIZE(ECMULT_WINDOW_SIZE) > 8192
-   #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. Try deleting ecmult_static_pre_g.h before the build.
+   #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. Try deleting precomputed_ecmult.h before the build.
 #endif
 #if defined(EXHAUSTIVE_TEST_ORDER)
 #if EXHAUSTIVE_TEST_ORDER == 13
@@ -16608,4 +16608,4 @@ static const secp256k1_ge_storage secp256k1_pre_g_128[ECMULT_TABLE_SIZE(WINDOW_G
 };
 #endif
 #undef S
-#endif
+#endif /* SECP256K1_PRECOMPUTED_ECMULT_H */

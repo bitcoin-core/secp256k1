@@ -14,7 +14,7 @@
 #include "group.h"
 #include "scalar.h"
 #include "ecmult.h"
-#include "ecmult_static_pre_g.h"
+#include "precomputed_ecmult.h"
 
 #if defined(EXHAUSTIVE_TEST_ORDER)
 /* We need to lower these values for exhaustive tests because
@@ -103,7 +103,7 @@ static void secp256k1_ecmult_odd_multiples_table(int n, secp256k1_gej *prej, sec
  *  It only operates on tables sized for WINDOW_A wnaf multiples.
  *
  *  To compute a*P + b*G, we compute a table for P using this function,
- *  and use the precomputed table in <ecmult_static_pre_g.h> for G.
+ *  and use the precomputed table in <precomputed_ecmult.h> for G.
  */
 static void secp256k1_ecmult_odd_multiples_table_globalz_windowa(secp256k1_ge *pre, secp256k1_fe *globalz, const secp256k1_gej *a) {
     secp256k1_gej prej[ECMULT_TABLE_SIZE(WINDOW_A)];

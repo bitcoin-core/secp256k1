@@ -81,9 +81,9 @@ int main(void) {
     const int window_g_199 = 8;
     FILE* fp;
 
-    fp = fopen("src/ecmult_static_pre_g.h","w");
+    fp = fopen("src/precomputed_ecmult.h","w");
     if (fp == NULL) {
-        fprintf(stderr, "Could not open src/ecmult_static_pre_g.h for writing!\n");
+        fprintf(stderr, "Could not open src/precomputed_ecmult.h for writing!\n");
         return -1;
     }
 
@@ -91,8 +91,8 @@ int main(void) {
     fprintf(fp, "/* This file contains an array secp256k1_pre_g with odd multiples of the base point G and\n");
     fprintf(fp, " * an array secp256k1_pre_g_128 with odd multiples of 2^128*G for accelerating the computation of a*P + b*G.\n");
     fprintf(fp, " */\n");
-    fprintf(fp, "#ifndef SECP256K1_ECMULT_STATIC_PRE_G_H\n");
-    fprintf(fp, "#define SECP256K1_ECMULT_STATIC_PRE_G_H\n");
+    fprintf(fp, "#ifndef SECP256K1_PRECOMPUTED_ECMULT_H\n");
+    fprintf(fp, "#define SECP256K1_PRECOMPUTED_ECMULT_H\n");
     fprintf(fp, "#include \"group.h\"\n");
     fprintf(fp, "#ifdef S\n");
     fprintf(fp, "   #error macro identifier S already in use.\n");
@@ -101,7 +101,7 @@ int main(void) {
                 "SECP256K1_GE_STORAGE_CONST(0x##a##u,0x##b##u,0x##c##u,0x##d##u,0x##e##u,0x##f##u,0x##g##u,"
                 "0x##h##u,0x##i##u,0x##j##u,0x##k##u,0x##l##u,0x##m##u,0x##n##u,0x##o##u,0x##p##u)\n");
     fprintf(fp, "#if ECMULT_TABLE_SIZE(ECMULT_WINDOW_SIZE) > %ld\n", ECMULT_TABLE_SIZE(ECMULT_WINDOW_SIZE));
-    fprintf(fp, "   #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. Try deleting ecmult_static_pre_g.h before the build.\n");
+    fprintf(fp, "   #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. Try deleting precomputed_ecmult.h before the build.\n");
     fprintf(fp, "#endif\n");
     fprintf(fp, "#if defined(EXHAUSTIVE_TEST_ORDER)\n");
     fprintf(fp, "#if EXHAUSTIVE_TEST_ORDER == 13\n");
@@ -124,7 +124,7 @@ int main(void) {
 
     fprintf(fp, "#endif\n");
     fprintf(fp, "#undef S\n");
-    fprintf(fp, "#endif\n");
+    fprintf(fp, "#endif /* SECP256K1_PRECOMPUTED_ECMULT_H */\n");
     fclose(fp);
 
     return 0;
