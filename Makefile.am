@@ -44,6 +44,7 @@ noinst_HEADERS += src/modinv32.h
 noinst_HEADERS += src/modinv32_impl.h
 noinst_HEADERS += src/modinv64.h
 noinst_HEADERS += src/modinv64_impl.h
+noinst_HEADERS += src/precomputed_ecmult.h
 noinst_HEADERS += src/precomputed_ecmult_gen.h
 noinst_HEADERS += src/assumptions.h
 noinst_HEADERS += src/util.h
@@ -65,7 +66,7 @@ noinst_HEADERS += contrib/lax_der_privatekey_parsing.c
 
 PRECOMPUTED_LIB = libsecp256k1_precomputed.la
 noinst_LTLIBRARIES = $(PRECOMPUTED_LIB)
-libsecp256k1_precomputed_la_SOURCES = src/precomputed_ecmult_gen.c
+libsecp256k1_precomputed_la_SOURCES =  src/precomputed_ecmult.c src/precomputed_ecmult_gen.c
 libsecp256k1_precomputed_la_CPPFLAGS = $(SECP_INCLUDES)
 
 if USE_EXTERNAL_ASM
@@ -156,15 +157,14 @@ precompute_ecmult_gen_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 # build by a normal user) depends on mtimes, and thus is very fragile.
 # This means that rebuilds of the prebuilt files always need to be
 # forced by deleting them, e.g., by invoking `make clean-precomp`.
-src/precomputed_ecmult.h:
+src/precomputed_ecmult.c:
 	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult$(EXEEXT)
 	./precompute_ecmult$(EXEEXT)
 src/precomputed_ecmult_gen.c:
 	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult_gen$(EXEEXT)
 	./precompute_ecmult_gen$(EXEEXT)
 
-PRECOMP = src/precomputed_ecmult_gen.c
-noinst_HEADERS += src/precomputed_ecmult.h
+PRECOMP = src/precomputed_ecmult_gen.c src/precomputed_ecmult.c
 precomp: $(PRECOMP)
 
 # Ensure the prebuilt files will be build first (only if they don't exist,
