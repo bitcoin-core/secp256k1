@@ -20,24 +20,48 @@
 #include "group_impl.h"
 #include "ecmult.h"
 
-void print_table(FILE *fp, const char *name, int window_g, const secp256k1_gej *gen, int with_conditionals) {
-    static secp256k1_gej gj;
-    static secp256k1_ge ge, dgen;
-    static secp256k1_ge_storage ges;
+/* Construct table of all odd multiples of gen in range 1..(2**(window_g-1)-1). */
+static void secp256k1_ecmult_compute_table(secp256k1_ge_storage* table, int window_g, const secp256k1_gej* gen) {
+    secp256k1_gej gj;
+    secp256k1_ge ge, dgen;
     int j;
-    int i;
 
     gj = *gen;
     secp256k1_ge_set_gej_var(&ge, &gj);
-    secp256k1_ge_to_storage(&ges, &ge);
+    secp256k1_ge_to_storage(&table[0], &ge);
+
+    secp256k1_gej_double_var(&gj, gen, NULL);
+    secp256k1_ge_set_gej_var(&dgen, &gj);
+
+    for (j = 1; j < ECMULT_TABLE_SIZE(window_g); ++j) {
+        secp256k1_gej_set_ge(&gj, &ge);
+        secp256k1_gej_add_ge_var(&gj, &gj, &dgen, NULL);
+        secp256k1_ge_set_gej_var(&ge, &gj);
+        secp256k1_ge_to_storage(&table[j], &ge);
+    }
+}
+
+/* Like secp256k1_ecmult_compute_table, but one for both gen and gen*2^128. */
+static void secp256k1_ecmult_compute_two_tables(secp256k1_ge_storage* table, secp256k1_ge_storage* table_128, int window_g, const secp256k1_ge* gen) {
+    secp256k1_gej gj;
+    int i;
+
+    secp256k1_gej_set_ge(&gj, gen);
+    secp256k1_ecmult_compute_table(table, window_g, &gj);
+    for (i = 0; i < 128; ++i) {
+        secp256k1_gej_double_var(&gj, &gj, NULL);
+    }
+    secp256k1_ecmult_compute_table(table_128, window_g, &gj);
+}
+
+static void print_table(FILE *fp, const char *name, int window_g, const secp256k1_ge_storage* table, int with_conditionals) {
+    int j;
+    int i;
 
     fprintf(fp, "static const secp256k1_ge_storage %s[ECMULT_TABLE_SIZE(WINDOW_G)] = {\n", name);
     fprintf(fp, " S(%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32
                   ",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32")\n",
-                SECP256K1_GE_STORAGE_CONST_GET(ges));
-
-    secp256k1_gej_double_var(&gj, gen, NULL);
-    secp256k1_ge_set_gej_var(&dgen, &gj);
+                SECP256K1_GE_STORAGE_CONST_GET(table[0]));
 
     j = 1;
     for(i = 3; i <= window_g; ++i) {
@@ -45,14 +69,9 @@ void print_table(FILE *fp, const char *name, int window_g, const secp256k1_gej *
             fprintf(fp, "#if ECMULT_TABLE_SIZE(WINDOW_G) > %ld\n", ECMULT_TABLE_SIZE(i-1));
         }
         for(;j < ECMULT_TABLE_SIZE(i); ++j) {
-            secp256k1_gej_set_ge(&gj, &ge);
-            secp256k1_gej_add_ge_var(&gj, &gj, &dgen, NULL);
-            secp256k1_ge_set_gej_var(&ge, &gj);
-            secp256k1_ge_to_storage(&ges, &ge);
-
             fprintf(fp, ",S(%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32
                           ",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32",%"PRIx32")\n",
-                        SECP256K1_GE_STORAGE_CONST_GET(ges));
+                        SECP256K1_GE_STORAGE_CONST_GET(table[j]));
         }
         if (with_conditionals) {
             fprintf(fp, "#endif\n");
@@ -61,16 +80,17 @@ void print_table(FILE *fp, const char *name, int window_g, const secp256k1_gej *
     fprintf(fp, "};\n");
 }
 
-void print_two_tables(FILE *fp, int window_g, const secp256k1_ge *g, int with_conditionals) {
-    secp256k1_gej gj;
-    int i;
+static void print_two_tables(FILE *fp, int window_g, const secp256k1_ge *g, int with_conditionals) {
+    secp256k1_ge_storage* table = malloc(ECMULT_TABLE_SIZE(window_g) * sizeof(secp256k1_ge_storage));
+    secp256k1_ge_storage* table_128 = malloc(ECMULT_TABLE_SIZE(window_g) * sizeof(secp256k1_ge_storage));
 
-    secp256k1_gej_set_ge(&gj, g);
-    print_table(fp, "secp256k1_pre_g", window_g, &gj, with_conditionals);
-    for (i = 0; i < 128; ++i) {
-        secp256k1_gej_double_var(&gj, &gj, NULL);
-    }
-    print_table(fp, "secp256k1_pre_g_128", window_g, &gj, with_conditionals);
+    secp256k1_ecmult_compute_two_tables(table, table_128, window_g, g);
+
+    print_table(fp, "secp256k1_pre_g", window_g, table, with_conditionals);
+    print_table(fp, "secp256k1_pre_g_128", window_g, table_128, with_conditionals);
+
+    free(table);
+    free(table_128);
 }
 
 int main(void) {
