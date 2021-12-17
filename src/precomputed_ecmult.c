@@ -8,6 +8,7 @@
 #include "../include/secp256k1.h"
 #include "group.h"
 #include "ecmult.h"
+#include "precomputed_ecmult.h"
 #define S(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) SECP256K1_GE_STORAGE_CONST(0x##a##u,0x##b##u,0x##c##u,0x##d##u,0x##e##u,0x##f##u,0x##g##u,0x##h##u,0x##i##u,0x##j##u,0x##k##u,0x##l##u,0x##m##u,0x##n##u,0x##o##u,0x##p##u)
 #if ECMULT_TABLE_SIZE(ECMULT_WINDOW_SIZE) > 8192
    #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. Try deleting precomputed_ecmult.c before the build.

@@ -36,6 +36,7 @@ int main(int argc, char **argv) {
     fprintf(fp, "#include \"../include/secp256k1.h\"\n");
     fprintf(fp, "#include \"group.h\"\n");
     fprintf(fp, "#include \"ecmult_gen.h\"\n");
+    fprintf(fp, "#include \"precomputed_ecmult_gen.h\"\n");
     fprintf(fp, "#ifdef EXHAUSTIVE_TEST_ORDER\n");
     fprintf(fp, "#    error Cannot compile precomputed_ecmult_gen.c in exhaustive test mode\n");
     fprintf(fp, "#endif /* EXHAUSTIVE_TEST_ORDER */\n");

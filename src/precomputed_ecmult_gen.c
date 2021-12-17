@@ -6,6 +6,7 @@
 #include "../include/secp256k1.h"
 #include "group.h"
 #include "ecmult_gen.h"
+#include "precomputed_ecmult_gen.h"
 #ifdef EXHAUSTIVE_TEST_ORDER
 #    error Cannot compile precomputed_ecmult_gen.c in exhaustive test mode
 #endif /* EXHAUSTIVE_TEST_ORDER */
