@@ -4,7 +4,7 @@ bench_internal
 tests
 exhaustive_tests
 precompute_ecmult_gen
-gen_ecmult_static_pre_g
+precompute_ecmult
 valgrind_ctime_test
 *.exe
 *.so

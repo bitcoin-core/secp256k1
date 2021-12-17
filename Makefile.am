@@ -130,12 +130,12 @@ TESTS += exhaustive_tests
 endif
 
 ### Precomputed tables
-EXTRA_PROGRAMS = gen_ecmult_static_pre_g precompute_ecmult_gen
+EXTRA_PROGRAMS = precompute_ecmult precompute_ecmult_gen
 CLEANFILES = $(EXTRA_PROGRAMS)
 
-gen_ecmult_static_pre_g_SOURCES = src/gen_ecmult_static_pre_g.c
-gen_ecmult_static_pre_g_CPPFLAGS = $(SECP_INCLUDES)
-gen_ecmult_static_pre_g_LDADD = $(SECP_LIBS) $(COMMON_LIB)
+precompute_ecmult_SOURCES = src/precompute_ecmult.c
+precompute_ecmult_CPPFLAGS = $(SECP_INCLUDES)
+precompute_ecmult_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 
 precompute_ecmult_gen_SOURCES = src/precompute_ecmult_gen.c
 precompute_ecmult_gen_CPPFLAGS = $(SECP_INCLUDES)
@@ -148,8 +148,8 @@ precompute_ecmult_gen_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 # This means that rebuilds of the prebuilt files always need to be
 # forced by deleting them, e.g., by invoking `make clean-precomp`.
 src/ecmult_static_pre_g.h:
-	$(MAKE) $(AM_MAKEFLAGS) gen_ecmult_static_pre_g$(EXEEXT)
-	./gen_ecmult_static_pre_g$(EXEEXT)
+	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult$(EXEEXT)
+	./precompute_ecmult$(EXEEXT)
 src/ecmult_gen_static_prec_table.h:
 	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult_gen$(EXEEXT)
 	./precompute_ecmult_gen$(EXEEXT)
