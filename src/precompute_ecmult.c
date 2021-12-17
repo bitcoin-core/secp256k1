@@ -70,7 +70,7 @@ int main(void) {
     fprintf(fp, " * an array secp256k1_pre_g_128 with odd multiples of 2^128*G for accelerating the computation of a*P + b*G.\n");
     fprintf(fp, " */\n");
     fprintf(fp, "#if defined HAVE_CONFIG_H\n");
-    fprintf(fp, "#include \"libsecp256k1-config.h\"\n");
+    fprintf(fp, "#    include \"libsecp256k1-config.h\"\n");
     fprintf(fp, "#endif\n");
     fprintf(fp, "#include \"../include/secp256k1.h\"\n");
     fprintf(fp, "#include \"group.h\"\n");
@@ -80,7 +80,7 @@ int main(void) {
     fprintf(fp, "   #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. Try deleting precomputed_ecmult.c before the build.\n");
     fprintf(fp, "#endif\n");
     fprintf(fp, "#ifdef EXHAUSTIVE_TEST_ORDER\n");
-    fprintf(fp, "#error Cannot compile precomputed_ecmult.c in exhaustive test mode\n");
+    fprintf(fp, "#    error Cannot compile precomputed_ecmult.c in exhaustive test mode\n");
     fprintf(fp, "#endif /* EXHAUSTIVE_TEST_ORDER */\n");
     fprintf(fp, "#define WINDOW_G ECMULT_WINDOW_SIZE\n");
 
