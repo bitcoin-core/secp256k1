@@ -150,11 +150,11 @@ precompute_ecmult_gen_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 src/ecmult_static_pre_g.h:
 	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult$(EXEEXT)
 	./precompute_ecmult$(EXEEXT)
-src/ecmult_gen_static_prec_table.h:
+src/precomputed_ecmult_gen.h:
 	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult_gen$(EXEEXT)
 	./precompute_ecmult_gen$(EXEEXT)
 
-PRECOMP = src/ecmult_gen_static_prec_table.h src/ecmult_static_pre_g.h
+PRECOMP = src/precomputed_ecmult_gen.h src/ecmult_static_pre_g.h
 noinst_HEADERS += $(PRECOMP)
 precomp: $(PRECOMP)
 
