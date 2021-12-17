@@ -62,8 +62,6 @@ static void print_two_tables(FILE *fp, int window_g, const secp256k1_ge *g, int 
 
 int main(void) {
     const secp256k1_ge g = SECP256K1_G;
-    const secp256k1_ge g_13 = SECP256K1_G_ORDER_13;
-    const secp256k1_ge g_199 = SECP256K1_G_ORDER_199;
     const int window_g_13 = 4;
     const int window_g_199 = 8;
     FILE* fp;
@@ -93,23 +91,19 @@ int main(void) {
     fprintf(fp, "#if defined(EXHAUSTIVE_TEST_ORDER)\n");
     fprintf(fp, "#if EXHAUSTIVE_TEST_ORDER == 13\n");
     fprintf(fp, "#define WINDOW_G %d\n", window_g_13);
-
-    print_two_tables(fp, window_g_13, &g_13, 0);
-
     fprintf(fp, "#elif EXHAUSTIVE_TEST_ORDER == 199\n");
     fprintf(fp, "#define WINDOW_G %d\n", window_g_199);
-
-    print_two_tables(fp, window_g_199, &g_199, 0);
-
     fprintf(fp, "#else\n");
     fprintf(fp, "   #error No known generator for the specified exhaustive test group order.\n");
     fprintf(fp, "#endif\n");
+    fprintf(fp, "static secp256k1_ge_storage secp256k1_pre_g[ECMULT_TABLE_SIZE(WINDOW_G)];\n");
+    fprintf(fp, "static secp256k1_ge_storage secp256k1_pre_g_128[ECMULT_TABLE_SIZE(WINDOW_G)];\n");
     fprintf(fp, "#else /* !defined(EXHAUSTIVE_TEST_ORDER) */\n");
     fprintf(fp, "#define WINDOW_G ECMULT_WINDOW_SIZE\n");
 
     print_two_tables(fp, ECMULT_WINDOW_SIZE, &g, 1);
 
-    fprintf(fp, "#endif\n");
+    fprintf(fp, "#endif /* defined(EXHAUSTIVE_TEST_ORDER) */\n");
     fprintf(fp, "#undef S\n");
     fprintf(fp, "#endif /* SECP256K1_PRECOMPUTED_ECMULT_H */\n");
     fclose(fp);
