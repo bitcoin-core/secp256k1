@@ -22,7 +22,7 @@
 #include "assumptions.h"
 #include "group.h"
 #include "testrand_impl.h"
-#include "ecmult_gen_prec_impl.h"
+#include "ecmult_gen_compute_table_impl.h"
 
 static int count = 2;
 

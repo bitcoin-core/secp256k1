@@ -12,7 +12,7 @@
 #include "util.h"
 #include "group.h"
 #include "ecmult_gen.h"
-#include "ecmult_gen_prec_impl.h"
+#include "ecmult_gen_compute_table_impl.h"
 
 int main(int argc, char **argv) {
     const char outfile[] = "src/precomputed_ecmult_gen.h";
