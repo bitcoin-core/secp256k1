@@ -13,7 +13,7 @@
 #include "ecmult_gen.h"
 #include "util.h"
 
-static void secp256k1_ecmult_gen_create_prec_table(secp256k1_ge_storage* table, const secp256k1_ge* gen, int bits) {
+static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, const secp256k1_ge* gen, int bits) {
     int g = ECMULT_GEN_PREC_G(bits);
     int n = ECMULT_GEN_PREC_N(bits);
 

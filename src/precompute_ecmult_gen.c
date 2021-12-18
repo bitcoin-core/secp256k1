@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
         int inner, outer;
 
         secp256k1_ge_storage* table = checked_malloc(&default_error_callback, n * g * sizeof(secp256k1_ge_storage));
-        secp256k1_ecmult_gen_create_prec_table(table, &secp256k1_ge_const_g, bits);
+        secp256k1_ecmult_gen_compute_table(table, &secp256k1_ge_const_g, bits);
 
         fprintf(fp, "#if ECMULT_GEN_PREC_BITS == %d\n", bits);
         for(outer = 0; outer != n; outer++) {
