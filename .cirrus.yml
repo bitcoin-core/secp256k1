@@ -4,7 +4,7 @@ env:
   # Specific warnings can be disabled with -Wno-error=foo.
   # -pedantic-errors is not equivalent to -Werror=pedantic and thus not implied by -Werror according to the GCC manual.
   WERROR_CFLAGS: -Werror -pedantic-errors
-  MAKEFLAGS: -j2
+  MAKEFLAGS: -j4
   BUILD: check
   ### secp256k1 config
   ECMULTWINDOW: auto
@@ -50,14 +50,19 @@ merge_base_script_snippet: &MERGE_BASE
     - git config --global user.name "ci"
     - git merge FETCH_HEAD  # Merge base to detect silent merge conflicts
 
-task:
-  name: "x86_64: Linux (Debian stable)"
+linux_container_snippet: &LINUX_CONTAINER
   container:
     dockerfile: ci/linux-debian.Dockerfile
     # Reduce number of CPUs to be able to do more builds in parallel.
     cpu: 1
+    # Gives us more CPUs for free if they're available.
+    greedy: true
     # More than enough for our scripts.
     memory: 1G
+
+task:
+  name: "x86_64: Linux (Debian stable)"
+  << : *LINUX_CONTAINER
   matrix: &ENV_MATRIX
     - env: {WIDEMUL:  int64,  RECOVERY: yes}
     - env: {WIDEMUL:  int64,                 ECDH: yes, EXPERIMENTAL: yes, SCHNORRSIG: yes}
@@ -83,10 +88,7 @@ task:
 
 task:
   name: "i686: Linux (Debian stable)"
-  container:
-    dockerfile: ci/linux-debian.Dockerfile
-    cpu: 1
-    memory: 1G
+  << : *LINUX_CONTAINER
   env:
     HOST: i686-linux-gnu
     ECDH: yes
@@ -165,10 +167,7 @@ task:
 
 task:
   name: "s390x (big-endian): Linux (Debian stable, QEMU)"
-  container:
-    dockerfile: ci/linux-debian.Dockerfile
-    cpu: 1
-    memory: 1G
+  << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: qemu-s390x
     SECP256K1_TEST_ITERS: 16
@@ -188,10 +187,7 @@ task:
 
 task:
   name: "ARM32: Linux (Debian stable, QEMU)"
-  container:
-    dockerfile: ci/linux-debian.Dockerfile
-    cpu: 1
-    memory: 1G
+  << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: qemu-arm
     SECP256K1_TEST_ITERS: 16
@@ -212,10 +208,7 @@ task:
 
 task:
   name: "ARM64: Linux (Debian stable, QEMU)"
-  container:
-    dockerfile: ci/linux-debian.Dockerfile
-    cpu: 1
-    memory: 1G
+  << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: qemu-aarch64
     SECP256K1_TEST_ITERS: 16
@@ -233,10 +226,7 @@ task:
 
 task:
   name: "ppc64le: Linux (Debian stable, QEMU)"
-  container:
-    dockerfile: ci/linux-debian.Dockerfile
-    cpu: 1
-    memory: 1G
+  << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: qemu-ppc64le
     SECP256K1_TEST_ITERS: 16
@@ -254,10 +244,7 @@ task:
 
 task:
   name: "x86_64 (mingw32-w64): Windows (Debian stable, Wine)"
-  container:
-    dockerfile: ci/linux-debian.Dockerfile
-    cpu: 1
-    memory: 1G
+  << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: wine64-stable
     SECP256K1_TEST_ITERS: 16
@@ -275,9 +262,8 @@ task:
 
 # Sanitizers
 task:
+  << : *LINUX_CONTAINER
   container:
-    dockerfile: ci/linux-debian.Dockerfile
-    cpu: 1
     memory: 2G
   env:
     ECDH: yes
@@ -319,15 +305,12 @@ task:
 
 task:
   name: "C++ -fpermissive"
-  container:
-    dockerfile: ci/linux-debian.Dockerfile
-    cpu: 1
-    memory: 1G
+  << : *LINUX_CONTAINER
   env:
     # ./configure correctly errors out when given CC=g++.
     # We hack around this by passing CC=g++ only to make.
     CC: gcc
-    MAKEFLAGS: -j2 CC=g++ CFLAGS=-fpermissive\ -g
+    MAKEFLAGS: -j4 CC=g++ CFLAGS=-fpermissive\ -g
     WERROR_CFLAGS:
     EXPERIMENTAL: yes
     ECDH: yes
