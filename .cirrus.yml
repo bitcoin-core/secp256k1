@@ -133,8 +133,9 @@ task:
   ##   - rm /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
   ##
   brew_valgrind_pre_script:
+    - brew update
     - brew config
-    - brew tap --shallow LouisBrunner/valgrind
+    - brew tap LouisBrunner/valgrind
     # Fetch valgrind source but don't build it yet.
     - brew fetch --HEAD LouisBrunner/valgrind/valgrind
   brew_valgrind_cache:
