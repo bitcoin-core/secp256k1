@@ -263,8 +263,6 @@ task:
 # Sanitizers
 task:
   << : *LINUX_CONTAINER
-  container:
-    memory: 2G
   env:
     ECDH: yes
     RECOVERY: yes
@@ -273,11 +271,15 @@ task:
     CTIMETEST: no
   matrix:
     - name: "Valgrind (memcheck)"
+      container:
+        cpu: 2
       env:
         # The `--error-exitcode` is required to make the test fail if valgrind found errors, otherwise it'll return 0 (https://www.valgrind.org/docs/manual/manual-core.html)
         WRAPPER_CMD: "valgrind --error-exitcode=42"
         SECP256K1_TEST_ITERS: 2
     - name: "UBSan, ASan, LSan"
+      container:
+        memory: 2G
       env:
         CFLAGS: "-fsanitize=undefined,address -g"
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
