@@ -11,6 +11,15 @@
 #include "field.h"
 #include "modinv32_impl.h"
 
+/** See the comment at the top of field_5x52_impl.h for more details.
+ *
+ *  Here, we represent field elements as 10 uint32_t's in base 2^26, least significant first,
+ *  where limbs can contain >26 bits.
+ *  A magnitude M means:
+ *  - 2*M*(2^22-1) is the max (inclusive) of the most significant limb
+ *  - 2*M*(2^26-1) is the max (inclusive) of the remaining limbs
+ */
+
 #ifdef VERIFY
 static void secp256k1_fe_verify(const secp256k1_fe *a) {
     const uint32_t *d = a->n;
