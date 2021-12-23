@@ -135,4 +135,8 @@ static void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag);
  *  The output is not guaranteed to be normalized, regardless of the input. */
 static void secp256k1_fe_half(secp256k1_fe *r);
 
+/** Sets each limb of 'r' to its upper bound at magnitude 'm'. The output will also have its
+ *  magnitude set to 'm' and is normalized if (and only if) 'm' is zero. */
+static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m);
+
 #endif /* SECP256K1_FIELD_H */
