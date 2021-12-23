@@ -271,37 +271,36 @@ static int secp256k1_ge_is_valid_var(const secp256k1_ge *a) {
 }
 
 static SECP256K1_INLINE void secp256k1_gej_double(secp256k1_gej *r, const secp256k1_gej *a) {
-    /* Operations: 3 mul, 4 sqr, 0 normalize, 12 mul_int/add/negate.
-     *
-     * Note that there is an implementation described at
-     *     https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
-     * which trades a multiply for a square, but in practice this is actually slower,
-     * mainly because it requires more normalizations.
-     */
-    secp256k1_fe t1,t2,t3,t4;
+    secp256k1_fe l, s, t, q;
 
     r->infinity = a->infinity;
 
-    secp256k1_fe_mul(&r->z, &a->z, &a->y);
-    secp256k1_fe_mul_int(&r->z, 2);       /* Z' = 2*Y*Z (2) */
-    secp256k1_fe_sqr(&t1, &a->x);
-    secp256k1_fe_mul_int(&t1, 3);         /* T1 = 3*X^2 (3) */
-    secp256k1_fe_sqr(&t2, &t1);           /* T2 = 9*X^4 (1) */
-    secp256k1_fe_sqr(&t3, &a->y);
-    secp256k1_fe_mul_int(&t3, 2);         /* T3 = 2*Y^2 (2) */
-    secp256k1_fe_sqr(&t4, &t3);
-    secp256k1_fe_mul_int(&t4, 2);         /* T4 = 8*Y^4 (2) */
-    secp256k1_fe_mul(&t3, &t3, &a->x);    /* T3 = 2*X*Y^2 (1) */
-    r->x = t3;
-    secp256k1_fe_mul_int(&r->x, 4);       /* X' = 8*X*Y^2 (4) */
-    secp256k1_fe_negate(&r->x, &r->x, 4); /* X' = -8*X*Y^2 (5) */
-    secp256k1_fe_add(&r->x, &t2);         /* X' = 9*X^4 - 8*X*Y^2 (6) */
-    secp256k1_fe_negate(&t2, &t2, 1);     /* T2 = -9*X^4 (2) */
-    secp256k1_fe_mul_int(&t3, 6);         /* T3 = 12*X*Y^2 (6) */
-    secp256k1_fe_add(&t3, &t2);           /* T3 = 12*X*Y^2 - 9*X^4 (8) */
-    secp256k1_fe_mul(&r->y, &t1, &t3);    /* Y' = 36*X^3*Y^2 - 27*X^6 (1) */
-    secp256k1_fe_negate(&t2, &t4, 2);     /* T2 = -8*Y^4 (3) */
-    secp256k1_fe_add(&r->y, &t2);         /* Y' = 36*X^3*Y^2 - 27*X^6 - 8*Y^4 (4) */
+    /* Formula used:
+     * L = (3/2) * X1^2
+     * S = Y1^2
+     * T = X1*S
+     * X3 = L^2 - 2*T
+     * Y3 = L*(T - X3) - S^2
+     * Z3 = Y1*Z1
+     */
+
+    secp256k1_fe_mul(&r->z, &a->z, &a->y); /* Z3 = Y1*Z1 (1) */
+    secp256k1_fe_sqr(&l, &a->x);           /* L  = X1^2 (1) */
+    secp256k1_fe_mul_int(&l, 3);           /* L  = 3*X1^2 (3) */
+    secp256k1_fe_half(&l);                 /* L  = 3/2*X1^2 (2) */
+    secp256k1_fe_sqr(&s, &a->y);           /* S  = Y1^2 (1) */
+    secp256k1_fe_mul(&t, &a->x, &s);       /* T  = X1*S (1) */
+    q = t;
+    secp256k1_fe_add(&q, &t);              /* Q = 2*T (2) */
+    secp256k1_fe_negate(&r->x, &q, 2);     /* X3 = -2*T (3) */
+    secp256k1_fe_sqr(&q, &l);              /* Q = L^2 (1) */
+    secp256k1_fe_add(&r->x, &q);           /* X3 = L^2 - 2*T (4) */
+    secp256k1_fe_negate(&q, &r->x, 4);     /* Q = -X3 (5) */
+    secp256k1_fe_add(&q, &t);              /* Q = T-X3 (6) */
+    secp256k1_fe_mul(&q, &q, &l);          /* Q = L*(T-X3) (1) */
+    secp256k1_fe_sqr(&s, &s);
+    secp256k1_fe_negate(&r->y, &s, 1);     /* Y3 = -S^2 (2) */
+    secp256k1_fe_add(&r->y, &q);           /* Y3 = L*(T-X3) - S^2 (3) */
 }
 
 static void secp256k1_gej_double_var(secp256k1_gej *r, const secp256k1_gej *a, secp256k1_fe *rzr) {
@@ -325,8 +324,6 @@ static void secp256k1_gej_double_var(secp256k1_gej *r, const secp256k1_gej *a, s
 
     if (rzr != NULL) {
         *rzr = a->y;
-        secp256k1_fe_normalize_weak(rzr);
-        secp256k1_fe_mul_int(rzr, 2);
     }
 
     secp256k1_gej_double(r, a);
