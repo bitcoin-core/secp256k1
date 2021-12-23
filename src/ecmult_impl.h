@@ -96,25 +96,6 @@ static void secp256k1_ecmult_odd_multiples_table(int n, secp256k1_gej *prej, sec
     secp256k1_fe_mul(&prej[n-1].z, &prej[n-1].z, &d.z);
 }
 
-/** Fill a table 'pre' with precomputed odd multiples of a.
- *
- *  The resulting point set is brought to a single constant Z denominator, stores the X and Y
- *  coordinates as ge_storage points in pre, and stores the global Z in rz.
- *  It only operates on tables sized for WINDOW_A wnaf multiples.
- *
- *  To compute a*P + b*G, we compute a table for P using this function,
- *  and use the precomputed table in <precomputed_ecmult.c> for G.
- */
-static void secp256k1_ecmult_odd_multiples_table_globalz_windowa(secp256k1_ge *pre, secp256k1_fe *globalz, const secp256k1_gej *a) {
-    secp256k1_gej prej[ECMULT_TABLE_SIZE(WINDOW_A)];
-    secp256k1_fe zr[ECMULT_TABLE_SIZE(WINDOW_A)];
-
-    /* Compute the odd multiples in Jacobian form. */
-    secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), prej, zr, a);
-    /* Bring them to the same Z denominator. */
-    secp256k1_ge_globalz_set_table_gej(ECMULT_TABLE_SIZE(WINDOW_A), pre, globalz, prej, zr);
-}
-
 /** The following two macro retrieves a particular odd multiple from a table
  *  of precomputed multiples. */
 #define ECMULT_TABLE_GET_GE(r,pre,n,w) do { \

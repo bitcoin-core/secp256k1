@@ -12,6 +12,22 @@
 #include "ecmult_const.h"
 #include "ecmult_impl.h"
 
+/** Fill a table 'pre' with precomputed odd multiples of a.
+ *
+ *  The resulting point set is brought to a single constant Z denominator, stores the X and Y
+ *  coordinates as ge_storage points in pre, and stores the global Z in globalz.
+ *  It only operates on tables sized for WINDOW_A wnaf multiples.
+ */
+static void secp256k1_ecmult_odd_multiples_table_globalz_windowa(secp256k1_ge *pre, secp256k1_fe *globalz, const secp256k1_gej *a) {
+    secp256k1_gej prej[ECMULT_TABLE_SIZE(WINDOW_A)];
+    secp256k1_fe zr[ECMULT_TABLE_SIZE(WINDOW_A)];
+
+    /* Compute the odd multiples in Jacobian form. */
+    secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), prej, zr, a);
+    /* Bring them to the same Z denominator. */
+    secp256k1_ge_globalz_set_table_gej(ECMULT_TABLE_SIZE(WINDOW_A), pre, globalz, prej, zr);
+}
+
 /* This is like `ECMULT_TABLE_GET_GE` but is constant time */
 #define ECMULT_CONST_TABLE_GET_GE(r,pre,n,w) do { \
     int m = 0; \
