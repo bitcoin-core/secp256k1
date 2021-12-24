@@ -87,7 +87,7 @@ void run_nonce_function_bip340_tests(void) {
     CHECK(nonce_function_bip340(nonce, msg, msglen, key, pk, NULL, 0, NULL) == 0);
     CHECK(nonce_function_bip340(nonce, msg, msglen, key, pk, algo, algolen, NULL) == 1);
     /* Other algo is fine */
-    secp256k1_rfc6979_hmac_sha256_generate(&secp256k1_test_rng, algo, algolen);
+    secp256k1_testrand_bytes_test(algo, algolen);
     CHECK(nonce_function_bip340(nonce, msg, msglen, key, pk, algo, algolen, NULL) == 1);
 
     for (i = 0; i < count; i++) {
