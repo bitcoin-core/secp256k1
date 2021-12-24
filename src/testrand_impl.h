@@ -109,7 +109,7 @@ static void secp256k1_testrand256_test(unsigned char *b32) {
 }
 
 static void secp256k1_testrand_flip(unsigned char *b, size_t len) {
-    b[secp256k1_testrand_int(len)] ^= (1 << secp256k1_testrand_int(8));
+    b[secp256k1_testrand_int(len)] ^= (1 << secp256k1_testrand_bits(3));
 }
 
 static void secp256k1_testrand_init(const char* hexseed) {
