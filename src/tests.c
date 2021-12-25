@@ -2451,13 +2451,16 @@ void run_field_convert(void) {
     CHECK(secp256k1_memcmp_var(&fes2, &fes, sizeof(fes)) == 0);
 }
 
-int fe_secp256k1_memcmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
-    secp256k1_fe t = *b;
+/* Returns true if two field elements have the same representation. */
+int fe_identical(const secp256k1_fe *a, const secp256k1_fe *b) {
+    int ret = 1;
 #ifdef VERIFY
-    t.magnitude = a->magnitude;
-    t.normalized = a->normalized;
+    ret &= (a->magnitude == b->magnitude);
+    ret &= (a->normalized == b->normalized);
 #endif
-    return secp256k1_memcmp_var(a, &t, sizeof(secp256k1_fe));
+    /* Compare the struct member that holds the limbs. */
+    ret &= (secp256k1_memcmp_var(a->n, b->n, sizeof(a->n)) == 0);
+    return ret;
 }
 
 void run_field_misc(void) {
@@ -2483,13 +2486,13 @@ void run_field_misc(void) {
         CHECK(x.normalized && x.magnitude == 1);
 #endif
         secp256k1_fe_cmov(&x, &x, 1);
-        CHECK(fe_secp256k1_memcmp_var(&x, &z) != 0);
-        CHECK(fe_secp256k1_memcmp_var(&x, &q) == 0);
+        CHECK(!fe_identical(&x, &z));
+        CHECK(fe_identical(&x, &q));
         secp256k1_fe_cmov(&q, &z, 1);
 #ifdef VERIFY
         CHECK(!q.normalized && q.magnitude == z.magnitude);
 #endif
-        CHECK(fe_secp256k1_memcmp_var(&q, &z) == 0);
+        CHECK(fe_identical(&q, &z));
         secp256k1_fe_normalize_var(&x);
         secp256k1_fe_normalize_var(&z);
         CHECK(!secp256k1_fe_equal_var(&x, &z));
