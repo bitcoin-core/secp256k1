@@ -865,4 +865,23 @@ SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) 
     return !(a->d[0] & 1);
 }
 
+static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    const uint64_t a0 = a->d[0], a1 = a->d[1], a2 = a->d[2], a3 = a->d[3];
+    uint64_t mask = -(a0 & 1);
+    uint128_t c = (a0 >> 1) | (a1 << 63);
+    c += mask & (SECP256K1_N_H_0 + 1);
+    r->d[0] = c; c >>= 64;
+    c += (a1 >> 1) | (a2 << 63);
+    c += mask & SECP256K1_N_H_1;
+    r->d[1] = c; c >>= 64;
+    c += (a2 >> 1) | (a3 << 63);
+    c += mask & SECP256K1_N_H_2;
+    r->d[2] = c; c >>= 64;
+    c += (a3 >> 1);
+    c += mask & SECP256K1_N_H_3;
+    r->d[3] = c;
+    VERIFY_CHECK(c >> 64 == 0);
+    VERIFY_CHECK(!secp256k1_scalar_check_overflow(r));
+}
+
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */

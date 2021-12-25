@@ -83,6 +83,9 @@ static int secp256k1_scalar_is_even(const secp256k1_scalar *a);
 /** Check whether a scalar is higher than the group order divided by 2. */
 static int secp256k1_scalar_is_high(const secp256k1_scalar *a);
 
+/** Multiply a scalar by the multiplicative inverse of 2. */
+static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a);
+
 /** Conditionally negate a number, in constant time.
  * Returns -1 if the number was negated, 1 otherwise */
 static int secp256k1_scalar_cond_negate(secp256k1_scalar *a, int flag);

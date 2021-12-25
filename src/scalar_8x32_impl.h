@@ -732,4 +732,36 @@ SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) 
     return !(a->d[0] & 1);
 }
 
+static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    const uint32_t a0 = a->d[0], a1 = a->d[1], a2 = a->d[2], a3 = a->d[3],
+                   a4 = a->d[4], a5 = a->d[5], a6 = a->d[6], a7 = a->d[7];
+    uint32_t mask = -(a0 & 1);
+    uint64_t c = (a0 >> 1) | (a1 << 31);
+    c += mask & (SECP256K1_N_H_0 + 1);
+    r->d[0] = c; c >>= 32;
+    c += (a1 >> 1) | (a2 << 31);
+    c += mask & SECP256K1_N_H_1;
+    r->d[1] = c; c >>= 32;
+    c += (a2 >> 1) | (a3 << 31);
+    c += mask & SECP256K1_N_H_2;
+    r->d[2] = c; c >>= 32;
+    c += (a3 >> 1) | (a4 << 31);
+    c += mask & SECP256K1_N_H_3;
+    r->d[3] = c; c >>= 32;
+    c += (a4 >> 1) | (a5 << 31);
+    c += mask & SECP256K1_N_H_4;
+    r->d[4] = c; c >>= 32;
+    c += (a5 >> 1) | (a6 << 31);
+    c += mask & SECP256K1_N_H_5;
+    r->d[5] = c; c >>= 32;
+    c += (a6 >> 1) | (a7 << 31);
+    c += mask & SECP256K1_N_H_6;
+    r->d[6] = c; c >>= 32;
+    c += (a7 >> 1);
+    c += mask & SECP256K1_N_H_7;
+    r->d[7] = c;
+    VERIFY_CHECK(c >> 32 == 0);
+    VERIFY_CHECK(!secp256k1_scalar_check_overflow(r));
+}
+
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */

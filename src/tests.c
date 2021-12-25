@@ -1745,6 +1745,16 @@ void scalar_test(void) {
         CHECK(secp256k1_scalar_eq(&r1, &v0));
     }
 
+    {
+        /* Test scalar halving. */
+        secp256k1_scalar r;
+        secp256k1_scalar_half(&r, &s);
+        secp256k1_scalar_add(&r, &r, &r);
+        CHECK(secp256k1_scalar_eq(&r, &s));
+        secp256k1_scalar_add(&r, &r, &r);
+        secp256k1_scalar_half(&r, &r);
+        CHECK(secp256k1_scalar_eq(&r, &s));
+    }
 }
 
 void run_scalar_set_b32_seckey_tests(void) {
