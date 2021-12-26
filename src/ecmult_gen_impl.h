@@ -1,8 +1,8 @@
-/***********************************************************************
- * Copyright (c) 2013, 2014, 2015 Pieter Wuille, Gregory Maxwell       *
- * Distributed under the MIT software license, see the accompanying    *
- * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
- ***********************************************************************/
+/*******************************************************************************
+ * Copyright (c) 2013-2015, 2021 Pieter Wuille, Gregory Maxwell, Peter Dettman *
+ * Distributed under the MIT software license, see the accompanying            *
+ * file COPYING or https://www.opensource.org/licenses/mit-license.php.        *
+ *******************************************************************************/
 
 #ifndef SECP256K1_ECMULT_GEN_IMPL_H
 #define SECP256K1_ECMULT_GEN_IMPL_H
@@ -29,38 +29,120 @@ static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx
     secp256k1_ge_clear(&ctx->final_point_add);
 }
 
-/* For accelerating the computation of a*G:
- * To harden against timing attacks, use the following mechanism:
- * * Break up the multiplicand into groups of PREC_BITS bits, called n_0, n_1, n_2, ..., n_(PREC_N-1).
- * * Compute sum(n_i * (PREC_G)^i * G + U_i, i=0 ... PREC_N-1), where:
- *   * U_i = U * 2^i, for i=0 ... PREC_N-2
- *   * U_i = U * (1-2^(PREC_N-1)), for i=PREC_N-1
- *   where U is a point with no known corresponding scalar. Note that sum(U_i, i=0 ... PREC_N-1) = 0.
- * For each i, and each of the PREC_G possible values of n_i, (n_i * (PREC_G)^i * G + U_i) is
- * precomputed (call it prec(i, n_i)). The formula now becomes sum(prec(i, n_i), i=0 ... PREC_N-1).
- * None of the resulting prec group elements have a known scalar, and neither do any of
- * the intermediate sums while computing a*G.
- * The prec values are stored in secp256k1_ecmult_gen_prec_table[i][n_i] = n_i * (PREC_G)^i * G + U_i.
- */
-static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp256k1_gej *r, const secp256k1_scalar *n) {
-    int bits = ECMULT_GEN_PREC_BITS;
-    int g = ECMULT_GEN_PREC_G(bits);
-    int n = ECMULT_GEN_PREC_N(bits);
-
+static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp256k1_gej *r, const secp256k1_scalar *gn) {
+    uint32_t i, comb_off;
     secp256k1_ge add;
+    secp256k1_fe neg;
     secp256k1_ge_storage adds;
-    secp256k1_scalar gnb;
-    int i, j, n_i;
+    secp256k1_scalar recoded;
+    secp256k1_scalar negone;
 
     memset(&adds, 0, sizeof(adds));
     secp256k1_gej_set_infinity(r);
 
-    /* Blind scalar/point multiplication by computing (gn-b)*G + b*G instead of gn*G. */
-    secp256k1_scalar_add(&gnb, gn, &ctx->scalar_offset);
+    /* We want to compute R = gn*G.
+     *
+     * To blind the scalar used in the computation, we rewrite this to be R = (gn-b)*G + b*G,
+     * where -b = ctx->scalar_offset, and b*G = ctx->final_point_add, or in other words,
+     * R = (gn + scalar_offset)*G + final_point_add.
+     *
+     * Next, we write (gn + scalar_offset)*G as a sum of values (2*bit_i-1) * 2^i * G,
+     * for i=0..COMB_BITS-1. The values bit_i can be found as the binary representation of
+     * recoded=(gn + scalar_offset + 2^COMB_BITS - 1)/2 (mod order).
+     */
 
-    for (i = 0; i < n; i++) {
-        n_i = secp256k1_scalar_get_bits(&gnb, i * bits, bits);
-        for (j = 0; j < g; j++) {
+    /* Compute the recoded value as a scalar. */
+    recoded = secp256k1_scalar_one;
+    secp256k1_scalar_negate(&negone, &secp256k1_scalar_one);
+    /* TODO: integrate this computation into ctx->blind. */
+    for (i = 0; i < COMB_BITS; ++i) {
+        secp256k1_scalar_add(&recoded, &recoded, &recoded);
+    }
+    secp256k1_scalar_add(&recoded, &recoded, gn);
+    secp256k1_scalar_add(&recoded, &recoded, &ctx->scalar_offset);
+    secp256k1_scalar_add(&recoded, &recoded, &negone);
+    secp256k1_scalar_half(&recoded, &recoded);
+
+    /* In secp256k1_ecmult_gen_prec_table we have precomputed sums of the
+     * (2*bit_i-1) * 2^i * G points, for various combinations of i positions.
+     * We will rewrite our equation in terms of these table entries, as explained
+     * in Section 3.3 of "Fast and compact elliptic-curve cryptography" by
+     * Mike Hamburg (see https://eprint.iacr.org/2012/309).
+     *
+     * Let mask(b) = sum(2^(b*COMB_TEETH + t)*COMB_SPACING for t=0..COMB_TEETH-1),
+     * with b ranging from 0 to COMB_BLOCKS-1. So for example with COMB_BLOCKS=11,
+     * COMB_TEETH=6, COMB_SPACING=4, we would have:
+     *   mask(0)  = 2^0   + 2^4   + 2^8   + 2^12  + 2^16  + 2^20,
+     *   mask(1)  = 2^24  + 2^28  + 2^32  + 2^36  + 2^40  + 2^44,
+     *   mask(2)  = 2^48  + 2^52  + 2^56  + 2^60  + 2^64  + 2^68,
+     *   ...
+     *   mask(10) = 2^240 + 2^244 + 2^248 + 2^252 + 2^256 + 2^260
+     *
+     * Imagine we have a table(b,m) function which can look up, given b and
+     * m=(recoded & mask(b)), the sum of (2*bit_i-1)*2^i*G for all bit positions
+     * i set in mask(b). In our example, table(1, 2^28 + 2^44) would be equal to
+     * (-2^24 + 2^28 + -2^32 + -2^36 + -2^40 + 2^244)*G.
+     *
+     * With that, we can rewrite R as:
+     *   1*(table(0, recoded & mask(0)) + table(1, recoded & mask(1)) + ...)
+     * + 2*(table(0, (recoded/2) & mask(0)) + table(1, (recoded/2) & mask(1)) + ...)
+     * + 4*(table(0, (recoded/4) & mask(0)) + table(1, (recoded/4) & mask(1)) + ...)
+     * + ...
+     * + 2^(COMB_SPACING-1)*(table(0, (recoded/2^(COMB_SPACING-1)) & mask(0)) + ...)
+     * + ctx->final_point_add.
+     *
+     * This is implemented using an outer loop that runs in reverse order over the lines
+     * of this equation, which in each iteration runs an inner loop that adds the terms
+     * of that line and the doubles the result before proceeding to the next line.
+     * In pseudocode:
+     *   R = infinity
+     *   for comb_off in range(COMB_SPACING - 1, -1, -1):
+     *     for block in range(COMB_BLOCKS):
+     *       R += table(block, (recoded >> comb_off) & mask(block))
+     *     if comb_off > 0:
+     *       R = 2*R
+     *   R += final_point_add
+     *   return R
+     *
+     * The last question is how to implement the table(b,m) function. For any value of
+     * b, m=(recoded & mask(b)) can only take on at most 2^COMB_TEETH possible values
+     * (the last one may have fewer as there mask(b) may the curve order). So we could
+     * create COMB_BLOCK tables which contain a value for each such m value.
+     *
+     * Due to the fact that every table entry is a sum of positive and negative powers
+     * of two multiplied by G, every table will contains pairs of negated points:
+     * if all the masked bits in m flip, the table value is negated. We can exploit this
+     * to only store the first half of every table. If an entry from the second half is
+     * needed, we look up its bit-flipped version instead, and conditionally negate it.
+     *
+     * secp256k1_ecmult_gen_prec_table[b][index] stores the table(b,m) entries. Index
+     * is simply the relevant bits of m packed together without gaps. */
+
+    /* Outer loop: iterate over comb_off from COMB_SPACING - 1 down to 0. */
+    comb_off = COMB_SPACING - 1;
+    while (1) {
+        uint32_t block;
+        uint32_t bit_pos = comb_off;
+        /* Inner loop: for each block, add table entries to the result. */
+        for (block = 0; block < COMB_BLOCKS; ++block) {
+            /* Gather the mask(block)-selected bits of recoded into bits. They're packed
+             * together: bit (tooth) of bits = bit
+             * ((block*COMB_TEETH + tooth)*COMB_SPACING + comb_off) of recoded. */
+            uint32_t bits = 0, sign, abs, index, tooth;
+            for (tooth = 0; tooth < COMB_TEETH && bit_pos < 256; ++tooth) {
+                uint32_t bit = secp256k1_scalar_get_bits(&recoded, bit_pos, 1);
+                bits |= bit << tooth;
+                bit_pos += COMB_SPACING;
+            }
+
+            /* If the top bit of bits is 1, conditionally flip them all (corresponding
+             * to looking up the negated table value), and remember to negate the
+             * result in sign. */
+            sign = (bits >> (COMB_TEETH - 1)) & 1;
+            abs = (bits ^ -sign) & (COMB_POINTS - 1);
+            VERIFY_CHECK(sign == 0 || sign == 1);
+            VERIFY_CHECK(abs < COMB_POINTS);
+
             /** This uses a conditional move to avoid any secret data in array indexes.
              *   _Any_ use of secret indexes has been demonstrated to result in timing
              *   sidechannels, even when the cache-line access patterns are uniform.
@@ -71,19 +153,33 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
              *    by Dag Arne Osvik, Adi Shamir, and Eran Tromer
              *    (https://www.tau.ac.il/~tromer/papers/cache.pdf)
              */
-            secp256k1_ge_storage_cmov(&adds, &secp256k1_ecmult_gen_prec_table[i][j], j == n_i);
+            for (index = 0; index < COMB_POINTS; ++index) {
+                secp256k1_ge_storage_cmov(&adds, &secp256k1_ecmult_gen_prec_table[block][index], index == abs);
+            }
+
+            /* Set add=adds or add=-adds, in constant time, based on sign. */
+            secp256k1_ge_from_storage(&add, &adds);
+            secp256k1_fe_negate(&neg, &add.y, 1);
+            secp256k1_fe_cmov(&add.y, &neg, sign);
+
+            /* Add the looked up and conditionally negated value to r. */
+            secp256k1_gej_add_ge(r, r, &add);
         }
-        secp256k1_ge_from_storage(&add, &adds);
-        secp256k1_gej_add_ge(r, r, &add);
+
+        /* Double the result, except in the last iteration. */
+        if (comb_off-- == 0) break;
+        secp256k1_gej_double(r, r);
     }
-    n_i = 0;
 
     /* Correct for the scalar_offset added at the start (final_point_add = b*G, while b was
      * subtracted from the input scalar gn). */
     secp256k1_gej_add_ge(r, r, &ctx->final_point_add);
 
+    /* Cleanup. */
+    secp256k1_fe_clear(&neg);
     secp256k1_ge_clear(&add);
-    secp256k1_scalar_clear(&gnb);
+    memset(&adds, 0, sizeof(adds));
+    secp256k1_scalar_clear(&recoded);
 }
 
 /* Setup blinding values for secp256k1_ecmult_gen. */

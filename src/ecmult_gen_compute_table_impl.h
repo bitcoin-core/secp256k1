@@ -1,8 +1,8 @@
-/***********************************************************************
- * Copyright (c) 2013, 2014, 2015 Pieter Wuille, Gregory Maxwell       *
- * Distributed under the MIT software license, see the accompanying    *
- * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
- ***********************************************************************/
+/*******************************************************************************
+ * Copyright (c) 2013-2015, 2021 Pieter Wuille, Gregory Maxwell, Peter Dettman *
+ * Distributed under the MIT software license, see the accompanying            *
+ * file COPYING or https://www.opensource.org/licenses/mit-license.php.        *
+ *******************************************************************************/
 
 #ifndef SECP256K1_ECMULT_GEN_COMPUTE_TABLE_IMPL_H
 #define SECP256K1_ECMULT_GEN_COMPUTE_TABLE_IMPL_H
@@ -13,68 +13,71 @@
 #include "ecmult_gen.h"
 #include "util.h"
 
-static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, const secp256k1_ge* gen, int bits) {
-    int g = ECMULT_GEN_PREC_G(bits);
-    int n = ECMULT_GEN_PREC_N(bits);
+static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, const secp256k1_ge* gen, int blocks, int teeth) {
+    size_t points = ((size_t)1) << (teeth - 1);
+    size_t points_total = points * blocks;
+    int spacing = (256 + blocks * teeth - 1) / (blocks * teeth);
+    secp256k1_ge* prec = checked_malloc(&default_error_callback, points_total * sizeof(*prec));
+    secp256k1_gej* ds = checked_malloc(&default_error_callback, teeth * sizeof(*ds));
+    secp256k1_gej* vs = checked_malloc(&default_error_callback, points_total * sizeof(*vs));
+    secp256k1_gej u;
+    size_t vs_pos = 0;
+    int block;
 
-    secp256k1_ge* prec = checked_malloc(&default_error_callback, n * g * sizeof(*prec));
-    secp256k1_gej gj;
-    secp256k1_gej nums_gej;
-    int i, j;
-
-    /* get the generator */
-    secp256k1_gej_set_ge(&gj, gen);
-
-    /* Construct a group element with no known corresponding scalar (nothing up my sleeve). */
-    {
-        static const unsigned char nums_b32[33] = "The scalar for this x is unknown";
-        secp256k1_fe nums_x;
-        secp256k1_ge nums_ge;
-        int r;
-        r = secp256k1_fe_set_b32(&nums_x, nums_b32);
-        (void)r;
-        VERIFY_CHECK(r);
-        r = secp256k1_ge_set_xo_var(&nums_ge, &nums_x, 0);
-        (void)r;
-        VERIFY_CHECK(r);
-        secp256k1_gej_set_ge(&nums_gej, &nums_ge);
-        /* Add G to make the bits in x uniformly distributed. */
-        secp256k1_gej_add_ge_var(&nums_gej, &nums_gej, gen, NULL);
-    }
-
-    /* compute prec. */
-    {
-        secp256k1_gej gbase;
-        secp256k1_gej numsbase;
-        secp256k1_gej* precj = checked_malloc(&default_error_callback, n * g * sizeof(*precj));  /* Jacobian versions of prec. */
-        gbase = gj; /* PREC_G^j * G */
-        numsbase = nums_gej; /* 2^j * nums. */
-        for (j = 0; j < n; j++) {
-            /* Set precj[j*PREC_G .. j*PREC_G+(PREC_G-1)] to (numsbase, numsbase + gbase, ..., numsbase + (PREC_G-1)*gbase). */
-            precj[j*g] = numsbase;
-            for (i = 1; i < g; i++) {
-                secp256k1_gej_add_var(&precj[j*g + i], &precj[j*g + i - 1], &gbase, NULL);
-            }
-            /* Multiply gbase by PREC_G. */
-            for (i = 0; i < bits; i++) {
-                secp256k1_gej_double_var(&gbase, &gbase, NULL);
-            }
-            /* Multiply numbase by 2. */
-            secp256k1_gej_double_var(&numsbase, &numsbase, NULL);
-            if (j == n - 2) {
-                /* In the last iteration, numsbase is (1 - 2^j) * nums instead. */
-                secp256k1_gej_neg(&numsbase, &numsbase);
-                secp256k1_gej_add_var(&numsbase, &numsbase, &nums_gej, NULL);
+    /* u is the running power of two times gen we're working with, initially 1*gen. */
+    secp256k1_gej_set_ge(&u, gen);
+    for (block = 0; block < blocks; ++block) {
+        int tooth;
+        /* Here u = 2^(block*teeth*spacing) * gen. */
+        secp256k1_gej sum;
+        secp256k1_gej_set_infinity(&sum);
+        for (tooth = 0; tooth < teeth; ++tooth) {
+            /* Here u = 2^((block*teeth + tooth)*spacing) * gen. */
+            int bit_off;
+            /* Make sum = sum(2^((block*teeth + t)*spacing), t=0..tooth). */
+            secp256k1_gej_add_var(&sum, &sum, &u, NULL);
+            /* Make u = 2^((block*teeth + tooth)*spacing + 1) * gen. */
+            secp256k1_gej_double_var(&u, &u, NULL);
+            /* Make ds[tooth] = u = 2^((block*teeth + tooth)*spacing + 1) * gen. */
+            ds[tooth] = u;
+            /* Make u = 2^((block*teeth + tooth + 1)*spacing). */
+            for (bit_off = 1; bit_off < spacing; ++bit_off) {
+                secp256k1_gej_double_var(&u, &u, NULL);
             }
         }
-        secp256k1_ge_set_all_gej_var(prec, precj, n * g);
-        free(precj);
-    }
-    for (j = 0; j < n; j++) {
-        for (i = 0; i < g; i++) {
-            secp256k1_ge_to_storage(&table[j*g + i], &prec[j*g + i]);
+        /* Now u = 2^(block*(teeth + 1)*spacing) * gen. */
+
+        /* Next, compute the table entries for block block in Jacobian coordinates.
+         * The entries will occupy vs[block*points + i] for i=0..points-1.
+         * We start by computing the first (i=0) value corresponding to all summed
+         * powers of two times G being negative. */
+        secp256k1_gej_neg(&vs[vs_pos++], &sum);
+        /* And then teeth-1 times "double" the range of i values for which the table
+         * is computed: in each iteration, double the table by taking an existing
+         * table entry and adding ds[tooth]. */
+        for (tooth = 0; tooth < teeth - 1; ++tooth) {
+            size_t stride = ((size_t)1) << tooth;
+            size_t index;
+            for (index = 0; index < stride; ++index, ++vs_pos) {
+                secp256k1_gej_add_var(&vs[vs_pos], &vs[vs_pos - stride], &ds[tooth], NULL);
+            }
         }
     }
+    VERIFY_CHECK(vs_pos == points_total);
+
+    /* Convert all points simultaneously from secp256k1_gej to secp256k1_ge. */
+    secp256k1_ge_set_all_gej_var(prec, vs, points_total);
+    /* Convert all points from secp256k1_ge to secp256k1_ge_storage output. */
+    for (block = 0; block < blocks; ++block) {
+        size_t index;
+        for (index = 0; index < points; ++index) {
+            secp256k1_ge_to_storage(&table[block * points + index], &prec[block * points + index]);
+        }
+    }
+
+    /* Free memory. */
+    free(vs);
+    free(ds);
     free(prec);
 }
 
