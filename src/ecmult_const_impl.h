@@ -213,25 +213,22 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
         }
     }
 
-    secp256k1_fe_mul(&r->z, &r->z, &Z);
-
     {
         /* Correct for wNAF skew */
-        secp256k1_gej tmp;
-        secp256k1_ge a_1;
-        secp256k1_ge_neg(&a_1, a);
+        secp256k1_gej tmpj;
 
-        secp256k1_gej_add_ge(&tmp, r, &a_1);
-        secp256k1_gej_cmov(r, &tmp, skew_1);
+        secp256k1_ge_neg(&tmpa, &pre_a[0]);
+        secp256k1_gej_add_ge(&tmpj, r, &tmpa);
+        secp256k1_gej_cmov(r, &tmpj, skew_1);
 
         if (size > 128) {
-            secp256k1_ge a_lam;
-            secp256k1_ge_mul_lambda(&a_lam, &a_1);
-
-            secp256k1_gej_add_ge(&tmp, r, &a_lam);
-            secp256k1_gej_cmov(r, &tmp, skew_lam);
+            secp256k1_ge_neg(&tmpa, &pre_a_lam[0]);
+            secp256k1_gej_add_ge(&tmpj, r, &tmpa);
+            secp256k1_gej_cmov(r, &tmpj, skew_lam);
         }
     }
+
+    secp256k1_fe_mul(&r->z, &r->z, &Z);
 }
 
 #endif /* SECP256K1_ECMULT_CONST_IMPL_H */
