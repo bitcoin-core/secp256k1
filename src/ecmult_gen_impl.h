@@ -85,19 +85,17 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
      * (gn-b)*G = (2*d - (2^COMB_BITS - 1)) * (G/2), or
      * d = (gn + (2^COMB_BITS - 1)/2 - b) mod order.
      *
-     * -b is precomputed as ctx->scalar_offset, so our final equations become:
+     * 2^(COMB_BITS - 1)/2 - b is precomputed as ctx->scalar_offset, so our final equations become:
      *
-     *   d = gn + ctx->scalar_offset + (2^COMB_BITS - 1)/2 (mod order)
+     *   d = gn + ctx->scalar_offset (mod order)
      *   R = comb(d, G/2) + ctx->final_point_add.
      *
      * The comb function is computed by summing + or - 2^(i-1)*G, for i=0..COMB_BITS-1, depending
      * on the value of the bits d_i of the binary representation of scalar d.
      */
 
-    /* Compute the scalar (gn + ctx->scalar_offset + (2^COMB_BITS - 1)/2). */
-    secp256k1_ecmult_gen_scalar_diff(&recoded);
-    secp256k1_scalar_add(&recoded, &recoded, &ctx->scalar_offset);
-    secp256k1_scalar_add(&recoded, &recoded, gn);
+    /* Compute the scalar (gn + ctx->scalar_offset). */
+    secp256k1_scalar_add(&recoded, &ctx->scalar_offset, gn);
 
     /* In secp256k1_ecmult_gen_prec_table we have precomputed sums of the
      * (2*d_i-1) * 2^(i-1) * G points, for various combinations of i positions.
@@ -219,14 +217,19 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
 /* Setup blinding values for secp256k1_ecmult_gen. */
 static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const unsigned char *seed32) {
     secp256k1_scalar b;
+    secp256k1_scalar diff;
     secp256k1_gej gb;
     unsigned char nonce32[32];
     secp256k1_rfc6979_hmac_sha256 rng;
     unsigned char keydata[64];
+
+    /* Compute the (2^COMB_BITS - 1)/2 term once. */
+    secp256k1_ecmult_gen_scalar_diff(&diff);
+
     if (seed32 == NULL) {
         /* When seed is NULL, reset the final point and blinding value. */
         secp256k1_ge_neg(&ctx->final_point_add, &secp256k1_ge_const_g);
-        ctx->scalar_offset = secp256k1_scalar_one;
+        secp256k1_scalar_add(&ctx->scalar_offset, &secp256k1_scalar_one, &diff);
         return;
     }
     /* The prior blinding value (if not reset) is chained forward by including it in the hash. */
@@ -242,7 +245,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
 
     /* TODO: reintroduce projective blinding. */
 
-    /* For a random blinding value b, set ctx->scalar_offset=-b, ctx->final_point_add=bG. */
+    /* For a random blinding value b, set scalar_offset=diff-n, final_point_add=bG */
     secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
     secp256k1_scalar_set_b32(&b, nonce32, NULL);
     /* The blinding value cannot be zero, as that would mean final_point_add = infinity,
@@ -252,7 +255,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     memset(nonce32, 0, 32);
     secp256k1_ecmult_gen(ctx, &gb, &b);
     secp256k1_scalar_negate(&b, &b);
-    ctx->scalar_offset = b;
+    secp256k1_scalar_add(&ctx->scalar_offset, &b, &diff);
     secp256k1_ge_set_gej(&ctx->final_point_add, &gb);
 
     /* Clean up. */
