@@ -103,7 +103,7 @@ typedef struct {
 
     /* Values chosen such that
      *
-     *   n*G == comb(n + (2^COMB_BITS-1)/2 + scalar_offset, G/2) + ge_offset.
+     *   n*G == comb(n + scalar_offset, G/2) + ge_offset.
      *
      * This expression lets us use scalar blinding and optimize the comb precomputation. See
      * ecmult_gen_impl.h for more details. */
