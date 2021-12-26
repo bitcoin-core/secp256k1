@@ -32,9 +32,9 @@ typedef struct {
     /* Whether the context has been built. */
     int built;
 
-    /* Blinding values used when computing (n-b)G + bG. */
-    secp256k1_scalar blind; /* -b */
-    secp256k1_gej initial;  /* bG */
+    /* Blinding values used when computing nG as (n-b)G + bG. */
+    secp256k1_scalar scalar_offset; /* -b */
+    secp256k1_ge ge_offset;  /* bG */
 } secp256k1_ecmult_gen_context;
 
 static void secp256k1_ecmult_gen_context_build(secp256k1_ecmult_gen_context* ctx);

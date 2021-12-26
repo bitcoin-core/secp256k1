@@ -25,8 +25,8 @@ static int secp256k1_ecmult_gen_context_is_built(const secp256k1_ecmult_gen_cont
 
 static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx) {
     ctx->built = 0;
-    secp256k1_scalar_clear(&ctx->blind);
-    secp256k1_gej_clear(&ctx->initial);
+    secp256k1_scalar_clear(&ctx->scalar_offset);
+    secp256k1_ge_clear(&ctx->ge_offset);
 }
 
 /* For accelerating the computation of a*G:
@@ -51,12 +51,13 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     secp256k1_ge_storage adds;
     secp256k1_scalar gnb;
     int i, j, n_i;
-    
+
     memset(&adds, 0, sizeof(adds));
-    *r = ctx->initial;
-    /* Blind scalar/point multiplication by computing (n-b)G + bG instead of nG. */
-    secp256k1_scalar_add(&gnb, gn, &ctx->blind);
-    add.infinity = 0;
+    secp256k1_gej_set_infinity(r);
+
+    /* Blind scalar/point multiplication by computing (gn-b)*G + b*G instead of gn*G. */
+    secp256k1_scalar_add(&gnb, gn, &ctx->scalar_offset);
+
     for (i = 0; i < n; i++) {
         n_i = secp256k1_scalar_get_bits(&gnb, i * bits, bits);
         for (j = 0; j < g; j++) {
@@ -76,6 +77,11 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
         secp256k1_gej_add_ge(r, r, &add);
     }
     n_i = 0;
+
+    /* Correct for the scalar_offset added at the start (ge_offset = b*G, while b was
+     * subtracted from the input scalar gn). */
+    secp256k1_gej_add_ge(r, r, &ctx->ge_offset);
+
     secp256k1_ge_clear(&add);
     secp256k1_scalar_clear(&gnb);
 }
@@ -84,19 +90,17 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
 static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const unsigned char *seed32) {
     secp256k1_scalar b;
     secp256k1_gej gb;
-    secp256k1_fe s;
     unsigned char nonce32[32];
     secp256k1_rfc6979_hmac_sha256 rng;
     unsigned char keydata[64];
     if (seed32 == NULL) {
-        /* When seed is NULL, reset the initial point and blinding value. */
-        secp256k1_gej_set_ge(&ctx->initial, &secp256k1_ge_const_g);
-        secp256k1_gej_neg(&ctx->initial, &ctx->initial);
-        secp256k1_scalar_set_int(&ctx->blind, 1);
+        /* When seed is NULL, reset the final point and blinding value. */
+        secp256k1_ge_neg(&ctx->ge_offset, &secp256k1_ge_const_g);
+        ctx->scalar_offset = secp256k1_scalar_one;
         return;
     }
     /* The prior blinding value (if not reset) is chained forward by including it in the hash. */
-    secp256k1_scalar_get_b32(keydata, &ctx->blind);
+    secp256k1_scalar_get_b32(keydata, &ctx->scalar_offset);
     /** Using a CSPRNG allows a failure free interface, avoids needing large amounts of random data,
      *   and guards against weak or adversarial seeds.  This is a simpler and safer interface than
      *   asking the caller for blinding values directly and expecting them to retry on failure.
@@ -105,24 +109,23 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     memcpy(keydata + 32, seed32, 32);
     secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, 64);
     memset(keydata, 0, sizeof(keydata));
-    secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
-    secp256k1_fe_set_b32_mod(&s, nonce32);
-    secp256k1_fe_cmov(&s, &secp256k1_fe_one, secp256k1_fe_normalizes_to_zero(&s));
-    /* Randomize the projection to defend against multiplier sidechannels.
-       Do this before our own call to secp256k1_ecmult_gen below. */
-    secp256k1_gej_rescale(&ctx->initial, &s);
-    secp256k1_fe_clear(&s);
+
+    /* TODO: reintroduce projective blinding. */
+
+    /* For a random blinding value b, set ctx->scalar_offset=-b, ctx->ge_offset=bG. */
     secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
     secp256k1_scalar_set_b32(&b, nonce32, NULL);
-    /* A blinding value of 0 works, but would undermine the projection hardening. */
+    /* The blinding value cannot be zero, as that would mean ge_offset = infinity,
+     * which secp256k1_gej_add_ge cannot handle. */
     secp256k1_scalar_cmov(&b, &secp256k1_scalar_one, secp256k1_scalar_is_zero(&b));
     secp256k1_rfc6979_hmac_sha256_finalize(&rng);
     memset(nonce32, 0, 32);
-    /* The random projection in ctx->initial ensures that gb will have a random projection. */
     secp256k1_ecmult_gen(ctx, &gb, &b);
     secp256k1_scalar_negate(&b, &b);
-    ctx->blind = b;
-    ctx->initial = gb;
+    ctx->scalar_offset = b;
+    secp256k1_ge_set_gej(&ctx->ge_offset, &gb);
+
+    /* Clean up. */
     secp256k1_scalar_clear(&b);
     secp256k1_gej_clear(&gb);
 }

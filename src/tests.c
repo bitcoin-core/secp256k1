@@ -248,8 +248,8 @@ static void run_selftest_tests(void) {
 
 static int ecmult_gen_context_eq(const secp256k1_ecmult_gen_context *a, const secp256k1_ecmult_gen_context *b) {
     return a->built == b->built
-            && secp256k1_scalar_eq(&a->blind, &b->blind)
-            && secp256k1_gej_eq_var(&a->initial, &b->initial);
+            && secp256k1_scalar_eq(&a->scalar_offset, &b->scalar_offset)
+            && secp256k1_ge_eq_var(&a->ge_offset, &b->ge_offset);
 }
 
 static int context_eq(const secp256k1_context *a, const secp256k1_context *b) {
@@ -5570,18 +5570,18 @@ static void test_ecmult_gen_blind(void) {
     unsigned char seed32[32];
     secp256k1_gej pgej;
     secp256k1_gej pgej2;
-    secp256k1_gej i;
+    secp256k1_ge p;
     secp256k1_ge pge;
     random_scalar_order_test(&key);
     secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej, &key);
     secp256k1_testrand256(seed32);
-    b = CTX->ecmult_gen_ctx.blind;
-    i = CTX->ecmult_gen_ctx.initial;
+    b = CTX->ecmult_gen_ctx.scalar_offset;
+    p = CTX->ecmult_gen_ctx.ge_offset;
     secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, seed32);
-    CHECK(!secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.blind));
+    CHECK(!secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.scalar_offset));
     secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej2, &key);
     CHECK(!gej_xyz_equals_gej(&pgej, &pgej2));
-    CHECK(!gej_xyz_equals_gej(&i, &CTX->ecmult_gen_ctx.initial));
+    CHECK(!secp256k1_ge_eq_var(&p, &CTX->ecmult_gen_ctx.ge_offset));
     secp256k1_ge_set_gej(&pge, &pgej);
     CHECK(secp256k1_gej_eq_ge_var(&pgej2, &pge));
 }
@@ -5589,13 +5589,14 @@ static void test_ecmult_gen_blind(void) {
 static void test_ecmult_gen_blind_reset(void) {
     /* Test ecmult_gen() blinding reset and confirm that the blinding is consistent. */
     secp256k1_scalar b;
-    secp256k1_gej initial;
+    secp256k1_ge p1, p2;
     secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, 0);
-    b = CTX->ecmult_gen_ctx.blind;
-    initial = CTX->ecmult_gen_ctx.initial;
+    b = CTX->ecmult_gen_ctx.scalar_offset;
+    p1 = CTX->ecmult_gen_ctx.ge_offset;
     secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, 0);
-    CHECK(secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.blind));
-    CHECK(gej_xyz_equals_gej(&initial, &CTX->ecmult_gen_ctx.initial));
+    CHECK(secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.scalar_offset));
+    p2 = CTX->ecmult_gen_ctx.ge_offset;
+    CHECK(secp256k1_ge_eq_var(&p1, &p2));
 }
 
 static void run_ecmult_gen_blind(void) {
