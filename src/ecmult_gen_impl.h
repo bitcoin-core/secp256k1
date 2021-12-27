@@ -175,6 +175,8 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
             if (EXPECT(first, 0)) {
                 /* If this is the first table lookup, we can skip addition. */
                 secp256k1_gej_set_ge(r, &add);
+                /* Give the entry a random Z coordinate to blind intermediary results. */
+                secp256k1_gej_rescale(r, &ctx->proj_blind);
                 first = 0;
             } else {
                 secp256k1_gej_add_ge(r, r, &add);
@@ -203,6 +205,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     secp256k1_scalar base_offset, negone;
     unsigned i;
     secp256k1_gej gb;
+    secp256k1_fe f;
     unsigned char nonce32[32];
     secp256k1_rfc6979_hmac_sha256 rng;
     unsigned char keydata[64] = {0};
@@ -220,6 +223,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
         secp256k1_ge_neg(&ctx->final_point_add, &secp256k1_ge_const_g);
         ctx->scalar_offset = secp256k1_scalar_one;
         secp256k1_scalar_add(&ctx->scalar_offset, &ctx->scalar_offset, &base_offset);
+        ctx->proj_blind = secp256k1_fe_one;
     }
     /* The prior blinding value (if not reset) is chained forward by including it in the hash. */
     secp256k1_scalar_get_b32(nonce32, &ctx->scalar_offset);
@@ -234,7 +238,11 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, seed32 ? 64 : 32);
     memset(keydata, 0, sizeof(keydata));
 
-    /* TODO: reintroduce projective blinding. */
+    /* Compute projective blinding factor (cannot be 0). */
+    secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
+    secp256k1_fe_set_b32(&f, nonce32);
+    secp256k1_fe_cmov(&f, &secp256k1_fe_one, secp256k1_fe_is_zero(&f));
+    ctx->proj_blind = f;
 
     /* For a random blinding value b, set scalar_offset=base_offset-n, final_point_add=bG */
     secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
