@@ -35,9 +35,9 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     secp256k1_fe neg;
     secp256k1_ge_storage adds;
     secp256k1_scalar recoded;
+    int first = 1;
 
     memset(&adds, 0, sizeof(adds));
-    secp256k1_gej_set_infinity(r);
 
     /* We want to compute R = gn*G.
      *
@@ -156,7 +156,13 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
             secp256k1_fe_cmov(&add.y, &neg, sign);
 
             /* Add the looked up and conditionally negated value to r. */
-            secp256k1_gej_add_ge(r, r, &add);
+            if (EXPECT(first, 0)) {
+                /* If this is the first table lookup, we can skip addition. */
+                secp256k1_gej_set_ge(r, &add);
+                first = 0;
+            } else {
+                secp256k1_gej_add_ge(r, r, &add);
+            }
         }
 
         /* Double the result, except in the last iteration. */
