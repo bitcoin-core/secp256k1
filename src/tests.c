@@ -249,7 +249,8 @@ static void run_selftest_tests(void) {
 static int ecmult_gen_context_eq(const secp256k1_ecmult_gen_context *a, const secp256k1_ecmult_gen_context *b) {
     return a->built == b->built
             && secp256k1_scalar_eq(&a->scalar_offset, &b->scalar_offset)
-            && secp256k1_ge_eq_var(&a->ge_offset, &b->ge_offset);
+            && secp256k1_ge_eq_var(&a->ge_offset, &b->ge_offset)
+            && secp256k1_fe_equal(&a->proj_blind, &b->proj_blind);
 }
 
 static int context_eq(const secp256k1_context *a, const secp256k1_context *b) {
