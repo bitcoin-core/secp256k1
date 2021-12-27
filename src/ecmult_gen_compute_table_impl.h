@@ -54,16 +54,18 @@ static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, cons
         secp256k1_gej_set_infinity(&sum);
         for (tooth = 0; tooth < teeth; ++tooth) {
             /* Here u = 2^((block*teeth + tooth)*spacing) * gen/2. */
-            int bit_off;
             /* Make sum = sum(2^((block*teeth + t)*spacing), t=0..tooth) * gen/2. */
             secp256k1_gej_add_var(&sum, &sum, &u, NULL);
             /* Make u = 2^((block*teeth + tooth)*spacing + 1) * gen/2. */
             secp256k1_gej_double_var(&u, &u, NULL);
             /* Make ds[tooth] = u = 2^((block*teeth + tooth)*spacing + 1) * gen/2. */
             ds[tooth] = u;
-            /* Make u = 2^((block*teeth + tooth + 1)*spacing) * gen/2. */
-            for (bit_off = 1; bit_off < spacing; ++bit_off) {
-                secp256k1_gej_double_var(&u, &u, NULL);
+            /* Make u = 2^((block*teeth + tooth + 1)*spacing) * gen/2, unless at the end. */
+            if (block + tooth != blocks + teeth - 2) {
+                int bit_off;
+                for (bit_off = 1; bit_off < spacing; ++bit_off) {
+                    secp256k1_gej_double_var(&u, &u, NULL);
+                }
             }
         }
         /* Now u = 2^((block*teeth + teeth)*spacing) * gen/2
