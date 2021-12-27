@@ -56,6 +56,7 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     secp256k1_fe neg;
     secp256k1_ge_storage adds;
     secp256k1_scalar d;
+    int first = 1;
 
     memset(&adds, 0, sizeof(adds));
 
@@ -177,7 +178,6 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
      * secp256k1_ecmult_gen_prec_table[b][index] stores the table(b, m) entries. Index
      * is the relevant mask(b) bits of m packed together without gaps. */
 
-    secp256k1_gej_set_infinity(r);
     /* Outer loop: iterate over comb_off from COMB_SPACING - 1 down to 0. */
     comb_off = COMB_SPACING - 1;
     while (1) {
@@ -221,7 +221,13 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
             secp256k1_fe_cmov(&add.y, &neg, sign);
 
             /* Add the looked up and conditionally negated value to r. */
-            secp256k1_gej_add_ge(r, r, &add);
+            if (EXPECT(first, 0)) {
+                /* If this is the first table lookup, we can skip addition. */
+                secp256k1_gej_set_ge(r, &add);
+                first = 0;
+            } else {
+                secp256k1_gej_add_ge(r, r, &add);
+            }
         }
 
         /* Double the result, except in the last iteration. */
