@@ -214,6 +214,8 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
             if (EXPECT(first, 0)) {
                 /* If this is the first table lookup, we can skip addition. */
                 secp256k1_gej_set_ge(r, &add);
+                /* Give the entry a random Z coordinate to blind intermediary results. */
+                secp256k1_gej_rescale(r, &ctx->proj_blind);
                 first = 0;
             } else {
                 secp256k1_gej_add_ge(r, r, &add);
@@ -241,6 +243,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     secp256k1_scalar b;
     secp256k1_scalar diff;
     secp256k1_gej gb;
+    secp256k1_fe f;
     unsigned char nonce32[32];
     secp256k1_rfc6979_hmac_sha256 rng;
     unsigned char keydata[64];
@@ -252,6 +255,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
         /* When seed is NULL, reset the final point and blinding value. */
         secp256k1_ge_neg(&ctx->final_point_add, &secp256k1_ge_const_g);
         secp256k1_scalar_add(&ctx->scalar_offset, &secp256k1_scalar_one, &diff);
+        ctx->proj_blind = secp256k1_fe_one;
         return;
     }
     /* The prior blinding value (if not reset) is chained forward by including it in the hash. */
@@ -265,7 +269,11 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, 64);
     memset(keydata, 0, sizeof(keydata));
 
-    /* TODO: reintroduce projective blinding. */
+    /* Compute projective blinding factor (cannot be 0). */
+    secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
+    secp256k1_fe_set_b32_mod(&f, nonce32);
+    secp256k1_fe_cmov(&f, &secp256k1_fe_one, secp256k1_fe_normalizes_to_zero(&f));
+    ctx->proj_blind = f;
 
     /* For a random blinding value b, set scalar_offset=diff-n, final_point_add=bG */
     secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
