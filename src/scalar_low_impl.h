@@ -19,10 +19,12 @@ SECP256K1_INLINE static void secp256k1_scalar_clear(secp256k1_scalar *r) { *r = 
 SECP256K1_INLINE static void secp256k1_scalar_set_int(secp256k1_scalar *r, unsigned int v) { *r = v; }
 
 SECP256K1_INLINE static unsigned int secp256k1_scalar_get_bits(const secp256k1_scalar *a, unsigned int offset, unsigned int count) {
-    if (offset < 32)
-        return ((*a >> offset) & ((((uint32_t)1) << count) - 1));
-    else
+    VERIFY_CHECK(count > 0 && count <= 32);
+    if (offset < 32) {
+        return (*a >> offset) & (0xFFFFFFFF >> (32 - count));
+    } else {
         return 0;
+    }
 }
 
 SECP256K1_INLINE static unsigned int secp256k1_scalar_get_bits_var(const secp256k1_scalar *a, unsigned int offset, unsigned int count) {
