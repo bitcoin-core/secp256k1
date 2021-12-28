@@ -197,9 +197,32 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
             /* Gather the mask(block)-selected bits of d into bits. They're packed:
              * bits[tooth] = d[(block*COMB_TEETH + tooth)*COMB_SPACING + comb_off]. */
             uint32_t bits = 0, sign, abs, index, tooth;
+            /* Instead of reading individual bits here to construct the bits variable,
+             * build up the result by xoring rotated reads together. In every iteration,
+             * one additional bit is made correct, starting at the bottom. The bits
+             * above that contain junk. This reduces leakage by avoiding computations
+             * on variables that can have only a low number of possible values (e.g.,
+             * just two values when reading a single bit into a variable.) See:
+             * https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-alam.pdf
+             */
             for (tooth = 0; tooth < COMB_TEETH; ++tooth) {
-                uint32_t bit = (recoded[bit_pos >> 5] >> (bit_pos & 0x1f)) & 1;
-                bits |= bit << tooth;
+                /* Construct bitdata s.t. the bottom bit is the bit we'd like to read.
+                 *
+                 * We could just set bitdata = recoded[bit_pos >> 5] >> (bit_pos & 0x1f)
+                 * but this would simply discard the bits that fall off at the bottom,
+                 * and thus, for example, bitdata could still have only two values if we
+                 * happen to shift by exactly 31 positions. We use a rotation instead,
+                 * which ensures that bitdata doesn't loose entropy. This relies on the
+                 * rotation being atomic, i.e., the compiler emitting an actual rot
+                 * instruction. */
+                uint32_t bitdata = secp256k1_rotr32(recoded[bit_pos >> 5], bit_pos & 0x1f);
+
+                /* Clear the bit at position tooth, but sssh, don't tell clang. */
+                uint32_t volatile vmask = ~(1 << tooth);
+                bits &= vmask;
+
+                /* Write the bit into position tooth (and junk into higher bits). */
+                bits ^= bitdata << tooth;
                 bit_pos += COMB_SPACING;
             }
 

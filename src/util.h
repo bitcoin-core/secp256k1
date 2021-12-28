@@ -394,4 +394,16 @@ SECP256K1_INLINE static void secp256k1_write_be64(unsigned char* p, uint64_t x) 
     p[0] = x >> 56;
 }
 
+/* Rotate a uint32_t to the right. */
+SECP256K1_INLINE static uint32_t secp256k1_rotr32(const uint32_t x, const unsigned int by) {
+#if defined(_MSC_VER)
+    return _rotr(x, by);  /* needs <stdlib.h> */
+#else
+    /* Reduce rotation amount to avoid UB when shifting. */
+    const unsigned int mask = CHAR_BIT * sizeof(x) - 1;
+    /* Turned into a rot instruction by GCC and clang. */
+    return (x >> (by & mask)) | (x << ((-by) & mask));
+#endif
+}
+
 #endif /* SECP256K1_UTIL_H */
