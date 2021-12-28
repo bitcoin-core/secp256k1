@@ -34,8 +34,12 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     secp256k1_ge add;
     secp256k1_fe neg;
     secp256k1_ge_storage adds;
-    secp256k1_scalar recoded;
-    int first = 1;
+    secp256k1_scalar tmp;
+    /* Array of uint32_t values large enough to store COMB_BITS bits. Only the bottom
+     * 8 are ever nonzero, but having the zero padding at the end if COMB_BITS>256
+     * avoids the need to deal with out-of-bounds reads from a scalar. */
+    uint32_t recoded[(COMB_BITS + 31) >> 5] = {0};
+    int first = 1, i;
 
     memset(&adds, 0, sizeof(adds));
 
@@ -44,17 +48,22 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
      * To blind the scalar used in the computation, we rewrite this to be R = (gn-b)*G + b*G.
      *
      * Next, we write (gn-b)*G as a sum of values (2*bit_i-1) * 2^i * G, for i=0..COMB_BITS-1.
-     * The values bit_i can be found as the binary representation of recoded =
-     * (gn + 2^COMB_BITS - 1 - b)/2 (mod order).
+     * The values bit_i can be found as the binary representation of
+     * (gn + 2^COMB_BITS - 1 - b)/2 (mod order), stored in recoded.
      *
      * The value (2^COMB_BITS - 1 - b) is precomputed as ctx->scalar_offset, and bG is
      * precomputed as ctx->final_point_add. Thus recoded can be written as
      * recoded = (gn + scalar_offset)/2, and R becomes the sum of (2*bit_i-1)*2^i*G
      * values plus final_point_add. */
 
-    /* Compute the recoded value as a scalar. */
-    secp256k1_scalar_add(&recoded, gn, &ctx->scalar_offset);
-    secp256k1_scalar_half(&recoded, &recoded);
+    /* Compute (gn + 2^COMB_BITS - 1 - 1)/2 value as a scalar. */
+    secp256k1_scalar_add(&tmp, gn, &ctx->scalar_offset);
+    secp256k1_scalar_half(&tmp, &tmp);
+    /* Convert to recoded array. */
+    for (i = 0; i < 8; ++i) {
+        recoded[i] = secp256k1_scalar_get_bits(&tmp, 32 * i, 32);
+    }
+    secp256k1_scalar_clear(&tmp);
 
     /* In secp256k1_ecmult_gen_prec_table we have precomputed sums of the
      * (2*bit_i-1) * 2^i * G points, for various combinations of i positions.
@@ -122,8 +131,8 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
              * together: bit (tooth) of bits = bit
              * ((block*COMB_TEETH + tooth)*COMB_SPACING + comb_off) of recoded. */
             uint32_t bits = 0, sign, abs, index, tooth;
-            for (tooth = 0; tooth < COMB_TEETH && bit_pos < 256; ++tooth) {
-                uint32_t bit = secp256k1_scalar_get_bits(&recoded, bit_pos, 1);
+            for (tooth = 0; tooth < COMB_TEETH; ++tooth) {
+                uint32_t bit = (recoded[bit_pos >> 5] >> (bit_pos & 0x1f)) & 1;
                 bits |= bit << tooth;
                 bit_pos += COMB_SPACING;
             }
@@ -178,7 +187,7 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     secp256k1_fe_clear(&neg);
     secp256k1_ge_clear(&add);
     memset(&adds, 0, sizeof(adds));
-    secp256k1_scalar_clear(&recoded);
+    memset(&recoded, 0, sizeof(recoded));
 }
 
 /* Setup blinding values for secp256k1_ecmult_gen. */
