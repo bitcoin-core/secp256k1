@@ -132,8 +132,15 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
              * ((block*COMB_TEETH + tooth)*COMB_SPACING + comb_off) of recoded. */
             uint32_t bits = 0, sign, abs, index, tooth;
             for (tooth = 0; tooth < COMB_TEETH; ++tooth) {
-                uint32_t bit = (recoded[bit_pos >> 5] >> (bit_pos & 0x1f)) & 1;
-                bits |= bit << tooth;
+                /* Instead of reading individual bits here to construct bits, build up
+                 * the result by xoring shifted reads together. In every iteration, one
+                 * additional bit is made correct, starting at the bottom. The bits
+                 * above that contain junk. This reduces leakage from single bits. See
+                 * https://www.usenix.org/system/files/conference/usenixsecurity18/sec18-alam.pdf
+                 */
+                uint32_t bitdata = recoded[bit_pos >> 5] >> (bit_pos & 0x1f);
+                bits &= ~(1 << tooth);
+                bits ^= bitdata << tooth;
                 bit_pos += COMB_SPACING;
             }
 
