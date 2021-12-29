@@ -177,13 +177,12 @@ AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
 )],
 [req_ecmult_window=$withval], [req_ecmult_window=auto])
 
-AC_ARG_WITH([ecmult-gen-precision], [AS_HELP_STRING([--with-ecmult-gen-precision=2|4|8|auto],
-[Precision bits to tune the precomputed table size for signing.]
-[The size of the table is 32kB for 2 bits, 64kB for 4 bits, 512kB for 8 bits of precision.]
-[A larger table size usually results in possible faster signing.]
-["auto" is a reasonable setting for desktop machines (currently 4). [default=auto]]
+AC_ARG_WITH([ecmult-gen-kb], [AS_HELP_STRING([--with-ecmult-gen-kb=2|22|86|auto],
+[The size of the precomputed table for signing in multiples of 1024 bytes (on typical platforms).]
+[Larger values result in possibly better signing/keygeneration performance at the cost of a larger table.]
+["auto" is a reasonable setting for desktop machines (currently 86). [default=auto]]
 )],
-[req_ecmult_gen_precision=$withval], [req_ecmult_gen_precision=auto])
+[req_ecmult_gen_kb=$withval], [req_ecmult_gen_kb=auto])
 
 AC_ARG_WITH([valgrind], [AS_HELP_STRING([--with-valgrind=yes|no|auto],
 [Build with extra checks for running inside Valgrind [default=auto]]
@@ -307,20 +306,31 @@ case $set_ecmult_window in
 esac
 
 # Set ecmult gen precision
-if test x"$req_ecmult_gen_precision" = x"auto"; then
-  set_ecmult_gen_precision=4
+if test x"$req_ecmult_gen_kb" = x"auto"; then
+  set_ecmult_gen_kb=86
 else
-  set_ecmult_gen_precision=$req_ecmult_gen_precision
+  set_ecmult_gen_kb=$req_ecmult_gen_kb
 fi
 
-case $set_ecmult_gen_precision in
-2|4|8)
-  AC_DEFINE_UNQUOTED(ECMULT_GEN_PREC_BITS, $set_ecmult_gen_precision, [Set ecmult gen precision bits])
+case $set_ecmult_gen_kb in
+2)
+  ecmult_gen_blocks=2
+  ecmult_gen_teeth=5
+  ;;
+22)
+  ecmult_gen_blocks=11
+  ecmult_gen_teeth=6
+  ;;
+86)
+  ecmult_gen_blocks=43
+  ecmult_gen_teeth=6
   ;;
 *)
-  AC_MSG_ERROR(['ecmult gen precision not 2, 4, 8 or "auto"'])
+  AC_MSG_ERROR(['ecmult gen table size not 2, 22, 86 or "auto"'])
   ;;
 esac
+AC_DEFINE_UNQUOTED(COMB_BLOCKS, $ecmult_gen_blocks, [Number of blocks for ecmult_gen computation])
+AC_DEFINE_UNQUOTED(COMB_TEETH, $ecmult_gen_teeth, [Number of teeth for ecmult_gen computation])
 
 if test x"$enable_valgrind" = x"yes"; then
   SECP_INCLUDES="$SECP_INCLUDES $VALGRIND_CPPFLAGS"
@@ -424,7 +434,7 @@ echo "  module schnorrsig       = $enable_module_schnorrsig"
 echo
 echo "  asm                     = $set_asm"
 echo "  ecmult window size      = $set_ecmult_window"
-echo "  ecmult gen prec. bits   = $set_ecmult_gen_precision"
+echo "  ecmult gen kB           = $set_ecmult_gen_kb"
 # Hide test-only options unless they're used.
 if test x"$set_widemul" != xauto; then
 echo "  wide multiplication     = $set_widemul"

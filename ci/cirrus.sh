@@ -16,7 +16,7 @@ valgrind --version || true
     --enable-experimental="$EXPERIMENTAL" \
     --with-test-override-wide-multiply="$WIDEMUL" --with-asm="$ASM" \
     --with-ecmult-window="$ECMULTWINDOW" \
-    --with-ecmult-gen-precision="$ECMULTGENPRECISION" \
+    --with-ecmult-gen-kb="$ECMULTGENKB" \
     --enable-module-ecdh="$ECDH" --enable-module-recovery="$RECOVERY" \
     --enable-module-schnorrsig="$SCHNORRSIG" \
     --with-valgrind="$WITH_VALGRIND" \
