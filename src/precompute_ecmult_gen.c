@@ -17,8 +17,10 @@
 #include "ecmult_gen.h"
 #include "ecmult_gen_compute_table_impl.h"
 
-static const int CONFIGS[1][2] = {
-    {11, 6}
+static const int CONFIGS[][2] = {
+    {2, 5},
+    {11, 6},
+    {43, 6}
 };
 
 static void print_table(FILE* fp, int blocks, int teeth) {
