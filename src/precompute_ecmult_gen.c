@@ -22,6 +22,7 @@ int main(int argc, char **argv) {
     const char outfile[] = "src/precomputed_ecmult_gen.c";
     FILE* fp;
     size_t config;
+    int did_current_config = 0;
 
     (void)argc;
     (void)argv;
@@ -47,16 +48,29 @@ int main(int argc, char **argv) {
     fprintf(fp, "#define S(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) SECP256K1_GE_STORAGE_CONST(0x##a##u,0x##b##u,0x##c##u,0x##d##u,0x##e##u,0x##f##u,0x##g##u,0x##h##u,0x##i##u,0x##j##u,0x##k##u,0x##l##u,0x##m##u,0x##n##u,0x##o##u,0x##p##u)\n");
     fprintf(fp, "const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[COMB_BLOCKS][COMB_POINTS] = {\n");
 
-    for (config = 0; config < sizeof(CONFIGS) / sizeof(*CONFIGS); ++config) {
-        int blocks = CONFIGS[config][0];
-        int teeth = CONFIGS[config][1];
-        size_t points = ((size_t)1) << (teeth - 1);
+    for (config = 0; config < sizeof(CONFIGS) / sizeof(*CONFIGS) + 1; ++config) {
+        int blocks, teeth;
+        size_t points;
         int outer;
         size_t inner;
+        secp256k1_ge_storage* table;
 
-        secp256k1_ge_storage* table = checked_malloc(&default_error_callback, blocks * points * sizeof(secp256k1_ge_storage));
+        if (config < sizeof(CONFIGS) / sizeof(*CONFIGS)) {
+            /* In all but the last iteration, output the configurations in CONFIGS. */
+            blocks = CONFIGS[config][0];
+            teeth = CONFIGS[config][1];
+            if (blocks == COMB_BLOCKS && teeth == COMB_TEETH) did_current_config = 1;
+        } else {
+            /* In the last iteration, output table for (COMB_BLOCKS, COMB_TEETH) if not
+             * already done. */
+            if (did_current_config) continue;
+            blocks = COMB_BLOCKS;
+            teeth = COMB_TEETH;
+        }
+
+        points = ((size_t)1) << (teeth - 1);
+        table = checked_malloc(&default_error_callback, blocks * points * sizeof(secp256k1_ge_storage));
         secp256k1_ecmult_gen_compute_table(table, &secp256k1_ge_const_g, blocks, teeth);
-
         fprintf(fp, "#if (COMB_BLOCKS == %d) && (COMB_TEETH == %d)\n", blocks, teeth);
         for (outer = 0; outer != blocks; outer++) {
             fprintf(fp,"{");
