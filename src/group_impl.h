@@ -642,6 +642,14 @@ static void secp256k1_ge_from_storage(secp256k1_ge *r, const secp256k1_ge_storag
     r->infinity = 0;
 }
 
+static SECP256K1_INLINE void secp256k1_gej_cmov(secp256k1_gej *r, const secp256k1_gej *a, int flag) {
+    secp256k1_fe_cmov(&r->x, &a->x, flag);
+    secp256k1_fe_cmov(&r->y, &a->y, flag);
+    secp256k1_fe_cmov(&r->z, &a->z, flag);
+
+    r->infinity ^= (r->infinity ^ a->infinity) & flag;
+}
+
 static SECP256K1_INLINE void secp256k1_ge_storage_cmov(secp256k1_ge_storage *r, const secp256k1_ge_storage *a, int flag) {
     secp256k1_fe_storage_cmov(&r->x, &a->x, flag);
     secp256k1_fe_storage_cmov(&r->y, &a->y, flag);
