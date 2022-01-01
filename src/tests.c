@@ -5600,9 +5600,29 @@ static void test_ecmult_gen_blind_reset(void) {
     CHECK(secp256k1_ge_eq_var(&p1, &p2));
 }
 
+/* Verify that ecmult_gen for scalars gn for which gn + scalar_offset = {-1,0,1}. */
+static void test_ecmult_gen_edge_cases(void) {
+    int i;
+    secp256k1_gej res1, res2, res3;
+    secp256k1_scalar gn = secp256k1_scalar_one; /* gn = 1 */
+    secp256k1_scalar_add(&gn, &gn, &CTX->ecmult_gen_ctx.scalar_offset); /* gn = 1 + scalar_offset */
+    secp256k1_scalar_negate(&gn, &gn); /* gn = -1 - scalar_offset */
+
+    for (i = -1; i < 2; ++i) {
+        /* Run test with gn = i - scalar_offset (so that the ecmult_gen recoded value represents i). */
+        secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &res1, &gn);
+        secp256k1_ecmult(&res2, NULL, &secp256k1_scalar_zero, &gn);
+        secp256k1_ecmult_const(&res3, &secp256k1_ge_const_g, &gn);
+        CHECK(secp256k1_gej_eq_var(&res1, &res2));
+        CHECK(secp256k1_gej_eq_var(&res1, &res3));
+        secp256k1_scalar_add(&gn, &gn, &secp256k1_scalar_one);
+    }
+}
+
 static void run_ecmult_gen_blind(void) {
     int i;
     test_ecmult_gen_blind_reset();
+    test_ecmult_gen_edge_cases();
     for (i = 0; i < 10; i++) {
         test_ecmult_gen_blind();
     }
