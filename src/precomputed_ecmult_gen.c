@@ -8,7 +8,7 @@
 #endif /* EXHAUSTIVE_TEST_ORDER */
 #define S(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) SECP256K1_GE_STORAGE_CONST(0x##a##u,0x##b##u,0x##c##u,0x##d##u,0x##e##u,0x##f##u,0x##g##u,0x##h##u,0x##i##u,0x##j##u,0x##k##u,0x##l##u,0x##m##u,0x##n##u,0x##o##u,0x##p##u)
 const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[COMB_BLOCKS][COMB_POINTS] = {
-#if (COMB_BLOCKS == 2) && (COMB_TEETH == 5)
+#if (COMB_BLOCKS == 2) && (COMB_TEETH == 5) && (COMB_SPACING == 26)
 {S(7081b567,8cb87d01,99c9c76e,d1e0a5e0,1d784be9,27f6b135,161e0fd0,3f39b473,ad5222ac,f062cb39,21b234a7,15b626ae,f780b307,9b5122d1,53210f42,d9369242),
 S(228af17e,df90d1cc,a40173e9,478fa445,9780dacd,c3f15b90,fda5d00e,1faa1b51,8ff47c4d,a4ba636a,f656da9,12a81f79,6252496d,1e519886,b2c2b073,25be2b4a),
 S(b515ebe0,f48fb34e,9e01824c,d90553af,db116579,96667847,5ebaa700,242fd722,4cf08191,510fbf0,51f9e19a,198f11f6,ea31268c,2a6d384c,60557250,f0553c50),
@@ -42,7 +42,7 @@ S(5cb07874,ac4ffb86,2da619be,4c8fa38b,e8b261ec,3ec73a12,cd4cf8fc,4f8d5dae,549d18
 S(5cc85d41,7b2ae9ac,dedb1b44,ce78d8a7,8f56b878,1a4b3af6,635a55c1,fead3be7,66a48c79,301e57d4,54cc8644,d2e778a8,45d85762,2c10eb98,d77eb873,e58bbeca),
 S(f27211c9,a067b01c,7fe7fbf7,7b5d9b0,eb0f2475,9d541457,6eb24ba4,19fd3db8,e26d28eb,89f7b518,e9ae0b88,fadbfb9b,641d3a44,c59c6f93,ec28a541,486e041e)}
 #endif
-#if (COMB_BLOCKS == 11) && (COMB_TEETH == 6)
+#if (COMB_BLOCKS == 11) && (COMB_TEETH == 6) && (COMB_SPACING == 4)
 {S(629bee58,a391595f,eb20c534,4933937a,cdb2eba1,86d49f8b,845c1b5f,4ca87182,8dae4162,73c6c068,2e2aede4,76efa86b,7612c07e,f72070d0,dc4486f1,47e95085),
 S(6fd5e13c,a94b874b,28cd574b,726efdbf,143ab108,1089b846,7b5b2ebe,6c6a3c8f,4a4db306,52c9772a,868b2859,57c5a005,d83f6afa,6e65d87c,700da998,ce651396),
 S(609b6576,191514f4,83f5b428,500cfbaf,96871b8b,3348fe5c,1a131768,bb266b6f,90abb9c1,1bf184d2,8dbc424a,bbf74eb8,de4e0582,2ea5dd93,7d1e8b30,e5f695e7),
@@ -396,7 +396,7 @@ S(36a066ae,694f2645,25cba884,956ebd46,ae568acf,11664965,63cee00d,a32f2199,5d1e97
 S(4922879f,800234c9,63f4b572,d236843,4c4da5c8,ff741982,c3d1e341,841d1309,9b259470,24b5f4cb,97c68d18,f7f8dfca,1e57f7de,63208765,2ce15770,98f35494),
 S(ee27e2b,acf95f6d,dbb5ebae,bbf181bb,43322a3d,6db87e78,14e57a3d,41b581e0,3d6a18a,daf69ae4,88ecc9d8,7d6b1bf2,c8d65544,3f4b45b4,c5a0ac51,7b1dc3ca)}
 #endif
-#if (COMB_BLOCKS == 43) && (COMB_TEETH == 6)
+#if (COMB_BLOCKS == 43) && (COMB_TEETH == 6) && (COMB_SPACING == 1)
 {S(e3adcb1a,fe947e6e,7cc4f5a2,df78310a,b235e2c3,bcd75eba,1904de80,c8814c50,e0b27ead,c4bbb9d2,37dad580,6e366674,4a9f9c3d,e024f2bd,1edb11d2,fafc0a22),
 S(612c2ec6,f0e9c4ec,c2200d23,ddca77eb,d003be35,61e52b1,890bf846,3bb53ea5,9e944d7b,dfc7a952,c1c5ee15,485d7199,dda19551,2d729628,c215a9e0,285f656a),
 S(42053dc0,9f90a7f7,86feca60,d68a5c3c,789e44d2,3479aa13,2d1a427c,621373a3,b338f891,f3930ec7,738669bb,3a29ae2d,637be08a,954f2a8c,acb661af,a660bd22),

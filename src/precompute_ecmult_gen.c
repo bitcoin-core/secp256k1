@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     fprintf(fp, "const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[COMB_BLOCKS][COMB_POINTS] = {\n");
 
     for (config = 0; config < sizeof(CONFIGS) / sizeof(*CONFIGS) + 1; ++config) {
-        int blocks, teeth;
+        int blocks, teeth, spacing;
         size_t points;
         int outer;
         size_t inner;
@@ -69,10 +69,11 @@ int main(int argc, char **argv) {
             teeth = COMB_TEETH;
         }
 
+        spacing = (255 + blocks * teeth) / (blocks * teeth);
         points = ((size_t)1) << (teeth - 1);
         table = checked_malloc(&default_error_callback, blocks * points * sizeof(secp256k1_ge_storage));
-        secp256k1_ecmult_gen_compute_table(table, &secp256k1_ge_const_g, blocks, teeth);
-        fprintf(fp, "#if (COMB_BLOCKS == %d) && (COMB_TEETH == %d)\n", blocks, teeth);
+        secp256k1_ecmult_gen_compute_table(table, &secp256k1_ge_const_g, blocks, teeth, spacing);
+        fprintf(fp, "#if (COMB_BLOCKS == %d) && (COMB_TEETH == %d) && (COMB_SPACING == %d)\n", blocks, teeth, spacing);
         for (outer = 0; outer != blocks; outer++) {
             fprintf(fp,"{");
             for (inner = 0; inner != points; inner++) {

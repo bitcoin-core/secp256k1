@@ -13,13 +13,11 @@
 
 /* Configuration parameters for the signed-digit multi-comb algorithm:
  *
- * - COMB_BLOCKS is the number of blocks the input is split into. Each
- *   has a corresponding table.
+ * - COMB_BLOCKS is the number of blocks the input is split into. Each has a corresponding table.
  * - COMB_TEETH is the number of bits simultaneously covered by one table.
- *
- * The comb's spacing (COMB_SPACING), or the distance between the teeth,
- * is defined as ceil(256 / (COMB_BLOCKS * COMB_TEETH)). Each block covers
- * COMB_SPACING * COMB_TEETH consecutive bits in the input.
+ * - COMB_SPACING is the distance between the teeth. For production purposes, the only reasonable
+ *   value is ceil(256 / (COMB_BLOCKS * COMB_TEETH)), so unless explicitly configured otherwise,
+ *   that value will be used. COMB_BLOCKS * COMB_TEETH * COMB_SPACING needs to be at least 256.
  *
  * The size of the precomputed table is COMB_BLOCKS * (1 << (COMB_TEETH - 1))
  * secp256k1_ge_storages.
@@ -36,65 +34,86 @@
  * doesn't support infinities) */
 #  undef COMB_BLOCKS
 #  undef COMB_TEETH
-#  if EXHAUSTIVE_TEST_ORDER > 32
-#    define COMB_BLOCKS 52
-#    define COMB_TEETH 5
-#  elif EXHAUSTIVE_TEST_ORDER > 16
-#    define COMB_BLOCKS 64
-#    define COMB_TEETH 4
-#  elif EXHAUSTIVE_TEST_ORDER > 8
-#    define COMB_BLOCKS 86
-#    define COMB_TEETH 3
-#  elif EXHAUSTIVE_TEST_ORDER > 4
-#    define COMB_BLOCKS 128
+#  undef COMB_SPACING
+#  if EXHAUSTIVE_TEST_ORDER == 13
+#    define COMB_RANGE 4
+#    define COMB_BLOCKS 1
 #    define COMB_TEETH 2
+#    define COMB_SPACING 2
+#  elif EXHAUSTIVE_TEST_ORDER == 199
+#    define COMB_RANGE 8
+#    define COMB_BLOCKS 2
+#    define COMB_TEETH 3
+#    define COMB_SPACING 2
 #  else
-#    define COMB_BLOCKS 256
-#    define COMB_TEETH 1
+#    error "Unknown exhaustive test order"
+#  endif
+#  if (COMB_RANGE >= 32) || ((EXHAUSTIVE_TEST_ORDER >> (COMB_RANGE - 1)) != 1)
+#    error "COMB_RANGE != ceil(log2(EXHAUSTIVE_TEST_ORDER+1))"
 #  endif
 #else /* !defined(EXHAUSTIVE_TEST_ORDER) */
-/* Use (11, 6) as default configuration, which results in a 22 kB table. */
-#  ifndef COMB_BLOCKS
-#    define COMB_BLOCKS 11
-#    ifdef DEBUG_CONFIG
-#      pragma message DEBUG_CONFIG_MSG("COMB_BLOCKS undefined, assuming default value")
-#    endif
-#  endif
-#  ifndef COMB_TEETH
-#    define COMB_TEETH 6
-#    ifdef DEBUG_CONFIG
-#      pragma message DEBUG_CONFIG_MSG("COMB_TEETH undefined, assuming default value")
-#    endif
-#  endif
+#  define COMB_RANGE 256
 #endif /* defined(EXHAUSTIVE_TEST_ORDER) */
 
+/* Use (11, 6) as default configuration, which results in a 22 kB table. */
+#ifndef COMB_BLOCKS
+#  define COMB_BLOCKS 11
+#  ifdef DEBUG_CONFIG
+#    pragma message DEBUG_CONFIG_MSG("COMB_BLOCKS undefined, assuming default value")
+#  endif
+#endif
+#ifndef COMB_TEETH
+#  define COMB_TEETH 6
+#  ifdef DEBUG_CONFIG
+#    pragma message DEBUG_CONFIG_MSG("COMB_TEETH undefined, assuming default value")
+#  endif
+#endif
+/* Use ceil(COMB_RANGE / (COMB_BLOCKS * COMB_TEETH)) as default COMB_SPACING. */
+#ifndef COMB_SPACING
+#  define COMB_SPACING ((COMB_RANGE + COMB_BLOCKS * COMB_TEETH) / (COMB_BLOCKS * COMB_TEETH))
+#  ifdef DEBUG_CONFIG
+#    pragma message DEBUG_CONFIG_MSG("COMB_SPACING undefined, assuming default value")
+#  endif
+#endif
+
 /* Range checks on the parameters. */
+
+/* The remaining COMB_* parameters are derived values, don't modify these. */
+/* - The number of bits covered by all the blocks; must be at least COMB_RANGE. */
+#define COMB_BITS (COMB_BLOCKS * COMB_TEETH * COMB_SPACING)
+/* - The number of entries per table. */
+#define COMB_POINTS (1 << (COMB_TEETH - 1))
+
+/* Sanity checks. */
 #if !(1 <= COMB_BLOCKS && COMB_BLOCKS <= 256)
 #  error "COMB_BLOCKS must be in the range [1, 256]"
 #endif
 #if !(1 <= COMB_TEETH && COMB_TEETH <= 8)
 #  error "COMB_TEETH must be in the range [1, 8]"
 #endif
+#if COMB_BITS < COMB_RANGE
+#  error "COMB_BLOCKS * COMB_TEETH * COMB_SPACING is too low"
+#endif
 
-/* The remaining COMB_* parameters are derived values, don't modify these. */
-/* - The distance between the teeth of each comb. */
-#define COMB_SPACING ((255 + COMB_BLOCKS * COMB_TEETH) / (COMB_BLOCKS * COMB_TEETH))
-/* - The number of bits covered by all the blocks; must be at least 256. */
-#define COMB_BITS (COMB_BLOCKS * COMB_TEETH * COMB_SPACING)
-/* - The number of entries per table. */
-#define COMB_POINTS (1 << (COMB_TEETH - 1))
-
-/* Additional sanity checks. */
+/* These last 3 checks are not strictly required, but prevent gratuitously inefficient
+ * configurations. Note that they compare with 256 rather than COMB_RANGE, so they do
+ * permit somewhat excessive values for the exhaustive test case, where testing with
+ * suboptimal parameters may be desirable. */
 #if (COMB_BLOCKS - 1) * COMB_TEETH * COMB_SPACING >= 256
 #  error "COMB_BLOCKS can be reduced"
 #endif
 #if COMB_BLOCKS * (COMB_TEETH - 1) * COMB_SPACING >= 256
 #  error "COMB_TEETH can be reduced"
 #endif
+#if COMB_BLOCKS * COMB_TEETH * (COMB_SPACING - 1) >= 256
+#  error "COMB_SPACING can be reduced"
+#endif
 
 #ifdef DEBUG_CONFIG
+#  pragma message DEBUG_CONFIG_DEF(COMB_RANGE)
 #  pragma message DEBUG_CONFIG_DEF(COMB_BLOCKS)
 #  pragma message DEBUG_CONFIG_DEF(COMB_TEETH)
+#  pragma message DEBUG_CONFIG_DEF(COMB_SPACING)
 #endif
 
 typedef struct {
