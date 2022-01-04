@@ -2991,7 +2991,6 @@ static int check_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
     secp256k1_fe an = *a;
     secp256k1_fe bn = *b;
     secp256k1_fe_normalize_weak(&an);
-    secp256k1_fe_normalize_var(&bn);
     return secp256k1_fe_equal_var(&an, &bn);
 }
 
@@ -3740,9 +3739,9 @@ static void ge_equals_gej(const secp256k1_ge *a, const secp256k1_gej *b) {
     /* Check a.x * b.z^2 == b.x && a.y * b.z^3 == b.y, to avoid inverses. */
     secp256k1_fe_sqr(&z2s, &b->z);
     secp256k1_fe_mul(&u1, &a->x, &z2s);
-    u2 = b->x; secp256k1_fe_normalize_weak(&u2);
+    u2 = b->x;
     secp256k1_fe_mul(&s1, &a->y, &z2s); secp256k1_fe_mul(&s1, &s1, &b->z);
-    s2 = b->y; secp256k1_fe_normalize_weak(&s2);
+    s2 = b->y;
     CHECK(secp256k1_fe_equal_var(&u1, &u2));
     CHECK(secp256k1_fe_equal_var(&s1, &s2));
 }
@@ -4226,8 +4225,8 @@ static void test_pre_g_table(const secp256k1_ge_storage * pre_g, size_t n) {
         secp256k1_ge_from_storage(&q, &pre_g[i]);
         CHECK(secp256k1_ge_is_valid_var(&q));
 
-        secp256k1_fe_negate(&dqx, &q.x, 1); secp256k1_fe_add(&dqx, &gg.x); secp256k1_fe_normalize_weak(&dqx);
-        dqy = q.y; secp256k1_fe_add(&dqy, &gg.y); secp256k1_fe_normalize_weak(&dqy);
+        secp256k1_fe_negate(&dqx, &q.x, 1); secp256k1_fe_add(&dqx, &gg.x);
+        dqy = q.y; secp256k1_fe_add(&dqy, &gg.y);
         /* Check that -q is not equal to gg */
         CHECK(!secp256k1_fe_normalizes_to_zero_var(&dqx) || !secp256k1_fe_normalizes_to_zero_var(&dqy));
 
