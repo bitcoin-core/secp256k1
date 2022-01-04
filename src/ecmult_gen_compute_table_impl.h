@@ -14,10 +14,9 @@
 #include "ecmult_gen.h"
 #include "util.h"
 
-static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, const secp256k1_ge* gen, int blocks, int teeth) {
+static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, const secp256k1_ge* gen, int blocks, int teeth, int spacing) {
     size_t points = ((size_t)1) << (teeth - 1);
     size_t points_total = points * blocks;
-    int spacing = (256 + blocks * teeth - 1) / (blocks * teeth);
     secp256k1_ge* prec = checked_malloc(&default_error_callback, points_total * sizeof(*prec));
     secp256k1_gej* ds = checked_malloc(&default_error_callback, teeth * sizeof(*ds));
     secp256k1_gej* vs = checked_malloc(&default_error_callback, points_total * sizeof(*vs));
@@ -95,6 +94,7 @@ static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, cons
     for (block = 0; block < blocks; ++block) {
         size_t index;
         for (index = 0; index < points; ++index) {
+            VERIFY_CHECK(!secp256k1_ge_is_infinity(&prec[block * points + index]));
             secp256k1_ge_to_storage(&table[block * points + index], &prec[block * points + index]);
         }
     }

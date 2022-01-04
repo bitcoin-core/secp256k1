@@ -109,7 +109,7 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     /* Compute the scalar d = (gn + ctx->scalar_offset). */
     secp256k1_scalar_add(&d, &ctx->scalar_offset, gn);
     /* Convert to recoded array. */
-    for (i = 0; i < 8; ++i) {
+    for (i = 0; i < 8 && i < ((COMB_BITS + 31) >> 5); ++i) {
         recoded[i] = secp256k1_scalar_get_bits_limb32(&d, 32 * i, 32);
     }
     secp256k1_scalar_clear(&d);
