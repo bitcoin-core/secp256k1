@@ -138,17 +138,17 @@ SECP256K1_INLINE static void secp256k1_ecmult_table_get_ge_lambda(secp256k1_ge *
     }
 }
 
-#define ECMULT_TABLE_GET_GE_STORAGE(r,pre,n,w) do { \
-    VERIFY_CHECK(((n) & 1) == 1); \
-    VERIFY_CHECK((n) >= -((1 << ((w)-1)) - 1)); \
-    VERIFY_CHECK((n) <=  ((1 << ((w)-1)) - 1)); \
-    if ((n) > 0) { \
-        secp256k1_ge_from_storage((r), &(pre)[((n)-1)/2]); \
-    } else { \
-        secp256k1_ge_from_storage((r), &(pre)[(-(n)-1)/2]); \
-        secp256k1_fe_negate(&((r)->y), &((r)->y), 1); \
-    } \
-} while(0)
+SECP256K1_INLINE static void secp256k1_ecmult_table_get_ge_storage(secp256k1_ge *r, const secp256k1_ge_storage *pre, int n, int w) {
+    VERIFY_CHECK((n & 1) == 1);
+    VERIFY_CHECK(n >= -((1 << (w-1)) - 1));
+    VERIFY_CHECK(n <=  ((1 << (w-1)) - 1));
+    if (n > 0) {
+        secp256k1_ge_from_storage(r, &pre[(n-1)/2]);
+    } else {
+        secp256k1_ge_from_storage(r, &pre[(-n-1)/2]);
+        secp256k1_fe_negate(&(r->y), &(r->y), 1);
+    }
+}
 
 /** Convert a number to WNAF notation. The number becomes represented by sum(2^i * wnaf[i], i=0..bits),
  *  with the following guarantees:
@@ -322,11 +322,11 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
             }
         }
         if (i < bits_ng_1 && (n = wnaf_ng_1[i])) {
-            ECMULT_TABLE_GET_GE_STORAGE(&tmpa, secp256k1_pre_g, n, WINDOW_G);
+            secp256k1_ecmult_table_get_ge_storage(&tmpa, secp256k1_pre_g, n, WINDOW_G);
             secp256k1_gej_add_zinv_var(r, r, &tmpa, &Z);
         }
         if (i < bits_ng_128 && (n = wnaf_ng_128[i])) {
-            ECMULT_TABLE_GET_GE_STORAGE(&tmpa, secp256k1_pre_g_128, n, WINDOW_G);
+            secp256k1_ecmult_table_get_ge_storage(&tmpa, secp256k1_pre_g_128, n, WINDOW_G);
             secp256k1_gej_add_zinv_var(r, r, &tmpa, &Z);
         }
     }
