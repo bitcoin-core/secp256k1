@@ -161,27 +161,26 @@ static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a
     }
 }
 
-static void secp256k1_ge_globalz_set_table_gej(size_t len, secp256k1_ge *r, secp256k1_fe *globalz, const secp256k1_gej *a, const secp256k1_fe *zr) {
+static void secp256k1_ge_table_set_globalz(size_t len, secp256k1_ge *a, const secp256k1_fe *zr) {
     size_t i = len - 1;
     secp256k1_fe zs;
 
     if (len > 0) {
-        /* The z of the final point gives us the "global Z" for the table. */
-        r[i].x = a[i].x;
-        r[i].y = a[i].y;
         /* Ensure all y values are in weak normal form for fast negation of points */
-        secp256k1_fe_normalize_weak(&r[i].y);
-        *globalz = a[i].z;
-        r[i].infinity = 0;
+        secp256k1_fe_normalize_weak(&a[i].y);
         zs = zr[i];
 
         /* Work our way backwards, using the z-ratios to scale the x/y values. */
         while (i > 0) {
+            secp256k1_gej tmpa;
             if (i != len - 1) {
                 secp256k1_fe_mul(&zs, &zs, &zr[i]);
             }
             i--;
-            secp256k1_ge_set_gej_zinv(&r[i], &a[i], &zs);
+            tmpa.x = a[i].x;
+            tmpa.y = a[i].y;
+            tmpa.infinity = 0;
+            secp256k1_ge_set_gej_zinv(&a[i], &tmpa, &zs);
         }
     }
 }
@@ -494,7 +493,6 @@ static void secp256k1_gej_add_zinv_var(secp256k1_gej *r, const secp256k1_gej *a,
 
 static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_ge *b) {
     /* Operations: 7 mul, 5 sqr, 4 normalize, 21 mul_int/add/negate/cmov */
-    static const secp256k1_fe fe_1 = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1);
     secp256k1_fe zz, u1, u2, s1, s2, t, tt, m, n, q, rr;
     secp256k1_fe m_alt, rr_alt;
     int infinity, degenerate;
@@ -610,7 +608,7 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
     /** In case a->infinity == 1, replace r with (b->x, b->y, 1). */
     secp256k1_fe_cmov(&r->x, &b->x, a->infinity);
     secp256k1_fe_cmov(&r->y, &b->y, a->infinity);
-    secp256k1_fe_cmov(&r->z, &fe_1, a->infinity);
+    secp256k1_fe_cmov(&r->z, &secp256k1_fe_one, a->infinity);
     r->infinity = infinity;
 }
 
@@ -656,12 +654,8 @@ static SECP256K1_INLINE void secp256k1_ge_storage_cmov(secp256k1_ge_storage *r, 
 }
 
 static void secp256k1_ge_mul_lambda(secp256k1_ge *r, const secp256k1_ge *a) {
-    static const secp256k1_fe beta = SECP256K1_FE_CONST(
-        0x7ae96a2bul, 0x657c0710ul, 0x6e64479eul, 0xac3434e9ul,
-        0x9cf04975ul, 0x12f58995ul, 0xc1396c28ul, 0x719501eeul
-    );
     *r = *a;
-    secp256k1_fe_mul(&r->x, &r->x, &beta);
+    secp256k1_fe_mul(&r->x, &r->x, &secp256k1_const_beta);
 }
 
 static int secp256k1_ge_is_in_correct_subgroup(const secp256k1_ge* ge) {

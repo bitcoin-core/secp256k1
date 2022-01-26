@@ -19,13 +19,10 @@
  *  It only operates on tables sized for WINDOW_A wnaf multiples.
  */
 static void secp256k1_ecmult_odd_multiples_table_globalz_windowa(secp256k1_ge *pre, secp256k1_fe *globalz, const secp256k1_gej *a) {
-    secp256k1_gej prej[ECMULT_TABLE_SIZE(WINDOW_A)];
     secp256k1_fe zr[ECMULT_TABLE_SIZE(WINDOW_A)];
 
-    /* Compute the odd multiples in Jacobian form. */
-    secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), prej, zr, a);
-    /* Bring them to the same Z denominator. */
-    secp256k1_ge_globalz_set_table_gej(ECMULT_TABLE_SIZE(WINDOW_A), pre, globalz, prej, zr);
+    secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), pre, zr, globalz, a);
+    secp256k1_ge_table_set_globalz(ECMULT_TABLE_SIZE(WINDOW_A), pre, zr);
 }
 
 /* This is like `ECMULT_TABLE_GET_GE` but is constant time */

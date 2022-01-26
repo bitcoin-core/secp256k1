@@ -32,6 +32,12 @@
 #error "Please select wide multiplication implementation"
 #endif
 
+static const secp256k1_fe secp256k1_fe_one = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1);
+static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
+    0x7ae96a2bul, 0x657c0710ul, 0x6e64479eul, 0xac3434e9ul,
+    0x9cf04975ul, 0x12f58995ul, 0xc1396c28ul, 0x719501eeul
+);
+
 /** Normalize a field element. This brings the field element to a canonical representation, reduces
  *  its magnitude to 1, and reduces it modulo field size `p`.
  */
