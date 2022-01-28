@@ -75,10 +75,13 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 /* In non-VERIFY mode, we #define the fe operations to be identical to their
  * internal field implementation, to avoid the potential overhead of a
  * function call (even though presumably inlinable). */
+#  define secp256k1_fe_normalize secp256k1_fe_impl_normalize
 #endif /* !defined(VERIFY) */
 
-/** Normalize a field element. This brings the field element to a canonical representation, reduces
- *  its magnitude to 1, and reduces it modulo field size `p`.
+/** Normalize a field element.
+ *
+ * On input, r must be a valid field element.
+ * On output, r represents the same value but has normalized=1 and magnitude=1.
  */
 static void secp256k1_fe_normalize(secp256k1_fe *r);
 
