@@ -336,6 +336,13 @@ SECP256K1_INLINE static void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_
     }
     secp256k1_fe_verify(r);
 }
+
+static void secp256k1_fe_impl_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a);
+SECP256K1_INLINE static void secp256k1_fe_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a) {
+    secp256k1_fe_verify(a);
+    VERIFY_CHECK(a->normalized);
+    secp256k1_fe_impl_to_storage(r, a);
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */
