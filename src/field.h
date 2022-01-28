@@ -90,6 +90,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_negate secp256k1_fe_impl_negate
 #  define secp256k1_fe_mul_int secp256k1_fe_impl_mul_int
 #  define secp256k1_fe_add secp256k1_fe_impl_add
+#  define secp256k1_fe_mul secp256k1_fe_impl_mul
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -225,8 +226,14 @@ static void secp256k1_fe_mul_int(secp256k1_fe *r, int a);
  */
 static void secp256k1_fe_add(secp256k1_fe *r, const secp256k1_fe *a);
 
-/** Sets a field element to be the product of two others. Requires the inputs' magnitudes to be at most 8.
- *  The output magnitude is 1 (but not guaranteed to be normalized). */
+/** Multiply two field elements.
+ *
+ * On input, a and b must be valid field elements; r does not need to be initialized.
+ * r and a may point to the same object, but neither can be equal to b. The magnitudes
+ * of a and b must not exceed 8.
+ * Performs {r = a * b}
+ * On output, r will have magnitude 1, but won't be normalized.
+ */
 static void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp256k1_fe * SECP256K1_RESTRICT b);
 
 /** Sets a field element to be the square of another. Requires the input's magnitude to be at most 8.
