@@ -92,6 +92,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_add secp256k1_fe_impl_add
 #  define secp256k1_fe_mul secp256k1_fe_impl_mul
 #  define secp256k1_fe_sqr secp256k1_fe_impl_sqr
+#  define secp256k1_fe_cmov secp256k1_fe_impl_cmov
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -271,7 +272,12 @@ static void secp256k1_fe_from_storage(secp256k1_fe *r, const secp256k1_fe_storag
 /** If flag is true, set *r equal to *a; otherwise leave it. Constant-time.  Both *r and *a must be initialized.*/
 static void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, const secp256k1_fe_storage *a, int flag);
 
-/** If flag is true, set *r equal to *a; otherwise leave it. Constant-time.  Both *r and *a must be initialized.*/
+/** Conditionally move a field element in constant time.
+ *
+ * On input, both r and a must be valid field elements. Flag must be 0 or 1.
+ * Performs {r = flag ? a : r}.
+ * On output, r's magnitude and normalized will equal a's in case of flag=1, unchanged otherwise.
+ */
 static void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag);
 
 /** Halves the value of a field element modulo the field prime. Constant-time.

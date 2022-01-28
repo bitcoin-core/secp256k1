@@ -323,6 +323,19 @@ SECP256K1_INLINE static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_f
     r->normalized = 0;
     secp256k1_fe_verify(r);
 }
+
+static void secp256k1_fe_impl_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag);
+SECP256K1_INLINE static void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag) {
+    VERIFY_CHECK(flag == 0 || flag == 1);
+    secp256k1_fe_verify(a);
+    secp256k1_fe_verify(r);
+    secp256k1_fe_impl_cmov(r, a, flag);
+    if (flag) {
+        r->magnitude = a->magnitude;
+        r->normalized = a->normalized;
+    }
+    secp256k1_fe_verify(r);
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */

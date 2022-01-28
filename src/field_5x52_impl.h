@@ -369,7 +369,7 @@ SECP256K1_INLINE static void secp256k1_fe_impl_sqr(secp256k1_fe *r, const secp25
     secp256k1_fe_sqr_inner(r->n, a->n);
 }
 
-static SECP256K1_INLINE void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag) {
+SECP256K1_INLINE static void secp256k1_fe_impl_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag) {
     uint64_t mask0, mask1;
     volatile int vflag = flag;
     SECP256K1_CHECKMEM_CHECK_VERIFY(r->n, sizeof(r->n));
@@ -380,12 +380,6 @@ static SECP256K1_INLINE void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_
     r->n[2] = (r->n[2] & mask0) | (a->n[2] & mask1);
     r->n[3] = (r->n[3] & mask0) | (a->n[3] & mask1);
     r->n[4] = (r->n[4] & mask0) | (a->n[4] & mask1);
-#ifdef VERIFY
-    if (flag) {
-        r->magnitude = a->magnitude;
-        r->normalized = a->normalized;
-    }
-#endif
 }
 
 static SECP256K1_INLINE void secp256k1_fe_half(secp256k1_fe *r) {
