@@ -82,6 +82,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_normalizes_to_zero_var secp256k1_fe_impl_normalizes_to_zero_var
 #  define secp256k1_fe_set_int secp256k1_fe_impl_set_int
 #  define secp256k1_fe_clear secp256k1_fe_impl_clear
+#  define secp256k1_fe_is_zero secp256k1_fe_impl_is_zero
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -131,7 +132,14 @@ static void secp256k1_fe_set_int(secp256k1_fe *r, int a);
  */
 static void secp256k1_fe_clear(secp256k1_fe *a);
 
-/** Verify whether a field element is zero. Requires the input to be normalized. */
+/** Determine whether a represents field element 0.
+ *
+ * On input, a must be a valid normalized field element.
+ * Returns whether a = 0 (mod p).
+ *
+ * This behaves identical to secp256k1_normalizes_to_zero{,_var}, but requires
+ * normalized input (and is much faster).
+ */
 static int secp256k1_fe_is_zero(const secp256k1_fe *a);
 
 /** Check the "oddness" of a field element. Requires the input to be normalized. */

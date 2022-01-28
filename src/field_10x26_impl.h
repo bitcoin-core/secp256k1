@@ -269,12 +269,8 @@ SECP256K1_INLINE static void secp256k1_fe_impl_set_int(secp256k1_fe *r, int a) {
     r->n[1] = r->n[2] = r->n[3] = r->n[4] = r->n[5] = r->n[6] = r->n[7] = r->n[8] = r->n[9] = 0;
 }
 
-SECP256K1_INLINE static int secp256k1_fe_is_zero(const secp256k1_fe *a) {
+SECP256K1_INLINE static int secp256k1_fe_impl_is_zero(const secp256k1_fe *a) {
     const uint32_t *t = a->n;
-#ifdef VERIFY
-    VERIFY_CHECK(a->normalized);
-    secp256k1_fe_verify(a);
-#endif
     return (t[0] | t[1] | t[2] | t[3] | t[4] | t[5] | t[6] | t[7] | t[8] | t[9]) == 0;
 }
 
