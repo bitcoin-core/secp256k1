@@ -89,6 +89,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_get_b32 secp256k1_fe_impl_get_b32
 #  define secp256k1_fe_negate secp256k1_fe_impl_negate
 #  define secp256k1_fe_mul_int secp256k1_fe_impl_mul_int
+#  define secp256k1_fe_add secp256k1_fe_impl_add
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -215,7 +216,13 @@ static void secp256k1_fe_add_int(secp256k1_fe *r, int a);
  */
 static void secp256k1_fe_mul_int(secp256k1_fe *r, int a);
 
-/** Adds a field element to another. The result has the sum of the inputs' magnitudes as magnitude. */
+/** Increment a field element by another.
+ *
+ * On input, r and a must be valid field elements, not necessarily normalized.
+ * The sum of their magnitudes must not exceed 32.
+ * Performs {r += a}.
+ * On output, r will not be normalized, and will have magnitude incremented by a's.
+ */
 static void secp256k1_fe_add(secp256k1_fe *r, const secp256k1_fe *a);
 
 /** Sets a field element to be the product of two others. Requires the inputs' magnitudes to be at most 8.
