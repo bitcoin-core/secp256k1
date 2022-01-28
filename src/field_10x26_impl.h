@@ -349,15 +349,15 @@ static void secp256k1_fe_impl_get_b32(unsigned char *r, const secp256k1_fe *a) {
     r[31] = a->n[0] & 0xff;
 }
 
-SECP256K1_INLINE static void secp256k1_fe_negate(secp256k1_fe *r, const secp256k1_fe *a, int m) {
-#ifdef VERIFY
-    VERIFY_CHECK(a->magnitude <= m);
-    secp256k1_fe_verify(a);
+SECP256K1_INLINE static void secp256k1_fe_impl_negate(secp256k1_fe *r, const secp256k1_fe *a, int m) {
+    /* For all legal values of m (0..31), the following properties hold: */
     VERIFY_CHECK(0x3FFFC2FUL * 2 * (m + 1) >= 0x3FFFFFFUL * 2 * m);
     VERIFY_CHECK(0x3FFFFBFUL * 2 * (m + 1) >= 0x3FFFFFFUL * 2 * m);
     VERIFY_CHECK(0x3FFFFFFUL * 2 * (m + 1) >= 0x3FFFFFFUL * 2 * m);
     VERIFY_CHECK(0x03FFFFFUL * 2 * (m + 1) >= 0x03FFFFFUL * 2 * m);
-#endif
+
+    /* Due to the properties above, the left hand in the subtractions below is never less than
+     * the right hand. */
     r->n[0] = 0x3FFFC2FUL * 2 * (m + 1) - a->n[0];
     r->n[1] = 0x3FFFFBFUL * 2 * (m + 1) - a->n[1];
     r->n[2] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[2];
@@ -368,11 +368,6 @@ SECP256K1_INLINE static void secp256k1_fe_negate(secp256k1_fe *r, const secp256k
     r->n[7] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[7];
     r->n[8] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[8];
     r->n[9] = 0x03FFFFFUL * 2 * (m + 1) - a->n[9];
-#ifdef VERIFY
-    r->magnitude = m + 1;
-    r->normalized = 0;
-    secp256k1_fe_verify(r);
-#endif
 }
 
 SECP256K1_INLINE static void secp256k1_fe_mul_int(secp256k1_fe *r, int a) {

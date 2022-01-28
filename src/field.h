@@ -87,6 +87,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_cmp_var secp256k1_fe_impl_cmp_var
 #  define secp256k1_fe_set_b32 secp256k1_fe_impl_set_b32
 #  define secp256k1_fe_get_b32 secp256k1_fe_impl_get_b32
+#  define secp256k1_fe_negate secp256k1_fe_impl_negate
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -192,8 +193,13 @@ static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a);
  */
 static void secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe *a);
 
-/** Set a field element equal to the additive inverse of another. Takes a maximum magnitude of the input
- *  as an argument. The magnitude of the output is one higher. */
+/** Negate a field element.
+ *
+ * On input, r does not need to be initialized. a must be a valid field element with
+ * magnitude not exceeding m. m must be an integer in [0,31].
+ * Performs {r = -a}.
+ * On output, r will not be normalized, and will have magnitude m+1.
+ */
 static void secp256k1_fe_negate(secp256k1_fe *r, const secp256k1_fe *a, int m);
 
 /** Adds a small integer (up to 0x7FFF) to r. The resulting magnitude increases by one. */
