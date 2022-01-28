@@ -84,6 +84,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_clear secp256k1_fe_impl_clear
 #  define secp256k1_fe_is_zero secp256k1_fe_impl_is_zero
 #  define secp256k1_fe_is_odd secp256k1_fe_impl_is_odd
+#  define secp256k1_fe_cmp_var secp256k1_fe_impl_cmp_var
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -164,7 +165,12 @@ static int secp256k1_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b);
  */
 static int secp256k1_fe_equal_var(const secp256k1_fe *a, const secp256k1_fe *b);
 
-/** Compare two field elements. Requires both inputs to be normalized */
+/** Compare the values represented by 2 field elements, without constant-time guarantee.
+ *
+ * On input, a and b must be valid normalized field elements.
+ * Returns 1 if a > b, -1 if a < b, and 0 if a = b (comparisons are done as integers
+ * in range 0..p-1).
+ */
 static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
 
 /** Set a field element equal to 32-byte big endian value.

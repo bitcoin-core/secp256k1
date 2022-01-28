@@ -228,6 +228,15 @@ SECP256K1_INLINE static int secp256k1_fe_is_odd(const secp256k1_fe *a) {
     VERIFY_CHECK(a->normalized);
     return secp256k1_fe_impl_is_odd(a);
 }
+
+static int secp256k1_fe_impl_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
+SECP256K1_INLINE static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
+    secp256k1_fe_verify(a);
+    secp256k1_fe_verify(b);
+    VERIFY_CHECK(a->normalized);
+    VERIFY_CHECK(b->normalized);
+    return secp256k1_fe_impl_cmp_var(a, b);
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */
