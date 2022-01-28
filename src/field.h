@@ -77,6 +77,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
  * function call (even though presumably inlinable). */
 #  define secp256k1_fe_normalize secp256k1_fe_impl_normalize
 #  define secp256k1_fe_normalize_weak secp256k1_fe_impl_normalize_weak
+#  define secp256k1_fe_normalize_var secp256k1_fe_impl_normalize_var
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -93,7 +94,10 @@ static void secp256k1_fe_normalize(secp256k1_fe *r);
  */
 static void secp256k1_fe_normalize_weak(secp256k1_fe *r);
 
-/** Normalize a field element, without constant-time guarantee. */
+/** Normalize a field element, without constant-time guarantee.
+ *
+ * Identical in behavior to secp256k1_fe_normalize, but not constant time in r.
+ */
 static void secp256k1_fe_normalize_var(secp256k1_fe *r);
 
 /** Verify whether a field element represents zero i.e. would normalize to a zero value. */

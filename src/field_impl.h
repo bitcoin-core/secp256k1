@@ -164,6 +164,15 @@ SECP256K1_INLINE static void secp256k1_fe_normalize_weak(secp256k1_fe *r) {
     r->magnitude = 1;
     secp256k1_fe_verify(r);
 }
+
+static void secp256k1_fe_impl_normalize_var(secp256k1_fe *r);
+SECP256K1_INLINE static void secp256k1_fe_normalize_var(secp256k1_fe *r) {
+    secp256k1_fe_verify(r);
+    secp256k1_fe_impl_normalize_var(r);
+    r->magnitude = 1;
+    r->normalized = 1;
+    secp256k1_fe_verify(r);
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */

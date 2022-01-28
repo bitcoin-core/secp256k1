@@ -108,7 +108,7 @@ static void secp256k1_fe_impl_normalize_weak(secp256k1_fe *r) {
     r->n[0] = t0; r->n[1] = t1; r->n[2] = t2; r->n[3] = t3; r->n[4] = t4;
 }
 
-static void secp256k1_fe_normalize_var(secp256k1_fe *r) {
+static void secp256k1_fe_impl_normalize_var(secp256k1_fe *r) {
     uint64_t t0 = r->n[0], t1 = r->n[1], t2 = r->n[2], t3 = r->n[3], t4 = r->n[4];
 
     /* Reduce t4 at the start so there will be at most a single carry from the first pass */
@@ -144,12 +144,6 @@ static void secp256k1_fe_normalize_var(secp256k1_fe *r) {
     }
 
     r->n[0] = t0; r->n[1] = t1; r->n[2] = t2; r->n[3] = t3; r->n[4] = t4;
-
-#ifdef VERIFY
-    r->magnitude = 1;
-    r->normalized = 1;
-    secp256k1_fe_verify(r);
-#endif
 }
 
 static int secp256k1_fe_normalizes_to_zero(const secp256k1_fe *r) {
