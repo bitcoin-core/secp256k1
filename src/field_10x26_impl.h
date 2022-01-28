@@ -1031,17 +1031,8 @@ SECP256K1_INLINE static void secp256k1_fe_impl_mul(secp256k1_fe *r, const secp25
     secp256k1_fe_mul_inner(r->n, a->n, b->n);
 }
 
-static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a) {
-#ifdef VERIFY
-    VERIFY_CHECK(a->magnitude <= 8);
-    secp256k1_fe_verify(a);
-#endif
+SECP256K1_INLINE static void secp256k1_fe_impl_sqr(secp256k1_fe *r, const secp256k1_fe *a) {
     secp256k1_fe_sqr_inner(r->n, a->n);
-#ifdef VERIFY
-    r->magnitude = 1;
-    r->normalized = 0;
-    secp256k1_fe_verify(r);
-#endif
 }
 
 static SECP256K1_INLINE void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag) {

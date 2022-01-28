@@ -91,6 +91,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_mul_int secp256k1_fe_impl_mul_int
 #  define secp256k1_fe_add secp256k1_fe_impl_add
 #  define secp256k1_fe_mul secp256k1_fe_impl_mul
+#  define secp256k1_fe_sqr secp256k1_fe_impl_sqr
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -236,8 +237,13 @@ static void secp256k1_fe_add(secp256k1_fe *r, const secp256k1_fe *a);
  */
 static void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp256k1_fe * SECP256K1_RESTRICT b);
 
-/** Sets a field element to be the square of another. Requires the input's magnitude to be at most 8.
- *  The output magnitude is 1 (but not guaranteed to be normalized). */
+/** Square a field element.
+ *
+ * On input, a must be a valid field element; r does not need to be initialized. The magnitude
+ * of a must not exceed 8.
+ * Performs {r = a**2}
+ * On output, r will have magnitude 1, but won't be normalized.
+ */
 static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a);
 
 /** If a has a square root, it is computed in r and 1 is returned. If a does not
