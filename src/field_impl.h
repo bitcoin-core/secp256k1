@@ -246,6 +246,13 @@ SECP256K1_INLINE static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned
     secp256k1_fe_verify(r);
     return ret;
 }
+
+static void secp256k1_fe_impl_get_b32(unsigned char *r, const secp256k1_fe *a);
+SECP256K1_INLINE static void secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe *a) {
+    secp256k1_fe_verify(a);
+    VERIFY_CHECK(a->normalized);
+    secp256k1_fe_impl_get_b32(r, a);
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */

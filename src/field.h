@@ -86,6 +86,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_is_odd secp256k1_fe_impl_is_odd
 #  define secp256k1_fe_cmp_var secp256k1_fe_impl_cmp_var
 #  define secp256k1_fe_set_b32 secp256k1_fe_impl_set_b32
+#  define secp256k1_fe_get_b32 secp256k1_fe_impl_get_b32
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -185,7 +186,10 @@ static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
  */
 static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a);
 
-/** Convert a field element to a 32-byte big endian value. Requires the input to be normalized */
+/** Convert a field element to 32-byte big endian byte array.
+ * On input, a must be a valid normalized field element, and r a pointer to a 32-byte array.
+ * On output, r = a (mod p).
+ */
 static void secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe *a);
 
 /** Set a field element equal to the additive inverse of another. Takes a maximum magnitude of the input
