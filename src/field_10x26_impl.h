@@ -12,17 +12,8 @@
 #include "field.h"
 #include "modinv32_impl.h"
 
-/** See the comment at the top of field_5x52_impl.h for more details.
- *
- *  Here, we represent field elements as 10 uint32_t's in base 2^26, least significant first,
- *  where limbs can contain >26 bits.
- *  A magnitude M means:
- *  - 2*M*(2^22-1) is the max (inclusive) of the most significant limb
- *  - 2*M*(2^26-1) is the max (inclusive) of the remaining limbs
- */
-
-static void secp256k1_fe_verify(const secp256k1_fe *a) {
 #ifdef VERIFY
+static void secp256k1_fe_impl_verify(const secp256k1_fe *a) {
     const uint32_t *d = a->n;
     int m = a->normalized ? 1 : 2 * a->magnitude, r = 1;
     r &= (d[0] <= 0x3FFFFFFUL * m);
@@ -35,10 +26,7 @@ static void secp256k1_fe_verify(const secp256k1_fe *a) {
     r &= (d[7] <= 0x3FFFFFFUL * m);
     r &= (d[8] <= 0x3FFFFFFUL * m);
     r &= (d[9] <= 0x03FFFFFUL * m);
-    r &= (a->magnitude >= 0);
-    r &= (a->magnitude <= 32);
     if (a->normalized) {
-        r &= (a->magnitude <= 1);
         if (r && (d[9] == 0x03FFFFFUL)) {
             uint32_t mid = d[8] & d[7] & d[6] & d[5] & d[4] & d[3] & d[2];
             if (mid == 0x3FFFFFFUL) {
@@ -47,9 +35,8 @@ static void secp256k1_fe_verify(const secp256k1_fe *a) {
         }
     }
     VERIFY_CHECK(r == 1);
-#endif
-    (void)a;
 }
+#endif
 
 static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m) {
     VERIFY_CHECK(m >= 0);

@@ -18,23 +18,8 @@
 #include "field_5x52_int128_impl.h"
 #endif
 
-/** Implements arithmetic modulo FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFE FFFFFC2F,
- *  represented as 5 uint64_t's in base 2^52, least significant first. Note that the limbs are allowed to
- *  contain >52 bits each.
- *
- *  Each field element has a 'magnitude' associated with it. Internally, a magnitude M means:
- *  - 2*M*(2^48-1) is the max (inclusive) of the most significant limb
- *  - 2*M*(2^52-1) is the max (inclusive) of the remaining limbs
- *
- *  Operations have different rules for propagating magnitude to their outputs. If an operation takes a
- *  magnitude M as a parameter, that means the magnitude of input field elements can be at most M (inclusive).
- *
- *  Each field element also has a 'normalized' flag. A field element is normalized if its magnitude is either
- *  0 or 1, and its value is already reduced modulo the order of the field.
- */
-
-static void secp256k1_fe_verify(const secp256k1_fe *a) {
 #ifdef VERIFY
+static void secp256k1_fe_impl_verify(const secp256k1_fe *a) {
     const uint64_t *d = a->n;
     int m = a->normalized ? 1 : 2 * a->magnitude, r = 1;
    /* secp256k1 'p' value defined in "Standards for Efficient Cryptography" (SEC2) 2.7.1. */
@@ -43,18 +28,14 @@ static void secp256k1_fe_verify(const secp256k1_fe *a) {
     r &= (d[2] <= 0xFFFFFFFFFFFFFULL * m);
     r &= (d[3] <= 0xFFFFFFFFFFFFFULL * m);
     r &= (d[4] <= 0x0FFFFFFFFFFFFULL * m);
-    r &= (a->magnitude >= 0);
-    r &= (a->magnitude <= 2048);
     if (a->normalized) {
-        r &= (a->magnitude <= 1);
         if (r && (d[4] == 0x0FFFFFFFFFFFFULL) && ((d[3] & d[2] & d[1]) == 0xFFFFFFFFFFFFFULL)) {
             r &= (d[0] < 0xFFFFEFFFFFC2FULL);
         }
     }
     VERIFY_CHECK(r == 1);
-#endif
-    (void)a;
 }
+#endif
 
 static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m) {
     VERIFY_CHECK(m >= 0);
