@@ -80,6 +80,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_normalize_var secp256k1_fe_impl_normalize_var
 #  define secp256k1_fe_normalizes_to_zero secp256k1_fe_impl_normalizes_to_zero
 #  define secp256k1_fe_normalizes_to_zero_var secp256k1_fe_impl_normalizes_to_zero_var
+#  define secp256k1_fe_set_int secp256k1_fe_impl_set_int
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -115,8 +116,10 @@ static int secp256k1_fe_normalizes_to_zero(const secp256k1_fe *r);
  */
 static int secp256k1_fe_normalizes_to_zero_var(const secp256k1_fe *r);
 
-/** Set a field element equal to a small (not greater than 0x7FFF), non-negative integer.
- *  Resulting field element is normalized; it has magnitude 0 if a == 0, and magnitude 1 otherwise.
+/** Set a field element to an integer in range [0,0x7FFF].
+ *
+ * On input, r does not need to be initialized, a must be in [0,0x7FFF].
+ * On output, r represents value a, is normalized and has magnitude (a!=0).
  */
 static void secp256k1_fe_set_int(secp256k1_fe *r, int a);
 
