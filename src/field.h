@@ -83,6 +83,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_set_int secp256k1_fe_impl_set_int
 #  define secp256k1_fe_clear secp256k1_fe_impl_clear
 #  define secp256k1_fe_is_zero secp256k1_fe_impl_is_zero
+#  define secp256k1_fe_is_odd secp256k1_fe_impl_is_odd
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -142,7 +143,11 @@ static void secp256k1_fe_clear(secp256k1_fe *a);
  */
 static int secp256k1_fe_is_zero(const secp256k1_fe *a);
 
-/** Check the "oddness" of a field element. Requires the input to be normalized. */
+/** Determine whether a (mod p) is odd.
+ *
+ * On input, a must be a valid normalized field element.
+ * Returns (int(a) mod p) & 1.
+ */
 static int secp256k1_fe_is_odd(const secp256k1_fe *a);
 
 /** Compare two field elements. Requires magnitude-1 inputs. */

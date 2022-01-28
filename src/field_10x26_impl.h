@@ -274,11 +274,7 @@ SECP256K1_INLINE static int secp256k1_fe_impl_is_zero(const secp256k1_fe *a) {
     return (t[0] | t[1] | t[2] | t[3] | t[4] | t[5] | t[6] | t[7] | t[8] | t[9]) == 0;
 }
 
-SECP256K1_INLINE static int secp256k1_fe_is_odd(const secp256k1_fe *a) {
-#ifdef VERIFY
-    VERIFY_CHECK(a->normalized);
-    secp256k1_fe_verify(a);
-#endif
+SECP256K1_INLINE static int secp256k1_fe_impl_is_odd(const secp256k1_fe *a) {
     return a->n[0] & 1;
 }
 
