@@ -237,6 +237,15 @@ SECP256K1_INLINE static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const se
     VERIFY_CHECK(b->normalized);
     return secp256k1_fe_impl_cmp_var(a, b);
 }
+
+static int secp256k1_fe_impl_set_b32(secp256k1_fe *r, const unsigned char *a);
+SECP256K1_INLINE static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a) {
+    int ret = secp256k1_fe_impl_set_b32(r, a);
+    r->magnitude = 1;
+    r->normalized = ret;
+    secp256k1_fe_verify(r);
+    return ret;
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */

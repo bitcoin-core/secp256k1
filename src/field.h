@@ -85,6 +85,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_is_zero secp256k1_fe_impl_is_zero
 #  define secp256k1_fe_is_odd secp256k1_fe_impl_is_odd
 #  define secp256k1_fe_cmp_var secp256k1_fe_impl_cmp_var
+#  define secp256k1_fe_set_b32 secp256k1_fe_impl_set_b32
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -173,9 +174,15 @@ static int secp256k1_fe_equal_var(const secp256k1_fe *a, const secp256k1_fe *b);
  */
 static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
 
-/** Set a field element equal to 32-byte big endian value.
- *  Returns 1 if no overflow occurred, and then the output is normalized.
- *  Returns 0 if overflow occurred, and then the output is only weakly normalized. */
+/** Set a field element equal to a provided 32-byte big endian value.
+ *
+ * On input, r does not need to be initalized. a must be a pointer to an initialized 32-byte array.
+ * On output, r = a (mod p). It will have magnitude 1, and if (a < p), it will be normalized.
+ * If not, it will only be weakly normalized. Returns whether (a < p).
+ *
+ * Note that this function is unusual in that the normalization of the output depends on the
+ * run-time value of a.
+ */
 static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a);
 
 /** Convert a field element to a 32-byte big endian value. Requires the input to be normalized */
