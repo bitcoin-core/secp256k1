@@ -88,6 +88,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_set_b32 secp256k1_fe_impl_set_b32
 #  define secp256k1_fe_get_b32 secp256k1_fe_impl_get_b32
 #  define secp256k1_fe_negate secp256k1_fe_impl_negate
+#  define secp256k1_fe_mul_int secp256k1_fe_impl_mul_int
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -205,8 +206,13 @@ static void secp256k1_fe_negate(secp256k1_fe *r, const secp256k1_fe *a, int m);
 /** Adds a small integer (up to 0x7FFF) to r. The resulting magnitude increases by one. */
 static void secp256k1_fe_add_int(secp256k1_fe *r, int a);
 
-/** Multiplies the passed field element with a small integer constant. Multiplies the magnitude by that
- *  small integer. */
+/** Multiply a field element with a small integer.
+ *
+ * On input, r must be a valid field element. a must be an integer in [0,32].
+ * The magnitude of r times a must not exceed 32.
+ * Performs {r *= a}.
+ * On output, r's magnitude is multiplied by a, and r will not be normalized.
+ */
 static void secp256k1_fe_mul_int(secp256k1_fe *r, int a);
 
 /** Adds a field element to another. The result has the sum of the inputs' magnitudes as magnitude. */

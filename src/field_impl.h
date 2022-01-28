@@ -264,6 +264,17 @@ SECP256K1_INLINE static void secp256k1_fe_negate(secp256k1_fe *r, const secp256k
     r->normalized = 0;
     secp256k1_fe_verify(r);
 }
+
+static void secp256k1_fe_impl_mul_int(secp256k1_fe *r, int a);
+SECP256K1_INLINE static void secp256k1_fe_mul_int(secp256k1_fe *r, int a) {
+    secp256k1_fe_verify(r);
+    VERIFY_CHECK(a >= 0 && a <= 32);
+    VERIFY_CHECK(a*r->magnitude <= 32);
+    secp256k1_fe_impl_mul_int(r, a);
+    r->magnitude *= a;
+    r->normalized = 0;
+    secp256k1_fe_verify(r);
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */
