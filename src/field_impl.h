@@ -343,6 +343,14 @@ SECP256K1_INLINE static void secp256k1_fe_to_storage(secp256k1_fe_storage *r, co
     VERIFY_CHECK(a->normalized);
     secp256k1_fe_impl_to_storage(r, a);
 }
+
+static void secp256k1_fe_impl_from_storage(secp256k1_fe *r, const secp256k1_fe_storage *a);
+SECP256K1_INLINE static void secp256k1_fe_from_storage(secp256k1_fe *r, const secp256k1_fe_storage *a) {
+    secp256k1_fe_impl_from_storage(r, a);
+    r->magnitude = 1;
+    r->normalized = 1;
+    secp256k1_fe_verify(r);
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */

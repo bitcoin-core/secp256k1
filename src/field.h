@@ -94,6 +94,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_sqr secp256k1_fe_impl_sqr
 #  define secp256k1_fe_cmov secp256k1_fe_impl_cmov
 #  define secp256k1_fe_to_storage secp256k1_fe_impl_to_storage
+#  define secp256k1_fe_from_storage secp256k1_fe_impl_from_storage
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -271,7 +272,12 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *a);
  */
 static void secp256k1_fe_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a);
 
-/** Convert a field element back from the storage type. */
+/** Convert a field element back from secp256k1_fe_storage.
+ *
+ * On input, r need not be initialized.
+ * Performs {r = a}.
+ * On output, r will be normalized and will have magnitude 1.
+ */
 static void secp256k1_fe_from_storage(secp256k1_fe *r, const secp256k1_fe_storage *a);
 
 /** If flag is true, set *r equal to *a; otherwise leave it. Constant-time.  Both *r and *a must be initialized.*/
