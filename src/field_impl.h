@@ -351,6 +351,28 @@ SECP256K1_INLINE static void secp256k1_fe_from_storage(secp256k1_fe *r, const se
     r->normalized = 1;
     secp256k1_fe_verify(r);
 }
+
+static void secp256k1_fe_impl_inv(secp256k1_fe *r, const secp256k1_fe *x);
+SECP256K1_INLINE static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *x) {
+    int input_is_zero = secp256k1_fe_normalizes_to_zero(x);
+    secp256k1_fe_verify(x);
+    secp256k1_fe_impl_inv(r, x);
+    r->magnitude = x->magnitude > 0;
+    r->normalized = 1;
+    VERIFY_CHECK(secp256k1_fe_normalizes_to_zero(r) == input_is_zero);
+    secp256k1_fe_verify(r);
+}
+
+static void secp256k1_fe_impl_inv_var(secp256k1_fe *r, const secp256k1_fe *x);
+SECP256K1_INLINE static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *x) {
+    int input_is_zero = secp256k1_fe_normalizes_to_zero(x);
+    secp256k1_fe_verify(x);
+    secp256k1_fe_impl_inv_var(r, x);
+    r->magnitude = x->magnitude > 0;
+    r->normalized = 1;
+    VERIFY_CHECK(secp256k1_fe_normalizes_to_zero(r) == input_is_zero);
+    secp256k1_fe_verify(r);
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */

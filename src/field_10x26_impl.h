@@ -1197,22 +1197,12 @@ static void secp256k1_fe_from_signed30(secp256k1_fe *r, const secp256k1_modinv32
     r->n[7] = (a6 >>  2           ) & M26;
     r->n[8] = (a6 >> 28 | a7 <<  2) & M26;
     r->n[9] = (a7 >> 24 | a8 <<  6);
-
-#ifdef VERIFY
-    r->magnitude = 1;
-    r->normalized = 1;
-    secp256k1_fe_verify(r);
-#endif
 }
 
 static void secp256k1_fe_to_signed30(secp256k1_modinv32_signed30 *r, const secp256k1_fe *a) {
     const uint32_t M30 = UINT32_MAX >> 2;
     const uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4],
                    a5 = a->n[5], a6 = a->n[6], a7 = a->n[7], a8 = a->n[8], a9 = a->n[9];
-
-#ifdef VERIFY
-    VERIFY_CHECK(a->normalized);
-#endif
 
     r->v[0] = (a0       | a1 << 26) & M30;
     r->v[1] = (a1 >>  4 | a2 << 22) & M30;
@@ -1231,34 +1221,24 @@ static const secp256k1_modinv32_modinfo secp256k1_const_modinfo_fe = {
     0x2DDACACFL
 };
 
-static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *x) {
-    secp256k1_fe tmp;
+static void secp256k1_fe_impl_inv(secp256k1_fe *r, const secp256k1_fe *x) {
+    secp256k1_fe tmp = *x;
     secp256k1_modinv32_signed30 s;
 
-    tmp = *x;
     secp256k1_fe_normalize(&tmp);
     secp256k1_fe_to_signed30(&s, &tmp);
     secp256k1_modinv32(&s, &secp256k1_const_modinfo_fe);
     secp256k1_fe_from_signed30(r, &s);
-
-#ifdef VERIFY
-    VERIFY_CHECK(secp256k1_fe_normalizes_to_zero(r) == secp256k1_fe_normalizes_to_zero(&tmp));
-#endif
 }
 
-static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *x) {
-    secp256k1_fe tmp;
+static void secp256k1_fe_impl_inv_var(secp256k1_fe *r, const secp256k1_fe *x) {
+    secp256k1_fe tmp = *x;
     secp256k1_modinv32_signed30 s;
 
-    tmp = *x;
     secp256k1_fe_normalize_var(&tmp);
     secp256k1_fe_to_signed30(&s, &tmp);
     secp256k1_modinv32_var(&s, &secp256k1_const_modinfo_fe);
     secp256k1_fe_from_signed30(r, &s);
-
-#ifdef VERIFY
-    VERIFY_CHECK(secp256k1_fe_normalizes_to_zero(r) == secp256k1_fe_normalizes_to_zero(&tmp));
-#endif
 }
 
 static int secp256k1_fe_is_square_var(const secp256k1_fe *x) {
