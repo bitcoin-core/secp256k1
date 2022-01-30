@@ -31,19 +31,6 @@ SECP256K1_INLINE static int secp256k1_fe_equal(const secp256k1_fe *a, const secp
     return secp256k1_fe_normalizes_to_zero(&na);
 }
 
-SECP256K1_INLINE static int secp256k1_fe_equal_var(const secp256k1_fe *a, const secp256k1_fe *b) {
-    secp256k1_fe na;
-#ifdef VERIFY
-    secp256k1_fe_verify(a);
-    secp256k1_fe_verify(b);
-    secp256k1_fe_verify_magnitude(a, 1);
-    secp256k1_fe_verify_magnitude(b, 31);
-#endif
-    secp256k1_fe_negate(&na, a, 1);
-    secp256k1_fe_add(&na, b);
-    return secp256k1_fe_normalizes_to_zero_var(&na);
-}
-
 static int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k1_fe * SECP256K1_RESTRICT a) {
     /** Given that p is congruent to 3 mod 4, we can compute the square root of
      *  a mod p as the (p+1)/4'th power of a.
@@ -151,7 +138,7 @@ static int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k
     if (!ret) {
         secp256k1_fe_negate(&t1, &t1, 1);
         secp256k1_fe_normalize_var(&t1);
-        VERIFY_CHECK(secp256k1_fe_equal_var(&t1, a));
+        VERIFY_CHECK(secp256k1_fe_equal(&t1, a));
     }
 #endif
     return ret;

@@ -2991,7 +2991,7 @@ static int check_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
     secp256k1_fe an = *a;
     secp256k1_fe bn = *b;
     secp256k1_fe_normalize_weak(&an);
-    return secp256k1_fe_equal_var(&an, &bn);
+    return secp256k1_fe_equal(&an, &bn);
 }
 
 static void run_field_convert(void) {
@@ -3014,9 +3014,9 @@ static void run_field_convert(void) {
     secp256k1_fe_storage fes2;
     /* Check conversions to fe. */
     CHECK(secp256k1_fe_set_b32_limit(&fe2, b32));
-    CHECK(secp256k1_fe_equal_var(&fe, &fe2));
+    CHECK(secp256k1_fe_equal(&fe, &fe2));
     secp256k1_fe_from_storage(&fe2, &fes);
-    CHECK(secp256k1_fe_equal_var(&fe, &fe2));
+    CHECK(secp256k1_fe_equal(&fe, &fe2));
     /* Check conversion from fe. */
     secp256k1_fe_get_b32(b322, &fe);
     CHECK(secp256k1_memcmp_var(b322, b32, 32) == 0);
@@ -3173,7 +3173,7 @@ static void run_field_misc(void) {
         CHECK(check_fe_equal(&q, &z));
         /* Test the fe equality and comparison operations. */
         CHECK(secp256k1_fe_cmp_var(&x, &x) == 0);
-        CHECK(secp256k1_fe_equal_var(&x, &x));
+        CHECK(secp256k1_fe_equal(&x, &x));
         z = x;
         secp256k1_fe_add(&z,&y);
         /* Test fe conditional move; z is not normalized here. */
@@ -3198,7 +3198,7 @@ static void run_field_misc(void) {
         q = z;
         secp256k1_fe_normalize_var(&x);
         secp256k1_fe_normalize_var(&z);
-        CHECK(!secp256k1_fe_equal_var(&x, &z));
+        CHECK(!secp256k1_fe_equal(&x, &z));
         secp256k1_fe_normalize_var(&q);
         secp256k1_fe_cmov(&q, &z, (i&1));
 #ifdef VERIFY
@@ -3703,8 +3703,8 @@ static void ge_equals_ge(const secp256k1_ge *a, const secp256k1_ge *b) {
     if (a->infinity) {
         return;
     }
-    CHECK(secp256k1_fe_equal_var(&a->x, &b->x));
-    CHECK(secp256k1_fe_equal_var(&a->y, &b->y));
+    CHECK(secp256k1_fe_equal(&a->x, &b->x));
+    CHECK(secp256k1_fe_equal(&a->y, &b->y));
 }
 
 /* This compares jacobian points including their Z, not just their geometric meaning. */
@@ -3742,8 +3742,8 @@ static void ge_equals_gej(const secp256k1_ge *a, const secp256k1_gej *b) {
     u2 = b->x;
     secp256k1_fe_mul(&s1, &a->y, &z2s); secp256k1_fe_mul(&s1, &s1, &b->z);
     s2 = b->y;
-    CHECK(secp256k1_fe_equal_var(&u1, &u2));
-    CHECK(secp256k1_fe_equal_var(&s1, &s2));
+    CHECK(secp256k1_fe_equal(&u1, &u2));
+    CHECK(secp256k1_fe_equal(&s1, &s2));
 }
 
 static void test_ge(void) {
@@ -3811,7 +3811,7 @@ static void test_ge(void) {
             /* Check Z ratio. */
             if (!secp256k1_gej_is_infinity(&gej[i1]) && !secp256k1_gej_is_infinity(&refj)) {
                 secp256k1_fe zrz; secp256k1_fe_mul(&zrz, &zr, &gej[i1].z);
-                CHECK(secp256k1_fe_equal_var(&zrz, &refj.z));
+                CHECK(secp256k1_fe_equal(&zrz, &refj.z));
             }
             secp256k1_ge_set_gej_var(&ref, &refj);
 
@@ -3820,7 +3820,7 @@ static void test_ge(void) {
             ge_equals_gej(&ref, &resj);
             if (!secp256k1_gej_is_infinity(&gej[i1]) && !secp256k1_gej_is_infinity(&resj)) {
                 secp256k1_fe zrz; secp256k1_fe_mul(&zrz, &zr, &gej[i1].z);
-                CHECK(secp256k1_fe_equal_var(&zrz, &resj.z));
+                CHECK(secp256k1_fe_equal(&zrz, &resj.z));
             }
 
             /* Test gej + ge (var, with additional Z factor). */
@@ -3849,7 +3849,7 @@ static void test_ge(void) {
                 ge_equals_gej(&ref, &resj);
                 /* Check Z ratio. */
                 secp256k1_fe_mul(&zr2, &zr2, &gej[i1].z);
-                CHECK(secp256k1_fe_equal_var(&zr2, &resj.z));
+                CHECK(secp256k1_fe_equal(&zr2, &resj.z));
                 /* Normal doubling. */
                 secp256k1_gej_double_var(&resj, &gej[i2], NULL);
                 ge_equals_gej(&ref, &resj);
@@ -3932,7 +3932,7 @@ static void test_ge(void) {
         ret_set_xo = secp256k1_ge_set_xo_var(&q, &r, 0);
         CHECK(ret_on_curve == ret_frac_on_curve);
         CHECK(ret_on_curve == ret_set_xo);
-        if (ret_set_xo) CHECK(secp256k1_fe_equal_var(&r, &q.x));
+        if (ret_set_xo) CHECK(secp256k1_fe_equal(&r, &q.x));
     }
 
     /* Test batch gej -> ge conversion with many infinities. */
@@ -4172,8 +4172,8 @@ static void test_group_decompress(const secp256k1_fe* x) {
         CHECK(!ge_odd.infinity);
 
         /* Check that the x coordinates check out. */
-        CHECK(secp256k1_fe_equal_var(&ge_even.x, x));
-        CHECK(secp256k1_fe_equal_var(&ge_odd.x, x));
+        CHECK(secp256k1_fe_equal(&ge_even.x, x));
+        CHECK(secp256k1_fe_equal(&ge_odd.x, x));
 
         /* Check odd/even Y in ge_odd, ge_even. */
         CHECK(secp256k1_fe_is_odd(&ge_odd.y));
@@ -4231,12 +4231,12 @@ static void test_pre_g_table(const secp256k1_ge_storage * pre_g, size_t n) {
         CHECK(!secp256k1_fe_normalizes_to_zero_var(&dqx) || !secp256k1_fe_normalizes_to_zero_var(&dqy));
 
         /* Check that -q is not equal to p */
-        CHECK(!secp256k1_fe_equal_var(&dpx, &dqx) || !secp256k1_fe_equal_var(&dpy, &dqy));
+        CHECK(!secp256k1_fe_equal(&dpx, &dqx) || !secp256k1_fe_equal(&dpy, &dqy));
 
         /* Check that p, -q and gg are colinear */
         secp256k1_fe_mul(&dpx, &dpx, &dqy);
         secp256k1_fe_mul(&dpy, &dpy, &dqx);
-        CHECK(secp256k1_fe_equal_var(&dpx, &dpy));
+        CHECK(secp256k1_fe_equal(&dpx, &dpy));
 
         p = q;
     }
@@ -4455,7 +4455,7 @@ static void run_point_times_order(void) {
         secp256k1_fe_sqr(&x, &x);
     }
     secp256k1_fe_normalize_var(&x);
-    CHECK(secp256k1_fe_equal_var(&x, &xr));
+    CHECK(secp256k1_fe_equal(&x, &xr));
 }
 
 static void ecmult_const_random_mult(void) {
