@@ -227,7 +227,7 @@ def prove_nonzero(R, exprs, assume):
   if ok:
     return (True, None)
   ok = True
-  for (f, n) in zero.reduce(numerator(allexprs)).factor():
+  for (f, n) in zero.reduce(allexprs).factor():
     if f not in nonzero:
       ok = False
   if ok:
