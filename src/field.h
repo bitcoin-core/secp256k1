@@ -150,10 +150,18 @@ static int secp256k1_fe_is_zero(const secp256k1_fe *a);
  */
 static int secp256k1_fe_is_odd(const secp256k1_fe *a);
 
-/** Compare two field elements. Requires magnitude-1 inputs. */
+/** Determine whether two field elements are equal.
+ *
+ * On input, a and b must be valid field elements with magnitudes not exceeding
+ * 1 and 31, respectively.
+ * Returns a = b (mod p).
+ */
 static int secp256k1_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b);
 
-/** Same as secp256k1_fe_equal, but may be variable time. */
+/** Determine whether two field elements are equal, without constant-time guarantee.
+ *
+ * Identical in behavior to secp256k1_fe_equal, but not constant time in either a or b.
+ */
 static int secp256k1_fe_equal_var(const secp256k1_fe *a, const secp256k1_fe *b);
 
 /** Compare two field elements. Requires both inputs to be normalized */
