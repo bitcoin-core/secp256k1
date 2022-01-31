@@ -173,6 +173,18 @@ SECP256K1_INLINE static void secp256k1_fe_normalize_var(secp256k1_fe *r) {
     r->normalized = 1;
     secp256k1_fe_verify(r);
 }
+
+static int secp256k1_fe_impl_normalizes_to_zero(const secp256k1_fe *r);
+SECP256K1_INLINE static int secp256k1_fe_normalizes_to_zero(const secp256k1_fe *r) {
+    secp256k1_fe_verify(r);
+    return secp256k1_fe_impl_normalizes_to_zero(r);
+}
+
+static int secp256k1_fe_impl_normalizes_to_zero_var(const secp256k1_fe *r);
+SECP256K1_INLINE static int secp256k1_fe_normalizes_to_zero_var(const secp256k1_fe *r) {
+    secp256k1_fe_verify(r);
+    return secp256k1_fe_impl_normalizes_to_zero_var(r);
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */

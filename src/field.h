@@ -78,6 +78,8 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_normalize secp256k1_fe_impl_normalize
 #  define secp256k1_fe_normalize_weak secp256k1_fe_impl_normalize_weak
 #  define secp256k1_fe_normalize_var secp256k1_fe_impl_normalize_var
+#  define secp256k1_fe_normalizes_to_zero secp256k1_fe_impl_normalizes_to_zero
+#  define secp256k1_fe_normalizes_to_zero_var secp256k1_fe_impl_normalizes_to_zero_var
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -100,11 +102,17 @@ static void secp256k1_fe_normalize_weak(secp256k1_fe *r);
  */
 static void secp256k1_fe_normalize_var(secp256k1_fe *r);
 
-/** Verify whether a field element represents zero i.e. would normalize to a zero value. */
+/** Determine whether r represents field element 0.
+ *
+ * On input, r must be a valid field element.
+ * Returns whether r = 0 (mod p).
+ */
 static int secp256k1_fe_normalizes_to_zero(const secp256k1_fe *r);
 
-/** Verify whether a field element represents zero i.e. would normalize to a zero value,
- *  without constant-time guarantee. */
+/** Determine whether r represents field element 0, without constant-time guarantee.
+ *
+ * Identical in behavior to secp256k1_normalizes_to_zero, but not constant time in r.
+ */
 static int secp256k1_fe_normalizes_to_zero_var(const secp256k1_fe *r);
 
 /** Set a field element equal to a small (not greater than 0x7FFF), non-negative integer.
