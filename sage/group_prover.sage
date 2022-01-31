@@ -299,22 +299,21 @@ def check_symbolic(R, assumeLaw, assumeAssert, assumeBranch, require):
 
   if conflicts(R, assume):
     # This formula does not apply
-    return None
+    return (True, None)
 
   describe = describe_extra(R, assumeLaw + assumeBranch, assumeAssert)
+  if describe != "":
+    describe = " (assuming " + describe + ")"
 
   ok, msg = prove_zero(R, require.zero, assume)
   if not ok:
-    return "FAIL, %s fails (assuming %s)" % (str(msg), describe)
+    return (False, "FAIL, %s fails%s" % (str(msg), describe))
 
   res, expl = prove_nonzero(R, require.nonzero, assume)
   if not res:
-    return "FAIL, %s fails (assuming %s)" % (str(expl), describe)
+    return (False, "FAIL, %s fails%s" % (str(expl), describe))
 
-  if describe != "":
-    return "OK (assuming %s)" % describe
-  else:
-    return "OK"
+  return (True, "OK%s" % describe)
 
 
 def concrete_verify(c):
