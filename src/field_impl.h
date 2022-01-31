@@ -194,6 +194,14 @@ SECP256K1_INLINE static void secp256k1_fe_set_int(secp256k1_fe *r, int a) {
     r->normalized = 1;
     secp256k1_fe_verify(r);
 }
+
+static void secp256k1_fe_impl_clear(secp256k1_fe *a);
+SECP256K1_INLINE static void secp256k1_fe_clear(secp256k1_fe *a) {
+    a->magnitude = 0;
+    a->normalized = 1;
+    secp256k1_fe_impl_clear(a);
+    secp256k1_fe_verify(a);
+}
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */
