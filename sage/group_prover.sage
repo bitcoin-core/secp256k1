@@ -254,7 +254,7 @@ def prove_zero(R, exprs, assume):
   """Check whether all of the passed expressions are provably zero, given assumptions"""
   r, e = prove_nonzero(R, dict(map(lambda x: (fastfrac(R, x.bot, 1), exprs[x]), exprs)), assume)
   if not r:
-    return (False, map(lambda x: "Possibly zero denominator: %s" % x, e))
+    return (False, list(map(lambda x: "Possibly zero denominator: %s" % x, e)))
   zero = R.ideal(list(map(numerator, assume.zero)))
   nonzero = prod(x for x in assume.nonzero)
   expl = []
