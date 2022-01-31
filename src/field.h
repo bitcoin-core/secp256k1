@@ -246,12 +246,14 @@ static void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp2
  */
 static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a);
 
-/** If a has a square root, it is computed in r and 1 is returned. If a does not
- *  have a square root, the root of its negation is computed and 0 is returned.
- *  The input's magnitude can be at most 8. The output magnitude is 1 (but not
- *  guaranteed to be normalized). The result in r will always be a square
- *  itself. */
-static int secp256k1_fe_sqrt(secp256k1_fe *r, const secp256k1_fe *a);
+/** Compute a square root of a field element.
+ *
+ * On input, a must be a valid field element with magnitude<=8; r need not be initialized.
+ * Performs {r = sqrt(a)} or {r = sqrt(-a)}, whichever exists. The resulting value
+ * represented by r will be a square itself. Variables r and a must not point to the same object.
+ * On output, r will have magnitude 1 but will not be normalized.
+ */
+static int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k1_fe * SECP256K1_RESTRICT a);
 
 /** Sets a field element to be the (modular) inverse of another. Requires the input's magnitude to be
  *  at most 8. The output magnitude is 1 (but not guaranteed to be normalized). */

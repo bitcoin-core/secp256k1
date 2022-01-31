@@ -55,9 +55,13 @@ static int secp256k1_fe_sqrt(secp256k1_fe *r, const secp256k1_fe *a) {
      *  itself always a square (a ** ((p+1)/4) is the square of a ** ((p+1)/8)).
      */
     secp256k1_fe x2, x3, x6, x9, x11, x22, x44, x88, x176, x220, x223, t1;
-    int j;
+    int j, ret;
 
+#ifdef VERIFY
     VERIFY_CHECK(r != a);
+    secp256k1_fe_verify(a);
+    VERIFY_CHECK(a->magnitude <= 8);
+#endif
 
     /** The binary representation of (p + 1)/4 has 3 blocks of 1s, with lengths in
      *  { 2, 22, 223 }. Use an addition chain to calculate 2^n - 1 for each block:
@@ -141,7 +145,16 @@ static int secp256k1_fe_sqrt(secp256k1_fe *r, const secp256k1_fe *a) {
     /* Check that a square root was actually calculated */
 
     secp256k1_fe_sqr(&t1, r);
-    return secp256k1_fe_equal(&t1, a);
+    ret = secp256k1_fe_equal(&t1, a);
+
+#ifdef VERIFY
+    if (!ret) {
+        secp256k1_fe_negate(&t1, &t1, 1);
+        secp256k1_fe_normalize_var(&t1);
+        VERIFY_CHECK(secp256k1_fe_equal_var(&t1, a));
+    }
+#endif
+    return ret;
 }
 
 #ifndef VERIFY
