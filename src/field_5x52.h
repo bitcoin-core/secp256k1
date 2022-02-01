@@ -42,12 +42,6 @@ typedef struct {
     ((uint64_t)(d6) >> 16) | (((uint64_t)(d7)) << 16) \
 }
 
-#ifdef VERIFY
-#define SECP256K1_FE_CONST(d7, d6, d5, d4, d3, d2, d1, d0) {SECP256K1_FE_CONST_INNER((d7), (d6), (d5), (d4), (d3), (d2), (d1), (d0)), 1, 1}
-#else
-#define SECP256K1_FE_CONST(d7, d6, d5, d4, d3, d2, d1, d0) {SECP256K1_FE_CONST_INNER((d7), (d6), (d5), (d4), (d3), (d2), (d1), (d0))}
-#endif
-
 typedef struct {
     uint64_t n[4];
 } secp256k1_fe_storage;

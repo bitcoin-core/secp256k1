@@ -45,6 +45,26 @@
 #error "Please select wide multiplication implementation"
 #endif
 
+#ifdef VERIFY
+/* Magnitude and normalized value for constants. */
+#define SECP256K1_FE_VERIFY_CONST(d7, d6, d5, d4, d3, d2, d1, d0) \
+    /* Magnitude is 0 for constant 0; 1 otherwise. */ \
+    , (((d7) | (d6) | (d5) | (d4) | (d3) | (d2) | (d1) | (d0)) != 0) \
+    /* Normalized is 1 unless sum(d_i<<(32*i) for i=0..7) exceeds field modulus. */ \
+    , (!(((d7) & (d6) & (d5) & (d4) & (d3) & (d2)) == 0xfffffffful && ((d1) == 0xfffffffful || ((d1) == 0xfffffffe && (d0 >= 0xfffffc2f)))))
+#else
+#define SECP256K1_FE_VERIFY_CONST(d7, d6, d5, d4, d3, d2, d1, d0)
+#endif
+
+/** This expands to an initializer for a secp256k1_fe valued sum((i*32) * d_i, i=0..7) mod p.
+ *
+ * It has magnitude 1, unless d_i are all 0, in which case the magnitude is 0.
+ * It is normalized, unless sum(2^(i*32) * d_i, i=0..7) >= p.
+ *
+ * SECP256K1_FE_CONST_INNER is provided by the implementation.
+ */
+#define SECP256K1_FE_CONST(d7, d6, d5, d4, d3, d2, d1, d0) {SECP256K1_FE_CONST_INNER((d7), (d6), (d5), (d4), (d3), (d2), (d1), (d0)) SECP256K1_FE_VERIFY_CONST((d7), (d6), (d5), (d4), (d3), (d2), (d1), (d0)) }
+
 static const secp256k1_fe secp256k1_fe_one = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1);
 static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
     0x7ae96a2bul, 0x657c0710ul, 0x6e64479eul, 0xac3434e9ul,
