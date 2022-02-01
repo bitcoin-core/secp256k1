@@ -7,6 +7,7 @@
 #ifndef SECP256K1_SCALAR_REPR_IMPL_H
 #define SECP256K1_SCALAR_REPR_IMPL_H
 
+#include "int128.h"
 #include "modinv64_impl.h"
 
 /* Limbs of the secp256k1 order. */

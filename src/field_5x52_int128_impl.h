@@ -9,6 +9,8 @@
 
 #include <stdint.h>
 
+#include "int128.h"
+
 #ifdef VERIFY
 #define VERIFY_BITS(x, n) VERIFY_CHECK(((x) >> (n)) == 0)
 #define VERIFY_BITS_128(x, n) VERIFY_CHECK(secp256k1_u128_check_bits((x), (n)))
