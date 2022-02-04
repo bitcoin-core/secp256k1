@@ -251,6 +251,8 @@ def check_symbolic_jacobian_weierstrass(name, A, B, branches, formula):
   ret = True
   for branch in range(branches):
     assumeFormula, assumeBranch, pC = formula(branch, pA, pB)
+    assumeBranch = assumeBranch.map(lift)
+    assumeFormula = assumeFormula.map(lift)
     pC.X = lift(pC.X)
     pC.Y = lift(pC.Y)
     pC.Z = lift(pC.Z)

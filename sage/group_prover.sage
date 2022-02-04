@@ -164,6 +164,9 @@ class constraints:
   def negate(self):
     return constraints(zero=self.nonzero, nonzero=self.zero)
 
+  def map(self, fun):
+    return constraints(zero={fun(k): v for k, v in self.zero.items()}, nonzero={fun(k): v for k, v in self.nonzero.items()})
+
   def __add__(self, other):
     zero = self.zero.copy()
     zero.update(other.zero)
