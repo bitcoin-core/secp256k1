@@ -195,12 +195,6 @@ def formula_secp256k1_gej_add_ge(branch, a, b):
     n = m
   t = rr_alt^2
   rz = a.Z * m_alt
-  infinity = False
-  if (branch & 4) != 0:
-    infinity = True
-    zeroes.update({rz : 'r.z = 0'})
-  else:
-    nonzeroes.update({rz : 'r.z != 0'})
   t = t + q
   rx = t
   t = t * 2
@@ -213,8 +207,11 @@ def formula_secp256k1_gej_add_ge(branch, a, b):
     rx = b.X
     ry = b.Y
     rz = 1
-  if infinity:
+  if (branch & 4) != 0:
+    zeroes.update({rz : 'r.z = 0'})
     return (constraints(zero={b.Z - 1 : 'b.z=1', b.Infinity : 'b_finite'}), constraints(zero=zeroes, nonzero=nonzeroes), point_at_infinity())
+  else:
+    nonzeroes.update({rz : 'r.z != 0'})
   return (constraints(zero={b.Z - 1 : 'b.z=1', b.Infinity : 'b_finite'}), constraints(zero=zeroes, nonzero=nonzeroes), jacobianpoint(rx, ry, rz))
 
 def formula_secp256k1_gej_add_ge_old(branch, a, b):

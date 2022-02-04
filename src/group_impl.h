@@ -492,11 +492,11 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
     /* Operations: 7 mul, 5 sqr, 24 add/cmov/half/mul_int/negate/normalize_weak/normalizes_to_zero */
     secp256k1_fe zz, u1, u2, s1, s2, t, tt, m, n, q, rr;
     secp256k1_fe m_alt, rr_alt;
-    int infinity, degenerate;
+    int degenerate;
     VERIFY_CHECK(!b->infinity);
     VERIFY_CHECK(a->infinity == 0 || a->infinity == 1);
 
-    /** In:
+    /*  In:
      *    Eric Brier and Marc Joye, Weierstrass Elliptic Curves and Side-Channel Attacks.
      *    In D. Naccache and P. Paillier, Eds., Public Key Cryptography, vol. 2274 of Lecture Notes in Computer Science, pages 335-345. Springer-Verlag, 2002.
      *  we find as solution for a unified addition/doubling formula:
@@ -558,8 +558,8 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
     secp256k1_fe_negate(&m_alt, &u2, 1);                /* Malt = -X2*Z1^2 */
     secp256k1_fe_mul(&tt, &u1, &m_alt);                 /* tt = -U1*U2 (2) */
     secp256k1_fe_add(&rr, &tt);                         /* rr = R = T^2-U1*U2 (3) */
-    /** If lambda = R/M = R/0 we have a problem (except in the "trivial"
-     *  case that Z = z1z2 = 0, and this is special-cased later on). */
+    /* If lambda = R/M = R/0 we have a problem (except in the "trivial"
+     * case that Z = z1z2 = 0, and this is special-cased later on). */
     degenerate = secp256k1_fe_normalizes_to_zero(&m);
     /* This only occurs when y1 == -y2 and x1^3 == x2^3, but x1 != x2.
      * This means either x1 == beta*x2 or beta*x1 == x2, where beta is
@@ -587,7 +587,6 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
     secp256k1_fe_cmov(&n, &m, degenerate);              /* n = M^3 * Malt (2) */
     secp256k1_fe_sqr(&t, &rr_alt);                      /* t = Ralt^2 (1) */
     secp256k1_fe_mul(&r->z, &a->z, &m_alt);             /* r->z = Z3 = Malt*Z (1) */
-    infinity = secp256k1_fe_normalizes_to_zero(&r->z) & ~a->infinity;
     secp256k1_fe_add(&t, &q);                           /* t = Ralt^2 + Q (2) */
     r->x = t;                                           /* r->x = X3 = Ralt^2 + Q (2) */
     secp256k1_fe_mul_int(&t, 2);                        /* t = 2*X3 (4) */
@@ -597,11 +596,28 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
     secp256k1_fe_negate(&r->y, &t, 3);                  /* r->y = -(Ralt*(2*X3 + Q) + M^3*Malt) (4) */
     secp256k1_fe_half(&r->y);                           /* r->y = Y3 = -(Ralt*(2*X3 + Q) + M^3*Malt)/2 (3) */
 
-    /** In case a->infinity == 1, replace r with (b->x, b->y, 1). */
+    /* In case a->infinity == 1, replace r with (b->x, b->y, 1). */
     secp256k1_fe_cmov(&r->x, &b->x, a->infinity);
     secp256k1_fe_cmov(&r->y, &b->y, a->infinity);
     secp256k1_fe_cmov(&r->z, &secp256k1_fe_one, a->infinity);
-    r->infinity = infinity;
+
+    /* Set r->infinity if r->z is 0.
+     *
+     * If a->infinity is set, then r->infinity = (r->z == 0) = (1 == 0) = false,
+     * which is correct because the function assumes that b is not infinity.
+     *
+     * Now assume !a->infinity. This implies Z = Z1 != 0.
+     *
+     * Case y1 = -y2:
+     * In this case we could have a = -b, namely if x1 = x2.
+     * We have degenerate = true, r->z = (x1 - x2) * Z.
+     * Then r->infinity = ((x1 - x2)Z == 0) = (x1 == x2) = (a == -b).
+     *
+     * Case y1 != -y2:
+     * In this case, we can't have a = -b.
+     * We have degenerate = false, r->z = (y1 + y2) * Z.
+     * Then r->infinity = ((y1 + y2)Z == 0) = (y1 == -y2) = false. */
+    r->infinity = secp256k1_fe_normalizes_to_zero(&r->z);
 }
 
 static void secp256k1_gej_rescale(secp256k1_gej *r, const secp256k1_fe *s) {
