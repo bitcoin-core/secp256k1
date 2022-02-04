@@ -558,10 +558,9 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
     secp256k1_fe_negate(&m_alt, &u2, 1);                /* Malt = -X2*Z1^2 */
     secp256k1_fe_mul(&tt, &u1, &m_alt);                 /* tt = -U1*U2 (2) */
     secp256k1_fe_add(&rr, &tt);                         /* rr = R = T^2-U1*U2 (3) */
-    /** If lambda = R/M = 0/0 we have a problem (except in the "trivial"
+    /** If lambda = R/M = R/0 we have a problem (except in the "trivial"
      *  case that Z = z1z2 = 0, and this is special-cased later on). */
-    degenerate = secp256k1_fe_normalizes_to_zero(&m) &
-                 secp256k1_fe_normalizes_to_zero(&rr);
+    degenerate = secp256k1_fe_normalizes_to_zero(&m);
     /* This only occurs when y1 == -y2 and x1^3 == x2^3, but x1 != x2.
      * This means either x1 == beta*x2 or beta*x1 == x2, where beta is
      * a nontrivial cube root of one. In either case, an alternate
@@ -573,7 +572,7 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
 
     secp256k1_fe_cmov(&rr_alt, &rr, !degenerate);
     secp256k1_fe_cmov(&m_alt, &m, !degenerate);
-    /* Now Ralt / Malt = lambda and is guaranteed not to be 0/0.
+    /* Now Ralt / Malt = lambda and is guaranteed not to be Ralt / 0.
      * From here on out Ralt and Malt represent the numerator
      * and denominator of lambda; R and M represent the explicit
      * expressions x1^2 + x2^2 + x1x2 and y1 + y2. */
