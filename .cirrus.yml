@@ -322,3 +322,10 @@ task:
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
+
+task:
+  name: "sage prover"
+  << : *LINUX_CONTAINER
+  test_script:
+    - cd sage
+    - sage prove_group_implementations.sage
