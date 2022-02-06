@@ -104,6 +104,15 @@ static int secp256k1_scalar_shr_int(secp256k1_scalar *r, int n) {
     return ret;
 }
 
+static int secp256k1_scalar_shl_int(secp256k1_scalar *r, int n) {
+    int ret;
+    VERIFY_CHECK(n > 0);
+    VERIFY_CHECK(n < 16);
+    ret = *r >> (32 - n);
+    *r <<= n;
+    return ret;
+}
+
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *a) {
     *r1 = *a;
     *r2 = 0;
@@ -111,6 +120,25 @@ static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r
 
 SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const secp256k1_scalar *b) {
     return *a == *b;
+}
+
+SECP256K1_INLINE static int secp256k1_scalar_lt(const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    return *a < *b;
+}
+
+SECP256K1_INLINE static int secp256k1_scalar_msb_32(unsigned long a) {
+    int c = 0;
+    if (a >> 16) { c += 16; a >>= 16; }
+    if (a >> 8) { c += 8; a >>= 8; }
+    if (a >> 4) { c += 4; a >>= 4; }
+    if (a >> 2) { c += 2; a >>= 2; }
+    if (a >> 1) { c += 1; a >>= 1; }
+    if (a == 1) { c += 1; a >>= 1; }
+    return c;
+}
+
+SECP256K1_INLINE static int secp256k1_scalar_msb(const secp256k1_scalar *a) {
+    return secp256k1_scalar_msb_32(*a);
 }
 
 static SECP256K1_INLINE void secp256k1_scalar_cmov(secp256k1_scalar *r, const secp256k1_scalar *a, int flag) {

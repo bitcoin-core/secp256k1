@@ -17,6 +17,8 @@
 #error "modinv64 requires 128-bit wide multiplication support"
 #endif
 
+#include "scalar.h"
+
 /* A signed 62-bit limb representation of integers.
  *
  * Its value is sum(v[i] * 2^(62*i), i=0..4). */
@@ -42,5 +44,7 @@ static void secp256k1_modinv64_var(secp256k1_modinv64_signed62 *x, const secp256
 
 /* Same as secp256k1_modinv64_var, but constant time in x (not in the modulus). */
 static void secp256k1_modinv64(secp256k1_modinv64_signed62 *x, const secp256k1_modinv64_modinfo *modinfo);
+
+static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_scalar *x, const secp256k1_scalar *m);
 
 #endif /* SECP256K1_MODINV64_H */

@@ -62,6 +62,10 @@ static void secp256k1_scalar_mul(secp256k1_scalar *r, const secp256k1_scalar *a,
  *  the low bits that were shifted off */
 static int secp256k1_scalar_shr_int(secp256k1_scalar *r, int n);
 
+/** Shift a scalar right by some amount strictly between 0 and 16, returning
+ *  the high bits that were shifted off */
+static int secp256k1_scalar_shl_int(secp256k1_scalar *r, int n);
+
 /** Compute the inverse of a scalar (modulo the group order). */
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *a);
 
@@ -89,6 +93,12 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *a, int flag);
 
 /** Compare two scalars. */
 static int secp256k1_scalar_eq(const secp256k1_scalar *a, const secp256k1_scalar *b);
+
+/** Compare two scalars. */
+static int secp256k1_scalar_lt(const secp256k1_scalar *a, const secp256k1_scalar *b);
+
+/** Find the most significant bit. */
+static int secp256k1_scalar_msb(const secp256k1_scalar *a);
 
 /** Find r1 and r2 such that r1+r2*2^128 = k. */
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k);
