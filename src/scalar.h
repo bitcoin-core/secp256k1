@@ -95,10 +95,16 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *a, int flag);
 static int secp256k1_scalar_eq(const secp256k1_scalar *a, const secp256k1_scalar *b);
 
 /** Compare two scalars. */
-static int secp256k1_scalar_lt(const secp256k1_scalar *a, const secp256k1_scalar *b);
+static int secp256k1_scalar_cmp(const secp256k1_scalar *a, const secp256k1_scalar *b);
+
+/** Compare two scalars in constant time. */
+static int secp256k1_scalar_cmp_var(const secp256k1_scalar *a, const secp256k1_scalar *b);
 
 /** Find the most significant bit. */
 static int secp256k1_scalar_msb(const secp256k1_scalar *a);
+
+/** Find the most significant bit in constant time. */
+static int secp256k1_scalar_msb_var(const secp256k1_scalar *a);
 
 /** Find r1 and r2 such that r1+r2*2^128 = k. */
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k);

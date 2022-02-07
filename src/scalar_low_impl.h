@@ -122,11 +122,26 @@ SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const
     return *a == *b;
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_lt(const secp256k1_scalar *a, const secp256k1_scalar *b) {
+SECP256K1_INLINE static int secp256k1_scalar_cmp(const secp256k1_scalar *a, const secp256k1_scalar *b) {
     return *a < *b;
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_msb_32(unsigned long a) {
+SECP256K1_INLINE static int secp256k1_scalar_cmp_var(const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    return secp256k1_scalar_cmp(a, b);
+}
+
+SECP256K1_INLINE static int _secp256k1_scalar_msb_32(unsigned long a) {
+    int c = 0;
+    c += 16 * ((a >> 16) > 0); a >>= ((a >> 16) > 0) * 16;
+    c += 8 * ((a >> 8) > 0); a >>= ((a >> 8) > 0) * 8;
+    c += 4 * ((a >> 4) > 0); a >>= ((a >> 4) > 0) * 4;
+    c += 2 * ((a >> 2) > 0); a >>= ((a >> 2) > 0) * 2;
+    c += 1 * ((a >> 1) > 0); a >>= ((a >> 1) > 0) * 1;
+    c += 1 * ((a == 1) > 0);
+    return c;
+}
+
+SECP256K1_INLINE static int _secp256k1_scalar_msb_32_var(unsigned long a) {
     int c = 0;
     if (a >> 16) { c += 16; a >>= 16; }
     if (a >> 8) { c += 8; a >>= 8; }
@@ -138,7 +153,11 @@ SECP256K1_INLINE static int secp256k1_scalar_msb_32(unsigned long a) {
 }
 
 SECP256K1_INLINE static int secp256k1_scalar_msb(const secp256k1_scalar *a) {
-    return secp256k1_scalar_msb_32(*a);
+    return _secp256k1_scalar_msb_32(*a);
+}
+
+SECP256K1_INLINE static int secp256k1_scalar_msb_var(const secp256k1_scalar *a) {
+    return _secp256k1_scalar_msb_32_var(*a);
 }
 
 static SECP256K1_INLINE void secp256k1_scalar_cmov(secp256k1_scalar *r, const secp256k1_scalar *a, int flag) {

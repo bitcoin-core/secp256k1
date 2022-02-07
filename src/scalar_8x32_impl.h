@@ -624,17 +624,40 @@ SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const
     return ((a->d[0] ^ b->d[0]) | (a->d[1] ^ b->d[1]) | (a->d[2] ^ b->d[2]) | (a->d[3] ^ b->d[3]) | (a->d[4] ^ b->d[4]) | (a->d[5] ^ b->d[5]) | (a->d[6] ^ b->d[6]) | (a->d[7] ^ b->d[7])) == 0;
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_lt(const secp256k1_scalar *a, const secp256k1_scalar *b) {
+SECP256K1_INLINE static int secp256k1_scalar_cmp(const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    int c = (a->d[7] > b->d[7]) - (a->d[7] < b->d[7]);
+    c = (c * 2) + (a->d[6] > b->d[6]) - (a->d[6] < b->d[6]);
+    c = (c * 2) + (a->d[5] > b->d[5]) - (a->d[5] < b->d[5]);
+    c = (c * 2) + (a->d[4] > b->d[4]) - (a->d[4] < b->d[4]);
+    c = (c * 2) + (a->d[3] > b->d[3]) - (a->d[3] < b->d[3]);
+    c = (c * 2) + (a->d[2] > b->d[2]) - (a->d[2] < b->d[2]);
+    c = (c * 2) + (a->d[1] > b->d[1]) - (a->d[1] < b->d[1]);
+    c = (c * 2) + (a->d[0] > b->d[0]) - (a->d[0] < b->d[0]);
+    return c;
+}
+
+SECP256K1_INLINE static int secp256k1_scalar_cmp_var(const secp256k1_scalar *a, const secp256k1_scalar *b) {
     int i;
     for (i = 7; i > 0; i--) {
         if (a->d[i] != b->d[i]) {
-            return a->d[i] < b->d[i];
+            return (a->d[i] > b->d[i]) - (a->d[i] < b->d[i]);
         }
     }
-    return a->d[0] < b->d[0];
+    return (a->d[0] > b->d[0]) - (a->d[0] < b->d[0]);
 }
 
-SECP256K1_INLINE static int _secp256k1_scalar_msb_32(unsigned int a) {
+SECP256K1_INLINE static int _secp256k1_scalar_msb_32(unsigned long a) {
+    int c = 0;
+    c += 16 * ((a >> 16) > 0); a >>= ((a >> 16) > 0) * 16;
+    c += 8 * ((a >> 8) > 0); a >>= ((a >> 8) > 0) * 8;
+    c += 4 * ((a >> 4) > 0); a >>= ((a >> 4) > 0) * 4;
+    c += 2 * ((a >> 2) > 0); a >>= ((a >> 2) > 0) * 2;
+    c += 1 * ((a >> 1) > 0); a >>= ((a >> 1) > 0) * 1;
+    c += 1 * ((a == 1) > 0);
+    return c;
+}
+
+SECP256K1_INLINE static int _secp256k1_scalar_msb_32_var(unsigned int a) {
     int c = 0;
     if (a >> 16) { c += 16; a >>= 16; }
     if (a >> 8) { c += 8; a >>= 8; }
@@ -654,6 +677,19 @@ SECP256K1_INLINE static int secp256k1_scalar_msb(const secp256k1_scalar *a) {
     }
     if (a->d[0] != 0) {
         return _secp256k1_scalar_msb_32(a->d[0]);
+    }
+    return 0;
+}
+
+SECP256K1_INLINE static int secp256k1_scalar_msb_var(const secp256k1_scalar *a) {
+    int i;
+    for (i = 7; i > 0; i--) {
+        if (a->d[i] != 0) {
+            return i*32 + _secp256k1_scalar_msb_32_var(a->d[i]);
+        }
+    }
+    if (a->d[0] != 0) {
+        return _secp256k1_scalar_msb_32_var(a->d[0]);
     }
     return 0;
 }

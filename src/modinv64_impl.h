@@ -636,7 +636,7 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
     VERIFY_CHECK(secp256k1_scalar_msb(&one) == 1);
     VERIFY_CHECK(secp256k1_scalar_msb(&six) == 6);
 
-    printf("%d\n", (int)sizeof(*m));
+    /* printf("%d\n", (int)sizeof(*m)); */
     if (sizeof(*m) == 32) {
         secp256k1_scalar huge = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 2, 0, 0);
         VERIFY_CHECK(secp256k1_scalar_msb(&huge) == 66);
@@ -654,8 +654,8 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
 
     /* if (a < m) { u = m; v = a; r = 0; s = 1; } */
     /* else       { v = m; u = a; s = 0; r = 1; } */
-    if (secp256k1_scalar_lt(a, m)) { *u = *m; *v = *a; *r = zero; *s = one; }
-    else                           { *v = *m; *u = *a; *s = zero; *r = one; }
+    if (secp256k1_scalar_cmp(a, m) < 0) { *u = *m; *v = *a; *r = zero; *s = one; }
+    else                                { *v = *m; *u = *a; *s = zero; *r = one; }
 
     llu = _secp256k1_scalar_count_bits(u, 1);
     llv = _secp256k1_scalar_count_bits(v, 1);
@@ -711,7 +711,7 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
     }
 
     /* if (s > m) { return s - m; } */
-    if (secp256k1_scalar_lt(m, s)) {
+    if (secp256k1_scalar_cmp(s, m) > 0) {
         secp256k1_scalar_negate(vv, m);
         secp256k1_scalar_add(ret, s, vv);
         return;

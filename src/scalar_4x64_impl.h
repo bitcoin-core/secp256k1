@@ -775,14 +775,23 @@ SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const
     return ((a->d[0] ^ b->d[0]) | (a->d[1] ^ b->d[1]) | (a->d[2] ^ b->d[2]) | (a->d[3] ^ b->d[3])) == 0;
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_lt(const secp256k1_scalar *a, const secp256k1_scalar *b) {
+
+SECP256K1_INLINE static int secp256k1_scalar_cmp(const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    int c = (a->d[3] > b->d[3]) - (a->d[3] < b->d[3]);
+    c = (c * 2) + (a->d[2] > b->d[2]) - (a->d[2] < b->d[2]);
+    c = (c * 2) + (a->d[1] > b->d[1]) - (a->d[1] < b->d[1]);
+    c = (c * 2) + (a->d[0] > b->d[0]) - (a->d[0] < b->d[0]);
+    return c;
+}
+
+SECP256K1_INLINE static int secp256k1_scalar_cmp_var(const secp256k1_scalar *a, const secp256k1_scalar *b) {
 	int i;
     for (i = 3; i > 0; i--) {
         if (a->d[i] != b->d[i]) {
-            return a->d[i] < b->d[i];
+            return (a->d[i] > b->d[i]) - (a->d[i] < b->d[i]);
         }
     }
-    return a->d[0] < b->d[0];
+    return (a->d[0] > b->d[0]) - (a->d[0] < b->d[0]);
 }
 
 SECP256K1_INLINE static int _secp256k1_scalar_msb_64(uint64_t a) {
