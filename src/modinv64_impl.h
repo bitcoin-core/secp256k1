@@ -677,7 +677,7 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
     llu = _secp256k1_scalar_msb_signed(u, 1);
     llv = _secp256k1_scalar_msb_signed(v, 1);
     /* while (ll(v) > 1) */
-    for (i = 0; !secp256k1_scalar_is_around_zero(v, i == 0); i++) {
+    for (i = 0; !secp256k1_scalar_is_around_zero(v); i++) {
     /* for (i = 0; _secp256k1_scalar_msb_signed(v, i == 0) > 1; i++) { */
         if (i < LIMIT) {
             if (i < LIMIT) { printf("\nll(u)=%d\nll(v)=%d\n", llu, llv); }

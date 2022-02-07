@@ -868,10 +868,10 @@ SECP256K1_INLINE static int secp256k1_scalar_msb_neg(const secp256k1_scalar *a) 
     return r + f;
 }
 
-static int secp256k1_scalar_is_around_zero(const secp256k1_scalar *a, int forcePositive) {
+static int secp256k1_scalar_is_around_zero(const secp256k1_scalar *a) {
     return (
         (a->d[0] < 2 && (a->d[1] | a->d[2] | a->d[3]) == 0) ||
-        (!forcePositive && (a->d[0] & a->d[1] & a->d[2] & a->d[3]) == 0xFFFFFFFFFFFFFFFFULL)
+        ((a->d[0] & a->d[1] & a->d[2] & a->d[3]) == 0xFFFFFFFFFFFFFFFFULL)
     );
 }
 

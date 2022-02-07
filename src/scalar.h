@@ -119,7 +119,7 @@ static int secp256k1_scalar_msb(const secp256k1_scalar *a);
 static int secp256k1_scalar_msb_neg(const secp256k1_scalar *a);
 
 /** Check whether a scalar equals zero, -1 or +1. */
-static int secp256k1_scalar_is_around_zero(const secp256k1_scalar *a, int forcePositive);
+static int secp256k1_scalar_is_around_zero(const secp256k1_scalar *a);
 
 /** Find r1 and r2 such that r1+r2*2^128 = k. */
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k);

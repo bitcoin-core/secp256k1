@@ -170,8 +170,8 @@ SECP256K1_INLINE static int secp256k1_scalar_msb_neg(const secp256k1_scalar *a) 
     return _secp256k1_scalar_msb_32(-*a);
 }
 
-static int secp256k1_scalar_is_around_zero(const secp256k1_scalar *a, int forcePositive) {
-    return *a < 2 || (!forcePositive && *a + 1 == 0);
+static int secp256k1_scalar_is_around_zero(const secp256k1_scalar *a) {
+    return *a + 1 <= 2;
 }
 
 static SECP256K1_INLINE void secp256k1_scalar_cmov(secp256k1_scalar *r, const secp256k1_scalar *a, int flag) {
