@@ -861,11 +861,18 @@ SECP256K1_INLINE static int secp256k1_scalar_msb_neg(const secp256k1_scalar *a) 
     for (i = 3; i >= 0; i--) {
         f &= (a->d[i] == 0);
         if (r == 0 && a->d[i] != 0xFFFFFFFFFFFFFFFFULL) {
-            r = i*64 + _secp256k1_scalar_msb_64(-a->d[i]);
-            f = ((~a->d[i]) & ((1 << (r & 63)) - 1)) == 0;
+            r = (i << 6) + _secp256k1_scalar_msb_64(-a->d[i]);
+            f = (a->d[i] << (64 - (r & 63))) == 0;
         }
     }
     return r + f;
+}
+
+static int secp256k1_scalar_is_around_zero(const secp256k1_scalar *a, int forcePositive) {
+    return (
+        (a->d[0] < 2 && (a->d[1] | a->d[2] | a->d[3]) == 0) ||
+        (!forcePositive && (a->d[0] & a->d[1] & a->d[2] & a->d[3]) == 0xFFFFFFFFFFFFFFFFULL)
+    );
 }
 
 SECP256K1_INLINE static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b, unsigned int shift) {
@@ -969,20 +976,25 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     CHECK(x);
 
     t1 = clock();
-    for (i = 0; i < 1000000; i++) {
+    for (i = 0; i < 100000; i++) {
         secp256k1_scalar_to_signed62(&s, x);
         secp256k1_modinv64(&s, &secp256k1_const_modinfo_scalar);
         secp256k1_scalar_from_signed62(r, &s);
+        /*
         CHECK(secp256k1_scalar_eq(r, &rrr));
+        */
     }
     t2 = clock();
-    for (i = 0; i < 1000000; i++) {    
+    for (i = 0; i < 100000; i++) {    
         secp256k1_modinv64_scalar(r, x, &secp256k1_const_mod_scalar);
+        /*
         CHECK(secp256k1_scalar_eq(r, &rrr));
+        */
     }
     t3 = clock();
     printf("Time old: %f\n", ((double)(t2 - t1)) / CLOCKS_PER_SEC);
     printf("Time new: %f\n", ((double)(t3 - t2)) / CLOCKS_PER_SEC);
+    printf("Improvement: %.2f%%\n", (1 - (double)(t3 - t2) / (double)(t2 - t1)) * 100);
     CHECK(0);
 
     /*

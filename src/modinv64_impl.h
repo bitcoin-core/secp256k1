@@ -590,34 +590,35 @@ static void secp256k1_modinv64_var(secp256k1_modinv64_signed62 *x, const secp256
     *x = d;
 }
 
-static void _secp256k1_scalar_shr_void(secp256k1_scalar *r, int bits) {
-    int i;
-    for (i = 0; i < bits/15; i++) {
-        secp256k1_scalar_shr_int(r, 15);
+static void _secp256k1_scalar_shr_void(secp256k1_scalar *x, int bits) {
+    while (bits >= 15) {
+        secp256k1_scalar_shr_int(x, 15);
+        bits -= 15;
     }
-    if (bits % 15) {
-        secp256k1_scalar_shr_int(r, bits % 15);
+    if (bits) {
+        secp256k1_scalar_shr_int(x, bits);
     }
 }
 
 static void _secp256k1_scalar_shl_void(secp256k1_scalar *x, int bits) {
-    int i;
-    for (i = 0; i < bits/15; i++) {
+    while (bits >= 15) {
         secp256k1_scalar_shl_int(x, 15);
+        bits -= 15;
     }
-    if (bits % 15) {
-        secp256k1_scalar_shl_int(x, bits % 15);
+    if (bits) {
+        secp256k1_scalar_shl_int(x, bits);
     }
 }
 
 static unsigned int _secp256k1_scalar_msb_signed(const secp256k1_scalar *x, unsigned int forcePositive) {
     if (!forcePositive && (secp256k1_scalar_get_bit(x, 255) == 1)) {
-        return secp256k1_scalar_msb_neg(x);
         /*
+        return secp256k1_scalar_msb_neg(x);
+        */
         secp256k1_scalar a = *x;
         secp256k1_scalar_neg(&a, &a);
         return secp256k1_scalar_msb(&a);
-        */
+        
     }
     return secp256k1_scalar_msb(x);
 }
@@ -671,7 +672,8 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
     llu = _secp256k1_scalar_msb_signed(u, 1);
     llv = _secp256k1_scalar_msb_signed(v, 1);
     /* while (ll(v) > 1) */
-    for (i = 0; _secp256k1_scalar_msb_signed(v, i == 0) > 1; i++) {
+    for (i = 0; !secp256k1_scalar_is_around_zero(v, i == 0); i++) {
+    /* for (i = 0; _secp256k1_scalar_msb_signed(v, i == 0) > 1; i++) { */
         if (i < LIMIT) {
             if (i < LIMIT) { printf("\nll(u)=%d\nll(v)=%d\n", llu, llv); }
             PRINT_SCALAR_IF(LIMIT, "u=", u);
