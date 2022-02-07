@@ -166,6 +166,11 @@ SECP256K1_INLINE static int secp256k1_scalar_msb(const secp256k1_scalar *a) {
     return _secp256k1_scalar_msb_32(*a);
 }
 
+static int secp256k1_scalar_msb_hint(const secp256k1_scalar *a, int hint) {
+    CHECK(hint > 0);
+    return _secp256k1_scalar_msb_32(*a);
+}
+
 SECP256K1_INLINE static int secp256k1_scalar_msb_neg(const secp256k1_scalar *a) {
     return _secp256k1_scalar_msb_32(-*a);
 }

@@ -115,6 +115,9 @@ static int secp256k1_scalar_cmp_var(const secp256k1_scalar *a, const secp256k1_s
 /** Find the most significant bit. */
 static int secp256k1_scalar_msb(const secp256k1_scalar *a);
 
+/** Find the most significant bit. */
+static int secp256k1_scalar_msb_hint(const secp256k1_scalar *a, int hint);
+
 /** Find the most significant bit, considering arg is negative. */
 static int secp256k1_scalar_msb_neg(const secp256k1_scalar *a);
 

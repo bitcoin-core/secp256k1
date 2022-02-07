@@ -819,9 +819,9 @@ SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const
 
 SECP256K1_INLINE static int secp256k1_scalar_cmp(const secp256k1_scalar *a, const secp256k1_scalar *b) {
     int c = (a->d[3] > b->d[3]) - (a->d[3] < b->d[3]);
-    c = (c * 2) + (a->d[2] > b->d[2]) - (a->d[2] < b->d[2]);
-    c = (c * 2) + (a->d[1] > b->d[1]) - (a->d[1] < b->d[1]);
-    c = (c * 2) + (a->d[0] > b->d[0]) - (a->d[0] < b->d[0]);
+    c = (c << 1) + (a->d[2] > b->d[2]) - (a->d[2] < b->d[2]);
+    c = (c << 1) + (a->d[1] > b->d[1]) - (a->d[1] < b->d[1]);
+    c = (c << 1) + (a->d[0] > b->d[0]) - (a->d[0] < b->d[0]);
     return c;
 }
 
@@ -852,6 +852,17 @@ SECP256K1_INLINE static int secp256k1_scalar_msb(const secp256k1_scalar *a) {
         if (a->d[i] != 0) {
             return i*64 + _secp256k1_scalar_msb_64(a->d[i]);
         }
+    }
+    return 0;
+}
+
+static int secp256k1_scalar_msb_hint(const secp256k1_scalar *a, int hint) {
+    CHECK(hint > 0);
+    switch ((hint - 1) >> 6) {
+        case 3: if (a->d[3] != 0) { return 3*64 + _secp256k1_scalar_msb_64(a->d[3]); }
+        case 2: if (a->d[2] != 0) { return 2*64 + _secp256k1_scalar_msb_64(a->d[2]); }
+        case 1: if (a->d[1] != 0) { return 1*64 + _secp256k1_scalar_msb_64(a->d[1]); }
+        case 0: if (a->d[0] != 0) { return 0*64 + _secp256k1_scalar_msb_64(a->d[0]); }
     }
     return 0;
 }
@@ -976,7 +987,7 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     CHECK(x);
 
     t1 = clock();
-    for (i = 0; i < 100000; i++) {
+    for (i = 0; i < 1000000; i++) {
         secp256k1_scalar_to_signed62(&s, x);
         secp256k1_modinv64(&s, &secp256k1_const_modinfo_scalar);
         secp256k1_scalar_from_signed62(r, &s);
@@ -985,7 +996,7 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
         */
     }
     t2 = clock();
-    for (i = 0; i < 100000; i++) {    
+    for (i = 0; i < 1000000; i++) {    
         secp256k1_modinv64_scalar(r, x, &secp256k1_const_mod_scalar);
         /*
         CHECK(secp256k1_scalar_eq(r, &rrr));

@@ -690,13 +690,13 @@ SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const
 
 SECP256K1_INLINE static int secp256k1_scalar_cmp(const secp256k1_scalar *a, const secp256k1_scalar *b) {
     int c = (a->d[7] > b->d[7]) - (a->d[7] < b->d[7]);
-    c = (c * 2) + (a->d[6] > b->d[6]) - (a->d[6] < b->d[6]);
-    c = (c * 2) + (a->d[5] > b->d[5]) - (a->d[5] < b->d[5]);
-    c = (c * 2) + (a->d[4] > b->d[4]) - (a->d[4] < b->d[4]);
-    c = (c * 2) + (a->d[3] > b->d[3]) - (a->d[3] < b->d[3]);
-    c = (c * 2) + (a->d[2] > b->d[2]) - (a->d[2] < b->d[2]);
-    c = (c * 2) + (a->d[1] > b->d[1]) - (a->d[1] < b->d[1]);
-    c = (c * 2) + (a->d[0] > b->d[0]) - (a->d[0] < b->d[0]);
+    c = (c << 1) + (a->d[6] > b->d[6]) - (a->d[6] < b->d[6]);
+    c = (c << 1) + (a->d[5] > b->d[5]) - (a->d[5] < b->d[5]);
+    c = (c << 1) + (a->d[4] > b->d[4]) - (a->d[4] < b->d[4]);
+    c = (c << 1) + (a->d[3] > b->d[3]) - (a->d[3] < b->d[3]);
+    c = (c << 1) + (a->d[2] > b->d[2]) - (a->d[2] < b->d[2]);
+    c = (c << 1) + (a->d[1] > b->d[1]) - (a->d[1] < b->d[1]);
+    c = (c << 1) + (a->d[0] > b->d[0]) - (a->d[0] < b->d[0]);
     return c;
 }
 
@@ -726,6 +726,22 @@ SECP256K1_INLINE static int secp256k1_scalar_msb(const secp256k1_scalar *a) {
         if (a->d[i] != 0) {
             return i*32 + _secp256k1_scalar_msb_32(a->d[i]);
         }
+    }
+    return 0;
+}
+
+static int secp256k1_scalar_msb_hint(const secp256k1_scalar *a, int hint) {
+    int i;
+    CHECK(hint > 0);
+    switch ((hint - 1) >> 5) {
+        case 7: if (a->d[7] != 0) { return 7*32 + _secp256k1_scalar_msb_32(a->d[7]); }
+        case 6: if (a->d[6] != 0) { return 6*32 + _secp256k1_scalar_msb_32(a->d[6]); }
+        case 5: if (a->d[5] != 0) { return 5*32 + _secp256k1_scalar_msb_32(a->d[5]); }
+        case 4: if (a->d[4] != 0) { return 4*32 + _secp256k1_scalar_msb_32(a->d[4]); }
+        case 3: if (a->d[3] != 0) { return 3*32 + _secp256k1_scalar_msb_32(a->d[3]); }
+        case 2: if (a->d[2] != 0) { return 2*32 + _secp256k1_scalar_msb_32(a->d[2]); }
+        case 1: if (a->d[1] != 0) { return 1*32 + _secp256k1_scalar_msb_32(a->d[1]); }
+        case 0: if (a->d[0] != 0) { return 0*32 + _secp256k1_scalar_msb_32(a->d[0]); }
     }
     return 0;
 }
