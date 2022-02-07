@@ -52,6 +52,9 @@ static void secp256k1_scalar_get_b32(unsigned char *bin, const secp256k1_scalar*
 /** Add two scalars together (modulo the group order). Returns whether it overflowed. */
 static int secp256k1_scalar_add(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b);
 
+/** Add two scalars together (NO modulo the group order). Returns whether it overflowed. */
+static int secp256k1_scalar_plus(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b);
+
 /** Conditionally add a power of two to a scalar. The result is not allowed to overflow. */
 static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int flag);
 
@@ -74,6 +77,9 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
 
 /** Compute the complement of a scalar (modulo the group order). */
 static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar *a);
+
+/** Compute the complement of a scalar (NO modulo the group order). */
+static void secp256k1_scalar_neg(secp256k1_scalar *r, const secp256k1_scalar *a);
 
 /** Check whether a scalar equals zero. */
 static int secp256k1_scalar_is_zero(const secp256k1_scalar *a);

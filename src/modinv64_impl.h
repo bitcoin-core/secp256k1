@@ -610,7 +610,7 @@ static void _secp256k1_scalar_shl_void(secp256k1_scalar *x, int bits) {
     }
 }
 
-static unsigned int _secp256k1_scalar_count_bits(const secp256k1_scalar *x, unsigned int forcePositive) {
+static unsigned int _secp256k1_scalar_msb_signed(const secp256k1_scalar *x, unsigned int forcePositive) {
     if (!forcePositive && (secp256k1_scalar_get_bits_var(x, 255, 1) == 1)) {
         secp256k1_scalar a = *x;
         secp256k1_scalar_negate(&a, &a);
@@ -622,7 +622,7 @@ static unsigned int _secp256k1_scalar_count_bits(const secp256k1_scalar *x, unsi
 /* https://gist.github.com/k06a/b990b7c7dda766d4f661e653d6804a53 */
 /* https://www.researchgate.net/publication/304417579_Modular_Inverse_Algorithms_Without_Multiplications_for_Cryptographic_Applications (LS3) */
 static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_scalar *a, const secp256k1_scalar *m) {
-    unsigned int i, llu, llv, f, lltmp;
+    unsigned int i, llu, llv, f, lltmp, firstFlip = 0;
     secp256k1_scalar *tmp;
     secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
     secp256k1_scalar one = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1);
@@ -641,11 +641,11 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
         secp256k1_scalar huge = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 2, 0, 0);
         VERIFY_CHECK(secp256k1_scalar_msb(&huge) == 66);
         secp256k1_scalar_negate(&huge, &huge);
-        VERIFY_CHECK(_secp256k1_scalar_count_bits(&huge, 0) == 66);
+        VERIFY_CHECK(_secp256k1_scalar_msb_signed(&huge, 0) == 66);
     }
     
     secp256k1_scalar_negate(&six, &six);
-    VERIFY_CHECK(_secp256k1_scalar_count_bits(&six, 0) == 6);
+    VERIFY_CHECK(_secp256k1_scalar_msb_signed(&six, 0) == 6);
     secp256k1_scalar_negate(&six, &six);
 
     VERIFY_CHECK(secp256k1_scalar_shl_int(&six, 1) == 0);
@@ -657,40 +657,41 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
     if (secp256k1_scalar_cmp(a, m) < 0) { *u = *m; *v = *a; *r = zero; *s = one; }
     else                                { *v = *m; *u = *a; *s = zero; *r = one; }
 
-    llu = _secp256k1_scalar_count_bits(u, 1);
-    llv = _secp256k1_scalar_count_bits(v, 1);
+    llu = _secp256k1_scalar_msb_signed(u, 1);
+    llv = _secp256k1_scalar_msb_signed(v, 1);
     /* while (ll(v) > 1) */
-    for (i = 0; _secp256k1_scalar_count_bits(v, i == 0) > 1; i++) { 
+    for (i = 0; _secp256k1_scalar_msb_signed(v, i == 0) > 1; i++) { 
         f = llu - llv;
         /* if (i == 0 || (u >> 255) == (v >> 255)) */
-        if (i == 0 || secp256k1_scalar_get_bits(u, 255, 1) == secp256k1_scalar_get_bits(v, 255, 1)) {
+        if (((1 - secp256k1_scalar_get_bits(u, 255, 1)) | (i < 1 + firstFlip)) == ((1 - secp256k1_scalar_get_bits(v, 255, 1)) | (i < 2 - firstFlip))) {
             /* u = u - (v << f); */
             *vv = *v;
             _secp256k1_scalar_shl_void(vv, f);
-            secp256k1_scalar_negate(vv, vv);
-            secp256k1_scalar_add(u, u, vv);
+            secp256k1_scalar_neg(vv, vv);
+            secp256k1_scalar_plus(u, u, vv);
 
             /* r = r - (s << f); */
             *ss = *s;
             _secp256k1_scalar_shl_void(ss, f);
-            secp256k1_scalar_negate(ss, ss);
-            secp256k1_scalar_add(r, r, ss);
+            secp256k1_scalar_neg(ss, ss);
+            secp256k1_scalar_plus(r, r, ss);
         }
         else {
             /* u = u + (v << f); */
             *vv = *v;
             _secp256k1_scalar_shl_void(vv, f);
-            secp256k1_scalar_add(u, u, vv);
+            secp256k1_scalar_plus(u, u, vv);
 
             /* r = r + (s << f); */
             *ss = *s;
             _secp256k1_scalar_shl_void(ss, f);
-            secp256k1_scalar_add(r, r, ss);
+            secp256k1_scalar_plus(r, r, ss);
         }
 
         /* llu = ll(u); */
-        llu = _secp256k1_scalar_count_bits(u, 0);
+        llu = _secp256k1_scalar_msb_signed(u, 0);
         if (llu < llv) {
+            firstFlip = 1;
             /* (u,v,r,s,llu,llv) = (v,u,s,r,llv,llu); */
             tmp = u; u = v; v = tmp;
             tmp = r; r = s; s = tmp;
@@ -707,19 +708,19 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
 
     /* if (v >> 255 == 1) { s = 0-s; } */
     if (secp256k1_scalar_get_bits(v, 255, 1) == 1) {
-        secp256k1_scalar_negate(s, s);
+        secp256k1_scalar_neg(s, s);
     }
 
     /* if (s > m) { return s - m; } */
     if (secp256k1_scalar_cmp(s, m) > 0) {
-        secp256k1_scalar_negate(vv, m);
-        secp256k1_scalar_add(ret, s, vv);
+        secp256k1_scalar_neg(vv, m);
+        secp256k1_scalar_plus(ret, s, vv);
         return;
     }
 
     /* if (s >> 255 == 1) { return s + m; } */
     if (secp256k1_scalar_get_bits(s, 255, 1) == 1) {
-        secp256k1_scalar_add(ret, s, m);
+        secp256k1_scalar_plus(ret, s, m);
         return;
     }
 

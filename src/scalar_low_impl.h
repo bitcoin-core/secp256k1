@@ -36,6 +36,11 @@ static int secp256k1_scalar_add(secp256k1_scalar *r, const secp256k1_scalar *a, 
     return *r < *b;
 }
 
+static int secp256k1_scalar_plus(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    *r = *a + *b;
+    return *r < *b;
+}
+
 static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int flag) {
     if (flag && bit < 32)
         *r += ((uint32_t)1 << bit);
@@ -75,6 +80,14 @@ static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar 
         *r = 0;
     } else {
         *r = EXHAUSTIVE_TEST_ORDER - *a;
+    }
+}
+
+static void secp256k1_scalar_neg(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    if (*a == 0) {
+        *r = 0;
+    } else {
+        *r = -*a;
     }
 }
 

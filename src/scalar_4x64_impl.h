@@ -98,6 +98,20 @@ static int secp256k1_scalar_add(secp256k1_scalar *r, const secp256k1_scalar *a, 
     return overflow;
 }
 
+static int secp256k1_scalar_plus(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    int overflow;
+    uint128_t t = (uint128_t)a->d[0] + b->d[0];
+    r->d[0] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    t += (uint128_t)a->d[1] + b->d[1];
+    r->d[1] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    t += (uint128_t)a->d[2] + b->d[2];
+    r->d[2] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    t += (uint128_t)a->d[3] + b->d[3];
+    r->d[3] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    overflow = t;
+    return overflow;
+}
+
 static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int flag) {
     uint128_t t;
     VERIFY_CHECK(bit < 256);
@@ -148,6 +162,18 @@ static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar 
     t += (uint128_t)(~a->d[2]) + SECP256K1_N_2;
     r->d[2] = t & nonzero; t >>= 64;
     t += (uint128_t)(~a->d[3]) + SECP256K1_N_3;
+    r->d[3] = t & nonzero;
+}
+
+static void secp256k1_scalar_neg(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    uint64_t nonzero = 0xFFFFFFFFFFFFFFFFULL * (secp256k1_scalar_is_zero(a) == 0);
+    uint128_t t = (uint128_t)(~a->d[0]) + 1;
+    r->d[0] = t & nonzero; t >>= 64;
+    t += (uint128_t)(~a->d[1]);
+    r->d[1] = t & nonzero; t >>= 64;
+    t += (uint128_t)(~a->d[2]);
+    r->d[2] = t & nonzero; t >>= 64;
+    t += (uint128_t)(~a->d[3]);
     r->d[3] = t & nonzero;
 }
 
@@ -786,12 +812,12 @@ SECP256K1_INLINE static int secp256k1_scalar_cmp(const secp256k1_scalar *a, cons
 
 SECP256K1_INLINE static int secp256k1_scalar_cmp_var(const secp256k1_scalar *a, const secp256k1_scalar *b) {
 	int i;
-    for (i = 3; i > 0; i--) {
+    for (i = 3; i >= 0; i--) {
         if (a->d[i] != b->d[i]) {
             return (a->d[i] > b->d[i]) - (a->d[i] < b->d[i]);
         }
     }
-    return (a->d[0] > b->d[0]) - (a->d[0] < b->d[0]);
+    return 0;
 }
 
 SECP256K1_INLINE static int _secp256k1_scalar_msb_64(uint64_t a) {

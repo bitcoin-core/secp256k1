@@ -138,6 +138,28 @@ static int secp256k1_scalar_add(secp256k1_scalar *r, const secp256k1_scalar *a, 
     return overflow;
 }
 
+static int secp256k1_scalar_plus(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    int overflow;
+    uint64_t t = (uint64_t)a->d[0] + b->d[0];
+    r->d[0] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[1] + b->d[1];
+    r->d[1] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[2] + b->d[2];
+    r->d[2] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[3] + b->d[3];
+    r->d[3] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[4] + b->d[4];
+    r->d[4] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[5] + b->d[5];
+    r->d[5] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[6] + b->d[6];
+    r->d[6] = t & 0xFFFFFFFFULL; t >>= 32;
+    t += (uint64_t)a->d[7] + b->d[7];
+    r->d[7] = t & 0xFFFFFFFFULL; t >>= 32;
+    overflow = t;
+    return overflow;
+}
+
 static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int flag) {
     uint64_t t;
     VERIFY_CHECK(bit < 256);
@@ -212,6 +234,26 @@ static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar 
     t += (uint64_t)(~a->d[6]) + SECP256K1_N_6;
     r->d[6] = t & nonzero; t >>= 32;
     t += (uint64_t)(~a->d[7]) + SECP256K1_N_7;
+    r->d[7] = t & nonzero;
+}
+
+static void secp256k1_scalar_neg(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    uint32_t nonzero = 0xFFFFFFFFUL * (secp256k1_scalar_is_zero(a) == 0);
+    uint64_t t = (uint64_t)(~a->d[0]) + 1;
+    r->d[0] = t & nonzero; t >>= 32;
+    t += (uint64_t)(~a->d[1]);
+    r->d[1] = t & nonzero; t >>= 32;
+    t += (uint64_t)(~a->d[2]);
+    r->d[2] = t & nonzero; t >>= 32;
+    t += (uint64_t)(~a->d[3]);
+    r->d[3] = t & nonzero; t >>= 32;
+    t += (uint64_t)(~a->d[4]);
+    r->d[4] = t & nonzero; t >>= 32;
+    t += (uint64_t)(~a->d[5]);
+    r->d[5] = t & nonzero; t >>= 32;
+    t += (uint64_t)(~a->d[6]);
+    r->d[6] = t & nonzero; t >>= 32;
+    t += (uint64_t)(~a->d[7]);
     r->d[7] = t & nonzero;
 }
 
@@ -638,12 +680,12 @@ SECP256K1_INLINE static int secp256k1_scalar_cmp(const secp256k1_scalar *a, cons
 
 SECP256K1_INLINE static int secp256k1_scalar_cmp_var(const secp256k1_scalar *a, const secp256k1_scalar *b) {
     int i;
-    for (i = 7; i > 0; i--) {
+    for (i = 7; i >= 0; i--) {
         if (a->d[i] != b->d[i]) {
             return (a->d[i] > b->d[i]) - (a->d[i] < b->d[i]);
         }
     }
-    return (a->d[0] > b->d[0]) - (a->d[0] < b->d[0]);
+    return 0;
 }
 
 SECP256K1_INLINE static int _secp256k1_scalar_msb_32(unsigned long a) {
