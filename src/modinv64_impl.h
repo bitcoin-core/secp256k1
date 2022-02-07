@@ -623,9 +623,6 @@ static unsigned int _secp256k1_scalar_msb_signed(const secp256k1_scalar *x, unsi
     return secp256k1_scalar_msb_hint(x, hint);
 }
 
-#define PRINT_SCALAR_IF(condition, pre, scalar) \
-    if (condition) { printf(pre);secp256k1_scalar_print(scalar);printf("\n"); }
-
 /*
  * Original algorithm borrowed from this paper:
  * https://www.researchgate.net/publication/304417579_Modular_Inverse_Algorithms_Without_Multiplications_for_Cryptographic_Applications (LS3)
@@ -663,11 +660,6 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
     VERIFY_CHECK(secp256k1_scalar_shl_int(&six, 1) == 0);
     VERIFY_CHECK(secp256k1_scalar_eq(&six, &twelve));
 #endif
-
-#define LIMIT 0
-
-    PRINT_SCALAR_IF(LIMIT, "a=", a);
-    PRINT_SCALAR_IF(LIMIT, "m=", m);
 
     /* if (a < m) { u = m; v = a; r = 0; s = 1; } */
     /* else       { v = m; u = a; s = 0; r = 1; } */

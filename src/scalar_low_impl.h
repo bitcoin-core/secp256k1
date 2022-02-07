@@ -202,8 +202,4 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     secp256k1_scalar_inverse(r, x);
 }
 
-static void secp256k1_scalar_print(const secp256k1_scalar *a) {
-    printf("%08x", *a);
-}
-
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */

@@ -1016,8 +1016,4 @@ SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) 
     return !(a->d[0] & 1);
 }
 
-static void secp256k1_scalar_print(const secp256k1_scalar *a) {
-    printf("%016llx%016llx%016llx%016llx", a->d[3], a->d[2], a->d[1], a->d[0]);
-}
-
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */
