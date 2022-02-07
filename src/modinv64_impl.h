@@ -592,7 +592,7 @@ static void secp256k1_modinv64_var(secp256k1_modinv64_signed62 *x, const secp256
 
 static void _secp256k1_scalar_shr_void(secp256k1_scalar *r, int bits) {
     int i;
-    for (i = 0; i < bits; i += 15) {
+    for (i = 0; i < bits/15; i++) {
         secp256k1_scalar_shr_int(r, 15);
     }
     if (bits % 15) {
@@ -602,7 +602,7 @@ static void _secp256k1_scalar_shr_void(secp256k1_scalar *r, int bits) {
 
 static void _secp256k1_scalar_shl_void(secp256k1_scalar *x, int bits) {
     int i;
-    for (i = 0; i < bits; i += 15) {
+    for (i = 0; i < bits/15; i++) {
         secp256k1_scalar_shl_int(x, 15);
     }
     if (bits % 15) {
@@ -613,11 +613,14 @@ static void _secp256k1_scalar_shl_void(secp256k1_scalar *x, int bits) {
 static unsigned int _secp256k1_scalar_msb_signed(const secp256k1_scalar *x, unsigned int forcePositive) {
     if (!forcePositive && (secp256k1_scalar_get_bits_var(x, 255, 1) == 1)) {
         secp256k1_scalar a = *x;
-        secp256k1_scalar_negate(&a, &a);
+        secp256k1_scalar_neg(&a, &a);
         return secp256k1_scalar_msb(&a);
     }
     return secp256k1_scalar_msb(x);
 }
+
+#define PRINT_SCALAR_IF(condition, pre, scalar) \
+    if (condition) { printf(pre);secp256k1_scalar_print(scalar);printf("\n"); }
 
 /* https://gist.github.com/k06a/b990b7c7dda766d4f661e653d6804a53 */
 /* https://www.researchgate.net/publication/304417579_Modular_Inverse_Algorithms_Without_Multiplications_for_Cryptographic_Applications (LS3) */
@@ -640,17 +643,22 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
     if (sizeof(*m) == 32) {
         secp256k1_scalar huge = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 2, 0, 0);
         VERIFY_CHECK(secp256k1_scalar_msb(&huge) == 66);
-        secp256k1_scalar_negate(&huge, &huge);
+        secp256k1_scalar_neg(&huge, &huge);
         VERIFY_CHECK(_secp256k1_scalar_msb_signed(&huge, 0) == 66);
     }
     
-    secp256k1_scalar_negate(&six, &six);
+    secp256k1_scalar_neg(&six, &six);
     VERIFY_CHECK(_secp256k1_scalar_msb_signed(&six, 0) == 6);
-    secp256k1_scalar_negate(&six, &six);
+    secp256k1_scalar_neg(&six, &six);
 
     VERIFY_CHECK(secp256k1_scalar_shl_int(&six, 1) == 0);
     VERIFY_CHECK(secp256k1_scalar_eq(&six, &twelve));
 #endif
+
+#define LIMIT 0
+
+    PRINT_SCALAR_IF(LIMIT, "a=", a);
+    PRINT_SCALAR_IF(LIMIT, "m=", m);
 
     /* if (a < m) { u = m; v = a; r = 0; s = 1; } */
     /* else       { v = m; u = a; s = 0; r = 1; } */
@@ -660,28 +668,40 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
     llu = _secp256k1_scalar_msb_signed(u, 1);
     llv = _secp256k1_scalar_msb_signed(v, 1);
     /* while (ll(v) > 1) */
-    for (i = 0; _secp256k1_scalar_msb_signed(v, i == 0) > 1; i++) { 
+    for (i = 0; _secp256k1_scalar_msb_signed(v, i == 0) > 1; i++) {
+        if (i < LIMIT) {
+            if (i < LIMIT) { printf("\nll(u)=%d\nll(v)=%d\n", llu, llv); }
+            PRINT_SCALAR_IF(LIMIT, "u=", u);
+            PRINT_SCALAR_IF(LIMIT, "v=", v);
+        }
+
         f = llu - llv;
         /* if (i == 0 || (u >> 255) == (v >> 255)) */
         if (((1 - secp256k1_scalar_get_bits(u, 255, 1)) | (i < 1 + firstFlip)) == ((1 - secp256k1_scalar_get_bits(v, 255, 1)) | (i < 2 - firstFlip))) {
+            if (i < LIMIT) { printf("llv==llu\n"); }
             /* u = u - (v << f); */
             *vv = *v;
             _secp256k1_scalar_shl_void(vv, f);
-            secp256k1_scalar_neg(vv, vv);
-            secp256k1_scalar_plus(u, u, vv);
-
+            PRINT_SCALAR_IF(i < LIMIT, "v<<f=", vv);
+            secp256k1_scalar_minus(u, u, vv);
+            PRINT_SCALAR_IF(i < LIMIT, "u-(v<<f)=", u);
+            
             /* r = r - (s << f); */
             *ss = *s;
             _secp256k1_scalar_shl_void(ss, f);
-            secp256k1_scalar_neg(ss, ss);
-            secp256k1_scalar_plus(r, r, ss);
+            secp256k1_scalar_minus(r, r, ss);
+
+            /* a-c = 1010.0011 + 1100.0111 = 0110.101* */
         }
         else {
+            if (i < LIMIT) { printf("llv!=llu\n"); }
             /* u = u + (v << f); */
             *vv = *v;
             _secp256k1_scalar_shl_void(vv, f);
+            PRINT_SCALAR_IF(i < LIMIT, "v<<f=", vv);
             secp256k1_scalar_plus(u, u, vv);
-
+            PRINT_SCALAR_IF(i < LIMIT, "u+v<<f=", u);
+            
             /* r = r + (s << f); */
             *ss = *s;
             _secp256k1_scalar_shl_void(ss, f);
@@ -698,11 +718,11 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
             lltmp = llu; llu = llv; llv = lltmp;
         }
     }
-    VERIFY_CHECK(0);
 
     /* if (v == 0) { return 0; } */
     if (secp256k1_scalar_is_zero(v)) {
         *ret = zero;
+        PRINT_SCALAR_IF(LIMIT, "r=", ret);
         return;
     }
 
@@ -711,21 +731,32 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
         secp256k1_scalar_neg(s, s);
     }
 
-    /* if (s > m) { return s - m; } */
-    if (secp256k1_scalar_cmp(s, m) > 0) {
+    /* if (s >> 255 == 0 && s > m) { return s - m; } */
+    if (secp256k1_scalar_get_bits(s, 255, 1) == 0 && secp256k1_scalar_cmp(s, m) > 0) {
         secp256k1_scalar_neg(vv, m);
         secp256k1_scalar_plus(ret, s, vv);
+        PRINT_SCALAR_IF(LIMIT, "r=", ret);
         return;
     }
 
     /* if (s >> 255 == 1) { return s + m; } */
     if (secp256k1_scalar_get_bits(s, 255, 1) == 1) {
         secp256k1_scalar_plus(ret, s, m);
+        PRINT_SCALAR_IF(LIMIT, "r=", ret);
         return;
     }
 
+    /*
+        correct = E58A89D5D86ED35998D9473729A0B8E077D2A11A2C52B94B6B77A3D3310291F3
+        r=        e58a89d5d86ed35998d9473729a0b8e077d2a11a2c52b94b6b77a3d3310291f3
+
+        rrr=      f6e0950e0b7f278571dfa17d7d6221500a7551826c22dd37ffcf45a53a049298
+
+    */
+
     /* return s; */
     *ret = *s;
+    PRINT_SCALAR_IF(LIMIT, "r=", ret);
 }
 
 #endif /* SECP256K1_MODINV64_IMPL_H */

@@ -55,6 +55,9 @@ static int secp256k1_scalar_add(secp256k1_scalar *r, const secp256k1_scalar *a, 
 /** Add two scalars together (NO modulo the group order). Returns whether it overflowed. */
 static int secp256k1_scalar_plus(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b);
 
+/** Substracts two scalars together (NO modulo the group order). Returns whether it overflowed. */
+static int secp256k1_scalar_minus(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b);
+
 /** Conditionally add a power of two to a scalar. The result is not allowed to overflow. */
 static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int flag);
 
@@ -123,5 +126,7 @@ static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r, const secp256k1_
 
 /** If flag is true, set *r equal to *a; otherwise leave it. Constant-time.  Both *r and *a must be initialized.*/
 static void secp256k1_scalar_cmov(secp256k1_scalar *r, const secp256k1_scalar *a, int flag);
+
+static void secp256k1_scalar_print(const secp256k1_scalar *a);
 
 #endif /* SECP256K1_SCALAR_H */

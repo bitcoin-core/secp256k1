@@ -41,6 +41,11 @@ static int secp256k1_scalar_plus(secp256k1_scalar *r, const secp256k1_scalar *a,
     return *r < *b;
 }
 
+static int secp256k1_scalar_minus(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    *r = *a - *b;
+    return *r > *a;
+}
+
 static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int flag) {
     if (flag && bit < 32)
         *r += ((uint32_t)1 << bit);
@@ -194,6 +199,10 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 
 static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
     secp256k1_scalar_inverse(r, x);
+}
+
+static void secp256k1_scalar_print(const secp256k1_scalar *a) {
+    printf("%08x", *a);
 }
 
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */

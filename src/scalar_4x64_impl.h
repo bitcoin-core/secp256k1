@@ -99,17 +99,27 @@ static int secp256k1_scalar_add(secp256k1_scalar *r, const secp256k1_scalar *a, 
 }
 
 static int secp256k1_scalar_plus(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
-    int overflow;
     uint128_t t = (uint128_t)a->d[0] + b->d[0];
-    r->d[0] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    r->d[0] = t; t >>= 64;
     t += (uint128_t)a->d[1] + b->d[1];
-    r->d[1] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    r->d[1] = t; t >>= 64;
     t += (uint128_t)a->d[2] + b->d[2];
-    r->d[2] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
+    r->d[2] = t; t >>= 64;
     t += (uint128_t)a->d[3] + b->d[3];
-    r->d[3] = t & 0xFFFFFFFFFFFFFFFFULL; t >>= 64;
-    overflow = t;
-    return overflow;
+    r->d[3] = t; t >>= 64;
+    return t;
+}
+
+static int secp256k1_scalar_minus(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
+    int128_t t = (int128_t)a->d[0] - b->d[0];
+    r->d[0] = t; t >>= 64;
+    t += (int128_t)a->d[1] - b->d[1];
+    r->d[1] = t; t >>= 64;
+    t += (int128_t)a->d[2] - b->d[2];
+    r->d[2] = t; t >>= 64;
+    t += (int128_t)a->d[3] - b->d[3];
+    r->d[3] = t; t >>= 64;
+    return t;
 }
 
 static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int flag) {
@@ -916,7 +926,8 @@ static const secp256k1_modinv64_modinfo secp256k1_const_modinfo_scalar = {
 };
 
 static const secp256k1_scalar secp256k1_const_mod_scalar = SECP256K1_SCALAR_CONST(
-    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0xFFFFFC2F
+    /* 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0xFFFFFC2F */
+    0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xbaaedce6, 0xaf48a03b, 0xbfd25e8c, 0xd0364141
 );
 
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *x) {
@@ -934,10 +945,23 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 }
 
 static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
+    /* secp256k1_modinv64_signed62 s; */
 #ifdef VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
+    /*
+    printf("a=");secp256k1_scalar_print(x);printf("\n");
+    printf("m=");secp256k1_scalar_print(&secp256k1_const_mod_scalar);printf("\n");
+    */
     secp256k1_modinv64_scalar(r, x, &secp256k1_const_mod_scalar);
+    /*
+    secp256k1_scalar_to_signed62(&s, x);
+    secp256k1_modinv64(&s, &secp256k1_const_modinfo_scalar);
+    secp256k1_scalar_from_signed62(r, &s);
+    */
+    /*
+    printf("r=");secp256k1_scalar_print(r);printf("\n");
+    */
 
 #ifdef VERIFY
     VERIFY_CHECK(secp256k1_scalar_is_zero(r) == zero_in);
@@ -946,6 +970,10 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
 
 SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
     return !(a->d[0] & 1);
+}
+
+static void secp256k1_scalar_print(const secp256k1_scalar *a) {
+    printf("%016llx%016llx%016llx%016llx", a->d[3], a->d[2], a->d[1], a->d[0]);
 }
 
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */
