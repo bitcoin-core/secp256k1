@@ -611,10 +611,13 @@ static void _secp256k1_scalar_shl_void(secp256k1_scalar *x, int bits) {
 }
 
 static unsigned int _secp256k1_scalar_msb_signed(const secp256k1_scalar *x, unsigned int forcePositive) {
-    if (!forcePositive && (secp256k1_scalar_get_bits_var(x, 255, 1) == 1)) {
+    if (!forcePositive && (secp256k1_scalar_get_bit(x, 255) == 1)) {
+        return secp256k1_scalar_msb_neg(x);
+        /*
         secp256k1_scalar a = *x;
         secp256k1_scalar_neg(&a, &a);
         return secp256k1_scalar_msb(&a);
+        */
     }
     return secp256k1_scalar_msb(x);
 }
@@ -677,7 +680,7 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
 
         f = llu - llv;
         /* if (i == 0 || (u >> 255) == (v >> 255)) */
-        if (((1 - secp256k1_scalar_get_bits(u, 255, 1)) | (i < 1 + firstFlip)) == ((1 - secp256k1_scalar_get_bits(v, 255, 1)) | (i < 2 - firstFlip))) {
+        if (((1 - secp256k1_scalar_get_bit(u, 255)) | (i < 1 + firstFlip)) == ((1 - secp256k1_scalar_get_bit(v, 255)) | (i < 2 - firstFlip))) {
             if (i < LIMIT) { printf("llv==llu\n"); }
             /* u = u - (v << f); */
             *vv = *v;
@@ -690,8 +693,6 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
             *ss = *s;
             _secp256k1_scalar_shl_void(ss, f);
             secp256k1_scalar_minus(r, r, ss);
-
-            /* a-c = 1010.0011 + 1100.0111 = 0110.101* */
         }
         else {
             if (i < LIMIT) { printf("llv!=llu\n"); }
@@ -727,20 +728,19 @@ static void secp256k1_modinv64_scalar(secp256k1_scalar *ret, const secp256k1_sca
     }
 
     /* if (v >> 255 == 1) { s = 0-s; } */
-    if (secp256k1_scalar_get_bits(v, 255, 1) == 1) {
+    if (secp256k1_scalar_get_bit(v, 255) == 1) {
         secp256k1_scalar_neg(s, s);
     }
 
     /* if (s >> 255 == 0 && s > m) { return s - m; } */
-    if (secp256k1_scalar_get_bits(s, 255, 1) == 0 && secp256k1_scalar_cmp(s, m) > 0) {
-        secp256k1_scalar_neg(vv, m);
-        secp256k1_scalar_plus(ret, s, vv);
+    if (secp256k1_scalar_get_bit(s, 255) == 0 && secp256k1_scalar_cmp(s, m) > 0) {
+        secp256k1_scalar_minus(ret, s, m);
         PRINT_SCALAR_IF(LIMIT, "r=", ret);
         return;
     }
 
     /* if (s >> 255 == 1) { return s + m; } */
-    if (secp256k1_scalar_get_bits(s, 255, 1) == 1) {
+    if (secp256k1_scalar_get_bit(s, 255) == 1) {
         secp256k1_scalar_plus(ret, s, m);
         PRINT_SCALAR_IF(LIMIT, "r=", ret);
         return;

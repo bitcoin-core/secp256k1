@@ -32,6 +32,9 @@ static unsigned int secp256k1_scalar_get_bits(const secp256k1_scalar *a, unsigne
 /** Access bits from a scalar. Not constant time. */
 static unsigned int secp256k1_scalar_get_bits_var(const secp256k1_scalar *a, unsigned int offset, unsigned int count);
 
+/** Access bit from a scalar. */
+static unsigned int secp256k1_scalar_get_bit(const secp256k1_scalar *a, unsigned int offset);
+
 /** Set a scalar from a big endian byte array. The scalar will be reduced modulo group order `n`.
  * In:      bin:        pointer to a 32-byte array.
  * Out:     r:          scalar to be set.
@@ -112,8 +115,8 @@ static int secp256k1_scalar_cmp_var(const secp256k1_scalar *a, const secp256k1_s
 /** Find the most significant bit. */
 static int secp256k1_scalar_msb(const secp256k1_scalar *a);
 
-/** Find the most significant bit in constant time. */
-static int secp256k1_scalar_msb_var(const secp256k1_scalar *a);
+/** Find the most significant bit, considering arg is negative. */
+static int secp256k1_scalar_msb_neg(const secp256k1_scalar *a);
 
 /** Find r1 and r2 such that r1+r2*2^128 = k. */
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k);

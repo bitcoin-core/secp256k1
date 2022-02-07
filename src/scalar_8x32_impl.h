@@ -74,6 +74,10 @@ SECP256K1_INLINE static unsigned int secp256k1_scalar_get_bits_var(const secp256
     }
 }
 
+static unsigned int secp256k1_scalar_get_bit(const secp256k1_scalar *a, unsigned int offset) {
+    return (a->d[offset >> 5] >> (offset & 31)) & 1;
+}
+
 SECP256K1_INLINE static int secp256k1_scalar_check_overflow(const secp256k1_scalar *a) {
     int yes = 0;
     int no = 0;
@@ -707,51 +711,35 @@ SECP256K1_INLINE static int secp256k1_scalar_cmp_var(const secp256k1_scalar *a, 
 }
 
 SECP256K1_INLINE static int _secp256k1_scalar_msb_32(unsigned long a) {
-    int c = 0;
-    c += 16 * ((a >> 16) > 0); a >>= ((a >> 16) > 0) * 16;
-    c += 8 * ((a >> 8) > 0); a >>= ((a >> 8) > 0) * 8;
-    c += 4 * ((a >> 4) > 0); a >>= ((a >> 4) > 0) * 4;
-    c += 2 * ((a >> 2) > 0); a >>= ((a >> 2) > 0) * 2;
-    c += 1 * ((a >> 1) > 0); a >>= ((a >> 1) > 0) * 1;
-    c += 1 * ((a == 1) > 0);
-    return c;
-}
-
-SECP256K1_INLINE static int _secp256k1_scalar_msb_32_var(unsigned int a) {
-    int c = 0;
-    if (a >> 16) { c += 16; a >>= 16; }
-    if (a >> 8) { c += 8; a >>= 8; }
-    if (a >> 4) { c += 4; a >>= 4; }
-    if (a >> 2) { c += 2; a >>= 2; }
-    if (a >> 1) { c += 1; a >>= 1; }
-    if (a == 1) { c += 1; a >>= 1; }
-    return c;
+    int shift, r;
+    if (v == 0) return 0;
+    r = (v > 0xFFFF) << 4; v >>= r;
+    shift = (v > 0xFF  ) << 3; v >>= shift; r |= shift;
+    shift = (v > 0xF   ) << 2; v >>= shift; r |= shift;
+    shift = (v > 0x3   ) << 1; v >>= shift; r |= shift;
+    return (r | (v >> 1)) + 1;
 }
 
 SECP256K1_INLINE static int secp256k1_scalar_msb(const secp256k1_scalar *a) {
     int i;
-    for (i = 7; i > 0; i--) {
+    for (i = 7; i >= 0; i--) {
         if (a->d[i] != 0) {
             return i*32 + _secp256k1_scalar_msb_32(a->d[i]);
         }
     }
-    if (a->d[0] != 0) {
-        return _secp256k1_scalar_msb_32(a->d[0]);
-    }
     return 0;
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_msb_var(const secp256k1_scalar *a) {
-    int i;
-    for (i = 7; i > 0; i--) {
-        if (a->d[i] != 0) {
-            return i*32 + _secp256k1_scalar_msb_32_var(a->d[i]);
+SECP256K1_INLINE static int secp256k1_scalar_msb_neg(const secp256k1_scalar *a) {
+    int r = 0, f = 0, i;
+    for (i = 7; i >= 0; i--) {
+        f &= (a->d[i] == 0);
+        if (a->d[i] != 0xFFFFFFFFULL) {
+            r = i*32 + _secp256k1_scalar_msb_32(-a->d[i]);
+            f = ((~a->d[i]) & ((1 << (r & 31)) - 1)) == 0;
         }
     }
-    if (a->d[0] != 0) {
-        return _secp256k1_scalar_msb_32_var(a->d[0]);
-    }
-    return 0;
+    return r + f;
 }
 
 SECP256K1_INLINE static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b, unsigned int shift) {
