@@ -135,9 +135,8 @@ task:
   ##   - rm /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
   ##
   brew_valgrind_pre_script:
-    # Reinstall brew. We could do `brew update` instead but that often fails.
-    - /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
-    - /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    # Retry a few times because this tends to fail randomly.
+    - for i in {1..5}; do brew update && break || sleep 15; done
     - brew config
     - brew tap LouisBrunner/valgrind
     # Fetch valgrind source but don't build it yet.
