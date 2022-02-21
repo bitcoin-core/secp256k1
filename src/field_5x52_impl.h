@@ -58,6 +58,21 @@ static void secp256k1_fe_verify(const secp256k1_fe *a) {
 }
 #endif
 
+static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m) {
+    VERIFY_CHECK(m >= 0);
+    VERIFY_CHECK(m <= 2048);
+    r->n[0] = 0xFFFFFFFFFFFFFULL * 2 * m;
+    r->n[1] = 0xFFFFFFFFFFFFFULL * 2 * m;
+    r->n[2] = 0xFFFFFFFFFFFFFULL * 2 * m;
+    r->n[3] = 0xFFFFFFFFFFFFFULL * 2 * m;
+    r->n[4] = 0x0FFFFFFFFFFFFULL * 2 * m;
+#ifdef VERIFY
+    r->magnitude = m;
+    r->normalized = (m == 0);
+    secp256k1_fe_verify(r);
+#endif
+}
+
 static void secp256k1_fe_normalize(secp256k1_fe *r) {
     uint64_t t0 = r->n[0], t1 = r->n[1], t2 = r->n[2], t3 = r->n[3], t4 = r->n[4];
 
@@ -474,6 +489,71 @@ static SECP256K1_INLINE void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_
         r->magnitude = a->magnitude;
         r->normalized = a->normalized;
     }
+#endif
+}
+
+static SECP256K1_INLINE void secp256k1_fe_half(secp256k1_fe *r) {
+    uint64_t t0 = r->n[0], t1 = r->n[1], t2 = r->n[2], t3 = r->n[3], t4 = r->n[4];
+    uint64_t one = (uint64_t)1;
+    uint64_t mask = -(t0 & one) >> 12;
+
+#ifdef VERIFY
+    secp256k1_fe_verify(r);
+    VERIFY_CHECK(r->magnitude < 32);
+#endif
+
+    /* Bounds analysis (over the rationals).
+     *
+     * Let m = r->magnitude
+     *     C = 0xFFFFFFFFFFFFFULL * 2
+     *     D = 0x0FFFFFFFFFFFFULL * 2
+     *
+     * Initial bounds: t0..t3 <= C * m
+     *                     t4 <= D * m
+     */
+
+    t0 += 0xFFFFEFFFFFC2FULL & mask;
+    t1 += mask;
+    t2 += mask;
+    t3 += mask;
+    t4 += mask >> 4;
+
+    VERIFY_CHECK((t0 & one) == 0);
+
+    /* t0..t3: added <= C/2
+     *     t4: added <= D/2
+     *
+     * Current bounds: t0..t3 <= C * (m + 1/2)
+     *                     t4 <= D * (m + 1/2)
+     */
+
+    r->n[0] = (t0 >> 1) + ((t1 & one) << 51);
+    r->n[1] = (t1 >> 1) + ((t2 & one) << 51);
+    r->n[2] = (t2 >> 1) + ((t3 & one) << 51);
+    r->n[3] = (t3 >> 1) + ((t4 & one) << 51);
+    r->n[4] = (t4 >> 1);
+
+    /* t0..t3: shifted right and added <= C/4 + 1/2
+     *     t4: shifted right
+     *
+     * Current bounds: t0..t3 <= C * (m/2 + 1/2)
+     *                     t4 <= D * (m/2 + 1/4)
+     */
+
+#ifdef VERIFY
+    /* Therefore the output magnitude (M) has to be set such that:
+     *     t0..t3: C * M >= C * (m/2 + 1/2)
+     *         t4: D * M >= D * (m/2 + 1/4)
+     *
+     * It suffices for all limbs that, for any input magnitude m:
+     *     M >= m/2 + 1/2
+     *
+     * and since we want the smallest such integer value for M:
+     *     M == floor(m/2) + 1
+     */
+    r->magnitude = (r->magnitude >> 1) + 1;
+    r->normalized = 0;
+    secp256k1_fe_verify(r);
 #endif
 }
 
