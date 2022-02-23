@@ -116,8 +116,8 @@ SECP_TRY_APPEND_DEFAULT_CFLAGS(SECP_CFLAGS)
 
 AC_ARG_ENABLE(benchmark,
     AS_HELP_STRING([--enable-benchmark],[compile benchmark [default=yes]]),
-    [use_benchmark=$enableval],
-    [use_benchmark=yes])
+    [enable_benchmark=$enableval],
+    [enable_benchmark=yes])
 
 AC_ARG_ENABLE(coverage,
     AS_HELP_STRING([--enable-coverage],[enable compiler flags to support kcov coverage analysis [default=no]]),
@@ -126,23 +126,23 @@ AC_ARG_ENABLE(coverage,
 
 AC_ARG_ENABLE(tests,
     AS_HELP_STRING([--enable-tests],[compile tests [default=yes]]),
-    [use_tests=$enableval],
-    [use_tests=yes])
+    [enable_tests=$enableval],
+    [enable_tests=yes])
 
 AC_ARG_ENABLE(experimental,
     AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]),
-    [use_experimental=$enableval],
-    [use_experimental=no])
+    [enable_experimental=$enableval],
+    [enable_experimental=no])
 
 AC_ARG_ENABLE(exhaustive_tests,
     AS_HELP_STRING([--enable-exhaustive-tests],[compile exhaustive tests [default=yes]]),
-    [use_exhaustive_tests=$enableval],
-    [use_exhaustive_tests=yes])
+    [enable_exhaustive_tests=$enableval],
+    [enable_exhaustive_tests=yes])
 
 AC_ARG_ENABLE(examples,
     AS_HELP_STRING([--enable-examples],[compile the examples [default=no]]),
-    [use_examples=$enableval],
-    [use_examples=no])
+    [enable_examples=$enableval],
+    [enable_examples=no])
 
 AC_ARG_ENABLE(module_ecdh,
     AS_HELP_STRING([--enable-module-ecdh],[enable ECDH shared secret computation]),
@@ -166,8 +166,8 @@ AC_ARG_ENABLE(module_schnorrsig,
 
 AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]),
-    [use_external_default_callbacks=$enableval],
-    [use_external_default_callbacks=no])
+    [enable_external_default_callbacks=$enableval],
+    [enable_external_default_callbacks=no])
 
 # Test-only override of the (autodetected by the C code) "widemul" setting.
 # Legal values are int64 (for [u]int64_t), int128 (for [unsigned] __int128), and auto (the default).
@@ -257,14 +257,14 @@ else
 fi
 
 # Select assembly optimization
-use_external_asm=no
+enable_external_asm=no
 
 case $set_asm in
 x86_64)
   AC_DEFINE(USE_ASM_X86_64, 1, [Define this symbol to enable x86_64 assembly optimizations])
   ;;
 arm)
-  use_external_asm=yes
+  enable_external_asm=yes
   ;;
 no)
   ;;
@@ -273,7 +273,7 @@ no)
   ;;
 esac
 
-if test x"$use_external_asm" = x"yes"; then
+if test x"$enable_external_asm" = x"yes"; then
   AC_DEFINE(USE_EXTERNAL_ASM, 1, [Define this symbol if an external (non-inline) assembly implementation is used])
 fi
 
@@ -361,7 +361,7 @@ if test x"$enable_module_extrakeys" = x"yes"; then
   AC_DEFINE(ENABLE_MODULE_EXTRAKEYS, 1, [Define this symbol to enable the extrakeys module])
 fi
 
-if test x"$use_external_default_callbacks" = x"yes"; then
+if test x"$enable_external_default_callbacks" = x"yes"; then
   AC_DEFINE(USE_EXTERNAL_DEFAULT_CALLBACKS, 1, [Define this symbol if an external implementation of the default callbacks is used])
 fi
 
@@ -400,15 +400,15 @@ AC_SUBST(SECP_TEST_LIBS)
 AC_SUBST(SECP_TEST_INCLUDES)
 AC_SUBST(SECP_CFLAGS)
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"$enable_coverage" = x"yes"])
-AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])
-AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$use_exhaustive_tests" != x"no"])
-AM_CONDITIONAL([USE_EXAMPLES], [test x"$use_examples" != x"no"])
-AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
+AM_CONDITIONAL([USE_TESTS], [test x"$enable_tests" != x"no"])
+AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$enable_exhaustive_tests" != x"no"])
+AM_CONDITIONAL([USE_EXAMPLES], [test x"$enable_examples" != x"no"])
+AM_CONDITIONAL([USE_BENCHMARK], [test x"$enable_benchmark" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
-AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$use_external_asm" = x"yes"])
+AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$enable_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
 AM_CONDITIONAL([BUILD_WINDOWS], [test "$build_windows" = "yes"])
 AC_SUBST(LIB_VERSION_CURRENT, _LIB_VERSION_CURRENT)
@@ -424,11 +424,11 @@ AC_OUTPUT
 
 echo
 echo "Build Options:"
-echo "  with external callbacks = $use_external_default_callbacks"
-echo "  with benchmarks         = $use_benchmark"
-echo "  with tests              = $use_tests"
+echo "  with external callbacks = $enable_external_default_callbacks"
+echo "  with benchmarks         = $enable_benchmark"
+echo "  with tests              = $enable_tests"
 echo "  with coverage           = $enable_coverage"
-echo "  with examples           = $use_examples"
+echo "  with examples           = $enable_examples"
 echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
 echo "  module extrakeys        = $enable_module_extrakeys"
