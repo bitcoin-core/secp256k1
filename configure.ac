@@ -115,58 +115,47 @@ SECP_TRY_APPEND_DEFAULT_CFLAGS(SECP_CFLAGS)
 ###
 
 AC_ARG_ENABLE(benchmark,
-    AS_HELP_STRING([--enable-benchmark],[compile benchmark [default=yes]]),
-    [enable_benchmark=$enableval],
+    AS_HELP_STRING([--enable-benchmark],[compile benchmark [default=yes]]), [],
     [enable_benchmark=yes])
 
 AC_ARG_ENABLE(coverage,
-    AS_HELP_STRING([--enable-coverage],[enable compiler flags to support kcov coverage analysis [default=no]]),
-    [enable_coverage=$enableval],
+    AS_HELP_STRING([--enable-coverage],[enable compiler flags to support kcov coverage analysis [default=no]]), [],
     [enable_coverage=no])
 
 AC_ARG_ENABLE(tests,
-    AS_HELP_STRING([--enable-tests],[compile tests [default=yes]]),
-    [enable_tests=$enableval],
+    AS_HELP_STRING([--enable-tests],[compile tests [default=yes]]), [],
     [enable_tests=yes])
 
 AC_ARG_ENABLE(experimental,
-    AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]),
-    [enable_experimental=$enableval],
+    AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]), [],
     [enable_experimental=no])
 
 AC_ARG_ENABLE(exhaustive_tests,
-    AS_HELP_STRING([--enable-exhaustive-tests],[compile exhaustive tests [default=yes]]),
-    [enable_exhaustive_tests=$enableval],
+    AS_HELP_STRING([--enable-exhaustive-tests],[compile exhaustive tests [default=yes]]), [],
     [enable_exhaustive_tests=yes])
 
 AC_ARG_ENABLE(examples,
-    AS_HELP_STRING([--enable-examples],[compile the examples [default=no]]),
-    [enable_examples=$enableval],
+    AS_HELP_STRING([--enable-examples],[compile the examples [default=no]]), [],
     [enable_examples=no])
 
 AC_ARG_ENABLE(module_ecdh,
-    AS_HELP_STRING([--enable-module-ecdh],[enable ECDH shared secret computation]),
-    [enable_module_ecdh=$enableval],
+    AS_HELP_STRING([--enable-module-ecdh],[enable ECDH shared secret computation]), [],
     [enable_module_ecdh=no])
 
 AC_ARG_ENABLE(module_recovery,
-    AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module [default=no]]),
-    [enable_module_recovery=$enableval],
+    AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module [default=no]]), [],
     [enable_module_recovery=no])
 
 AC_ARG_ENABLE(module_extrakeys,
-    AS_HELP_STRING([--enable-module-extrakeys],[enable extrakeys module (experimental)]),
-    [enable_module_extrakeys=$enableval],
+    AS_HELP_STRING([--enable-module-extrakeys],[enable extrakeys module (experimental)]), [],
     [enable_module_extrakeys=no])
 
 AC_ARG_ENABLE(module_schnorrsig,
-    AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module (experimental)]),
-    [enable_module_schnorrsig=$enableval],
+    AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module (experimental)]), [],
     [enable_module_schnorrsig=no])
 
 AC_ARG_ENABLE(external_default_callbacks,
-    AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]),
-    [enable_external_default_callbacks=$enableval],
+    AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]), [],
     [enable_external_default_callbacks=no])
 
 # Test-only override of the (autodetected by the C code) "widemul" setting.
