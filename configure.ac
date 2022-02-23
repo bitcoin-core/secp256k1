@@ -114,49 +114,54 @@ SECP_TRY_APPEND_DEFAULT_CFLAGS(SECP_CFLAGS)
 ### Define config arguments
 ###
 
+# In dev mode, we enable all binaries and modules by default but individual options can still be overridden explicitly.
+# Check for dev mode first because SECP_SET_DEFAULT needs enable_dev_mode set.
+AC_ARG_ENABLE(dev_mode, [], [],
+    [enable_dev_mode=no])
+
 AC_ARG_ENABLE(benchmark,
     AS_HELP_STRING([--enable-benchmark],[compile benchmark [default=yes]]), [],
-    [enable_benchmark=yes])
+    [SECP_SET_DEFAULT([enable_benchmark], [yes], [yes])])
 
 AC_ARG_ENABLE(coverage,
     AS_HELP_STRING([--enable-coverage],[enable compiler flags to support kcov coverage analysis [default=no]]), [],
-    [enable_coverage=no])
+    [SECP_SET_DEFAULT([enable_coverage], [no], [no])])
 
 AC_ARG_ENABLE(tests,
     AS_HELP_STRING([--enable-tests],[compile tests [default=yes]]), [],
-    [enable_tests=yes])
+    [SECP_SET_DEFAULT([enable_tests], [yes], [yes])])
 
 AC_ARG_ENABLE(experimental,
     AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]), [],
-    [enable_experimental=no])
+    [SECP_SET_DEFAULT([enable_experimental], [no], [yes])])
 
 AC_ARG_ENABLE(exhaustive_tests,
     AS_HELP_STRING([--enable-exhaustive-tests],[compile exhaustive tests [default=yes]]), [],
-    [enable_exhaustive_tests=yes])
+    [SECP_SET_DEFAULT([enable_exhaustive_tests], [yes], [yes])])
 
 AC_ARG_ENABLE(examples,
     AS_HELP_STRING([--enable-examples],[compile the examples [default=no]]), [],
-    [enable_examples=no])
+    [SECP_SET_DEFAULT([enable_examples], [no], [yes])])
 
 AC_ARG_ENABLE(module_ecdh,
     AS_HELP_STRING([--enable-module-ecdh],[enable ECDH shared secret computation]), [],
-    [enable_module_ecdh=no])
+    [SECP_SET_DEFAULT([enable_module_ecdh], [no], [yes])])
 
 AC_ARG_ENABLE(module_recovery,
     AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module [default=no]]), [],
-    [enable_module_recovery=no])
+    [SECP_SET_DEFAULT([enable_module_recovery], [no], [yes])])
 
 AC_ARG_ENABLE(module_extrakeys,
     AS_HELP_STRING([--enable-module-extrakeys],[enable extrakeys module (experimental)]), [],
-    [enable_module_extrakeys=no])
+    [SECP_SET_DEFAULT([enable_module_extrakeys], [no], [yes])])
 
 AC_ARG_ENABLE(module_schnorrsig,
     AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module (experimental)]), [],
-    [enable_module_schnorrsig=no])
+    [SECP_SET_DEFAULT([enable_module_schnorrsig], [no], [yes])])
 
 AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]), [],
-    [enable_external_default_callbacks=no])
+    [SECP_SET_DEFAULT([enable_external_default_callbacks], [no], [no])])
 
 # Test-only override of the (autodetected by the C code) "widemul" setting.
 # Legal values are int64 (for [u]int64_t), int128 (for [unsigned] __int128), and auto (the default).
