@@ -6,11 +6,16 @@ exhaustive_tests
 precompute_ecmult_gen
 precompute_ecmult
 valgrind_ctime_test
+ecdh_example
+ecdsa_example
+schnorr_example
 *.exe
 *.so
 *.a
 *.csv
 !.gitignore
+*.log
+*.trs
 
 Makefile
 configure

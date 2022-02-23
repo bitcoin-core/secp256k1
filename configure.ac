@@ -44,6 +44,8 @@ if test x"$ac_cv_prog_cc_c89" = x"no"; then
 fi
 AM_PROG_AS
 
+build_windows=no
+
 case $host_os in
   *darwin*)
      if  test x$cross_compiling != xyes; then
@@ -66,6 +68,9 @@ case $host_os in
          fi
        fi
      fi
+   ;;
+   cygwin*|mingw*)
+     build_windows=yes
    ;;
 esac
 
@@ -133,6 +138,11 @@ AC_ARG_ENABLE(exhaustive_tests,
     AS_HELP_STRING([--enable-exhaustive-tests],[compile exhaustive tests [default=yes]]),
     [use_exhaustive_tests=$enableval],
     [use_exhaustive_tests=yes])
+
+AC_ARG_ENABLE(examples,
+    AS_HELP_STRING([--enable-examples],[compile the examples [default=no]]),
+    [use_examples=$enableval],
+    [use_examples=no])
 
 AC_ARG_ENABLE(module_ecdh,
     AS_HELP_STRING([--enable-module-ecdh],[enable ECDH shared secret computation]),
@@ -392,6 +402,7 @@ AC_SUBST(SECP_CFLAGS)
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"$enable_coverage" = x"yes"])
 AM_CONDITIONAL([USE_TESTS], [test x"$use_tests" != x"no"])
 AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$use_exhaustive_tests" != x"no"])
+AM_CONDITIONAL([USE_EXAMPLES], [test x"$use_examples" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$use_benchmark" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
@@ -399,6 +410,7 @@ AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$use_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
+AM_CONDITIONAL([BUILD_WINDOWS], [test "$build_windows" = "yes"])
 AC_SUBST(LIB_VERSION_CURRENT, _LIB_VERSION_CURRENT)
 AC_SUBST(LIB_VERSION_REVISION, _LIB_VERSION_REVISION)
 AC_SUBST(LIB_VERSION_AGE, _LIB_VERSION_AGE)
@@ -416,6 +428,7 @@ echo "  with external callbacks = $use_external_default_callbacks"
 echo "  with benchmarks         = $use_benchmark"
 echo "  with tests              = $use_tests"
 echo "  with coverage           = $enable_coverage"
+echo "  with examples           = $use_examples"
 echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
 echo "  module extrakeys        = $enable_module_extrakeys"
