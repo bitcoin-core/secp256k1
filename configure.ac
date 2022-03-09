@@ -86,23 +86,35 @@ esac
 #
 # TODO We should analogously not touch CPPFLAGS and LDFLAGS but currently there are no issues.
 AC_DEFUN([SECP_TRY_APPEND_DEFAULT_CFLAGS], [
-    # Try to append -Werror=unknown-warning-option to CFLAGS temporarily. Otherwise clang will
-    # not error out if it gets unknown warning flags and the checks here will always succeed
-    # no matter if clang knows the flag or not.
-    SECP_TRY_APPEND_DEFAULT_CFLAGS_saved_CFLAGS="$CFLAGS"
-    SECP_TRY_APPEND_CFLAGS([-Werror=unknown-warning-option], CFLAGS)
+    # GCC and compatible (incl. clang)
+    if test "x$GCC" = "xyes"; then
+      # Try to append -Werror=unknown-warning-option to CFLAGS temporarily. Otherwise clang will
+      # not error out if it gets unknown warning flags and the checks here will always succeed
+      # no matter if clang knows the flag or not.
+      SECP_TRY_APPEND_DEFAULT_CFLAGS_saved_CFLAGS="$CFLAGS"
+      SECP_TRY_APPEND_CFLAGS([-Werror=unknown-warning-option], CFLAGS)
 
-    SECP_TRY_APPEND_CFLAGS([-std=c89 -pedantic -Wno-long-long -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef], $1) # GCC >= 3.0, -Wlong-long is implied by -pedantic.
-    SECP_TRY_APPEND_CFLAGS([-Wno-overlength-strings], $1) # GCC >= 4.2, -Woverlength-strings is implied by -pedantic.
-    SECP_TRY_APPEND_CFLAGS([-Wall], $1) # GCC >= 2.95 and probably many other compilers
-    SECP_TRY_APPEND_CFLAGS([-Wno-unused-function], $1) # GCC >= 3.0, -Wunused-function is implied by -Wall.
-    SECP_TRY_APPEND_CFLAGS([-Wextra], $1) # GCC >= 3.4, this is the newer name of -W, which we don't use because older GCCs will warn about unused functions.
-    SECP_TRY_APPEND_CFLAGS([-Wcast-align], $1) # GCC >= 2.95
-    SECP_TRY_APPEND_CFLAGS([-Wcast-align=strict], $1) # GCC >= 8.0
-    SECP_TRY_APPEND_CFLAGS([-Wconditional-uninitialized], $1) # Clang >= 3.0 only
-    SECP_TRY_APPEND_CFLAGS([-fvisibility=hidden], $1) # GCC >= 4.0
+      SECP_TRY_APPEND_CFLAGS([-std=c89 -pedantic -Wno-long-long -Wnested-externs -Wshadow -Wstrict-prototypes -Wundef], $1) # GCC >= 3.0, -Wlong-long is implied by -pedantic.
+      SECP_TRY_APPEND_CFLAGS([-Wno-overlength-strings], $1) # GCC >= 4.2, -Woverlength-strings is implied by -pedantic.
+      SECP_TRY_APPEND_CFLAGS([-Wall], $1) # GCC >= 2.95 and probably many other compilers
+      SECP_TRY_APPEND_CFLAGS([-Wno-unused-function], $1) # GCC >= 3.0, -Wunused-function is implied by -Wall.
+      SECP_TRY_APPEND_CFLAGS([-Wextra], $1) # GCC >= 3.4, this is the newer name of -W, which we don't use because older GCCs will warn about unused functions.
+      SECP_TRY_APPEND_CFLAGS([-Wcast-align], $1) # GCC >= 2.95
+      SECP_TRY_APPEND_CFLAGS([-Wcast-align=strict], $1) # GCC >= 8.0
+      SECP_TRY_APPEND_CFLAGS([-Wconditional-uninitialized], $1) # Clang >= 3.0 only
+      SECP_TRY_APPEND_CFLAGS([-fvisibility=hidden], $1) # GCC >= 4.0
 
-    CFLAGS="$SECP_TRY_APPEND_DEFAULT_CFLAGS_saved_CFLAGS"
+      CFLAGS="$SECP_TRY_APPEND_DEFAULT_CFLAGS_saved_CFLAGS"
+    fi
+
+    # MSVC
+    # Assume MSVC if we're building for Windows but not with GCC or compatible;
+    # libtool makes the same assumption internally.
+    # Note that "/opt" and "-opt" are equivalent for MSVC; we use "-opt" because "/opt" looks like a path.
+    if test x"$GCC" != x"yes" && test x"$build_windows" = x"yes"; then
+      SECP_TRY_APPEND_CFLAGS([-W2 -wd4146], $1) # Moderate warning level, disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned"
+      SECP_TRY_APPEND_CFLAGS([-external:anglebrackets -external:W0], $1) # Suppress warnings from #include <...> files
+    fi
 ])
 SECP_TRY_APPEND_DEFAULT_CFLAGS(SECP_CFLAGS)
 
