@@ -9,6 +9,7 @@ env >> test_env.log
 
 $CC -v || true
 valgrind --version || true
+$WRAPPER_CMD --version || true
 
 ./autogen.sh
 
