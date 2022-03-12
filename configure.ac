@@ -34,8 +34,8 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 PKG_PROG_PKG_CONFIG
 
-AC_PATH_TOOL(AR, ar)
-AC_PATH_TOOL(RANLIB, ranlib)
+AC_PATH_TOOL(AR, $AR, ar)
+AC_PATH_TOOL(RANLIB, $RANLIB, ranlib)
 AC_PATH_TOOL(STRIP, strip)
 
 AC_PROG_CC
@@ -438,6 +438,8 @@ fi
 echo
 echo "  valgrind                = $enable_valgrind"
 echo "  CC                      = $CC"
+echo "  AR                      = $AR"
+echo "  RANLIB                  = $RANLIB"
 echo "  CPPFLAGS                = $CPPFLAGS"
 echo "  SECP_CFLAGS             = $SECP_CFLAGS"
 echo "  CFLAGS                  = $CFLAGS"
