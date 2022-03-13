@@ -25,24 +25,23 @@ AC_CANONICAL_HOST
 AH_TOP([#ifndef LIBSECP256K1_CONFIG_H])
 AH_TOP([#define LIBSECP256K1_CONFIG_H])
 AH_BOTTOM([#endif /*LIBSECP256K1_CONFIG_H*/])
-AM_INIT_AUTOMAKE([foreign subdir-objects])
 
-LT_INIT([win32-dll])
+# Require Automake 1.11.2 for AM_PROG_AR
+AM_INIT_AUTOMAKE([1.11.2 foreign subdir-objects])
 
 # Make the compilation flags quiet unless V=1 is used.
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 PKG_PROG_PKG_CONFIG
 
-AC_PATH_TOOL(AR, ar)
-AC_PATH_TOOL(RANLIB, ranlib)
-AC_PATH_TOOL(STRIP, strip)
-
 AC_PROG_CC
 if test x"$ac_cv_prog_cc_c89" = x"no"; then
   AC_MSG_ERROR([c89 compiler support required])
 fi
 AM_PROG_AS
+AM_PROG_AR
+
+LT_INIT([win32-dll])
 
 build_windows=no
 

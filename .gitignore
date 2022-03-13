@@ -46,6 +46,7 @@ coverage.*.html
 
 src/libsecp256k1-config.h
 src/libsecp256k1-config.h.in
+build-aux/ar-lib
 build-aux/config.guess
 build-aux/config.sub
 build-aux/depcomp
