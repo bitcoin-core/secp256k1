@@ -32,13 +32,18 @@ AM_INIT_AUTOMAKE([1.11.2 foreign subdir-objects])
 # Make the compilation flags quiet unless V=1 is used.
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-PKG_PROG_PKG_CONFIG
-
 AC_PROG_CC
 AM_PROG_AS
 AM_PROG_AR
 
+# Clear some cache variables as a workaround for a bug that appears due to a bad
+# interaction between AM_PROG_AR and LT_INIT when combining MSVC's archiver lib.exe.
+# https://debbugs.gnu.org/cgi/bugreport.cgi?bug=54421
+AS_UNSET(ac_cv_prog_AR)
+AS_UNSET(ac_cv_prog_ac_ct_AR)
 LT_INIT([win32-dll])
+
+PKG_PROG_PKG_CONFIG
 
 build_windows=no
 
