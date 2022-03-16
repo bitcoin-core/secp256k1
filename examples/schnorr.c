@@ -96,7 +96,7 @@ int main(void) {
      * improve security against side-channel attacks. Signing with a valid
      * context, verified keypair and the default nonce function should never
      * fail. */
-    return_val = secp256k1_schnorrsig_sign(ctx, signature, msg_hash, &keypair, auxiliary_rand);
+    return_val = secp256k1_schnorrsig_sign32(ctx, signature, msg_hash, &keypair, auxiliary_rand);
     assert(return_val);
 
     /*** Verification ***/
