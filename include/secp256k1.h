@@ -169,6 +169,17 @@ typedef int (*secp256k1_nonce_function)(
 #  define SECP256K1_ARG_NONNULL(_x)
 # endif
 
+/** Attribute for marking functions, types, and variables as deprecated */
+#if !defined(SECP256K1_BUILD) && defined(__has_attribute)
+# if __has_attribute(__deprecated__)
+#  define SECP256K1_DEPRECATED(_msg) __attribute__ ((__deprecated__(_msg)))
+# else
+#  define SECP256K1_DEPRECATED(_msg)
+# endif
+#else
+# define SECP256K1_DEPRECATED(_msg)
+#endif
+
 /** All flags' lower 8 bits indicate what they're for. Do not use directly. */
 #define SECP256K1_FLAGS_TYPE_MASK ((1 << 8) - 1)
 #define SECP256K1_FLAGS_TYPE_CONTEXT (1 << 0)
