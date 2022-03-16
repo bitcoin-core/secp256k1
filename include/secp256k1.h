@@ -814,7 +814,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_combine(
  *  implementations optimized for a specific tag can precompute the SHA256 state
  *  after hashing the tag hashes.
  *
- *  Returns 0 if the arguments are invalid and 1 otherwise.
+ *  Returns: 1 always.
  *  Args:    ctx: pointer to a context object
  *  Out:  hash32: pointer to a 32-byte array to store the resulting hash
  *  In:      tag: pointer to an array containing the tag
