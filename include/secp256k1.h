@@ -652,7 +652,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_seckey_negate(
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_negate(
     const secp256k1_context* ctx,
     unsigned char *seckey
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2)
+  SECP256K1_DEPRECATED("Use secp256k1_ec_seckey_negate instead");
 
 /** Negates a public key in place.
  *
@@ -692,7 +693,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_tweak_add(
     const secp256k1_context* ctx,
     unsigned char *seckey,
     const unsigned char *tweak32
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3)
+  SECP256K1_DEPRECATED("Use secp256k1_ec_seckey_tweak_add instead");
 
 /** Tweak a public key by adding tweak times the generator to it.
  *
@@ -738,7 +740,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_tweak_mul(
     const secp256k1_context* ctx,
     unsigned char *seckey,
     const unsigned char *tweak32
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3)
+  SECP256K1_DEPRECATED("Use secp256k1_ec_seckey_tweak_mul instead");
 
 /** Tweak a public key by multiplying it by a tweak value.
  *
