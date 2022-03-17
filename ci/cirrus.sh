@@ -44,7 +44,7 @@ file .libs/* || true
 # This tells `make check` to wrap test invocations.
 export LOG_COMPILER="$WRAPPER_CMD"
 
-make "$BUILD"
+make check
 
 if [ "$BENCH" = "yes" ]
 then
@@ -65,6 +65,10 @@ if [ "$CTIMETEST" = "yes" ]
 then
     ./libtool --mode=execute valgrind --error-exitcode=42 ./valgrind_ctime_test > valgrind_ctime_test.log 2>&1
 fi
+
+# `distcheck` includes `check` but we don't want to run the `check` part again,
+# so we use a hack to make all tests immediately 77 (=SKIP).
+make distcheck LOG_COMPILER="sh -c 'exit 77'"
 
 # Rebuild precomputed files (if not cross-compiling).
 if [ -z "$HOST" ]
