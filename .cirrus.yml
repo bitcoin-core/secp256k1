@@ -349,7 +349,7 @@ task:
   << : *CAT_LOGS
 
 task:
-  name: "C++ -fpermissive"
+  name: "C++ -fpermissive (entire project)"
   << : *LINUX_CONTAINER
   env:
     CC: g++
@@ -364,6 +364,14 @@ task:
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
+
+task:
+  name: "C++ (public headers)"
+  << : *LINUX_CONTAINER
+  test_script:
+    - g++ -Werror include/*.h
+    - clang -Werror -x c++-header include/*.h
+    - /opt/msvc/bin/x64/cl.exe -c -WX -TP include/*.h
 
 task:
   name: "sage prover"
