@@ -32,8 +32,6 @@ AM_INIT_AUTOMAKE([1.11.2 foreign subdir-objects])
 # Make the compilation flags quiet unless V=1 is used.
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-PKG_PROG_PKG_CONFIG
-
 AC_PROG_CC
 if test x"$ac_cv_prog_cc_c89" = x"no"; then
   AC_MSG_ERROR([c89 compiler support required])
@@ -407,11 +405,6 @@ AM_CONDITIONAL([BUILD_WINDOWS], [test "$build_windows" = "yes"])
 AC_SUBST(LIB_VERSION_CURRENT, _LIB_VERSION_CURRENT)
 AC_SUBST(LIB_VERSION_REVISION, _LIB_VERSION_REVISION)
 AC_SUBST(LIB_VERSION_AGE, _LIB_VERSION_AGE)
-
-# Make sure nothing new is exported so that we don't break the cache.
-PKGCONFIG_PATH_TEMP="$PKG_CONFIG_PATH"
-unset PKG_CONFIG_PATH
-PKG_CONFIG_PATH="$PKGCONFIG_PATH_TEMP"
 
 AC_OUTPUT
 
