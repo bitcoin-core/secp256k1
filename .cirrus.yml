@@ -312,10 +312,9 @@ task:
   name: "C++ -fpermissive"
   << : *LINUX_CONTAINER
   env:
-    # ./configure correctly errors out when given CC=g++.
-    # We hack around this by passing CC=g++ only to make.
-    CC: gcc
-    MAKEFLAGS: -j4 CC=g++ CFLAGS=-fpermissive\ -g
+    CC: g++
+    CFLAGS: -fpermissive -g
+    CPPFLAGS: -DSECP256K1_CPLUSPLUS_TEST_OVERRIDE
     WERROR_CFLAGS:
     EXPERIMENTAL: yes
     ECDH: yes
