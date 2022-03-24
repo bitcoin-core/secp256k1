@@ -18,16 +18,9 @@
 #include "random.h"
 
 int main(void) {
-    /* Instead of signing the message directly, we must sign a 32-byte hash.
-     * Here the message is "Hello, world!" and the hash function was SHA-256.
-     * An actual implementation should just call SHA-256, but this example
-     * hardcodes the output to avoid depending on an additional library. */
-    unsigned char msg_hash[32] = {
-        0x31, 0x5F, 0x5B, 0xDB, 0x76, 0xD0, 0x78, 0xC4,
-        0x3B, 0x8A, 0xC0, 0x06, 0x4E, 0x4A, 0x01, 0x64,
-        0x61, 0x2B, 0x1F, 0xCE, 0x77, 0xC8, 0x69, 0x34,
-        0x5B, 0xFC, 0x94, 0xC7, 0x58, 0x94, 0xED, 0xD3,
-    };
+    unsigned char msg[12] = "Hello World!";
+    unsigned char msg_hash[32];
+    unsigned char tag[17] = "my_fancy_protocol";
     unsigned char seckey[32];
     unsigned char randomize[32];
     unsigned char auxiliary_rand[32];
@@ -84,19 +77,38 @@ int main(void) {
 
     /*** Signing ***/
 
+    /* Instead of signing (possibly very long) messages directly, we sign a
+     * 32-byte hash of the message in this example.
+     *
+     * We use secp256k1_tagged_sha256 to create this hash. This function expects
+     * a context-specific "tag", which restricts the context in which the signed
+     * messages should be considered valid. For example, if protocol A mandates
+     * to use the tag "my_fancy_protocol" and protocol B mandates to use the tag
+     * "my_boring_protocol", then signed messages from protocol A will never be
+     * valid in protocol B (and vice versa), even if keys are reused across
+     * protocols. This implements "domain separation", which is considered good
+     * practice. It avoids attacks in which users are tricked into signing a
+     * message that has intended consequences in the intended context (e.g.,
+     * protocol A) but would have unintended consequences if it were valid in
+     * some other context (e.g., protocol B). */
+    return_val = secp256k1_tagged_sha256(ctx, msg_hash, tag, sizeof(tag), msg, sizeof(msg));
+    assert(return_val);
+
     /* Generate 32 bytes of randomness to use with BIP-340 schnorr signing. */
     if (!fill_random(auxiliary_rand, sizeof(auxiliary_rand))) {
         printf("Failed to generate randomness\n");
         return 1;
     }
 
-    /* Generate a Schnorr signature `noncefp` and `ndata` allows you to pass a
-     * custom nonce function, passing `NULL` will use the BIP-340 safe default.
-     * BIP-340 recommends passing 32 bytes of randomness to the nonce function to
-     * improve security against side-channel attacks. Signing with a valid
-     * context, verified keypair and the default nonce function should never
-     * fail. */
-    return_val = secp256k1_schnorrsig_sign(ctx, signature, msg_hash, &keypair, auxiliary_rand);
+    /* Generate a Schnorr signature.
+     *
+     * We use the secp256k1_schnorrsig_sign32 function that provides a simple
+     * interface for signing 32-byte messages (which in our case is a hash of
+     * the actual message). BIP-340 recommends passing 32 bytes of randomness
+     * to the signing function to improve security against side-channel attacks.
+     * Signing with a valid context, a 32-byte message, a verified keypair, and
+     * any 32 bytes of auxiliary random data should never fail. */
+    return_val = secp256k1_schnorrsig_sign32(ctx, signature, msg_hash, &keypair, auxiliary_rand);
     assert(return_val);
 
     /*** Verification ***/
@@ -107,6 +119,10 @@ int main(void) {
         printf("Failed parsing the public key\n");
         return 1;
     }
+
+    /* Compute the tagged hash on the received messages using the same tag as the signer. */
+    return_val = secp256k1_tagged_sha256(ctx, msg_hash, tag, sizeof(tag), msg, sizeof(msg));
+    assert(return_val);
 
     /* Verify a signature. This will return 1 if it's valid and 0 if it's not. */
     is_signature_valid = secp256k1_schnorrsig_verify(ctx, signature, msg_hash, 32, &pubkey);
