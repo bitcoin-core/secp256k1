@@ -68,12 +68,15 @@ libsecp256k1 is built using autotools:
     $ make check  # run the test suite
     $ sudo make install  # optional
 
+To compile optional modules (such as Schnorr signatures), you need to run `./configure` with additional flags (such as `--enable-module-schnorrsig`). Run `./configure --help` to see the full list of available flags.
+
 Usage examples
 -----------
   Usage examples can be found in the [examples](examples) directory. To compile them you need to configure with `--enable-examples`.
   * [ECDSA example](examples/ecdsa.c)
-  * [Schnorr Signatures example](examples/schnorr.c)
-  * [Deriving a shared secret(ECDH) example](examples/ecdh.c)
+  * [Schnorr signatures example](examples/schnorr.c)
+  * [Deriving a shared secret (ECDH) example](examples/ecdh.c)
+  To compile the Schnorr signature and ECDH examples, you also need to configure with `--enable-module-schnorrsig` and `--enable-module-ecdh`.
 
 Test coverage
 -----------
