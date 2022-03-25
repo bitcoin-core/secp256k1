@@ -149,11 +149,11 @@ AC_ARG_ENABLE(module_recovery,
     [SECP_SET_DEFAULT([enable_module_recovery], [no], [yes])])
 
 AC_ARG_ENABLE(module_extrakeys,
-    AS_HELP_STRING([--enable-module-extrakeys],[enable extrakeys module (experimental)]), [],
+    AS_HELP_STRING([--enable-module-extrakeys],[enable extrakeys module]), [],
     [SECP_SET_DEFAULT([enable_module_extrakeys], [no], [yes])])
 
 AC_ARG_ENABLE(module_schnorrsig,
-    AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module (experimental)]), [],
+    AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module]), [],
     [SECP_SET_DEFAULT([enable_module_schnorrsig], [no], [yes])])
 
 AC_ARG_ENABLE(external_default_callbacks,
@@ -364,16 +364,8 @@ if test x"$enable_experimental" = x"yes"; then
   AC_MSG_NOTICE([******])
   AC_MSG_NOTICE([WARNING: experimental build])
   AC_MSG_NOTICE([Experimental features do not have stable APIs or properties, and may not be safe for production use.])
-  AC_MSG_NOTICE([Building extrakeys module: $enable_module_extrakeys])
-  AC_MSG_NOTICE([Building schnorrsig module: $enable_module_schnorrsig])
   AC_MSG_NOTICE([******])
 else
-  if test x"$enable_module_extrakeys" = x"yes"; then
-    AC_MSG_ERROR([extrakeys module is experimental. Use --enable-experimental to allow.])
-  fi
-  if test x"$enable_module_schnorrsig" = x"yes"; then
-    AC_MSG_ERROR([schnorrsig module is experimental. Use --enable-experimental to allow.])
-  fi
   if test x"$set_asm" = x"arm"; then
     AC_MSG_ERROR([ARM assembly optimization is experimental. Use --enable-experimental to allow.])
   fi
