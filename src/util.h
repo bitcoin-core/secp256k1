@@ -338,4 +338,20 @@ static SECP256K1_INLINE int secp256k1_ctz64_var(uint64_t x) {
 #endif
 }
 
+/* Read a uint32_t in big endian */
+SECP256K1_INLINE static uint32_t secp256k1_read_be32(const unsigned char* p) {
+    return (uint32_t)p[0] << 24 |
+           (uint32_t)p[1] << 16 |
+           (uint32_t)p[2] << 8  |
+           (uint32_t)p[3];
+}
+
+/* Write a uint32_t in big endian */
+SECP256K1_INLINE static void secp256k1_write_be32(unsigned char* p, uint32_t x) {
+    p[3] = x;
+    p[2] = x >>  8;
+    p[1] = x >> 16;
+    p[0] = x >> 24;
+}
+
 #endif /* SECP256K1_UTIL_H */
