@@ -6887,6 +6887,19 @@ void run_secp256k1_memczero_test(void) {
     CHECK(secp256k1_memcmp_var(buf1, buf2, sizeof(buf1)) == 0);
 }
 
+void run_secp256k1_byteorder_tests(void) {
+    const uint32_t x = 0xFF03AB45;
+    const unsigned char x_be[4] = {0xFF, 0x03, 0xAB, 0x45};
+    unsigned char buf[4];
+    uint32_t x_;
+
+    secp256k1_write_be32(buf, x);
+    CHECK(secp256k1_memcmp_var(buf, x_be, sizeof(buf)) == 0);
+
+    x_ = secp256k1_read_be32(buf);
+    CHECK(x == x_);
+}
+
 void int_cmov_test(void) {
     int r = INT_MAX;
     int a = 0;
@@ -7161,6 +7174,7 @@ int main(int argc, char **argv) {
 
     /* util tests */
     run_secp256k1_memczero_test();
+    run_secp256k1_byteorder_tests();
 
     run_cmov_tests();
 
