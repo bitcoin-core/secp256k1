@@ -115,4 +115,4 @@ To create a CSV file for the benchmark result :
 Reporting a vulnerability
 ------------
 
-See [SECURITY.md](SECURITY.md)
+SeeSECURITY.md](SECURITY.md)
