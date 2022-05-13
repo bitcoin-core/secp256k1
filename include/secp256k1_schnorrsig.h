@@ -175,6 +175,18 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_verify(
     const secp256k1_xonly_pubkey *pubkey
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(5);
 
+/** Opaque data structure that holds context information for schnorr batch verification.
+ */
+typedef struct secp256k1_schnorrsig_batch_context_struct secp256k1_schnorrsig_batch_context;
+
+SECP256K1_API secp256k1_schnorrsig_batch_context* secp256k1_schnorrsig_batch_context_create(
+    size_t n_terms
+) SECP256K1_WARN_UNUSED_RESULT;
+
+SECP256K1_API void secp256k1_schnorrsig_batch_context_destroy(
+    secp256k1_schnorrsig_batch_context* ctx
+) SECP256K1_ARG_NONNULL(1);
+
 #ifdef __cplusplus
 }
 #endif

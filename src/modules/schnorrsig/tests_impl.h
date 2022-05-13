@@ -888,6 +888,11 @@ void test_schnorrsig_taproot(void) {
     CHECK(secp256k1_xonly_pubkey_tweak_add_check(ctx, output_pk_bytes, pk_parity, &internal_pk, tweak) == 1);
 }
 
+void test_schnorrsig_batch(void) {
+    secp256k1_schnorrsig_batch_context* batch_ctx = secp256k1_schnorrsig_batch_context_create(3);
+    secp256k1_schnorrsig_batch_context_destroy(batch_ctx);
+}
+
 void run_schnorrsig_tests(void) {
     int i;
     run_nonce_function_bip340_tests();
@@ -900,6 +905,7 @@ void run_schnorrsig_tests(void) {
         test_schnorrsig_sign_verify();
     }
     test_schnorrsig_taproot();
+    test_schnorrsig_batch();
 }
 
 #endif

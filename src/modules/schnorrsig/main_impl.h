@@ -11,6 +11,9 @@
 #include "../../../include/secp256k1_schnorrsig.h"
 #include "../../hash.h"
 
+/* schnorr_batch includes */
+
+
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("BIP0340/nonce")||SHA256("BIP0340/nonce"). */
 static void secp256k1_nonce_function_bip340_sha256_tagged(secp256k1_sha256 *sha) {
@@ -262,6 +265,69 @@ int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned cha
     secp256k1_fe_normalize_var(&r.y);
     return !secp256k1_fe_is_odd(&r.y) &&
            secp256k1_fe_equal_var(&rx, &r.x);
+}
+
+/* schnorr batch verification interface */
+
+struct secp256k1_schnorrsig_batch_context_struct{
+    secp256k1_scratch *data; /*(scalar, Point)*/
+    secp256k1_gej *points; /* base ptr of Points */
+    secp256k1_scalar *scalars; /* base ptr of scalars */
+    secp256k1_scalar sc_g; /* scalar of G */
+    /* secp256k1_gej res_gej; final result as gej */
+    size_t len; /* current len */
+    size_t capacity; /* max possible len */
+    int result; /* final result as success or fail */
+};
+
+size_t secp256k1_schnorrsig_batch_context_scratch_size(int n_terms) {
+    size_t ret = secp256k1_strauss_scratch_size(n_terms) + STRAUSS_SCRATCH_OBJECTS*16;
+    /* Return value of 0 is reserved for error */
+    VERIFY_CHECK(ret != 0);
+
+    return ret;
+}
+
+secp256k1_schnorrsig_batch_context* secp256k1_schnorrsig_batch_context_create(size_t n_terms) {
+    /* fail for n_terms 0, is this the right way to assert?*/
+    /* VERIFY_CHECK(n_terms != 0); */
+
+    secp256k1_schnorrsig_batch_context* ctx = (secp256k1_schnorrsig_batch_context*)checked_malloc(&default_error_callback, sizeof(secp256k1_schnorrsig_batch_context));
+    /*
+    todo: is sizeof() != 0, check required here?*/
+    size_t scratch_size = secp256k1_schnorrsig_batch_context_scratch_size(2*n_terms);
+    size_t checkpoint;
+
+    /* create scratch space that can store `n terms` */
+    ctx->data = secp256k1_scratch_create(NULL, scratch_size);
+    checkpoint = secp256k1_scratch_checkpoint(NULL, ctx->data);
+    /*allocate n scalar and n points on scratch */
+    ctx->scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(NULL, ctx->data, 2*n_terms*sizeof(secp256k1_scalar));
+    ctx->points = (secp256k1_gej*)secp256k1_scratch_alloc(NULL, ctx->data, 2*n_terms*sizeof(secp256k1_gej));
+
+    if (ctx->scalars == NULL || ctx->points == NULL) {
+        secp256k1_scratch_apply_checkpoint(NULL, ctx->data, checkpoint);
+        return NULL;
+    }
+    /* set scalar of g to 0 */
+    secp256k1_scalar_clear(&ctx->sc_g);
+    ctx->len = 0;
+    ctx->capacity = n_terms;
+    ctx->result = 0;
+
+    return ctx;
+}
+
+void secp256k1_schnorrsig_batch_context_destroy(secp256k1_schnorrsig_batch_context* ctx) {
+    if (ctx != NULL) {
+        if(ctx->data != NULL) {
+            secp256k1_scratch_destroy(NULL, ctx->data);
+        }
+        ctx->scalars = NULL;
+        ctx->points = NULL;
+        secp256k1_scalar_clear(&ctx->sc_g);
+        ctx->len = ctx->capacity = ctx->result = 0;
+    }
 }
 
 #endif
