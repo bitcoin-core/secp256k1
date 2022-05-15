@@ -271,8 +271,8 @@ int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned cha
 
 struct secp256k1_schnorrsig_batch_context_struct{
     secp256k1_scratch *data; /*(scalar, Point)*/
-    secp256k1_gej *points; /* base ptr of Points */
     secp256k1_scalar *scalars; /* base ptr of scalars */
+    secp256k1_gej *points; /* base ptr of Points */
     secp256k1_scalar sc_g; /* scalar of G */
     /* secp256k1_gej res_gej; final result as gej */
     size_t len; /* current len */
@@ -298,18 +298,18 @@ secp256k1_schnorrsig_batch_context* secp256k1_schnorrsig_batch_context_create(si
     size_t scratch_size = secp256k1_schnorrsig_batch_context_scratch_size(2*n_terms);
     size_t checkpoint;
 
-    /* create scratch space that can store `n terms` */
+    /* create scratch for storing `2* n terms`--(point, scalar) 
+    and save inital checkpoint  */
     ctx->data = secp256k1_scratch_create(NULL, scratch_size);
     checkpoint = secp256k1_scratch_checkpoint(NULL, ctx->data);
-    /*allocate n scalar and n points on scratch */
+
     ctx->scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(NULL, ctx->data, 2*n_terms*sizeof(secp256k1_scalar));
     ctx->points = (secp256k1_gej*)secp256k1_scratch_alloc(NULL, ctx->data, 2*n_terms*sizeof(secp256k1_gej));
-
     if (ctx->scalars == NULL || ctx->points == NULL) {
         secp256k1_scratch_apply_checkpoint(NULL, ctx->data, checkpoint);
         return NULL;
     }
-    /* set scalar of g to 0 */
+
     secp256k1_scalar_clear(&ctx->sc_g);
     ctx->len = 0;
     ctx->capacity = n_terms;
@@ -321,6 +321,7 @@ secp256k1_schnorrsig_batch_context* secp256k1_schnorrsig_batch_context_create(si
 void secp256k1_schnorrsig_batch_context_destroy(secp256k1_schnorrsig_batch_context* ctx) {
     if (ctx != NULL) {
         if(ctx->data != NULL) {
+            secp256k1_scratch_apply_checkpoint(NULL, ctx->data, 0);
             secp256k1_scratch_destroy(NULL, ctx->data);
         }
         ctx->scalars = NULL;
