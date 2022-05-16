@@ -889,8 +889,8 @@ void test_schnorrsig_taproot(void) {
 }
 
 void test_schnorrsig_batch(void) {
-    secp256k1_schnorrsig_batch_context* batch_ctx = secp256k1_schnorrsig_batch_context_create(3);
-    secp256k1_schnorrsig_batch_context_destroy(batch_ctx);
+    secp256k1_schnorrsig_batch_context* batch_ctx = secp256k1_schnorrsig_batch_context_create(ctx, 3);
+    secp256k1_schnorrsig_batch_context_destroy(ctx, batch_ctx);
 }
 
 void run_schnorrsig_tests(void) {

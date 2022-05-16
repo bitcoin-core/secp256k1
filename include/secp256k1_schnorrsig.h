@@ -180,12 +180,19 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_verify(
 typedef struct secp256k1_schnorrsig_batch_context_struct secp256k1_schnorrsig_batch_context;
 
 SECP256K1_API secp256k1_schnorrsig_batch_context* secp256k1_schnorrsig_batch_context_create(
+    secp256k1_context* ctx,
     size_t n_terms
-) SECP256K1_WARN_UNUSED_RESULT;
+) SECP256K1_ARG_NONNULL(1) SECP256K1_WARN_UNUSED_RESULT;
 
 SECP256K1_API void secp256k1_schnorrsig_batch_context_destroy(
-    secp256k1_schnorrsig_batch_context* ctx
-) SECP256K1_ARG_NONNULL(1);
+    secp256k1_context* ctx,
+    secp256k1_schnorrsig_batch_context* batch_ctx
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
+
+SECP256K1_API int secp256k1_schnorrsig_batch_context_verify(
+    secp256k1_context *ctx,
+    secp256k1_schnorrsig_batch_context *batch_ctx
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
 
 #ifdef __cplusplus
 }

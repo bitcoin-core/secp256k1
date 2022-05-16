@@ -269,15 +269,39 @@ int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned cha
 
 /* schnorr batch verification interface */
 
+/** Opaque data structure.
+ *
+ *  A schnorrsig_extraparams structure object can be initialized correctly by
+ *  setting it to SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT.
+ *
+ *  Members:
+ *       data: set to SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC at initialization
+ *             and has no other function than making sure the object is
+ *             initialized.
+ *    scalars: pointer to a nonce generation function. If NULL,
+ *             secp256k1_nonce_function_bip340 is used
+ *     points: pointer to arbitrary data used by the nonce generation function
+ *             (can be NULL). If it is non-NULL and
+ *             secp256k1_nonce_function_bip340 is used, then ndata must be a
+ *             pointer to 32-byte auxiliary randomness as per BIP-340.
+ *       sc_g: pointer to arbitrary data used by the nonce generation function
+ *             (can be NULL). If it is non-NULL and
+ *        len: pointer to arbitrary data used by the nonce generation function
+ *             (can be NULL). If it is non-NULL and
+ *   capacity: pointer to arbitrary data used by the nonce generation function
+ *             (can be NULL). If it is non-NULL and
+ *     result: pointer to arbitrary data used by the nonce generation function
+ *             (can be NULL). If it is non-NULL and
+ */
 struct secp256k1_schnorrsig_batch_context_struct{
-    secp256k1_scratch *data; /*(scalar, Point)*/
-    secp256k1_scalar *scalars; /* base ptr of scalars */
-    secp256k1_gej *points; /* base ptr of Points */
-    secp256k1_scalar sc_g; /* scalar of G */
+    secp256k1_scratch *data;
+    secp256k1_scalar *scalars;
+    secp256k1_gej *points;
+    secp256k1_scalar sc_g;
     /* secp256k1_gej res_gej; final result as gej */
-    size_t len; /* current len */
-    size_t capacity; /* max possible len */
-    int result; /* final result as success or fail */
+    size_t len;
+    size_t capacity;
+    int result;
 };
 
 size_t secp256k1_schnorrsig_batch_context_scratch_size(int n_terms) {
@@ -288,11 +312,11 @@ size_t secp256k1_schnorrsig_batch_context_scratch_size(int n_terms) {
     return ret;
 }
 
-secp256k1_schnorrsig_batch_context* secp256k1_schnorrsig_batch_context_create(size_t n_terms) {
+secp256k1_schnorrsig_batch_context* secp256k1_schnorrsig_batch_context_create(secp256k1_context* ctx, size_t n_terms) {
     /* fail for n_terms 0, is this the right way to assert?*/
     /* VERIFY_CHECK(n_terms != 0); */
 
-    secp256k1_schnorrsig_batch_context* ctx = (secp256k1_schnorrsig_batch_context*)checked_malloc(&default_error_callback, sizeof(secp256k1_schnorrsig_batch_context));
+    secp256k1_schnorrsig_batch_context* batch_ctx = (secp256k1_schnorrsig_batch_context*)checked_malloc(&default_error_callback, sizeof(secp256k1_schnorrsig_batch_context));
     /*
     todo: is sizeof() != 0, check required here?*/
     size_t scratch_size = secp256k1_schnorrsig_batch_context_scratch_size(2*n_terms);
@@ -300,35 +324,42 @@ secp256k1_schnorrsig_batch_context* secp256k1_schnorrsig_batch_context_create(si
 
     /* create scratch for storing `2* n terms`--(point, scalar) 
     and save inital checkpoint  */
-    ctx->data = secp256k1_scratch_create(NULL, scratch_size);
-    checkpoint = secp256k1_scratch_checkpoint(NULL, ctx->data);
+    batch_ctx->data = secp256k1_scratch_create(&ctx->error_callback, scratch_size);
+    checkpoint = secp256k1_scratch_checkpoint(&ctx->error_callback, batch_ctx->data);
 
-    ctx->scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(NULL, ctx->data, 2*n_terms*sizeof(secp256k1_scalar));
-    ctx->points = (secp256k1_gej*)secp256k1_scratch_alloc(NULL, ctx->data, 2*n_terms*sizeof(secp256k1_gej));
-    if (ctx->scalars == NULL || ctx->points == NULL) {
-        secp256k1_scratch_apply_checkpoint(NULL, ctx->data, checkpoint);
+    batch_ctx->scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(&ctx->error_callback, batch_ctx->data, 2*n_terms*sizeof(secp256k1_scalar));
+    batch_ctx->points = (secp256k1_gej*)secp256k1_scratch_alloc(&ctx->error_callback, batch_ctx->data, 2*n_terms*sizeof(secp256k1_gej));
+    if (batch_ctx->scalars == NULL || batch_ctx->points == NULL) {
+        secp256k1_scratch_apply_checkpoint(&ctx->error_callback, batch_ctx->data, checkpoint);
         return NULL;
     }
 
-    secp256k1_scalar_clear(&ctx->sc_g);
-    ctx->len = 0;
-    ctx->capacity = n_terms;
-    ctx->result = 0;
+    secp256k1_scalar_clear(&batch_ctx->sc_g);
+    batch_ctx->len = 0;
+    batch_ctx->capacity = n_terms;
+    batch_ctx->result = 0;
 
-    return ctx;
+    return batch_ctx;
 }
 
-void secp256k1_schnorrsig_batch_context_destroy(secp256k1_schnorrsig_batch_context* ctx) {
-    if (ctx != NULL) {
-        if(ctx->data != NULL) {
-            secp256k1_scratch_apply_checkpoint(NULL, ctx->data, 0);
-            secp256k1_scratch_destroy(NULL, ctx->data);
+void secp256k1_schnorrsig_batch_context_destroy(secp256k1_context* ctx, secp256k1_schnorrsig_batch_context* batch_ctx) {
+    if (batch_ctx != NULL) {
+        if(batch_ctx->data != NULL) {
+            secp256k1_scratch_apply_checkpoint(&ctx->error_callback, batch_ctx->data, 0);
+            secp256k1_scratch_destroy(&ctx->error_callback, batch_ctx->data);
         }
-        ctx->scalars = NULL;
-        ctx->points = NULL;
-        secp256k1_scalar_clear(&ctx->sc_g);
-        ctx->len = ctx->capacity = ctx->result = 0;
+        batch_ctx->scalars = NULL;
+        batch_ctx->points = NULL;
+        secp256k1_scalar_clear(&batch_ctx->sc_g);
+        batch_ctx->len = batch_ctx->capacity = batch_ctx->result = 0;
     }
+}
+
+int secp256k1_schnorrsig_batch_context_verify(secp256k1_context* ctx, secp256k1_schnorrsig_batch_context* batch_ctx) {
+    secp256k1_gej resj; 
+    batch_ctx->result = secp256k1_ecmult_strauss_batch(&ctx->error_callback, batch_ctx->data, &resj,  batch_ctx->scalars, batch_ctx->points, &batch_ctx->sc_g, NULL, NULL, batch_ctx->len, 0) && secp256k1_gej_is_infinity(&resj);
+
+    return batch_ctx->result;
 }
 
 #endif
