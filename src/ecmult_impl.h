@@ -352,7 +352,7 @@ static size_t secp256k1_strauss_scratch_size(size_t n_points) {
     return n_points*point_size;
 }
 
-static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points, size_t cb_offset) {
+static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, secp256k1_scalar *scratch_sclrs, secp256k1_gej *scratch_pts, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points, size_t cb_offset) {
     secp256k1_gej* points;
     secp256k1_scalar* scalars;
     struct secp256k1_strauss_state state;
@@ -367,8 +367,13 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callba
     /* We allocate STRAUSS_SCRATCH_OBJECTS objects on the scratch space. If these
      * allocations change, make sure to update the STRAUSS_SCRATCH_OBJECTS
      * constant and strauss_scratch_size accordingly. */
-    points = (secp256k1_gej*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_gej));
-    scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_scalar));
+    if (scratch_sclrs == NULL && scratch_pts == NULL) {
+        points = (secp256k1_gej*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_gej));
+        scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_scalar));
+    } else {
+        points = scratch_pts;
+        scalars = scratch_sclrs;
+    }
     state.aux = (secp256k1_fe*)secp256k1_scratch_alloc(error_callback, scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_fe));
     state.pre_a = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, n_points * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_ge));
     state.ps = (struct secp256k1_strauss_point_state*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(struct secp256k1_strauss_point_state));
@@ -378,13 +383,15 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callba
         return 0;
     }
 
-    for (i = 0; i < n_points; i++) {
-        secp256k1_ge point;
-        if (!cb(&scalars[i], &point, i+cb_offset, cbdata)) {
-            secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
-            return 0;
+    if (scratch_sclrs == NULL && scratch_pts == NULL) {
+        for (i = 0; i < n_points; i++) {
+            secp256k1_ge point;
+            if (!cb(&scalars[i], &point, i+cb_offset, cbdata)) {
+                secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
+                return 0;
+            }
+            secp256k1_gej_set_ge(&points[i], &point);
         }
-        secp256k1_gej_set_ge(&points[i], &point);
     }
     secp256k1_ecmult_strauss_wnaf(&state, r, n_points, points, scalars, inp_g_sc);
     secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
@@ -393,7 +400,7 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callba
 
 /* Wrapper for secp256k1_ecmult_multi_func interface */
 static int secp256k1_ecmult_strauss_batch_single(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
-    return secp256k1_ecmult_strauss_batch(error_callback, scratch, r, inp_g_sc, cb, cbdata, n, 0);
+    return secp256k1_ecmult_strauss_batch(error_callback, scratch, r, NULL, NULL, inp_g_sc, cb, cbdata, n, 0);
 }
 
 static size_t secp256k1_strauss_max_points(const secp256k1_callback* error_callback, secp256k1_scratch *scratch) {
@@ -838,10 +845,7 @@ static int secp256k1_ecmult_multi_var(const secp256k1_callback* error_callback, 
     if (n_batch_points >= ECMULT_PIPPENGER_THRESHOLD) {
         f = secp256k1_ecmult_pippenger_batch;
     } else {
-        if (!secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, secp256k1_strauss_max_points(error_callback, scratch), n)) {
-            return secp256k1_ecmult_multi_simple_var(r, inp_g_sc, cb, cbdata, n);
-        }
-        f = secp256k1_ecmult_strauss_batch;
+        return secp256k1_ecmult_multi_simple_var(r, inp_g_sc, cb, cbdata, n);
     }
     for(i = 0; i < n_batches; i++) {
         size_t nbp = n < n_batch_points ? n : n_batch_points;
