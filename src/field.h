@@ -97,6 +97,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_from_storage secp256k1_fe_impl_from_storage
 #  define secp256k1_fe_inv secp256k1_fe_impl_inv
 #  define secp256k1_fe_inv_var secp256k1_fe_impl_inv_var
+#  define secp256k1_fe_get_bounds secp256k1_fe_impl_get_bounds
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -306,8 +307,9 @@ static void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag);
  *  The output is not guaranteed to be normalized, regardless of the input. */
 static void secp256k1_fe_half(secp256k1_fe *r);
 
-/** Sets each limb of 'r' to its upper bound at magnitude 'm'. The output will also have its
- *  magnitude set to 'm' and is normalized if (and only if) 'm' is zero. */
+/** Sets r to a field element with magnitude m, normalized if (and only if) m==0.
+ *  The value is chosen so that it is likely to trigger edge cases related to
+ *  internal overflows. */
 static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m);
 
 /** Determine whether a is a square (modulo p). */
