@@ -20,6 +20,10 @@
 #include "testrand_impl.h"
 #include "util.h"
 
+#ifdef ENABLE_LIBECC_TESTS
+#include "./libecc/src/libsig.h"
+#endif
+
 #include "../contrib/lax_der_parsing.c"
 #include "../contrib/lax_der_privatekey_parsing.c"
 
@@ -6856,6 +6860,70 @@ void run_ecdsa_edge_cases(void) {
     test_ecdsa_edge_cases();
 }
 
+#ifdef ENABLE_LIBECC_TESTS
+void test_secp256k1_sign_libecc_verify(void){
+    /* generate public private key pair */
+    secp256k1_scalar key;
+    unsigned char privkey_buf[32];
+    unsigned char pubkey_buf[65];
+    size_t pubkey_len = sizeof(pubkey_buf);
+    secp256k1_pubkey secp_pubkey;
+
+    random_scalar_order_test(&key);
+    secp256k1_scalar_get_b32(privkey_buf, &key);
+
+    CHECK(secp256k1_ec_pubkey_create(ctx, &secp_pubkey, privkey_buf) == 1);
+    secp256k1_ec_pubkey_serialize(ctx, pubkey_buf, &pubkey_len , &secp_pubkey, SECP256k1_EC_UNCOMPRESED);
+
+    /* generate random message */
+    secp256k1_scalar msg;
+    unsigned char msg_buf[32];
+
+    random_scalar_order_test(&msg);
+    secp256k1_scalar_get_b32(msg_buf, &msg);
+
+    /* hash and sign with libsecp256k1 */
+    unsigned char to_sign[32];
+    unsigned char sig_buf[64];
+    secp256k1_ecdsa_signature sig;
+    secp256k1_sha256 sha;
+
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, msg_buf, sizeof(msg_buf));
+    secp256k1_sha256_finalize(&sha, to_sign);
+
+    CHECK(secp256k1_ecdsa_sign(ctx, &sig, to_sign, privkey_buf, NULL, NULL) == 1);
+    CHECK(secp256k1_ecdsa_verify(ctx, &sig, to_sign, &pubkey) == 1);
+
+    secp256k1_signature_serialize_compact(ctx, sig_buf, &sig);
+
+    /* verify with libecc */
+    char *curve = "SECP256K1";
+    ec_str_params *str_params;
+    CHECK(ec_get_curve_params_by_name(curve, strlen(curve) + 1, &str_params) == 0);
+
+    ec_params params;
+    CHECK(import_params(&params, str_params) == 0);
+
+    ec_sig_mapping *sig_mapping;
+    CHECK(get_sig_by_name("ECDSA", &sig_mapping) == 0);
+
+    ec_pub_key ec_pubkey;
+    CHECK(ec_pub_key_import_from_aff_buf(&ec_pubkey, params,
+                                         pubkey_buf, pubkey_len,
+                                         sig_mapping->type) == 0);
+
+    hash_mapping *sha_mapping;
+    CHECK(get_hash_by_name("SHA256", &sha_mapping) == 0);
+
+    CHECK(ec_verify(sig_buf, sizeof(sig_buf),ec_pubkey,
+                    msg_buf, sizeof(msg_buf),
+                    sig_mapping->type, sha_mapping->type,
+                    NULL, 0) == 0);
+
+}
+#endif
+
 #ifdef ENABLE_MODULE_ECDH
 # include "modules/ecdh/tests_impl.h"
 #endif
@@ -7170,6 +7238,10 @@ int main(int argc, char **argv) {
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
     run_schnorrsig_tests();
+#endif
+
+#ifdef ENABLE_LIBECC_TESTS
+    test_secp256k1_sign_libecc_verify();
 #endif
 
     /* util tests */
