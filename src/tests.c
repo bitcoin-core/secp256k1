@@ -6862,6 +6862,7 @@ void run_ecdsa_edge_cases(void) {
 
 #ifdef ENABLE_LIBECC_TESTS
 void test_secp256k1_sign_libecc_verify(void){
+    printf("In libecc test\n");
     /* generate public private key pair */
     secp256k1_scalar key;
     unsigned char privkey_buf[32];
@@ -6873,7 +6874,7 @@ void test_secp256k1_sign_libecc_verify(void){
     secp256k1_scalar_get_b32(privkey_buf, &key);
 
     CHECK(secp256k1_ec_pubkey_create(ctx, &secp_pubkey, privkey_buf) == 1);
-    secp256k1_ec_pubkey_serialize(ctx, pubkey_buf, &pubkey_len , &secp_pubkey, SECP256k1_EC_UNCOMPRESED);
+    secp256k1_ec_pubkey_serialize(ctx, pubkey_buf, &pubkey_len , &secp_pubkey, SECP256K1_EC_UNCOMPRESSED);
 
     /* generate random message */
     secp256k1_scalar msg;
@@ -6893,30 +6894,34 @@ void test_secp256k1_sign_libecc_verify(void){
     secp256k1_sha256_finalize(&sha, to_sign);
 
     CHECK(secp256k1_ecdsa_sign(ctx, &sig, to_sign, privkey_buf, NULL, NULL) == 1);
-    CHECK(secp256k1_ecdsa_verify(ctx, &sig, to_sign, &pubkey) == 1);
+    CHECK(secp256k1_ecdsa_verify(ctx, &sig, to_sign, &secp_pubkey) == 1);
 
-    secp256k1_signature_serialize_compact(ctx, sig_buf, &sig);
+    secp256k1_ecdsa_signature_serialize_compact(ctx, sig_buf, &sig);
 
     /* verify with libecc */
-    char *curve = "SECP256K1";
-    ec_str_params *str_params;
-    CHECK(ec_get_curve_params_by_name(curve, strlen(curve) + 1, &str_params) == 0);
+    const char *curve_name = "SECP256K1";
+    const int curve_name_length = strlen(curve_name) + 1;
+    const ec_str_params *str_params;
+    CHECK(ec_get_curve_params_by_name((const uint8_t *)curve_name, curve_name_length, &str_params) == 0);
 
     ec_params params;
     CHECK(import_params(&params, str_params) == 0);
 
-    ec_sig_mapping *sig_mapping;
+    const ec_sig_mapping *sig_mapping;
     CHECK(get_sig_by_name("ECDSA", &sig_mapping) == 0);
 
+    pubkey_buf += 1; // this is needed because libecc only supports uncompressed points
+    pubkey_len -= 1; // and does not recoginze B0
+
     ec_pub_key ec_pubkey;
-    CHECK(ec_pub_key_import_from_aff_buf(&ec_pubkey, params,
-                                         pubkey_buf, pubkey_len,
+    CHECK(ec_pub_key_import_from_aff_buf(&ec_pubkey, (const ec_params *)&params,
+                                         pubkey_buf + 1, pubkey_len - 1,
                                          sig_mapping->type) == 0);
 
-    hash_mapping *sha_mapping;
+    const hash_mapping *sha_mapping;
     CHECK(get_hash_by_name("SHA256", &sha_mapping) == 0);
 
-    CHECK(ec_verify(sig_buf, sizeof(sig_buf),ec_pubkey,
+    CHECK(ec_verify(sig_buf, sizeof(sig_buf), &ec_pubkey,
                     msg_buf, sizeof(msg_buf),
                     sig_mapping->type, sha_mapping->type,
                     NULL, 0) == 0);
