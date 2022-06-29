@@ -241,17 +241,57 @@ task:
   << : *CAT_LOGS
 
 task:
-  name: "x86_64 (mingw32-w64): Windows (Debian stable, Wine)"
   << : *LINUX_CONTAINER
   env:
-    WRAPPER_CMD: wine64-stable
-    SECP256K1_TEST_ITERS: 16
-    HOST: x86_64-w64-mingw32
+    WRAPPER_CMD: wine
     WITH_VALGRIND: no
     ECDH: yes
     RECOVERY: yes
     SCHNORRSIG: yes
     CTIMETEST: no
+  matrix:
+    - name: "x86_64 (mingw32-w64): Windows (Debian stable, Wine)"
+      env:
+        HOST: x86_64-w64-mingw32
+    - name: "i686 (mingw32-w64): Windows (Debian stable, Wine)"
+      env:
+        HOST: i686-w64-mingw32
+  << : *MERGE_BASE
+  test_script:
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS
+
+task:
+  << : *LINUX_CONTAINER
+  env:
+    WRAPPER_CMD: wine
+    WERROR_CFLAGS: -WX
+    WITH_VALGRIND: no
+    ECDH: yes
+    RECOVERY: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG: yes
+    CTIMETEST: no
+    # Set non-essential options that affect the CLI messages here.
+    # (They depend on the user's taste, so we don't want to set them automatically in configure.ac.)
+    CFLAGS: -nologo -diagnostics:caret
+    LDFLAGS: -XCClinker -nologo -XCClinker -diagnostics:caret
+  # Use a MinGW-w64 host to tell ./configure we're building for Windows.
+  # This will detect some MinGW-w64 tools but then make will need only
+  # the MSVC tools CC, AR and NM as specified below.
+  matrix:
+    - name: "x86_64 (MSVC): Windows (Debian stable, Wine)"
+      env:
+        HOST: x86_64-w64-mingw32
+        CC: /opt/msvc/bin/x64/cl
+        AR: /opt/msvc/bin/x64/lib
+        NM: /opt/msvc/bin/x64/dumpbin -symbols -headers
+    - name: "i686 (MSVC): Windows (Debian stable, Wine)"
+      env:
+        HOST: i686-w64-mingw32
+        CC: /opt/msvc/bin/x86/cl
+        AR: /opt/msvc/bin/x86/lib
+        NM: /opt/msvc/bin/x86/dumpbin -symbols -headers
   << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
@@ -302,13 +342,12 @@ task:
   << : *CAT_LOGS
 
 task:
-  name: "C++ -fpermissive"
+  name: "C++ -fpermissive (entire project)"
   << : *LINUX_CONTAINER
   env:
-    # ./configure correctly errors out when given CC=g++.
-    # We hack around this by passing CC=g++ only to make.
-    CC: gcc
-    MAKEFLAGS: -j4 CC=g++ CFLAGS=-fpermissive\ -g
+    CC: g++
+    CFLAGS: -fpermissive -g
+    CPPFLAGS: -DSECP256K1_CPLUSPLUS_TEST_OVERRIDE
     WERROR_CFLAGS:
     ECDH: yes
     RECOVERY: yes
@@ -317,6 +356,14 @@ task:
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
+
+task:
+  name: "C++ (public headers)"
+  << : *LINUX_CONTAINER
+  test_script:
+    - g++ -Werror include/*.h
+    - clang -Werror -x c++-header include/*.h
+    - /opt/msvc/bin/x64/cl.exe -c -WX -TP include/*.h
 
 task:
   name: "sage prover"

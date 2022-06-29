@@ -4,6 +4,17 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
+/* This is a C project. It should not be compiled with a C++ compiler,
+ * and we error out if we detect one.
+ *
+ * We still want to be able to test the project with a C++ compiler
+ * because it is still good to know if this will lead to real trouble, so
+ * there is a possibility to override the check. But be warned that
+ * compiling with a C++ compiler is not supported. */
+#if defined(__cplusplus) && !defined(SECP256K1_CPLUSPLUS_TEST_OVERRIDE)
+#error Trying to compile a C project with a C++ compiler.
+#endif
+
 #define SECP256K1_BUILD
 
 #include "../include/secp256k1.h"
