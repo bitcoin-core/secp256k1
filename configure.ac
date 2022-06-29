@@ -342,7 +342,9 @@ if test x"$enable_valgrind" = x"yes"; then
   SECP_INCLUDES="$SECP_INCLUDES $VALGRIND_CPPFLAGS"
 fi
 
-# Add -Werror and similar flags passed from the outside (for testing, e.g., in CI)
+# Add -Werror and similar flags passed from the outside (for testing, e.g., in CI).
+# We don't want to set the user variable CFLAGS in CI because this would disable
+# autoconf's logic for setting default CFLAGS, which we would like to test in CI.
 SECP_CFLAGS="$SECP_CFLAGS $WERROR_CFLAGS"
 
 ###
