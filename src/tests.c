@@ -6861,8 +6861,8 @@ void run_ecdsa_edge_cases(void) {
 }
 
 #ifdef ENABLE_LIBECC_TESTS
-void test_secp256k1_sign_libecc_verify(void){
-    /* generate public private key pair */
+void test_secp256k1_sign_libecc_verify(void) {
+    /* generate public private key pair using libsecp256k1 */
     secp256k1_scalar key;
     unsigned char privkey_buf[32];
     unsigned char pubkey_buf[65];
@@ -6910,7 +6910,7 @@ void test_secp256k1_sign_libecc_verify(void){
     CHECK(get_sig_by_name("ECDSA", &sig_mapping) == 0);
 
     // offsetting pubkey_buf is needed because libecc only supports uncompressed points
-    // and does not recognize B0 = 04
+    // and does not recognize the header byte
     ec_pub_key ec_pubkey;
     CHECK(ec_pub_key_import_from_aff_buf(&ec_pubkey, (const ec_params *)&params,
                                          pubkey_buf + 1, pubkey_len - 1,
@@ -6924,6 +6924,74 @@ void test_secp256k1_sign_libecc_verify(void){
                     sig_mapping->type, sha_mapping->type,
                     NULL, 0) == 0);
 
+}
+
+void test_libecc_sign_secp256k1_verify(void) {
+    /* generate public private key pair using libecc */
+    const char *curve_name = "SECP256K1";
+    const int curve_name_length = strlen(curve_name) + 1;
+    const ec_str_params *str_params;
+    CHECK(ec_get_curve_params_by_name((const uint8_t *)curve_name, curve_name_length, &str_params) == 0);
+
+    ec_params params;
+    CHECK(import_params(&params, str_params) == 0);
+
+    const ec_sig_mapping *sig_mapping;
+    CHECK(get_sig_by_name("ECDSA", &sig_mapping) == 0);
+
+    ec_key_pair key_pair;
+    CHECK(ec_key_pair_gen(&key_pair, (const ec_params *)&params, sig_mapping->type) == 0);
+
+    unsigned char pubkey_buf[65];
+    size_t pubkey_len = sizeof(pubkey_buf);
+    ec_pub_key_export_to_aff_buf((const ec_pub_key *)&key_pair.pub_key,
+                                 pubkey_buf + 1,
+                                 pubkey_len - 1);
+    pubkey_buf[0] = 0x04; // libecc doesn't prepend a header
+
+    /* generate random message */
+    secp256k1_scalar msg;
+    unsigned char msg_buf[32];
+
+    random_scalar_order_test(&msg);
+    secp256k1_scalar_get_b32(msg_buf, &msg);
+
+    /* hash and sign with libecc */
+    const hash_mapping *sha_mapping;
+    CHECK(get_hash_by_name("SHA256", &sha_mapping) == 0);
+
+    unsigned char sig_buf[64];
+    uint8_t sig_len;
+    CHECK(ec_get_sig_len((const ec_params *)&params, sig_mapping->type,
+                         sha_mapping->type, &sig_len) == 0);
+
+    CHECK(ec_sign(sig_buf, sig_len,
+                  (const ec_key_pair *)&key_pair,
+                  msg_buf, sizeof(msg_buf),
+                  sig_mapping->type, sha_mapping->type, NULL, 0) == 0);
+
+    CHECK(ec_verify(sig_buf, sig_len,
+                    (const ec_pub_key *)&key_pair.pub_key,
+                    msg_buf, sizeof(msg_buf),
+                    sig_mapping->type, sha_mapping->type,
+                    NULL, 0) == 0);
+
+    /* verify with secp256k1 */
+    secp256k1_pubkey secp_pubkey;
+    CHECK(secp256k1_ec_pubkey_parse(ctx, &secp_pubkey, pubkey_buf, pubkey_len) == 1);
+
+    secp256k1_ecdsa_signature sig;
+    CHECK(secp256k1_ecdsa_signature_parse_compact(ctx, &sig, sig_buf) == 1);
+    secp256k1_ecdsa_signature_normalize(ctx, &sig, &sig); // libecc doesn't enforce lower half S
+
+    unsigned char to_verify[32];
+    secp256k1_sha256 sha;
+
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, msg_buf, sizeof(msg_buf));
+    secp256k1_sha256_finalize(&sha, to_verify);
+
+    CHECK(secp256k1_ecdsa_verify(ctx, &sig, to_verify, &secp_pubkey) == 1);
 }
 #endif
 
@@ -7245,6 +7313,7 @@ int main(int argc, char **argv) {
 
 #ifdef ENABLE_LIBECC_TESTS
     test_secp256k1_sign_libecc_verify();
+    test_libecc_sign_secp256k1_verify();
 #endif
 
     /* util tests */
