@@ -6862,7 +6862,6 @@ void run_ecdsa_edge_cases(void) {
 
 #ifdef ENABLE_LIBECC_TESTS
 void test_secp256k1_sign_libecc_verify(void){
-    printf("In libecc test\n");
     /* generate public private key pair */
     secp256k1_scalar key;
     unsigned char privkey_buf[32];
@@ -6910,9 +6909,8 @@ void test_secp256k1_sign_libecc_verify(void){
     const ec_sig_mapping *sig_mapping;
     CHECK(get_sig_by_name("ECDSA", &sig_mapping) == 0);
 
-    pubkey_buf += 1; // this is needed because libecc only supports uncompressed points
-    pubkey_len -= 1; // and does not recoginze B0
-
+    // offsetting pubkey_buf is needed because libecc only supports uncompressed points
+    // and does not recognize B0 = 04
     ec_pub_key ec_pubkey;
     CHECK(ec_pub_key_import_from_aff_buf(&ec_pubkey, (const ec_params *)&params,
                                          pubkey_buf + 1, pubkey_len - 1,
