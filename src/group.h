@@ -23,7 +23,7 @@ typedef struct {
 #define SECP256K1_GE_CONST_INFINITY {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), 1}
 
 /** A group element of the secp256k1 curve, in jacobian coordinates.
- *  Note: For exhastive test mode, sepc256k1 is replaced by a small subgroup of a different curve.
+ *  Note: For exhastive test mode, secp256k1 is replaced by a small subgroup of a different curve.
  */
 typedef struct {
     secp256k1_fe x; /* actual X: x/z^2 */
