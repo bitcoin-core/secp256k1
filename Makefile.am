@@ -87,7 +87,7 @@ endif
 endif
 
 libsecp256k1_la_SOURCES = src/secp256k1.c
-libsecp256k1_la_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/src $(SECP_INCLUDES)
+libsecp256k1_la_CPPFLAGS = $(SECP_INCLUDES)
 libsecp256k1_la_LIBADD = $(SECP_LIBS) $(COMMON_LIB) $(PRECOMPUTED_LIB)
 libsecp256k1_la_LDFLAGS = -no-undefined -version-info $(LIB_VERSION_CURRENT):$(LIB_VERSION_REVISION):$(LIB_VERSION_AGE)
 
@@ -112,7 +112,7 @@ TESTS =
 if USE_TESTS
 noinst_PROGRAMS += tests
 tests_SOURCES = src/tests.c
-tests_CPPFLAGS = -I$(top_srcdir)/src -I$(top_srcdir)/include $(SECP_INCLUDES) $(SECP_TEST_INCLUDES)
+tests_CPPFLAGS = $(SECP_INCLUDES) $(SECP_TEST_INCLUDES)
 if VALGRIND_ENABLED
 tests_CPPFLAGS += -DVALGRIND
 noinst_PROGRAMS += valgrind_ctime_test
