@@ -6947,7 +6947,7 @@ void test_libecc_sign_secp256k1_verify(void) {
     ec_pub_key_export_to_aff_buf((const ec_pub_key *)&key_pair.pub_key,
                                  pubkey_buf + 1,
                                  pubkey_len - 1);
-    pubkey_buf[0] = 0x04; // libecc doesn't prepend a header
+    pubkey_buf[0] = 0x04; // libecc does not prepend a header
 
     /* generate random message */
     secp256k1_scalar msg;
@@ -6982,7 +6982,7 @@ void test_libecc_sign_secp256k1_verify(void) {
 
     secp256k1_ecdsa_signature sig;
     CHECK(secp256k1_ecdsa_signature_parse_compact(ctx, &sig, sig_buf) == 1);
-    secp256k1_ecdsa_signature_normalize(ctx, &sig, &sig); // libecc doesn't enforce lower half S
+    secp256k1_ecdsa_signature_normalize(ctx, &sig, &sig); // libecc does not enforce lower half S
 
     unsigned char to_verify[32];
     secp256k1_sha256 sha;
