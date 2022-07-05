@@ -88,12 +88,13 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     unsigned char nonce32[32];
     secp256k1_rfc6979_hmac_sha256 rng;
     int overflow;
-    unsigned char keydata[64] = {0};
+    unsigned char keydata[64];
     if (seed32 == NULL) {
         /* When seed is NULL, reset the initial point and blinding value. */
         secp256k1_gej_set_ge(&ctx->initial, &secp256k1_ge_const_g);
         secp256k1_gej_neg(&ctx->initial, &ctx->initial);
         secp256k1_scalar_set_int(&ctx->blind, 1);
+        return;
     }
     /* The prior blinding value (if not reset) is chained forward by including it in the hash. */
     secp256k1_scalar_get_b32(nonce32, &ctx->blind);
@@ -102,10 +103,9 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
      *   asking the caller for blinding values directly and expecting them to retry on failure.
      */
     memcpy(keydata, nonce32, 32);
-    if (seed32 != NULL) {
-        memcpy(keydata + 32, seed32, 32);
-    }
-    secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, seed32 ? 64 : 32);
+    VERIFY_CHECK(seed32 != NULL);
+    memcpy(keydata + 32, seed32, 32);
+    secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, 64);
     memset(keydata, 0, sizeof(keydata));
     /* Accept unobservably small non-uniformity. */
     secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
