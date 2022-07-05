@@ -111,7 +111,8 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     overflow = !secp256k1_fe_set_b32(&s, nonce32);
     overflow |= secp256k1_fe_is_zero(&s);
     secp256k1_fe_cmov(&s, &secp256k1_fe_one, overflow);
-    /* Randomize the projection to defend against multiplier sidechannels. */
+    /* Randomize the projection to defend against multiplier sidechannels.
+       Do this before our own call to secp256k1_ecmult_gen below. */
     secp256k1_gej_rescale(&ctx->initial, &s);
     secp256k1_fe_clear(&s);
     secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
@@ -120,6 +121,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     secp256k1_scalar_cmov(&b, &secp256k1_scalar_one, secp256k1_scalar_is_zero(&b));
     secp256k1_rfc6979_hmac_sha256_finalize(&rng);
     memset(nonce32, 0, 32);
+    /* The random projection in ctx->initial ensures that gb will have a random projection. */
     secp256k1_ecmult_gen(ctx, &gb, &b);
     secp256k1_scalar_negate(&b, &b);
     ctx->blind = b;
