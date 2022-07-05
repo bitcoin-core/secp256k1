@@ -426,8 +426,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_cmp(
  *  encoding is invalid. R and S with value 0 are allowed in the encoding.
  *
  *  After the call, sig will always be initialized. If parsing failed or R or
- *  S are zero, the resulting sig value is guaranteed to fail validation for any
- *  message and public key.
+ *  S are zero, the resulting sig value is guaranteed to fail verification for
+ *  any message and public key.
  */
 SECP256K1_API int secp256k1_ecdsa_signature_parse_compact(
     const secp256k1_context* ctx,
@@ -447,7 +447,7 @@ SECP256K1_API int secp256k1_ecdsa_signature_parse_compact(
  *  encoded numbers are out of range.
  *
  *  After the call, sig will always be initialized. If parsing failed or the
- *  encoded numbers are out of range, signature validation with it is
+ *  encoded numbers are out of range, signature verification with it is
  *  guaranteed to fail for every message and public key.
  */
 SECP256K1_API int secp256k1_ecdsa_signature_parse_der(
@@ -511,7 +511,7 @@ SECP256K1_API int secp256k1_ecdsa_signature_serialize_compact(
  *
  * If you need to accept ECDSA signatures from sources that do not obey this
  * rule, apply secp256k1_ecdsa_signature_normalize to the signature prior to
- * validation, but be aware that doing so results in malleable signatures.
+ * verification, but be aware that doing so results in malleable signatures.
  *
  * For details, see the comments for that function.
  */
