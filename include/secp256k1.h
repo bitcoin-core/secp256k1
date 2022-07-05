@@ -494,7 +494,7 @@ SECP256K1_API int secp256k1_ecdsa_signature_serialize_compact(
  *
  *  Returns: 1: correct signature
  *           0: incorrect or unparseable signature
- *  Args:    ctx:       a secp256k1 context object, initialized for verification.
+ *  Args:    ctx:       a secp256k1 context object.
  *  In:      sig:       the signature being verified.
  *           msghash32: the 32-byte message hash being verified.
  *                      The verifier must make sure to apply a cryptographic
@@ -705,7 +705,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_tweak_add(
  *  Returns: 0 if the arguments are invalid or the resulting public key would be
  *           invalid (only when the tweak is the negation of the corresponding
  *           secret key). 1 otherwise.
- *  Args:    ctx:   pointer to a context object initialized for validation.
+ *  Args:    ctx:   pointer to a context object.
  *  In/Out: pubkey: pointer to a public key object. pubkey will be set to an
  *                  invalid value if this function returns 0.
  *  In:    tweak32: pointer to a 32-byte tweak. If the tweak is invalid according to
@@ -750,7 +750,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_tweak_mul(
 /** Tweak a public key by multiplying it by a tweak value.
  *
  *  Returns: 0 if the arguments are invalid. 1 otherwise.
- *  Args:    ctx:   pointer to a context object initialized for validation.
+ *  Args:    ctx:   pointer to a context object.
  *  In/Out: pubkey: pointer to a public key object. pubkey will be set to an
  *                  invalid value if this function returns 0.
  *  In:    tweak32: pointer to a 32-byte tweak. If the tweak is invalid according to
