@@ -11,6 +11,9 @@
 #include "scalar.h"
 #include "scratch.h"
 
+#ifndef ECMULT_WINDOW_SIZE
+#  define ECMULT_WINDOW_SIZE 15
+#endif
 /* Noone will ever need more than a window size of 24. The code might
  * be correct for larger values of ECMULT_WINDOW_SIZE but this is not
  * tested.
