@@ -11,6 +11,7 @@ Each change falls into one of the following categories: Added, Changed, Deprecat
 
 ### Deprecated
  - Deprecated context flags `SECP256K1_CONTEXT_VERIFY` and `SECP256K1_CONTEXT_NONE`. Use `SECP256K1_CONTEXT_DEFAULT` instead.
+ - Renamed `secp256k1_context_no_precomp` to `secp256k1_context_static`.
 
 ## [MAJOR.MINOR.PATCH] - YYYY-MM-DD
 
