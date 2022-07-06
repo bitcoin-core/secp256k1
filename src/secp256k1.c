@@ -97,7 +97,7 @@ secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigne
     size_t prealloc_size;
     secp256k1_context* ret;
 
-    if (!secp256k1_selftest()) {
+    if (!secp256k1_selftest_passes()) {
         secp256k1_callback_call(&default_error_callback, "self test failed");
     }
 
