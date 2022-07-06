@@ -216,10 +216,13 @@ typedef int (*secp256k1_nonce_function)(
 #define SECP256K1_TAG_PUBKEY_HYBRID_EVEN 0x06
 #define SECP256K1_TAG_PUBKEY_HYBRID_ODD 0x07
 
-/** A simple secp256k1 context object with no precomputed tables. These are useful for
- *  type serialization/parsing functions which require a context object to maintain
- *  API consistency, but currently do not require expensive precomputations or dynamic
- *  allocations.
+/** A built-in constant secp256k1 context object with static storage duration.
+ *
+ *  This context object offers *only limited functionality* , i.e., it cannot be used
+ *  for API functions that perform computations involving secret keys, e.g., signing
+ *  and public key generation. If this restriction applies to a specific API function,
+ *  it is mentioned in its documentation. See secp256k1_context_create if you need a
+ *  full context object that supports all functionality offered by the library.
  */
 SECP256K1_API extern const secp256k1_context *secp256k1_context_no_precomp;
 
