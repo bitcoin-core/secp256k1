@@ -164,6 +164,9 @@ void run_context_tests(int use_prealloc) {
     secp256k1_scalar msg, key, nonce;
     secp256k1_scalar sigr, sigs;
 
+    /* Check that deprecated secp256k1_context_no_precomp is an alias to secp256k1_context_static. */
+    CHECK(secp256k1_context_no_precomp == secp256k1_context_static);
+
     if (use_prealloc) {
         none_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
         sign_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_SIGN));

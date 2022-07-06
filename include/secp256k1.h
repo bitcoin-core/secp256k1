@@ -222,13 +222,17 @@ typedef int (*secp256k1_nonce_function)(
  *  it is mentioned in its documentation. See secp256k1_context_create if you need a
  *  full context object that supports all functionality offered by the library.
  */
-SECP256K1_API extern const secp256k1_context *secp256k1_context_no_precomp;
+SECP256K1_API extern const secp256k1_context *secp256k1_context_static;
+
+/** Deprecated alias for secp256k1_context_static. */
+SECP256K1_API extern const secp256k1_context *secp256k1_context_no_precomp
+SECP256K1_DEPRECATED("Use secp256k1_context_static instead");
 
 /** Create a secp256k1 context object (in dynamically allocated memory).
  *
  *  This function uses malloc to allocate memory. It is guaranteed that malloc is
  *  called at most once for every call of this function. If you need to avoid dynamic
- *  memory allocation entirely, see secp256k1_context_no_precomp and the functions in
+ *  memory allocation entirely, see secp256k1_context_static and the functions in
  *  secp256k1_preallocated.h.
  *
  *  Returns: a newly created context object.
