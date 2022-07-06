@@ -9,6 +9,9 @@ Each change falls into one of the following categories: Added, Changed, Deprecat
 ### Changed
  - Enable modules schnorrsig, extrakeys and ECDH by default in ./configure
 
+### Deprecated
+ - Deprecated context flags `SECP256K1_CONTEXT_VERIFY` and `SECP256K1_CONTEXT_SIGN`. Use `SECP256K1_CONTEXT_NONE` instead.
+
 ## [MAJOR.MINOR.PATCH] - YYYY-MM-DD
 
 ### Added/Changed/Deprecated/Removed/Fixed/Security

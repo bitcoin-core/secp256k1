@@ -24,15 +24,13 @@ extern "C" {
  * 5. Opaque data pointers follow the function pointer they are to be passed to.
  */
 
-/** Opaque data structure that holds context information (precomputed tables etc.).
+/** Opaque data structure that holds context information
  *
- *  The purpose of context structures is to cache large precomputed data tables
- *  that are expensive to construct, and also to maintain the randomization data
- *  for blinding.
+ *  The purpose of context structures is to store the randomization data for
+ *  blinding, see secp256k1_context_randomize.
  *
  *  Do not create a new context object for each operation, as construction is
- *  far slower than all other API calls (~100 times slower than an ECDSA
- *  verification).
+ *  far slower than all other API calls.
  *
  *  A constructed context can safely be used from multiple threads
  *  simultaneously, but API calls that take a non-const pointer to a context
@@ -194,12 +192,16 @@ typedef int (*secp256k1_nonce_function)(
 #define SECP256K1_FLAGS_BIT_CONTEXT_DECLASSIFY (1 << 10)
 #define SECP256K1_FLAGS_BIT_COMPRESSION (1 << 8)
 
-/** Flags to pass to secp256k1_context_create, secp256k1_context_preallocated_size, and
+/** Context flags to pass to secp256k1_context_create, secp256k1_context_preallocated_size, and
  *  secp256k1_context_preallocated_create. */
+#define SECP256K1_CONTEXT_NONE (SECP256K1_FLAGS_TYPE_CONTEXT)
+
+/** Deprecated context flags. These flags are treated equivalent to SECP256K1_CONTEXT_NONE. */
 #define SECP256K1_CONTEXT_VERIFY (SECP256K1_FLAGS_TYPE_CONTEXT | SECP256K1_FLAGS_BIT_CONTEXT_VERIFY)
 #define SECP256K1_CONTEXT_SIGN (SECP256K1_FLAGS_TYPE_CONTEXT | SECP256K1_FLAGS_BIT_CONTEXT_SIGN)
+
+/* Testing flag. Do not use. */
 #define SECP256K1_CONTEXT_DECLASSIFY (SECP256K1_FLAGS_TYPE_CONTEXT | SECP256K1_FLAGS_BIT_CONTEXT_DECLASSIFY)
-#define SECP256K1_CONTEXT_NONE (SECP256K1_FLAGS_TYPE_CONTEXT)
 
 /** Flag to pass to secp256k1_ec_pubkey_serialize. */
 #define SECP256K1_EC_COMPRESSED (SECP256K1_FLAGS_TYPE_COMPRESSION | SECP256K1_FLAGS_BIT_COMPRESSION)
@@ -226,9 +228,13 @@ SECP256K1_API extern const secp256k1_context *secp256k1_context_no_precomp;
  *  memory allocation entirely, see the functions in secp256k1_preallocated.h.
  *
  *  Returns: a newly created context object.
- *  In:      flags: which parts of the context to initialize.
+ *  In:      flags: Always set to SECP256K1_CONTEXT_NONE (see below).
  *
- *  See also secp256k1_context_randomize.
+ *  The only valid non-deprecated flag in recent library versions is
+ *  SECP256K1_CONTEXT_NONE, which will create a context sufficient for all functionality
+ *  offered by the library. All other (deprecated) flags will be treated as equivalent
+ *  to the SECP256K1_CONTEXT_NONE flag. Though the flags parameter primarily exists for
+ *  historical reasons, future versions of the library may introduce new flags.
  */
 SECP256K1_API secp256k1_context* secp256k1_context_create(
     unsigned int flags
