@@ -7086,11 +7086,15 @@ int main(int argc, char **argv) {
     run_context_tests(0);
     run_context_tests(1);
     run_scratch_tests();
+
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-    if (secp256k1_testrand_bits(1)) {
+    /* Randomize the context only with probability 15/16
+       to make sure we test without context randomization from time to time.
+       TODO Reconsider this when recalibrating the tests. */
+    if (secp256k1_testrand_bits(4)) {
         unsigned char rand32[32];
         secp256k1_testrand256(rand32);
-        CHECK(secp256k1_context_randomize(ctx, secp256k1_testrand_bits(1) ? rand32 : NULL));
+        CHECK(secp256k1_context_randomize(ctx, rand32));
     }
 
     run_rand_bits();
