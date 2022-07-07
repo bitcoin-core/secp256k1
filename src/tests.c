@@ -6909,8 +6909,7 @@ void test_secp256k1_sign_libecc_verify(void) {
     const ec_sig_mapping *sig_mapping;
     CHECK(get_sig_by_name("ECDSA", &sig_mapping) == 0);
 
-    // offsetting pubkey_buf is needed because libecc only supports uncompressed points
-    // and does not recognize the header byte
+    // offsetting pubkey_buf is needed because libecc only supports raw public keys
     ec_pub_key ec_pubkey;
     CHECK(ec_pub_key_import_from_aff_buf(&ec_pubkey, (const ec_params *)&params,
                                          pubkey_buf + 1, pubkey_len - 1,
@@ -6992,6 +6991,102 @@ void test_libecc_sign_secp256k1_verify(void) {
     secp256k1_sha256_finalize(&sha, to_verify);
 
     CHECK(secp256k1_ecdsa_verify(ctx, &sig, to_verify, &secp_pubkey) == 1);
+}
+
+void test_compare_libecc_secp256k1(void) {
+    /* generate random private key and message */
+    secp256k1_scalar key;
+    secp256k1_scalar msg;
+    unsigned char privkey_buf[32];
+    unsigned char msg_buf[32];
+
+    random_scalar_order_test(&key);
+    secp256k1_scalar_get_b32(privkey_buf, &key);
+
+    random_scalar_order_test(&msg);
+    secp256k1_scalar_get_b32(msg_buf, &msg);
+
+    /* generate public key with libsecp256k1 */
+    secp256k1_pubkey secp_pubkey;
+    unsigned char secp_pubkey_buf[65];
+    size_t pubkey_len = sizeof(secp_pubkey_buf);
+
+    CHECK(secp256k1_ec_pubkey_create(ctx, &secp_pubkey, privkey_buf) == 1);
+    secp256k1_ec_pubkey_serialize(ctx, secp_pubkey_buf, &pubkey_len , &secp_pubkey, SECP256K1_EC_UNCOMPRESSED);
+
+    /* hash and sign with libsecp256k1 */
+    unsigned char secp_sig_buf[64];
+    {
+        unsigned char to_sign[32];
+        secp256k1_ecdsa_signature sig;
+        secp256k1_sha256 sha;
+
+        secp256k1_sha256_initialize(&sha);
+        secp256k1_sha256_write(&sha, msg_buf, sizeof(msg_buf));
+        secp256k1_sha256_finalize(&sha, to_sign);
+
+        CHECK(secp256k1_ecdsa_sign(ctx, &sig, to_sign, privkey_buf, NULL, NULL) == 1);
+        CHECK(secp256k1_ecdsa_verify(ctx, &sig, to_sign, &secp_pubkey) == 1);
+
+        secp256k1_ecdsa_signature_serialize_compact(ctx, secp_sig_buf, &sig);
+    }
+
+    /* generate public key with libecc */
+    const char *curve_name = "SECP256K1";
+    const int curve_name_length = strlen(curve_name) + 1;
+    const ec_str_params *str_params;
+    CHECK(ec_get_curve_params_by_name((const uint8_t *)curve_name, curve_name_length, &str_params) == 0);
+
+    ec_params params;
+    CHECK(import_params(&params, str_params) == 0);
+
+    const ec_sig_mapping *sig_mapping;
+    CHECK(get_sig_by_name("DECDSA", &sig_mapping) == 0);
+
+    ec_key_pair key_pair;
+    CHECK(ec_key_pair_import_from_priv_key_buf(&key_pair,
+                                               (const ec_params *)&params,
+                                               privkey_buf, sizeof(privkey_buf),
+                                               sig_mapping->type) == 0);
+
+    unsigned char ec_pubkey_buf[65];
+    ec_pub_key_export_to_aff_buf((const ec_pub_key *)&key_pair.pub_key,
+                                 ec_pubkey_buf + 1,
+                                 pubkey_len - 1);
+    ec_pubkey_buf[0] = 0x04;
+
+    /* hash and sign with libecc */
+    const hash_mapping *sha_mapping;
+    CHECK(get_hash_by_name("SHA256", &sha_mapping) == 0);
+
+    unsigned char ec_sig_buf[64];
+    uint8_t ec_sig_len;
+    CHECK(ec_get_sig_len((const ec_params *)&params, sig_mapping->type,
+                         sha_mapping->type, &ec_sig_len) == 0);
+
+    CHECK(ec_sign(ec_sig_buf, ec_sig_len,
+                  (const ec_key_pair *)&key_pair,
+                  msg_buf, sizeof(msg_buf),
+                  sig_mapping->type, sha_mapping->type, NULL, 0) == 0);
+
+    CHECK(ec_verify(ec_sig_buf, ec_sig_len,
+                    (const ec_pub_key *)&key_pair.pub_key,
+                    msg_buf, sizeof(msg_buf),
+                    sig_mapping->type, sha_mapping->type,
+                    NULL, 0) == 0);
+
+    /* normalize libecc's signature
+       Ironically, ec_sig_buf must pass through libsecp for normalization */
+    {
+        secp256k1_ecdsa_signature sig;
+        CHECK(secp256k1_ecdsa_signature_parse_compact(ctx, &sig, ec_sig_buf) == 1);
+        secp256k1_ecdsa_signature_normalize(ctx, &sig, &sig);
+        secp256k1_ecdsa_signature_serialize_compact(ctx, ec_sig_buf, &sig);
+    }
+
+    /* compare public keys and signatures */
+    CHECK(secp256k1_memcmp_var(secp_pubkey_buf, ec_pubkey_buf, pubkey_len) == 0);
+    CHECK(secp256k1_memcmp_var(secp_sig_buf, ec_sig_buf, ec_sig_len) == 0);
 }
 #endif
 
@@ -7314,6 +7409,7 @@ int main(int argc, char **argv) {
 #ifdef ENABLE_LIBECC_TESTS
     test_secp256k1_sign_libecc_verify();
     test_libecc_sign_secp256k1_verify();
+    test_compare_libecc_secp256k1();
 #endif
 
     /* util tests */
