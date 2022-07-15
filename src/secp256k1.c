@@ -73,6 +73,12 @@ static const secp256k1_context secp256k1_context_static_ = {
 const secp256k1_context *secp256k1_context_static = &secp256k1_context_static_;
 const secp256k1_context *secp256k1_context_no_precomp = &secp256k1_context_static_;
 
+void secp256k1_selftest(void) {
+    if (!secp256k1_selftest_passes()) {
+        secp256k1_callback_call(&default_error_callback, "self test failed");
+    }
+}
+
 size_t secp256k1_context_preallocated_size(unsigned int flags) {
     size_t ret = sizeof(secp256k1_context);
     /* A return value of 0 is reserved as an indicator for errors when we call this function internally. */
@@ -97,9 +103,7 @@ secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigne
     size_t prealloc_size;
     secp256k1_context* ret;
 
-    if (!secp256k1_selftest_passes()) {
-        secp256k1_callback_call(&default_error_callback, "self test failed");
-    }
+    secp256k1_selftest();
 
     prealloc_size = secp256k1_context_preallocated_size(flags);
     if (prealloc_size == 0) {
