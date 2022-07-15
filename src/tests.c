@@ -141,6 +141,11 @@ void random_scalar_order_b32(unsigned char *b32) {
     secp256k1_scalar_get_b32(b32, &num);
 }
 
+void run_selftest_tests(void) {
+    /* Test public API */
+    secp256k1_selftest();
+}
+
 void run_context_tests(int use_prealloc) {
     secp256k1_pubkey pubkey;
     secp256k1_pubkey zero_pubkey;
@@ -7388,6 +7393,7 @@ int main(int argc, char **argv) {
     secp256k1_testrand_init(argc > 2 ? argv[2] : NULL);
 
     /* initialize */
+    run_selftest_tests();
     run_context_tests(0);
     run_context_tests(1);
     run_scratch_tests();

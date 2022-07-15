@@ -214,19 +214,41 @@ typedef int (*secp256k1_nonce_function)(
 #define SECP256K1_TAG_PUBKEY_HYBRID_EVEN 0x06
 #define SECP256K1_TAG_PUBKEY_HYBRID_ODD 0x07
 
-/** A built-in constant secp256k1 context object with static storage duration.
+/** A built-in constant secp256k1 context object with static storage duration, to be
+ *  used in conjunction with secp256k1_selftest.
  *
  *  This context object offers *only limited functionality* , i.e., it cannot be used
  *  for API functions that perform computations involving secret keys, e.g., signing
  *  and public key generation. If this restriction applies to a specific API function,
  *  it is mentioned in its documentation. See secp256k1_context_create if you need a
  *  full context object that supports all functionality offered by the library.
+ *
+ *  It is highly recommended to call secp256k1_selftest before using this context.
  */
 SECP256K1_API extern const secp256k1_context *secp256k1_context_static;
 
 /** Deprecated alias for secp256k1_context_static. */
 SECP256K1_API extern const secp256k1_context *secp256k1_context_no_precomp
 SECP256K1_DEPRECATED("Use secp256k1_context_static instead");
+
+/** Perform basic self tests (to be used in conjunction with secp256k1_context_static)
+ *
+ *  This function performs self tests that detect some serious usage errors and
+ *  similar conditions, e.g., when the library is compiled for the wrong endianness.
+ *  This is a last resort measure to be used in production. The performed tests are
+ *  very rudimentary and are not intended as a replacement for running the test
+ *  binaries.
+ *
+ *  It is highly recommended to call this before using secp256k1_context_static.
+ *  It is not necessary to call this function before using a context created with
+ *  secp256k1_context_create (or secp256k1_context_preallocated_create), which will
+ *  take care of performing the self tests.
+ *
+ *  If the tests fail, this function will call the default error handler to abort the
+ *  program (see secp256k1_context_set_error_callback).
+ */
+SECP256K1_API void secp256k1_selftest(void);
+
 
 /** Create a secp256k1 context object (in dynamically allocated memory).
  *
