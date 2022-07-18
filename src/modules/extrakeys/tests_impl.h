@@ -359,7 +359,7 @@ void test_keypair(void) {
     secp256k1_context *none = api_test_context(SECP256K1_CONTEXT_NONE, &ecount);
     secp256k1_context *sign = api_test_context(SECP256K1_CONTEXT_SIGN, &ecount);
     secp256k1_context *verify = api_test_context(SECP256K1_CONTEXT_VERIFY, &ecount);
-    secp256k1_context *sttc = secp256k1_context_clone(secp256k1_context_no_precomp);
+    secp256k1_context *sttc = secp256k1_context_clone(secp256k1_context_static);
     secp256k1_context_set_error_callback(sttc, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(sttc, counting_illegal_callback_fn, &ecount);
 
