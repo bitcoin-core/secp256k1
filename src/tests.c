@@ -172,7 +172,7 @@ void run_context_tests(int use_prealloc) {
         sign_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_SIGN));
         vrfy_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_VERIFY));
         both_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY));
-        sttc_prealloc = malloc(secp256k1_context_preallocated_clone_size(secp256k1_context_no_precomp));
+        sttc_prealloc = malloc(secp256k1_context_preallocated_clone_size(secp256k1_context_static));
         CHECK(none_prealloc != NULL);
         CHECK(sign_prealloc != NULL);
         CHECK(vrfy_prealloc != NULL);
@@ -182,13 +182,13 @@ void run_context_tests(int use_prealloc) {
         sign = secp256k1_context_preallocated_create(sign_prealloc, SECP256K1_CONTEXT_SIGN);
         vrfy = secp256k1_context_preallocated_create(vrfy_prealloc, SECP256K1_CONTEXT_VERIFY);
         both = secp256k1_context_preallocated_create(both_prealloc, SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-        sttc = secp256k1_context_preallocated_clone(secp256k1_context_no_precomp, sttc_prealloc);
+        sttc = secp256k1_context_preallocated_clone(secp256k1_context_static, sttc_prealloc);
     } else {
         none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
         sign = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
         vrfy = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
         both = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-        sttc = secp256k1_context_clone(secp256k1_context_no_precomp);
+        sttc = secp256k1_context_clone(secp256k1_context_static);
     }
 
     memset(&zero_pubkey, 0, sizeof(zero_pubkey));
@@ -5802,7 +5802,7 @@ void run_ec_pubkey_parse_test(void) {
     ecount = 0;
     VG_UNDEF(&pubkey, sizeof(pubkey));
     CHECK(secp256k1_ec_pubkey_parse(ctx, &pubkey, pubkeyc, 65) == 1);
-    CHECK(secp256k1_ec_pubkey_parse(secp256k1_context_no_precomp, &pubkey, pubkeyc, 65) == 1);
+    CHECK(secp256k1_ec_pubkey_parse(secp256k1_context_static, &pubkey, pubkeyc, 65) == 1);
     VG_CHECK(&pubkey, sizeof(pubkey));
     CHECK(ecount == 0);
     VG_UNDEF(&ge, sizeof(ge));
