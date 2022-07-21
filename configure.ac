@@ -43,8 +43,6 @@ AS_UNSET(ac_cv_prog_AR)
 AS_UNSET(ac_cv_prog_ac_ct_AR)
 LT_INIT([win32-dll])
 
-PKG_PROG_PKG_CONFIG
-
 build_windows=no
 
 case $host_os in
