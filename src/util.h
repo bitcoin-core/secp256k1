@@ -244,6 +244,9 @@ static SECP256K1_INLINE void secp256k1_int_cmov(int *r, const int *a, int flag) 
 #elif defined(UINT128_MAX) || defined(__SIZEOF_INT128__)
 # define SECP256K1_WIDEMUL_INT128 1
 # define SECP256K1_INT128_NATIVE 1
+#elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64))
+# define SECP256K1_WIDEMUL_INT128 1
+# define SECP256K1_INT128_STRUCT 1
 #else
 # define SECP256K1_WIDEMUL_INT64 1
 #endif
