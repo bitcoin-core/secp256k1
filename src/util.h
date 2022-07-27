@@ -230,27 +230,22 @@ static SECP256K1_INLINE void secp256k1_int_cmov(int *r, const int *a, int flag) 
     *r = (int)(r_masked | a_masked);
 }
 
-/* If USE_FORCE_WIDEMUL_{INT128,INT64} is set, use that wide multiplication implementation.
+/* If USE_FORCE_WIDEMUL_{INT128, INT128_STRUCT, INT64} is set, use that wide multiplication implementation.
  * Otherwise use the presence of __SIZEOF_INT128__ to decide.
  */
-#if defined(USE_FORCE_WIDEMUL_INT128)
+#if defined(USE_FORCE_WIDEMUL_INT128_STRUCT)
 # define SECP256K1_WIDEMUL_INT128 1
+# define SECP256K1_INT128_STRUCT 1
+#elif defined(USE_FORCE_WIDEMUL_INT128)
+# define SECP256K1_WIDEMUL_INT128 1
+# define SECP256K1_INT128_NATIVE 1
 #elif defined(USE_FORCE_WIDEMUL_INT64)
 # define SECP256K1_WIDEMUL_INT64 1
 #elif defined(UINT128_MAX) || defined(__SIZEOF_INT128__)
 # define SECP256K1_WIDEMUL_INT128 1
+# define SECP256K1_INT128_NATIVE 1
 #else
 # define SECP256K1_WIDEMUL_INT64 1
-#endif
-#if defined(SECP256K1_WIDEMUL_INT128)
-# if !defined(UINT128_MAX) && defined(__SIZEOF_INT128__)
-SECP256K1_GNUC_EXT typedef unsigned __int128 uint128_t;
-SECP256K1_GNUC_EXT typedef __int128 int128_t;
-#define UINT128_MAX ((uint128_t)(-1))
-#define INT128_MAX ((int128_t)(UINT128_MAX >> 1))
-#define INT128_MIN (-INT128_MAX - 1)
-/* No (U)INT128_C macros because compilers providing __int128 do not support 128-bit literals.  */
-# endif
 #endif
 
 #ifndef __has_builtin
