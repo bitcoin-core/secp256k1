@@ -2,6 +2,7 @@ libsecp256k1
 ============
 
 [![Build Status](https://api.cirrus-ci.com/github/bitcoin-core/secp256k1.svg?branch=master)](https://cirrus-ci.com/github/bitcoin-core/secp256k1)
+![Dependencies: None](https://img.shields.io/badge/dependencies-none-success)
 [![irc.libera.chat #secp256k1](https://img.shields.io/badge/irc.libera.chat-%23secp256k1-success)](https://web.libera.chat/#secp256k1)
 
 Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1.
@@ -16,6 +17,7 @@ Features:
 * Derandomized ECDSA (via RFC6979 or with a caller provided function.)
 * Very efficient implementation.
 * Suitable for embedded systems.
+* No runtime dependencies.
 * Optional module for public key recovery.
 * Optional module for ECDH key exchange.
 * Optional module for Schnorr signatures according to [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki).
