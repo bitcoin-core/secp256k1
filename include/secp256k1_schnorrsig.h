@@ -141,8 +141,12 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
  *  variable length messages and accepts a pointer to an extraparams object that
  *  allows customizing signing by passing additional arguments.
  *
- *  Creates the same signatures as schnorrsig_sign if msglen is 32 and the
- *  extraparams.ndata is the same as aux_rand32.
+ *  Equivalent to secp256k1_schnorrsig_sign32(..., aux_rand32) if msglen is 32
+ *  and extraparams is initialized as follows:
+ *  ```
+ *  secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
+ *  extraparams.ndata = (unsigned char*)aux_rand32;
+ *  ```
  *
  *  Returns 1 on success, 0 on failure.
  *  Args:   ctx: pointer to a context object (not secp256k1_context_static).
