@@ -116,6 +116,19 @@ To create a CSV file for the benchmark result :
 
     $ ./bench_name | sed '2d;s/ \{1,\}//g' > bench_name.csv
 
+Building secp256k1 - Using vcpkg
+------------
+
+You can download and install secp256k1 using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
+
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg
+    ./bootstrap-vcpkg.sh
+    ./vcpkg integrate install
+    ./vcpkg install secp256k1
+
+The secp256k1 port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.    
+
 Reporting a vulnerability
 ------------
 
