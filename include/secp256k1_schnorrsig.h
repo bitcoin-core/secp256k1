@@ -38,6 +38,9 @@ typedef struct {
     int nonce_is_negated;
 } secp256k1_schnorrsig_s2c_opening;
 
+/** The signer commitment in the anti-exfil protocol is the original public nonce. */
+typedef secp256k1_pubkey secp256k1_schnorrsig_anti_exfil_signer_commitment;
+
 /** Parse a sign-to-contract opening.
  *
  *  Returns: 1 if the opening was fully valid.
@@ -264,6 +267,66 @@ SECP256K1_API int secp256k1_schnorrsig_verify_s2c_commit(
     const unsigned char *data32,
     const secp256k1_schnorrsig_s2c_opening *opening
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
+
+/** Create the initial host commitment to `rho`. Part of the Anti-Exfil Protocol.
+ *
+ *  Returns 1 on success, 0 on failure.
+ *  Args:              ctx: pointer to a context object (cannot be NULL)
+ *  Out: rand_commitment32: pointer to 32-byte array to store the returned commitment (cannot be NULL)
+ *  In:             rand32: the 32-byte randomness to commit to (cannot be NULL). It must come from
+ *                          a cryptographically secure RNG. As per the protocol, this value must not
+ *                          be revealed to the client until after the host has received the client
+ *                          commitment.
+ */
+SECP256K1_API int secp256k1_schnorrsig_anti_exfil_host_commit(
+    const secp256k1_context* ctx,
+    unsigned char* rand_commitment32,
+    const unsigned char* rand32
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
+ /** Compute signer's original nonce. Part of the Anti-Exfil Protocol.
+ *
+ *  Returns 1 on success, 0 on failure.
+ *  Args:           ctx: pointer to a context object, initialized for signing (cannot be NULL)
+ *  Out:    signer_commitment:  where the signer's public nonce will be placed. (cannot be NULL)
+ *  In:                   msg: the message to be signed (cannot be NULL)
+ *                     msglen: length of the message
+ *                    keypair: pointer to an initialized keypair (cannot be NULL).
+ *          rand_commitment32: the 32-byte randomness commitment from the host (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_schnorrsig_anti_exfil_signer_commit(
+    const secp256k1_context* ctx,
+    secp256k1_schnorrsig_anti_exfil_signer_commitment* signer_commitment,
+    const unsigned char *msg,
+    size_t msglen,
+    const secp256k1_keypair *keypair,
+    const unsigned char* rand_commitment32
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
+
+/** Verify a signature was correctly constructed using the Anti-Exfil Protocol.
+ *
+ *  Returns: 1: the signature is valid and contains a commitment to host_data32
+ *           0: failure
+ *  Args:          ctx: a secp256k1 context object, initialized for verification.
+ *  In:          sig64: pointer to the 64-byte signature to verify.
+ *                 msg: the message being verified. Can only be NULL if msglen is 0.
+ *              msglen: length of the message
+ *              pubkey: pointer to an x-only public key to verify with (cannot be NULL)
+ *         host_data32: the 32-byte data provided by the host (cannot be NULL)
+ *   signer_commitment: signer commitment produced by `secp256k1_schnorrsig_anti_exfil_signer_commit()`.
+ *             opening: the s2c opening provided by the signer (cannot be NULL)
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_anti_exfil_host_verify(
+    const secp256k1_context* ctx,
+    const unsigned char *sig64,
+    const unsigned char *msg,
+    size_t msglen,
+    const secp256k1_xonly_pubkey *pubkey,
+    const unsigned char *host_data32,
+    const secp256k1_schnorrsig_anti_exfil_signer_commitment *signer_commitment,
+    const secp256k1_schnorrsig_s2c_opening *opening
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6) SECP256K1_ARG_NONNULL(7) SECP256K1_ARG_NONNULL(8);
 
 #ifdef __cplusplus
 }

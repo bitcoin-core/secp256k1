@@ -1113,6 +1113,50 @@ void test_s2c_opening(void) {
     } while(i < COUNT);
 }
 
+/* Uses the s2c primitives to perform the anti-exfil protocol */
+void test_s2c_anti_exfil(void) {
+    unsigned char sk[32];
+    secp256k1_xonly_pubkey pk;
+    secp256k1_keypair keypair;
+    unsigned char host_msg[32];
+    unsigned char host_commitment[32];
+    unsigned char host_nonce_contribution[32];
+    secp256k1_schnorrsig_s2c_opening s2c_opening;
+    secp256k1_schnorrsig_anti_exfil_signer_commitment signer_commitment;
+    unsigned char sig[64];
+    /* Generate a random key, message. */
+    {
+        testrand256(sk);
+        CHECK(secp256k1_keypair_create(CTX, &keypair, sk));
+        CHECK(secp256k1_keypair_xonly_pub(CTX, &pk, NULL, &keypair));
+        testrand256_test(host_msg);
+        testrand256_test(host_nonce_contribution);
+    }
+
+    /* Protocol step 1. */
+    /* Make host commitment. */
+    CHECK(secp256k1_schnorrsig_anti_exfil_host_commit(CTX, host_commitment, host_nonce_contribution) == 1);
+
+    /* Protocol step 2. */
+    /* Make signer commitment */
+    CHECK(secp256k1_schnorrsig_anti_exfil_signer_commit(CTX, &signer_commitment, host_msg, sizeof(host_msg), &keypair, host_commitment) == 1);
+
+    /* Protocol step 3: host_nonce_contribution send to signer to be used in step 4. */
+
+    /* Protocol step 4. */
+    /* Sign with host nonce contribution  */
+    {
+        secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
+        extraparams.s2c_opening = &s2c_opening;
+        extraparams.s2c_data32 = host_nonce_contribution;
+        CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig, host_msg, sizeof(host_msg), &keypair, &extraparams) == 1);
+    }
+
+    /* Protocol step 5. */
+    /* Verify commitment and signature */
+    CHECK(secp256k1_schnorrsig_anti_exfil_host_verify(CTX, sig, host_msg, sizeof(host_msg), &pk, host_nonce_contribution, &signer_commitment, &s2c_opening) == 1);
+}
+
 void run_schnorrsig_tests(void) {
     int i;
     run_nonce_function_bip340_tests();
@@ -1129,6 +1173,7 @@ void run_schnorrsig_tests(void) {
     }
     test_schnorrsig_taproot();
     test_s2c_opening();
+    test_s2c_anti_exfil();
 }
 
 #endif

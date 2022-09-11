@@ -401,4 +401,71 @@ int secp256k1_schnorrsig_verify_s2c_commit(const secp256k1_context* ctx, const u
     return secp256k1_ec_commit_verify(&r, &original_r, &sha, data32, 32);
 }
 
+int secp256k1_schnorrsig_anti_exfil_host_commit(const secp256k1_context* ctx, unsigned char* rand_commitment32, const unsigned char* rand32) {
+    secp256k1_sha256 sha;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(rand_commitment32 != NULL);
+    ARG_CHECK(rand32 != NULL);
+
+    secp256k1_sha256_initialize_tagged(&sha, s2c_data_tag, sizeof(s2c_data_tag));
+    secp256k1_sha256_write(&sha, rand32, 32);
+    secp256k1_sha256_finalize(&sha, rand_commitment32);
+
+    return 1;
+}
+
+int secp256k1_schnorrsig_anti_exfil_signer_commit(const secp256k1_context* ctx, secp256k1_schnorrsig_anti_exfil_signer_commitment* signer_commitment, const unsigned char *msg, size_t msglen, const secp256k1_keypair *keypair, const unsigned char* rand_commitment32) {
+    secp256k1_scalar sk;
+    secp256k1_scalar k;
+    secp256k1_gej rj;
+    secp256k1_ge pk;
+    secp256k1_ge r;
+    unsigned char buf[32] = { 0 };
+    unsigned char pk_buf[32];
+    unsigned char seckey[32];
+    int ret = 1;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    ARG_CHECK(msg != NULL || msglen == 0);
+    ARG_CHECK(keypair != NULL);
+
+    ret &= secp256k1_keypair_load(ctx, &sk, &pk, keypair);
+    /* Because we are signing for a x-only pubkey, the secret key is negated
+     * before signing if the point corresponding to the secret key does not
+     * have an even Y. */
+    if (secp256k1_fe_is_odd(&pk.y)) {
+        secp256k1_scalar_negate(&sk, &sk);
+    }
+
+    secp256k1_scalar_get_b32(seckey, &sk);
+    secp256k1_fe_get_b32(pk_buf, &pk.x);
+
+    ret &= !!secp256k1_nonce_function_bip340(buf, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), (void*)rand_commitment32);
+    secp256k1_scalar_set_b32(&k, buf, NULL);
+    ret &= !secp256k1_scalar_is_zero(&k);
+    secp256k1_scalar_cmov(&k, &secp256k1_scalar_one, !ret);
+
+    secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &rj, &k);
+    secp256k1_ge_set_gej(&r, &rj);
+
+    secp256k1_pubkey_save(signer_commitment, &r);
+
+    return ret;
+}
+
+int secp256k1_schnorrsig_anti_exfil_host_verify(const secp256k1_context* ctx, const unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_xonly_pubkey *pubkey, const unsigned char *host_data32, const secp256k1_schnorrsig_anti_exfil_signer_commitment *signer_commitment, const secp256k1_schnorrsig_s2c_opening *opening) {
+    /* Verify that the signer commitment matches the opening made when signing */
+    if (secp256k1_ec_pubkey_cmp(ctx, signer_commitment, &opening->original_pubnonce)) {
+        return 0;
+    }
+    /* Verify signature */
+    if (!secp256k1_schnorrsig_verify(ctx, sig64, msg, msglen, pubkey)) {
+        return 0;
+    }
+    /* Verify that the host nonce contribution was committed to */
+    return secp256k1_schnorrsig_verify_s2c_commit(ctx, sig64, host_data32, opening);
+}
+
 #endif
