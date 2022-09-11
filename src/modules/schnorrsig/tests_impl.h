@@ -103,23 +103,67 @@ static void run_nonce_function_bip340_tests(void) {
     CHECK(secp256k1_memcmp_var(nonce_z, nonce, 32) == 0);
 }
 
-static void test_schnorrsig_api(void) {
+/* Nonce function that returns constant 0 */
+static int nonce_function_failing(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+    (void) msg;
+    (void) msglen;
+    (void) key32;
+    (void) xonly_pk32;
+    (void) algo;
+    (void) algolen;
+    (void) data;
+    (void) nonce32;
+    return 0;
+}
+
+/* Nonce function that sets nonce to 0 */
+static int nonce_function_0(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+    (void) msg;
+    (void) msglen;
+    (void) key32;
+    (void) xonly_pk32;
+    (void) algo;
+    (void) algolen;
+    (void) data;
+
+    memset(nonce32, 0, 32);
+    return 1;
+}
+
+/* Nonce function that sets nonce to 0xFF...0xFF */
+static int nonce_function_overflowing(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+    (void) msg;
+    (void) msglen;
+    (void) key32;
+    (void) xonly_pk32;
+    (void) algo;
+    (void) algolen;
+    (void) data;
+
+    memset(nonce32, 0xFF, 32);
+    return 1;
+}
+
+void test_schnorrsig_api(void) {
     unsigned char sk1[32];
     unsigned char sk2[32];
     unsigned char sk3[32];
     unsigned char msg[32];
+    unsigned char s2c_data32[32];
+    secp256k1_schnorrsig_s2c_opening s2c_opening;
     secp256k1_keypair keypairs[3];
     secp256k1_keypair invalid_keypair = {{ 0 }};
     secp256k1_xonly_pubkey pk[3];
     secp256k1_xonly_pubkey zero_pk;
     unsigned char sig[64];
     secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
-    secp256k1_schnorrsig_extraparams invalid_extraparams = {{ 0 }, NULL, NULL};
+    secp256k1_schnorrsig_extraparams extraparams_s2c;
 
     testrand256(sk1);
     testrand256(sk2);
     testrand256(sk3);
     testrand256(msg);
+    testrand256(s2c_data32);
     CHECK(secp256k1_keypair_create(CTX, &keypairs[0], sk1) == 1);
     CHECK(secp256k1_keypair_create(CTX, &keypairs[1], sk2) == 1);
     CHECK(secp256k1_keypair_create(CTX, &keypairs[2], sk3) == 1);
@@ -143,16 +187,35 @@ static void test_schnorrsig_api(void) {
     CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), NULL, &extraparams));
     CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &invalid_keypair, &extraparams));
     CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &keypairs[0], NULL) == 1);
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &keypairs[0], &invalid_extraparams));
-    CHECK_ILLEGAL(STATIC_CTX, secp256k1_schnorrsig_sign_custom(STATIC_CTX, sig, msg, sizeof(msg), &keypairs[0], &extraparams));
+    extraparams_s2c = extraparams;
+    extraparams_s2c.s2c_opening = &s2c_opening;
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &keypairs[0], &extraparams_s2c));
+    extraparams_s2c = extraparams;
+    extraparams_s2c.s2c_opening = &s2c_opening;
+    extraparams_s2c.s2c_data32 = s2c_data32;
+    CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &keypairs[0], &extraparams_s2c) == 1);
+    /* s2c commitments with a different nonce function than bipschnorr are not allowed */
+    extraparams_s2c = extraparams;
+    extraparams_s2c.s2c_opening = &s2c_opening;
+    extraparams_s2c.s2c_data32 = s2c_data32;
+    extraparams_s2c.noncefp = nonce_function_0;
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &keypairs[0], &extraparams_s2c));
 
     CHECK(secp256k1_schnorrsig_sign32(CTX, sig, msg, &keypairs[0], NULL) == 1);
     CHECK(secp256k1_schnorrsig_verify(CTX, sig, msg, sizeof(msg), &pk[0]) == 1);
     CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_verify(CTX, NULL, msg, sizeof(msg), &pk[0]));
     CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_verify(CTX, sig, NULL, sizeof(msg), &pk[0]));
     CHECK(secp256k1_schnorrsig_verify(CTX, sig, NULL, 0, &pk[0]) == 0);
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_verify(CTX, sig, msg, sizeof(msg), NULL));
-    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_verify(CTX, sig, msg, sizeof(msg), &zero_pk));
+
+    /* Create sign-to-contract commitment to data32 for testing verify_s2c_commit */
+    extraparams_s2c = extraparams;
+    extraparams_s2c.s2c_opening = &s2c_opening;
+    extraparams_s2c.s2c_data32 = s2c_data32;
+    CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &keypairs[0], &extraparams_s2c) == 1);
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(CTX, sig, s2c_data32, &s2c_opening) == 1);
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_verify_s2c_commit(CTX, NULL, s2c_data32, &s2c_opening));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_verify_s2c_commit(CTX, sig, NULL, &s2c_opening));
+    CHECK_ILLEGAL(CTX, secp256k1_schnorrsig_verify_s2c_commit(CTX, sig, s2c_data32, NULL));
 }
 
 /* Checks that hash initialized by secp256k1_schnorrsig_sha256_tagged has the
@@ -761,48 +824,7 @@ static void test_schnorrsig_bip_vectors(void) {
     }
 }
 
-/* Nonce function that returns constant 0 */
-static int nonce_function_failing(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
-    (void) msg;
-    (void) msglen;
-    (void) key32;
-    (void) xonly_pk32;
-    (void) algo;
-    (void) algolen;
-    (void) data;
-    (void) nonce32;
-    return 0;
-}
-
-/* Nonce function that sets nonce to 0 */
-static int nonce_function_0(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
-    (void) msg;
-    (void) msglen;
-    (void) key32;
-    (void) xonly_pk32;
-    (void) algo;
-    (void) algolen;
-    (void) data;
-
-    memset(nonce32, 0, 32);
-    return 1;
-}
-
-/* Nonce function that sets nonce to 0xFF...0xFF */
-static int nonce_function_overflowing(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
-    (void) msg;
-    (void) msglen;
-    (void) key32;
-    (void) xonly_pk32;
-    (void) algo;
-    (void) algolen;
-    (void) data;
-
-    memset(nonce32, 0xFF, 32);
-    return 1;
-}
-
-static void test_schnorrsig_sign(void) {
+void test_schnorrsig_sign(void) {
     unsigned char sk[32];
     secp256k1_xonly_pubkey pk;
     secp256k1_keypair keypair;
@@ -965,6 +987,76 @@ static void test_schnorrsig_taproot(void) {
     CHECK(secp256k1_xonly_pubkey_tweak_add_check(CTX, output_pk_bytes, pk_parity, &internal_pk, tweak) == 1);
 }
 
+void test_schnorrsig_s2c_commit_verify(void) {
+    unsigned char data32[32];
+    unsigned char sig[64];
+    secp256k1_schnorrsig_s2c_opening s2c_opening;
+    unsigned char msg[32];
+    unsigned char sk[32];
+    secp256k1_xonly_pubkey pk;
+    secp256k1_keypair keypair;
+    unsigned char noncedata[32];
+    secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
+    extraparams.ndata = noncedata;
+    extraparams.s2c_opening = &s2c_opening;
+    extraparams.s2c_data32 = data32;
+
+    testrand256_test(data32);
+    testrand256_test(msg);
+    testrand256(sk);
+    CHECK(secp256k1_keypair_create(CTX, &keypair, sk));
+    CHECK(secp256k1_keypair_xonly_pub(CTX, &pk, NULL, &keypair));
+    testrand256(noncedata);
+
+    /* Create and verify correct commitment */
+    CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &keypair, &extraparams) == 1);
+    CHECK(secp256k1_schnorrsig_verify(CTX, sig, msg, sizeof(msg), &pk));
+    CHECK(secp256k1_schnorrsig_verify_s2c_commit(CTX, sig, data32, &s2c_opening) == 1);
+    {
+        /* verify_s2c_commit fails if nonce_is_negated is wrong */
+        secp256k1_schnorrsig_s2c_opening s2c_opening_tmp;
+        s2c_opening_tmp = s2c_opening;
+        s2c_opening_tmp.nonce_is_negated = !s2c_opening.nonce_is_negated;
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(CTX, sig, data32, &s2c_opening_tmp) == 0);
+    }
+    {
+        /* verify_s2c_commit fails if given data does not match committed data */
+        unsigned char data32_tmp[32];
+        memcpy(data32_tmp, data32, sizeof(data32_tmp));
+        data32_tmp[31] ^= 1;
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(CTX, sig, data32_tmp, &s2c_opening) == 0);
+    }
+    {
+        /* verify_s2c_commit fails if signature does not commit to data */
+        unsigned char sig_tmp[64];
+        memcpy(sig_tmp, sig, 64);
+        testrand256(sig_tmp);
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(CTX, sig_tmp, data32, &s2c_opening) == 0);
+    }
+    {
+        /* A commitment to different data creates a different original_pubnonce
+         * (i.e. data is hashed into the nonce) */
+        secp256k1_schnorrsig_s2c_opening s2c_opening_tmp;
+        unsigned char sig_tmp[64];
+        unsigned char data32_tmp[32];
+        unsigned char serialized_nonce[33];
+        unsigned char serialized_nonce_tmp[33];
+        size_t outputlen = 33;
+        secp256k1_schnorrsig_extraparams extraparams_tmp = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
+        extraparams_tmp.s2c_opening = &s2c_opening_tmp;
+        extraparams_tmp.s2c_data32 = data32_tmp;
+        testrand256(data32_tmp);
+        CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig_tmp, msg, sizeof(msg), &keypair, &extraparams_tmp) == 1);
+        CHECK(secp256k1_schnorrsig_verify(CTX, sig_tmp, msg, sizeof(msg), &pk));
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(CTX, sig_tmp, data32_tmp, &s2c_opening_tmp) == 1);
+        secp256k1_ec_pubkey_serialize(CTX, serialized_nonce, &outputlen, &s2c_opening.original_pubnonce, SECP256K1_EC_COMPRESSED);
+        CHECK(outputlen == 33);
+        secp256k1_ec_pubkey_serialize(CTX, serialized_nonce_tmp, &outputlen, &s2c_opening_tmp.original_pubnonce, SECP256K1_EC_COMPRESSED);
+        CHECK(outputlen == 33);
+        CHECK(secp256k1_memcmp_var(serialized_nonce, serialized_nonce_tmp, outputlen) != 0);
+    }
+}
+
 void test_s2c_opening(void) {
     int i = 0;
     unsigned char output[33];
@@ -1031,6 +1123,9 @@ void run_schnorrsig_tests(void) {
     for (i = 0; i < COUNT; i++) {
         test_schnorrsig_sign();
         test_schnorrsig_sign_verify();
+        /* Run multiple times to increase probability that the nonce is negated in
+         * a test. */
+        test_schnorrsig_s2c_commit_verify();
     }
     test_schnorrsig_taproot();
     test_s2c_opening();

@@ -125,25 +125,35 @@ SECP256K1_API const secp256k1_nonce_function_hardened secp256k1_nonce_function_b
  *  setting it to SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT.
  *
  *  Members:
- *      magic: set to SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC at initialization
- *             and has no other function than making sure the object is
- *             initialized.
- *    noncefp: pointer to a nonce generation function. If NULL,
- *             secp256k1_nonce_function_bip340 is used
- *      ndata: pointer to arbitrary data used by the nonce generation function
- *             (can be NULL). If it is non-NULL and
- *             secp256k1_nonce_function_bip340 is used, then ndata must be a
- *             pointer to 32-byte auxiliary randomness as per BIP-340.
+ *         magic: set to SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC at initialization
+ *                and has no other function than making sure the object is
+ *                initialized.
+ *       noncefp: pointer to a nonce generation function. If NULL,
+ *                secp256k1_nonce_function_bip340 is used
+ *         ndata: pointer to arbitrary data used by the nonce generation function
+ *                (can be NULL). If it is non-NULL and
+ *                secp256k1_nonce_function_bip340 is used, then ndata must be a
+ *                pointer to 32-byte auxiliary randomness as per BIP-340.
+ *   s2c_opening: pointer to an secp256k1_schnorrsig_s2c_opening structure which can be
+ *                NULL but is required to be not NULL if this signature creates
+ *                a sign-to-contract commitment (i.e. the `s2c_data32` argument
+ *                is not NULL).
+ *    s2c_data32: pointer to a 32-byte data to create an optional
+ *                sign-to-contract commitment to if not NULL (can be NULL).
  */
 typedef struct {
     unsigned char magic[4];
     secp256k1_nonce_function_hardened noncefp;
     void *ndata;
+    secp256k1_schnorrsig_s2c_opening* s2c_opening;
+    const unsigned char* s2c_data32;
 } secp256k1_schnorrsig_extraparams;
 
 #define SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC { 0xda, 0x6f, 0xb3, 0x8c }
 #define SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT {\
     SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC,\
+    NULL,\
+    NULL,\
     NULL,\
     NULL\
 }
@@ -238,6 +248,22 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_verify(
     size_t msglen,
     const secp256k1_xonly_pubkey *pubkey
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(5);
+
+/** Verify a sign-to-contract commitment.
+ *
+ *  Returns: 1: the signature contains a commitment to data32
+ *           0: incorrect opening
+ *  Args:    ctx: a secp256k1 context object, initialized for verification.
+ *  In:    sig64: the signature containing the sign-to-contract commitment (cannot be NULL)
+ *        data32: the 32-byte data that was committed to (cannot be NULL)
+ *       opening: pointer to the opening created during signing (cannot be NULL)
+ */
+SECP256K1_API int secp256k1_schnorrsig_verify_s2c_commit(
+    const secp256k1_context* ctx,
+    const unsigned char *sig64,
+    const unsigned char *data32,
+    const secp256k1_schnorrsig_s2c_opening *opening
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
 #ifdef __cplusplus
 }
