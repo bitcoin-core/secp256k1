@@ -9,10 +9,6 @@
 
 #include "util.h"
 
-#if defined HAVE_CONFIG_H
-#include "libsecp256k1-config.h"
-#endif
-
 #if defined(EXHAUSTIVE_TEST_ORDER)
 #include "scalar_low.h"
 #elif defined(SECP256K1_WIDEMUL_INT128)
