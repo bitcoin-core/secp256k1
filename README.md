@@ -71,7 +71,157 @@ libsecp256k1 is built using autotools:
     $ make check  # run the test suite
     $ sudo make install  # optional
 
-To compile optional modules (such as Schnorr signatures), you need to run `./configure` with additional flags (such as `--enable-module-schnorrsig`). Run `./configure --help` to see the full list of available flags.
+
+To compile optional modules (such as Schnorr signatures), you need to run `./configure` with additional flags (such as `--enable-module-schnorrsig`). Run `./configure --help` to see the full list of available flags and environment variables.
+
+Configuration flags
+-----------
+
+The build process recognizes the following flags. Unless otherwise specified, valid values for each option are "yes" and "no".
+
+### Toggle Dev-Mode
+
+| Autotools           | Manual             | Default |
+|---------------------|--------------------|---------|
+| `--enable-dev_mode` | None               | no      |
+
+In dev mode, all binaries and modules are enabled by default but individual options can still be overridden explicitly. Options may have different default values when in dev-mode. This option is hidden from `./configure --help`.
+
+
+### Enable Coverage
+
+| Autotools           | Manual              | Default | Default (dev-mode) |
+|---------------------|---------------------|---------|--------------------|
+| `--enable-coverage` | `-DENABLE_COVERAGE` | no      | no                 |
+
+Enable compiler flags to support kcov coverage analysis. Compiles out all VERIFY code as a side effect.
+
+### Enable Benchmarks
+
+| Autotools            | Manual               | Default | Default (dev-mode) |
+|----------------------|----------------------|---------|--------------------|
+| `--enable-benchmark` | `-DENABLE_BENCHMARK` | yes     | yes                |
+
+Additionally compile the benchmarks.
+
+
+### Enable Tests
+
+| Autotools        | Manual           | Default | Default (dev-mode) |
+|------------------|------------------|---------|--------------------|
+| `--enable-tests` | `-DENABLE_TESTS` | yes     | yes                |
+
+Additionally compile the tests.
+
+### Enable Exhaustive tests
+
+| Autotools                   | Manual                      | Default | Default (dev-mode) |
+|-----------------------------|-----------------------------|---------|--------------------|
+| `--enable-exhaustive-tests` | `-DENABLE_EXHAUSTIVE_TESTS` | yes     | yes                |
+
+Additionally compile the tests.
+
+### Enable Examples
+
+| Autotools           | Manual              | Default | Default (dev-mode) |
+|---------------------|---------------------|---------|--------------------|
+| `--enable-examples` | `-DENABLE_EXAMPLES` | no      | yes                |
+
+Additionally compile the examples.
+
+### Enable Valgrind Checks
+
+| Autotools         | Manual | Default   | Default (dev-mode)  |
+|-------------------|--------|-----------|---------------------|
+| `--with-valgrind` | None   | auto      | auto                |
+
+Build with extra checks for running inside Valgrind. Valid values are "yes", "no", and "auto".
+
+### Enable External Default Callbacks
+
+| Autotools                             | Manual                               | Default | Default (dev-mode) |
+|---------------------------------------|--------------------------------------|---------|--------------------|
+| `--enable-external-default-callbacks` | `-DUSE_EXTERNAL_DEFAULT_CALLBACKS`   | no      | no                 |
+
+Enable external default callback functions. Ensure that you supply them in your code, otherwise you will get a linker error.
+
+### Allow Experimental Options
+
+| Autotools               | Manual                  | Default | Default (dev-mode) |
+|-------------------------|-------------------------|---------|--------------------|
+| `--enable-experimental` | `-DENABLE_EXPERIMENTAL` | no      | yes                |
+
+Allow passing of experimental build options. The following options are experimental:
+
+- `--with-asm=arm`
+
+### Enable ECDH Module
+
+| Autotools              | Manual                 | Default | Default (dev-mode) |
+|------------------------|------------------------|---------|--------------------|
+| `--enable-module-ecdh` | `-DENABLE_MODULE_ECDH` | no      | yes                |
+
+Enable the ECDH module.
+
+### Enable Recovery Module
+
+| Autotools                  | Manual                     | Default | Default (dev-mode) |
+|----------------------------|----------------------------|---------|--------------------|
+| `--enable-module-recovery` | `-DENABLE_MODULE_RECOVERY` | no      | yes                |
+
+Enable the ECDSA public key recovery module.
+
+### Enable Extrakeys Module
+
+| Autotools                   | Manual                      | Default | Default (dev-mode) |
+|-----------------------------|-----------------------------|---------|--------------------|
+| `--enable-module-extrakeys` | `-DENABLE_MODULE_EXTRAKEYS` | no      | yes                |
+
+Enable the extrakeys module. Extrakeys exports miscellaneous and supplimentary public key functions.
+
+### Enable Schnorrsig Module
+
+| Autotools                    | Manual                       | Default | Default (dev-mode) |
+|------------------------------|------------------------------|---------|--------------------|
+| `--enable-module-schnorrsig` | `-DENABLE_MODULE_SCHNORRSIG` | no      | yes                |
+
+Enable the Schnorr signatures module.
+
+### Override `widemul` Setting
+
+| Autotools                            | Manual    | Default | Default (dev-mode) |
+|--------------------------------------|-----------|---------|--------------------|
+| `--with-test-override-wide-multiply` | See below | auto    | auto               |
+
+Test-only override of the (autodetected by the C code) "widemul" setting, used in the multiplication implementation. Legal values are "int64" (for `[u]int64_t`), "int128" (for `[unsigned] __int128`), and "auto" (the default).
+
+`-DUSE_FORCE_WIDEMUL_INT128` is passed when "int128" is specified, and `-DUSE_FORCE_WIDEMUL_INT64` is passed when int64 is specified. Neither option is passed when "auto" is specified.
+
+### Assembly Optimizations
+
+| Autotools    | Manual    | Default | Default (dev-mode) |
+|--------------|-----------|---------|--------------------|
+| `--with-asm` | See below | auto    | auto               |
+
+Specifies the assembly options to use. Legal values are "x86_64", "arm", "no", and "auto". Please note that --with-asm=arm is an experimental option (see [Allow Experimental Options](#allow-experimental-options).
+
+`-USE_ASM_X86_64` is passed when "x86_64" is specified. `-DUSE_EXTERNAL_ASM` is passed when "arm" is passed. When "auto" is passed, the system checks if assembly optimizations are available for the current architecture and sets one of the above macros accordingly. Passing "none" completely disables assembly optimizations.
+
+### Tune `ecmult` Table Window
+
+| Autotools              | Manual                 | Default | Default (dev-mode) |
+|------------------------|------------------------|---------|--------------------|
+| `--with-ecmult-window` | `-DECMULT_WINDOW_SIZE` | auto    | auto               |
+
+Window size for ecmult precomputation for verification, specified as integer in range `[2..24]`. Larger values result in possibly better performance at the cost of an exponentially larger precomputed table. The table will store `2^(SIZE-1) * 64` bytes of data but can be larger in memory due to platform-specific padding and alignment. A window size larger than 15 will require you delete the prebuilt precomputed_ecmult.c file so that it can be rebuilt. For very large window sizes, use `make -j 1` to reduce memory use during compilation. "auto" is a reasonable setting for desktop machines (currently 15).
+
+### Tune `ecmult` Bit Precision
+
+| Autotools                     | Manual                   | Default | Default (dev-mode) |
+|-------------------------------|--------------------------|---------|--------------------|
+| `--with-ecmult-gen-precision` | `-DECMULT_GEN_PREC_BITS` | auto    | auto               |
+
+Precision bits to tune the precomputed table size for signing. Valid values are "2", "4", "8", and "auto". The size of the table is 32kB for 2 bits, 64kB for 4 bits, 512kB for 8 bits of precision. A larger table size usually results in possible faster signing. "auto" is a reasonable setting for desktop machines (currently 4).
 
 Usage examples
 -----------
