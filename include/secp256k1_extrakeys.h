@@ -64,6 +64,25 @@ SECP256K1_API int secp256k1_xonly_pubkey_serialize(
     const secp256k1_xonly_pubkey* pubkey
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
+/**
+ * Convert a xonly_pubkey object to a pubkey object.
+ * This resulting pubkey will show the prefix 02 in the compressed format (even y).
+ *
+ * Returns: 0 if the arguments are invalid or the resulting public key would be
+ *           invalid. 1 otherwise.
+ *
+ * Args: ctx:          a secp256k1 context object.
+ * Out:  pubkey:       pointer to the created public key
+ * In:   xonly_pubkey: a pointer to a secp256k1_xonly_pubkey containing an initialized public key.
+ *
+ * @return SECP256K1_API
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_to_pubkey(
+    const secp256k1_context* ctx,
+    secp256k1_pubkey *pubkey,
+    const secp256k1_xonly_pubkey* xonly_pubkey
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
 /** Compare two x-only public keys using lexicographic order
  *
  *  Returns: <0 if the first public key is less than the second

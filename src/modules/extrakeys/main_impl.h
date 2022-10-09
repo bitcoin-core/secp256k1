@@ -55,6 +55,22 @@ int secp256k1_xonly_pubkey_serialize(const secp256k1_context* ctx, unsigned char
     return 1;
 }
 
+int secp256k1_xonly_pubkey_to_pubkey(const secp256k1_context* ctx, secp256k1_pubkey *pubkey, const secp256k1_xonly_pubkey* xonly_pubkey) {
+    secp256k1_ge pk;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(pubkey != NULL);
+    ARG_CHECK(xonly_pubkey != NULL);
+    memset(pubkey, 0, sizeof(*pubkey));
+
+    if (!secp256k1_xonly_pubkey_load(ctx, &pk, xonly_pubkey)) {
+        return 0;
+    }
+
+    secp256k1_pubkey_save(pubkey, &pk);
+    return 1;
+}
+
 int secp256k1_xonly_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_xonly_pubkey* pk0, const secp256k1_xonly_pubkey* pk1) {
     unsigned char out[2][32];
     const secp256k1_xonly_pubkey* pk[2];

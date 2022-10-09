@@ -579,6 +579,36 @@ void test_keypair_add(void) {
     secp256k1_context_destroy(verify);
 }
 
+void test_xonly_pubkey_to_pubkey(void) {
+    unsigned char sk1[32];
+    secp256k1_keypair keypair1;
+    secp256k1_xonly_pubkey xpubkey1;
+    secp256k1_pubkey pubkey1;
+    secp256k1_pubkey result_pubkey;
+    unsigned char compressed_pubkey1[33];
+    size_t len;
+
+    /* Create random points */
+    secp256k1_testrand256(sk1);
+    CHECK(secp256k1_keypair_create(ctx, &keypair1, sk1) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(ctx, &xpubkey1, NULL, &keypair1) == 1);
+    CHECK(secp256k1_keypair_pub(ctx, &pubkey1, &keypair1) == 1);
+
+    /* If the compressed public key has the prefix 03, negate it */
+    len = sizeof(compressed_pubkey1);
+    CHECK(secp256k1_ec_pubkey_serialize(ctx, compressed_pubkey1, &len, &pubkey1, SECP256K1_EC_COMPRESSED));
+    CHECK(len == sizeof(compressed_pubkey1));
+
+    if (compressed_pubkey1[0] == 3) {
+        CHECK(secp256k1_ec_pubkey_negate(ctx, &pubkey1));
+    }
+
+    /* Convert the secp256k1_xonly_pubkey to secp256k1_pubkey and compare the result with the
+     * original public key */
+    CHECK(secp256k1_xonly_pubkey_to_pubkey(ctx, &result_pubkey, &xpubkey1));
+    CHECK(secp256k1_ec_pubkey_cmp(ctx, &pubkey1, &result_pubkey) == 0);
+}
+
 void run_extrakeys_tests(void) {
     /* xonly key test cases */
     test_xonly_pubkey();
@@ -586,6 +616,7 @@ void run_extrakeys_tests(void) {
     test_xonly_pubkey_tweak_check();
     test_xonly_pubkey_tweak_recursive();
     test_xonly_pubkey_comparison();
+    test_xonly_pubkey_to_pubkey();
 
     /* keypair tests */
     test_keypair();
