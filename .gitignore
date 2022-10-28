@@ -13,7 +13,6 @@ schnorr_example
 *.so
 *.a
 *.csv
-!.gitignore
 *.log
 *.trs
 
