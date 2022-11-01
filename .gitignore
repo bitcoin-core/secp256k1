@@ -13,7 +13,6 @@ schnorr_example
 *.so
 *.a
 *.csv
-!.gitignore
 *.log
 *.trs
 
@@ -34,8 +33,6 @@ libtool
 *.lo
 *.o
 *~
-*.log
-*.trs
 
 coverage/
 coverage.html
