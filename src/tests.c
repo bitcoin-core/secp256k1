@@ -26,6 +26,7 @@
 #include "modinv32_impl.h"
 #ifdef SECP256K1_WIDEMUL_INT128
 #include "modinv64_impl.h"
+#include "int128_impl.h"
 #endif
 
 #define CONDITIONAL_TEST(cnt, nam) if (count < (cnt)) { printf("Skipping %s (iteration count too low)\n", nam); } else
@@ -429,6 +430,47 @@ void run_scratch_tests(void) {
     secp256k1_scratch_space_destroy(none, NULL); /* no-op */
     secp256k1_context_destroy(none);
 }
+
+
+#ifdef SECP256K1_WIDEMUL_INT128
+void run_int128_tests(void) {
+    {   /* secp256k1_u128_accum_mul */
+        secp256k1_uint128 res;
+
+        /* Check secp256k1_u128_accum_mul overflow */
+        secp256k1_u128_from_u64(&res, 0);
+        secp256k1_u128_accum_mul(&res, UINT64_MAX, UINT64_MAX);
+        secp256k1_u128_accum_mul(&res, UINT64_MAX, UINT64_MAX);
+        CHECK(secp256k1_u128_to_u64(&res) == 2);
+        CHECK(secp256k1_u128_hi_u64(&res) == 18446744073709551612U);
+    }
+    {   /* secp256k1_u128_accum_mul */
+        secp256k1_int128 res;
+
+        /* Compute INT128_MAX = 2^127 - 1 with secp256k1_i128_accum_mul */
+        secp256k1_i128_from_i64(&res, 0);
+        secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MAX);
+        secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MAX);
+        CHECK(secp256k1_i128_to_i64(&res) == 2);
+        secp256k1_i128_accum_mul(&res, 4, 9223372036854775807);
+        secp256k1_i128_accum_mul(&res, 1, 1);
+        CHECK((uint64_t)secp256k1_i128_to_i64(&res) == UINT64_MAX);
+        secp256k1_i128_rshift(&res, 64);
+        CHECK(secp256k1_i128_to_i64(&res) == INT64_MAX);
+
+        /* Compute INT128_MIN = - 2^127 with secp256k1_i128_accum_mul */
+        secp256k1_i128_from_i64(&res, 0);
+        secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MIN);
+        CHECK(secp256k1_i128_to_i64(&res) == INT64_MIN);
+        secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MIN);
+        CHECK(secp256k1_i128_to_i64(&res) == 0);
+        secp256k1_i128_accum_mul(&res, 2, INT64_MIN);
+        CHECK(secp256k1_i128_to_i64(&res) == 0);
+        secp256k1_i128_rshift(&res, 64);
+        CHECK(secp256k1_i128_to_i64(&res) == INT64_MIN);
+    }
+}
+#endif
 
 void run_ctz_tests(void) {
     static const uint32_t b32[] = {1, 0xffffffff, 0x5e56968f, 0xe0d63129};
@@ -7100,6 +7142,9 @@ int main(int argc, char **argv) {
     run_rand_bits();
     run_rand_int();
 
+#ifdef SECP256K1_WIDEMUL_INT128
+    run_int128_tests();
+#endif
     run_ctz_tests();
     run_modinv_tests();
     run_inverse_tests();
