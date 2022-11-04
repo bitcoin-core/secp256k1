@@ -55,6 +55,14 @@ static void help(int default_iters) {
     printf("    schnorrsig_verify : Schnorr verification algorithm\n");
 #endif
 
+#ifdef ENABLE_MODULE_ELLSWIFT
+    printf("    ellswift          : all ElligatorSwift benchmarks (encode, decode, keygen, ecdh)\n");
+    printf("    ellswift_encode   : ElligatorSwift encoding\n");
+    printf("    ellswift_decode   : ElligatorSwift decoding\n");
+    printf("    ellswift_keygen   : ElligatorSwift key generation\n");
+    printf("    ellswift_ecdh     : ECDH on ElligatorSwift keys\n");
+#endif
+
     printf("\n");
 }
 
@@ -153,6 +161,10 @@ static void bench_keygen_run(void *arg, int iters) {
 # include "modules/schnorrsig/bench_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_ELLSWIFT
+# include "modules/ellswift/bench_impl.h"
+#endif
+
 int main(int argc, char** argv) {
     int i;
     secp256k1_pubkey pubkey;
@@ -166,7 +178,8 @@ int main(int argc, char** argv) {
     /* Check for invalid user arguments */
     char* valid_args[] = {"ecdsa", "verify", "ecdsa_verify", "sign", "ecdsa_sign", "ecdh", "recover",
                          "ecdsa_recover", "schnorrsig", "schnorrsig_verify", "schnorrsig_sign", "ec",
-                         "keygen", "ec_keygen"};
+                         "keygen", "ec_keygen", "ellswift", "encode", "ellswift_encode", "decode",
+                         "ellswift_decode", "ellswift_keygen", "ellswift_ecdh"};
     size_t valid_args_size = sizeof(valid_args)/sizeof(valid_args[0]);
     int invalid_args = have_invalid_args(argc, argv, valid_args, valid_args_size);
 
@@ -208,6 +221,16 @@ int main(int argc, char** argv) {
     }
 #endif
 
+#ifndef ENABLE_MODULE_ELLSWIFT
+    if (have_flag(argc, argv, "ellswift") || have_flag(argc, argv, "ellswift_encode") || have_flag(argc, argv, "ellswift_decode") ||
+        have_flag(argc, argv, "encode") || have_flag(argc, argv, "decode") || have_flag(argc, argv, "ellswift_keygen") ||
+        have_flag(argc, argv, "ellswift_ecdh")) {
+        fprintf(stderr, "./bench: ElligatorSwift module not enabled.\n");
+        fprintf(stderr, "Use ./configure --enable-module-ellswift.\n\n");
+        return 1;
+    }
+#endif
+
     /* ECDSA benchmark */
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
@@ -245,6 +268,11 @@ int main(int argc, char** argv) {
 #ifdef ENABLE_MODULE_SCHNORRSIG
     /* Schnorr signature benchmarks */
     run_schnorrsig_bench(iters, argc, argv);
+#endif
+
+#ifdef ENABLE_MODULE_ELLSWIFT
+    /* ElligatorSwift benchmarks */
+    run_ellswift_bench(iters, argc, argv);
 #endif
 
     return 0;
