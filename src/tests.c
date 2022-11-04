@@ -697,6 +697,17 @@ static void run_sha256_counter_tests(void) {
     }
 }
 
+/* Tests for the equality of two sha256 structs. This function only produces a
+ * correct result if an integer multiple of 64 many bytes have been written
+ * into the hash functions. This function is used by some module tests. */
+static void test_sha256_eq(const secp256k1_sha256 *sha1, const secp256k1_sha256 *sha2) {
+    /* Is buffer fully consumed? */
+    CHECK((sha1->bytes & 0x3F) == 0);
+
+    CHECK(sha1->bytes == sha2->bytes);
+    CHECK(secp256k1_memcmp_var(sha1->s, sha2->s, sizeof(sha1->s)) == 0);
+}
+
 static void run_hmac_sha256_tests(void) {
     static const char *keys[6] = {
         "\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b",
@@ -7528,6 +7539,10 @@ static void run_ecdsa_wycheproof(void) {
 # include "modules/schnorrsig/tests_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_ELLSWIFT
+# include "modules/ellswift/tests_impl.h"
+#endif
+
 static void run_secp256k1_memczero_test(void) {
     unsigned char buf1[6] = {1, 2, 3, 4, 5, 6};
     unsigned char buf2[sizeof(buf1)];
@@ -7873,6 +7888,10 @@ int main(int argc, char **argv) {
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
     run_schnorrsig_tests();
+#endif
+
+#ifdef ENABLE_MODULE_ELLSWIFT
+    run_ellswift_tests();
 #endif
 
     /* util tests */
