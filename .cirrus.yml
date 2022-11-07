@@ -36,7 +36,6 @@ cat_logs_snippet: &CAT_LOGS
       - cat valgrind_ctime_test.log || true
     cat_bench_log_script:
       - cat bench.log || true
-  on_failure:
     cat_config_log_script:
       - cat config.log || true
     cat_test_env_script:
