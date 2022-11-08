@@ -11,12 +11,15 @@
 #include "libsecp256k1-config.h"
 #endif
 
-#include <stdlib.h>
 #include <stdint.h>
 #include <limits.h>
 
 #if defined(VERIFY) || !defined(USE_EXTERNAL_DEFAULT_CALLBACKS)
 #include <stdio.h>
+#endif
+
+#ifndef PREALLOC_INTERFACE_ONLY
+#include <stdlib.h>
 #endif
 
 #define STR_(x) #x

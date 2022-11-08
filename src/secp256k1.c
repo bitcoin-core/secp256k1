@@ -116,34 +116,42 @@ secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigne
 }
 
 secp256k1_context* secp256k1_context_create(unsigned int flags) {
+    secp256k1_context* ctx = NULL;
+
+#ifndef PREALLOC_INTERFACE_ONLY
     size_t const prealloc_size = secp256k1_context_preallocated_size(flags);
-    secp256k1_context* ctx = (secp256k1_context*)checked_malloc(&default_error_callback, prealloc_size);
+    ctx = (secp256k1_context*)checked_malloc(&default_error_callback, prealloc_size);
     if (EXPECT(secp256k1_context_preallocated_create(ctx, flags) == NULL, 0)) {
         free(ctx);
         return NULL;
     }
-
+#endif
     return ctx;
 }
 
 secp256k1_context* secp256k1_context_preallocated_clone(const secp256k1_context* ctx, void* prealloc) {
-    secp256k1_context* ret;
+    secp256k1_context* ret = NULL;
+
+#ifndef PREALLOC_INTERFACE_ONLY
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(prealloc != NULL);
 
     ret = (secp256k1_context*)prealloc;
     *ret = *ctx;
+#endif
     return ret;
 }
 
 secp256k1_context* secp256k1_context_clone(const secp256k1_context* ctx) {
-    secp256k1_context* ret;
+    secp256k1_context* ret = NULL;
     size_t prealloc_size;
 
+#ifndef PREALLOC_INTERFACE_ONLY
     VERIFY_CHECK(ctx != NULL);
     prealloc_size = secp256k1_context_preallocated_clone_size(ctx);
     ret = (secp256k1_context*)checked_malloc(&ctx->error_callback, prealloc_size);
     ret = secp256k1_context_preallocated_clone(ctx, ret);
+#endif
     return ret;
 }
 
