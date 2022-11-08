@@ -16,9 +16,16 @@ esac
 
 env >> test_env.log
 
-$CC -v || true
-valgrind --version || true
-$WRAPPER_CMD --version || true
+if [ -n "$CC" ]; then
+    # The MSVC compiler "cl" doesn't understand "-v"
+    $CC -v || true
+fi
+if [ "$WITH_VALGRIND" = "yes" ]; then
+    valgrind --version
+fi
+if [ -n "$WRAPPER_CMD" ]; then
+    $WRAPPER_CMD --version
+fi
 
 ./autogen.sh
 
