@@ -1,6 +1,7 @@
 env:
   ### compiler options
   HOST:
+  WRAPPER_CMD:
   # Specific warnings can be disabled with -Wno-error=foo.
   # -pedantic-errors is not equivalent to -Werror=pedantic and thus not implied by -Werror according to the GCC manual.
   WERROR_CFLAGS: -Werror -pedantic-errors
