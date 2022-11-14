@@ -5,6 +5,26 @@ set -x
 
 export LC_ALL=C
 
+# Print relevant CI environment to allow reproducing the job outside of CI.
+print_environment() {
+    # Turn off -x because it messes up the output
+    set +x
+    # There are many ways to print variable names and their content. This one
+    # does not rely on bash.
+    for i in WERROR_CFLAGS MAKEFLAGS BUILD \
+            ECMULTWINDOW ECMULTGENPRECISION ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
+            EXPERIMENTAL ECDH RECOVERY SCHNORRSIG \
+            SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETEST\
+            EXAMPLES \
+            WRAPPER_CMD CC AR NM HOST
+    do
+        eval 'printf "%s %s " "$i=\"${'"$i"'}\""'
+    done
+    echo "$0"
+    set -x
+}
+print_environment
+
 # Start persistent wineserver if necessary.
 # This speeds up jobs with many invocations of wine (e.g., ./configure with MSVC) tremendously.
 case "$WRAPPER_CMD" in
