@@ -5,12 +5,13 @@
 
 #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64)) /* MSVC */
 #    include <intrin.h>
-#    if defined(_M_X64)
-/* On x84_64 MSVC, use native _(u)mul128 for 64x64->128 multiplications. */
-#        define secp256k1_umul128 _umul128
-#        define secp256k1_mul128 _mul128
-#    else
-/* On ARM64 MSVC, use __(u)mulh for the upper half of 64x64 multiplications. */
+#    if defined(_M_ARM64) || defined(SECP256K1_MSVC_MULH_TEST_OVERRIDE)
+/* On ARM64 MSVC, use __(u)mulh for the upper half of 64x64 multiplications.
+   (Define SECP256K1_MSVC_MULH_TEST_OVERRIDE to test this code path on X64,
+   which supports both __(u)mulh and _umul128.) */
+#        if defined(SECP256K1_MSVC_MULH_TEST_OVERRIDE)
+#            pragma message(__FILE__ ": SECP256K1_MSVC_MULH_TEST_OVERRIDE is defined, forcing use of __(u)mulh.")
+#        endif
 static SECP256K1_INLINE uint64_t secp256k1_umul128(uint64_t a, uint64_t b, uint64_t* hi) {
     *hi = __umulh(a, b);
     return a * b;
@@ -20,6 +21,10 @@ static SECP256K1_INLINE int64_t secp256k1_mul128(int64_t a, int64_t b, int64_t* 
     *hi = __mulh(a, b);
     return a * b;
 }
+#    else
+/* On x84_64 MSVC, use native _(u)mul128 for 64x64->128 multiplications. */
+#        define secp256k1_umul128 _umul128
+#        define secp256k1_mul128 _mul128
 #    endif
 #else
 /* On other systems, emulate 64x64->128 multiplications using 32x32->64 multiplications. */
