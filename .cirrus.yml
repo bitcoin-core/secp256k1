@@ -107,61 +107,27 @@ task:
   << : *CAT_LOGS
 
 task:
-  name: "x86_64: macOS Catalina"
+  name: "arm64: macOS Ventura"
   macos_instance:
-    image: catalina-base
+    image: ghcr.io/cirruslabs/macos-ventura-base:latest
   env:
     HOMEBREW_NO_AUTO_UPDATE: 1
     HOMEBREW_NO_INSTALL_CLEANUP: 1
-    # Cirrus gives us a fixed number of 12 virtual CPUs. Not that we even have that many jobs at the moment...
-    MAKEFLAGS: -j13
+    # Cirrus gives us a fixed number of 4 virtual CPUs. Not that we even have that many jobs at the moment...
+    MAKEFLAGS: -j5
   matrix:
     << : *ENV_MATRIX
+  env:
+    ASM: no
+    WITH_VALGRIND: no
+    CTIMETEST: no
   matrix:
     - env:
-        CC: gcc-9
+        CC: gcc
     - env:
         CC: clang
-  # Update Command Line Tools
-  # Uncomment this if the Command Line Tools on the CirrusCI macOS image are too old to brew valgrind.
-  # See https://apple.stackexchange.com/a/195963 for the implementation.
-  ## update_clt_script:
-  ##   - system_profiler SPSoftwareDataType
-  ##   - touch /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
-  ##   - |-
-  ##     PROD=$(softwareupdate -l | grep "*.*Command Line" | tail -n 1 | awk -F"*" '{print $2}' | sed -e 's/^ *//' | sed 's/Label: //g' | tr -d '\n')
-  ##   # For debugging
-  ##   - softwareupdate -l && echo "PROD: $PROD"
-  ##   - softwareupdate -i "$PROD" --verbose
-  ##   - rm /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
-  ##
-  brew_valgrind_pre_script:
-    # Retry a few times because this tends to fail randomly.
-    - for i in {1..5}; do brew update && break || sleep 15; done
-    - brew config
-    - brew tap LouisBrunner/valgrind
-    # Fetch valgrind source but don't build it yet.
-    - brew fetch --HEAD LouisBrunner/valgrind/valgrind
-  brew_valgrind_cache:
-    # This is $(brew --cellar valgrind) but command substition does not work here.
-    folder: /usr/local/Cellar/valgrind
-    # Rebuild cache if ...
-    fingerprint_script:
-      # ... macOS version changes:
-      - sw_vers
-      # ... brew changes:
-      - brew config
-      # ... valgrind changes:
-      - git -C "$(brew --cache)/valgrind--git" rev-parse HEAD
-    populate_script:
-      # If there's no hit in the cache, build and install valgrind.
-      - brew install --HEAD LouisBrunner/valgrind/valgrind
-  brew_valgrind_post_script:
-    # If we have restored valgrind from the cache, tell brew to create symlink to the PATH.
-    # If we haven't restored from cached (and just run brew install), this is a no-op.
-    - brew link valgrind
   brew_script:
-    - brew install automake libtool gcc@9
+    - brew install automake libtool gcc
   << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
