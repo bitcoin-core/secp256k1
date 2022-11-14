@@ -12,6 +12,9 @@
 #    error "Please select int128 implementation"
 #  endif
 
+/* Construct an unsigned 128-bit value from a high and a low 64-bit value. */
+static SECP256K1_INLINE void secp256k1_u128_load(secp256k1_uint128 *r, uint64_t hi, uint64_t lo);
+
 /* Multiply two unsigned 64-bit values a and b and write the result to r. */
 static SECP256K1_INLINE void secp256k1_u128_mul(secp256k1_uint128 *r, uint64_t a, uint64_t b);
 
@@ -43,6 +46,9 @@ static SECP256K1_INLINE void secp256k1_u128_from_u64(secp256k1_uint128 *r, uint6
  * n must be strictly less than 128.
  */
 static SECP256K1_INLINE int secp256k1_u128_check_bits(const secp256k1_uint128 *r, unsigned int n);
+
+/* Construct an signed 128-bit value from a high and a low 64-bit value. */
+static SECP256K1_INLINE void secp256k1_i128_load(secp256k1_int128 *r, int64_t hi, uint64_t lo);
 
 /* Multiply two signed 64-bit values a and b and write the result to r. */
 static SECP256K1_INLINE void secp256k1_i128_mul(secp256k1_int128 *r, int64_t a, int64_t b);

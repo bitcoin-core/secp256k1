@@ -44,6 +44,11 @@ static SECP256K1_INLINE int64_t secp256k1_mul128(int64_t a, int64_t b, int64_t* 
 }
 #endif
 
+static SECP256K1_INLINE void secp256k1_u128_load(secp256k1_uint128 *r, uint64_t hi, uint64_t lo) {
+    r->hi = hi;
+    r->lo = lo;
+}
+
 static SECP256K1_INLINE void secp256k1_u128_mul(secp256k1_uint128 *r, uint64_t a, uint64_t b) {
    r->lo = secp256k1_umul128(a, b, &r->hi);
 }
@@ -91,6 +96,11 @@ static SECP256K1_INLINE int secp256k1_u128_check_bits(const secp256k1_uint128 *r
    VERIFY_CHECK(n < 128);
    return n >= 64 ? r->hi >> (n - 64) == 0
                   : r->hi == 0 && r->lo >> n == 0;
+}
+
+static SECP256K1_INLINE void secp256k1_i128_load(secp256k1_int128 *r, int64_t hi, uint64_t lo) {
+    r->hi = hi;
+    r->lo = lo;
 }
 
 static SECP256K1_INLINE void secp256k1_i128_mul(secp256k1_int128 *r, int64_t a, int64_t b) {

@@ -3,6 +3,10 @@
 
 #include "int128.h"
 
+static SECP256K1_INLINE void secp256k1_u128_load(secp256k1_uint128 *r, uint64_t hi, uint64_t lo) {
+    *r = (((uint128_t)hi) << 64) + lo;
+}
+
 static SECP256K1_INLINE void secp256k1_u128_mul(secp256k1_uint128 *r, uint64_t a, uint64_t b) {
    *r = (uint128_t)a * b;
 }
@@ -35,6 +39,10 @@ static SECP256K1_INLINE void secp256k1_u128_from_u64(secp256k1_uint128 *r, uint6
 static SECP256K1_INLINE int secp256k1_u128_check_bits(const secp256k1_uint128 *r, unsigned int n) {
    VERIFY_CHECK(n < 128);
    return (*r >> n == 0);
+}
+
+static SECP256K1_INLINE void secp256k1_i128_load(secp256k1_int128 *r, int64_t hi, uint64_t lo) {
+    *r = (((uint128_t)(uint64_t)hi) << 64) + lo;
 }
 
 static SECP256K1_INLINE void secp256k1_i128_mul(secp256k1_int128 *r, int64_t a, int64_t b) {
