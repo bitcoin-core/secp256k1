@@ -26,6 +26,11 @@ env:
   # Compile and run the tests
   EXAMPLES: yes
 
+# https://cirrus-ci.org/pricing/#compute-credits
+# Only use credits for pull requests to the main repo
+credits_snippet: &CREDITS
+  use_compute_credits: $CIRRUS_REPO_FULL_NAME == 'bitcoin-core/secp256k1' && $CIRRUS_PR != ""
+
 cat_logs_snippet: &CAT_LOGS
   always:
     cat_tests_log_script:
@@ -132,6 +137,7 @@ task:
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
+  << : *CREDITS
 
 task:
   name: "s390x (big-endian): Linux (Debian stable, QEMU)"
