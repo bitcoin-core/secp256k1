@@ -230,21 +230,34 @@ static SECP256K1_INLINE void secp256k1_int_cmov(int *r, const int *a, int flag) 
     *r = (int)(r_masked | a_masked);
 }
 
-/* If USE_FORCE_WIDEMUL_{INT128, INT128_STRUCT, INT64} is set, use that wide multiplication implementation.
- * Otherwise use the presence of __SIZEOF_INT128__ to decide.
- */
 #if defined(USE_FORCE_WIDEMUL_INT128_STRUCT)
+/* If USE_FORCE_WIDEMUL_INT128_STRUCT is set, use int128_struct. */
 # define SECP256K1_WIDEMUL_INT128 1
 # define SECP256K1_INT128_STRUCT 1
 #elif defined(USE_FORCE_WIDEMUL_INT128)
+/* If USE_FORCE_WIDEMUL_INT128 is set, use int128. */
 # define SECP256K1_WIDEMUL_INT128 1
 # define SECP256K1_INT128_NATIVE 1
 #elif defined(USE_FORCE_WIDEMUL_INT64)
+/* If USE_FORCE_WIDEMUL_INT64 is set, use int64. */
 # define SECP256K1_WIDEMUL_INT64 1
 #elif defined(UINT128_MAX) || defined(__SIZEOF_INT128__)
+/* If a native 128-bit integer type exists, use int128. */
 # define SECP256K1_WIDEMUL_INT128 1
 # define SECP256K1_INT128_NATIVE 1
+#elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64))
+/* On 64-bit MSVC targets (x86_64 and arm64), use int128_struct
+ * (which has special logic to implement using intrinsics on those systems). */
+# define SECP256K1_WIDEMUL_INT128 1
+# define SECP256K1_INT128_STRUCT 1
+#elif SIZE_MAX > 0xffffffff
+/* Systems with 64-bit pointers (and thus registers) very likely benefit from
+ * using 64-bit based arithmetic (even if we need to fall back to 32x32->64 based
+ * multiplication logic). */
+# define SECP256K1_WIDEMUL_INT128 1
+# define SECP256K1_INT128_STRUCT 1
 #else
+/* Lastly, fall back to int64 based arithmetic. */
 # define SECP256K1_WIDEMUL_INT64 1
 #endif
 
