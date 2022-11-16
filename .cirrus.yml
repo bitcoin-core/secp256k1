@@ -68,6 +68,7 @@ task:
     - env: {WIDEMUL:  int64,  RECOVERY: yes}
     - env: {WIDEMUL:  int64,                 ECDH: yes, SCHNORRSIG: yes}
     - env: {WIDEMUL: int128}
+    - env: {WIDEMUL: int128_struct}
     - env: {WIDEMUL: int128,  RECOVERY: yes,            SCHNORRSIG: yes}
     - env: {WIDEMUL: int128,                 ECDH: yes, SCHNORRSIG: yes}
     - env: {WIDEMUL: int128,  ASM: x86_64}
@@ -271,20 +272,22 @@ task:
     EXPERIMENTAL: yes
     SCHNORRSIG: yes
     CTIMETEST: no
+    # Use a MinGW-w64 host to tell ./configure we're building for Windows.
+    # This will detect some MinGW-w64 tools but then make will need only
+    # the MSVC tools CC, AR and NM as specified below.
+    HOST: x86_64-w64-mingw32
+    CC: /opt/msvc/bin/x64/cl
+    AR: /opt/msvc/bin/x64/lib
+    NM: /opt/msvc/bin/x64/dumpbin -symbols -headers
     # Set non-essential options that affect the CLI messages here.
     # (They depend on the user's taste, so we don't want to set them automatically in configure.ac.)
     CFLAGS: -nologo -diagnostics:caret
     LDFLAGS: -XCClinker -nologo -XCClinker -diagnostics:caret
-  # Use a MinGW-w64 host to tell ./configure we're building for Windows.
-  # This will detect some MinGW-w64 tools but then make will need only
-  # the MSVC tools CC, AR and NM as specified below.
   matrix:
     - name: "x86_64 (MSVC): Windows (Debian stable, Wine)"
+    - name: "x86_64 (MSVC): Windows (Debian stable, Wine, int128_struct)"
       env:
-        HOST: x86_64-w64-mingw32
-        CC: /opt/msvc/bin/x64/cl
-        AR: /opt/msvc/bin/x64/lib
-        NM: /opt/msvc/bin/x64/dumpbin -symbols -headers
+        WIDEMUL: int128_struct
     - name: "i686 (MSVC): Windows (Debian stable, Wine)"
       env:
         HOST: i686-w64-mingw32

@@ -175,7 +175,11 @@ AC_ARG_ENABLE(external_default_callbacks,
     [SECP_SET_DEFAULT([enable_external_default_callbacks], [no], [no])])
 
 # Test-only override of the (autodetected by the C code) "widemul" setting.
-# Legal values are int64 (for [u]int64_t), int128 (for [unsigned] __int128), and auto (the default).
+# Legal values are:
+#  * int64 (for [u]int64_t),
+#  * int128 (for [unsigned] __int128),
+#  * int128_struct (for int128 implemented as a structure),
+#  *  and auto (the default).
 AC_ARG_WITH([test-override-wide-multiply], [] ,[set_widemul=$withval], [set_widemul=auto])
 
 AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto],
@@ -285,6 +289,9 @@ fi
 
 # Select wide multiplication implementation
 case $set_widemul in
+int128_struct)
+  AC_DEFINE(USE_FORCE_WIDEMUL_INT128_STRUCT, 1, [Define this symbol to force the use of the structure for simulating (unsigned) int128 based wide multiplication])
+  ;;
 int128)
   AC_DEFINE(USE_FORCE_WIDEMUL_INT128, 1, [Define this symbol to force the use of the (unsigned) __int128 based wide multiplication implementation])
   ;;

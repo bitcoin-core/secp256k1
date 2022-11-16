@@ -22,6 +22,7 @@
 
 #include "assumptions.h"
 #include "util.h"
+
 #include "field_impl.h"
 #include "scalar_impl.h"
 #include "group_impl.h"
@@ -31,6 +32,7 @@
 #include "ecdsa_impl.h"
 #include "eckey_impl.h"
 #include "hash_impl.h"
+#include "int128_impl.h"
 #include "scratch_impl.h"
 #include "selftest.h"
 
