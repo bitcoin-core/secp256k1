@@ -1046,16 +1046,11 @@ SECP256K1_INLINE static void secp256k1_fe_impl_cmov(secp256k1_fe *r, const secp2
     r->n[9] = (r->n[9] & mask0) | (a->n[9] & mask1);
 }
 
-static SECP256K1_INLINE void secp256k1_fe_half(secp256k1_fe *r) {
+static SECP256K1_INLINE void secp256k1_fe_impl_half(secp256k1_fe *r) {
     uint32_t t0 = r->n[0], t1 = r->n[1], t2 = r->n[2], t3 = r->n[3], t4 = r->n[4],
              t5 = r->n[5], t6 = r->n[6], t7 = r->n[7], t8 = r->n[8], t9 = r->n[9];
     uint32_t one = (uint32_t)1;
     uint32_t mask = -(t0 & one) >> 6;
-
-#ifdef VERIFY
-    secp256k1_fe_verify(r);
-    VERIFY_CHECK(r->magnitude < 32);
-#endif
 
     /* Bounds analysis (over the rationals).
      *
@@ -1103,10 +1098,8 @@ static SECP256K1_INLINE void secp256k1_fe_half(secp256k1_fe *r) {
      *
      * Current bounds: t0..t8 <= C * (m/2 + 1/2)
      *                     t9 <= D * (m/2 + 1/4)
-     */
-
-#ifdef VERIFY
-    /* Therefore the output magnitude (M) has to be set such that:
+     *
+     * Therefore the output magnitude (M) has to be set such that:
      *     t0..t8: C * M >= C * (m/2 + 1/2)
      *         t9: D * M >= D * (m/2 + 1/4)
      *
@@ -1116,10 +1109,6 @@ static SECP256K1_INLINE void secp256k1_fe_half(secp256k1_fe *r) {
      * and since we want the smallest such integer value for M:
      *     M == floor(m/2) + 1
      */
-    r->magnitude = (r->magnitude >> 1) + 1;
-    r->normalized = 0;
-    secp256k1_fe_verify(r);
-#endif
 }
 
 static SECP256K1_INLINE void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, const secp256k1_fe_storage *a, int flag) {

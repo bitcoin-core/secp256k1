@@ -384,6 +384,16 @@ SECP256K1_INLINE static void secp256k1_fe_get_bounds(secp256k1_fe* r, int m) {
     secp256k1_fe_verify(r);
 }
 
+static void secp256k1_fe_impl_half(secp256k1_fe *r);
+SECP256K1_INLINE static void secp256k1_fe_half(secp256k1_fe *r) {
+    secp256k1_fe_verify(r);
+    VERIFY_CHECK(r->magnitude < 32);
+    secp256k1_fe_impl_half(r);
+    r->magnitude = (r->magnitude >> 1) + 1;
+    r->normalized = 0;
+    secp256k1_fe_verify(r);
+}
+
 #endif /* defined(VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */

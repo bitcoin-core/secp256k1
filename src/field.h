@@ -98,6 +98,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_inv secp256k1_fe_impl_inv
 #  define secp256k1_fe_inv_var secp256k1_fe_impl_inv_var
 #  define secp256k1_fe_get_bounds secp256k1_fe_impl_get_bounds
+#  define secp256k1_fe_half secp256k1_fe_impl_half
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -302,9 +303,12 @@ static void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, const secp256k1_f
  */
 static void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag);
 
-/** Halves the value of a field element modulo the field prime. Constant-time.
- *  For an input magnitude 'm', the output magnitude is set to 'floor(m/2) + 1'.
- *  The output is not guaranteed to be normalized, regardless of the input. */
+/** Halve the value of a field element modulo the field prime in constant-time.
+ *
+ * On input, r must be a valid field element.
+ * On output, r will be normalized and have magnitude floor(m/2) + 1 where m is
+ * the magnitude of r on input.
+ */
 static void secp256k1_fe_half(secp256k1_fe *r);
 
 /** Sets r to a field element with magnitude m, normalized if (and only if) m==0.
