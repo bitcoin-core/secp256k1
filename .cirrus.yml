@@ -343,6 +343,32 @@ task:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
 
+# Memory sanitizers
+task:
+  << : *LINUX_CONTAINER
+  name: "MSan"
+  env:
+    ECDH: yes
+    RECOVERY: yes
+    SCHNORRSIG: yes
+    CTIMETEST: no
+    CC: clang
+    SECP256K1_TEST_ITERS: 32
+    ASM: no
+  container:
+    memory: 2G
+  matrix:
+    - env:
+        CFLAGS: "-fsanitize=memory -g"
+    - env:
+        ECMULTGENPRECISION: 2
+        ECMULTWINDOW: 2
+        CFLAGS: "-fsanitize=memory -g -O3"
+  << : *MERGE_BASE
+  test_script:
+    - ./ci/cirrus.sh
+  << : *CAT_LOGS
+
 task:
   name: "C++ -fpermissive (entire project)"
   << : *LINUX_CONTAINER
