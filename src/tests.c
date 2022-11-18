@@ -432,46 +432,6 @@ void run_scratch_tests(void) {
 }
 
 
-#ifdef SECP256K1_WIDEMUL_INT128
-void run_int128_tests(void) {
-    {   /* secp256k1_u128_accum_mul */
-        secp256k1_uint128 res;
-
-        /* Check secp256k1_u128_accum_mul overflow */
-        secp256k1_u128_from_u64(&res, 0);
-        secp256k1_u128_accum_mul(&res, UINT64_MAX, UINT64_MAX);
-        secp256k1_u128_accum_mul(&res, UINT64_MAX, UINT64_MAX);
-        CHECK(secp256k1_u128_to_u64(&res) == 2);
-        CHECK(secp256k1_u128_hi_u64(&res) == 18446744073709551612U);
-    }
-    {   /* secp256k1_u128_accum_mul */
-        secp256k1_int128 res;
-
-        /* Compute INT128_MAX = 2^127 - 1 with secp256k1_i128_accum_mul */
-        secp256k1_i128_from_i64(&res, 0);
-        secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MAX);
-        secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MAX);
-        CHECK(secp256k1_i128_to_i64(&res) == 2);
-        secp256k1_i128_accum_mul(&res, 4, 9223372036854775807);
-        secp256k1_i128_accum_mul(&res, 1, 1);
-        CHECK((uint64_t)secp256k1_i128_to_i64(&res) == UINT64_MAX);
-        secp256k1_i128_rshift(&res, 64);
-        CHECK(secp256k1_i128_to_i64(&res) == INT64_MAX);
-
-        /* Compute INT128_MIN = - 2^127 with secp256k1_i128_accum_mul */
-        secp256k1_i128_from_i64(&res, 0);
-        secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MIN);
-        CHECK(secp256k1_i128_to_i64(&res) == INT64_MIN);
-        secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MIN);
-        CHECK(secp256k1_i128_to_i64(&res) == 0);
-        secp256k1_i128_accum_mul(&res, 2, INT64_MIN);
-        CHECK(secp256k1_i128_to_i64(&res) == 0);
-        secp256k1_i128_rshift(&res, 64);
-        CHECK(secp256k1_i128_to_i64(&res) == INT64_MIN);
-    }
-}
-#endif
-
 void run_ctz_tests(void) {
     static const uint32_t b32[] = {1, 0xffffffff, 0x5e56968f, 0xe0d63129};
     static const uint64_t b64[] = {1, 0xffffffffffffffff, 0xbcd02462139b3fc3, 0x98b5f80c769693ef};
@@ -856,7 +816,8 @@ uint64_t modinv2p64(uint64_t x) {
     return w;
 }
 
-/* compute out = (a*b) mod m; if b=NULL, treat b=1.
+
+/* compute out = (a*b) mod m; if b=NULL, treat b=1; if m=NULL, treat m=infinity.
  *
  * Out is a 512-bit number (represented as 32 uint16_t's in LE order). The other
  * arguments are 256-bit numbers (represented as 16 uint16_t's in LE order). */
@@ -898,45 +859,47 @@ void mulmod256(uint16_t* out, const uint16_t* a, const uint16_t* b, const uint16
         }
     }
 
-    /* Compute the highest set bit in m. */
-    for (i = 255; i >= 0; --i) {
-        if ((m[i >> 4] >> (i & 15)) & 1) {
-            m_bitlen = i;
-            break;
-        }
-    }
-
-    /* Try do mul -= m<<i, for i going down to 0, whenever the result is not negative */
-    for (i = mul_bitlen - m_bitlen; i >= 0; --i) {
-        uint16_t mul2[32];
-        int64_t cs;
-
-        /* Compute mul2 = mul - m<<i. */
-        cs = 0; /* accumulator */
-        for (j = 0; j < 32; ++j) { /* j loops over the output limbs in mul2. */
-            /* Compute sub: the 16 bits in m that will be subtracted from mul2[j]. */
-            uint16_t sub = 0;
-            int p;
-            for (p = 0; p < 16; ++p) { /* p loops over the bit positions in mul2[j]. */
-                int bitpos = j * 16 - i + p; /* bitpos is the correspond bit position in m. */
-                if (bitpos >= 0 && bitpos < 256) {
-                    sub |= ((m[bitpos >> 4] >> (bitpos & 15)) & 1) << p;
-                }
+    if (m) {
+        /* Compute the highest set bit in m. */
+        for (i = 255; i >= 0; --i) {
+            if ((m[i >> 4] >> (i & 15)) & 1) {
+                m_bitlen = i;
+                break;
             }
-            /* Add mul[j]-sub to accumulator, and shift bottom 16 bits out to mul2[j]. */
-            cs += mul[j];
-            cs -= sub;
-            mul2[j] = (cs & 0xFFFF);
-            cs >>= 16;
         }
-        /* If remainder of subtraction is 0, set mul = mul2. */
-        if (cs == 0) {
-            memcpy(mul, mul2, sizeof(mul));
+
+        /* Try do mul -= m<<i, for i going down to 0, whenever the result is not negative */
+        for (i = mul_bitlen - m_bitlen; i >= 0; --i) {
+            uint16_t mul2[32];
+            int64_t cs;
+
+            /* Compute mul2 = mul - m<<i. */
+            cs = 0; /* accumulator */
+            for (j = 0; j < 32; ++j) { /* j loops over the output limbs in mul2. */
+                /* Compute sub: the 16 bits in m that will be subtracted from mul2[j]. */
+                uint16_t sub = 0;
+                int p;
+                for (p = 0; p < 16; ++p) { /* p loops over the bit positions in mul2[j]. */
+                    int bitpos = j * 16 - i + p; /* bitpos is the correspond bit position in m. */
+                    if (bitpos >= 0 && bitpos < 256) {
+                        sub |= ((m[bitpos >> 4] >> (bitpos & 15)) & 1) << p;
+                    }
+                }
+                /* Add mul[j]-sub to accumulator, and shift bottom 16 bits out to mul2[j]. */
+                cs += mul[j];
+                cs -= sub;
+                mul2[j] = (cs & 0xFFFF);
+                cs >>= 16;
+            }
+            /* If remainder of subtraction is 0, set mul = mul2. */
+            if (cs == 0) {
+                memcpy(mul, mul2, sizeof(mul));
+            }
         }
-    }
-    /* Sanity check: test that all limbs higher than m's highest are zero */
-    for (i = (m_bitlen >> 4) + 1; i < 32; ++i) {
-        CHECK(mul[i] == 0);
+        /* Sanity check: test that all limbs higher than m's highest are zero */
+        for (i = (m_bitlen >> 4) + 1; i < 32; ++i) {
+            CHECK(mul[i] == 0);
+        }
     }
     memcpy(out, mul, 32);
 }
@@ -1752,8 +1715,305 @@ void run_modinv_tests(void) {
     }
 }
 
-/***** SCALAR TESTS *****/
+/***** INT128 TESTS *****/
 
+#ifdef SECP256K1_WIDEMUL_INT128
+/* Add two 256-bit numbers (represented as 16 uint16_t's in LE order) together mod 2^256. */
+void add256(uint16_t* out, const uint16_t* a, const uint16_t* b) {
+    int i;
+    uint32_t carry = 0;
+    for (i = 0; i < 16; ++i) {
+        carry += a[i];
+        carry += b[i];
+        out[i] = carry;
+        carry >>= 16;
+    }
+}
+
+/* Negate a 256-bit number (represented as 16 uint16_t's in LE order) mod 2^256. */
+void neg256(uint16_t* out, const uint16_t* a) {
+    int i;
+    uint32_t carry = 1;
+    for (i = 0; i < 16; ++i) {
+        carry += (uint16_t)~a[i];
+        out[i] = carry;
+        carry >>= 16;
+    }
+}
+
+/* Right-shift a 256-bit number (represented as 16 uint16_t's in LE order). */
+void rshift256(uint16_t* out, const uint16_t* a, int n, int sign_extend) {
+    uint16_t sign = sign_extend && (a[15] >> 15);
+    int i, j;
+    for (i = 15; i >= 0; --i) {
+        uint16_t v = 0;
+        for (j = 0; j < 16; ++j) {
+            int frompos = i*16 + j + n;
+            if (frompos >= 256) {
+                v |= sign << j;
+            } else {
+                v |= ((uint16_t)((a[frompos >> 4] >> (frompos & 15)) & 1)) << j;
+            }
+        }
+        out[i] = v;
+    }
+}
+
+/* Load a 64-bit unsigned integer into an array of 16 uint16_t's in LE order representing a 256-bit value. */
+void load256u64(uint16_t* out, uint64_t v, int is_signed) {
+    int i;
+    uint64_t sign = is_signed && (v >> 63) ? UINT64_MAX : 0;
+    for (i = 0; i < 4; ++i) {
+        out[i] = v >> (16 * i);
+    }
+    for (i = 4; i < 16; ++i) {
+        out[i] = sign;
+    }
+}
+
+/* Load a 128-bit unsigned integer into an array of 16 uint16_t's in LE order representing a 256-bit value. */
+void load256two64(uint16_t* out, uint64_t hi, uint64_t lo, int is_signed) {
+    int i;
+    uint64_t sign = is_signed && (hi >> 63) ? UINT64_MAX : 0;
+    for (i = 0; i < 4; ++i) {
+        out[i] = lo >> (16 * i);
+    }
+    for (i = 4; i < 8; ++i) {
+        out[i] = hi >> (16 * (i - 4));
+    }
+    for (i = 8; i < 16; ++i) {
+        out[i] = sign;
+    }
+}
+
+/* Check whether the 256-bit value represented by array of 16-bit values is in range -2^127 < v < 2^127. */
+int int256is127(const uint16_t* v) {
+    int all_0 = ((v[7] & 0x8000) == 0), all_1 = ((v[7] & 0x8000) == 0x8000);
+    int i;
+    for (i = 8; i < 16; ++i) {
+        if (v[i] != 0) all_0 = 0;
+        if (v[i] != 0xffff) all_1 = 0;
+    }
+    return all_0 || all_1;
+}
+
+void load256u128(uint16_t* out, const secp256k1_uint128* v) {
+    uint64_t lo = secp256k1_u128_to_u64(v), hi = secp256k1_u128_hi_u64(v);
+    load256two64(out, hi, lo, 0);
+}
+
+void load256i128(uint16_t* out, const secp256k1_int128* v) {
+    uint64_t lo;
+    int64_t hi;
+    secp256k1_int128 c = *v;
+    lo = secp256k1_i128_to_i64(&c);
+    secp256k1_i128_rshift(&c, 64);
+    hi = secp256k1_i128_to_i64(&c);
+    load256two64(out, hi, lo, 1);
+}
+
+void run_int128_test_case(void) {
+    unsigned char buf[32];
+    uint64_t v[4];
+    secp256k1_int128 swa, swz;
+    secp256k1_uint128 uwa, uwz;
+    uint64_t ub, uc;
+    int64_t sb, sc;
+    uint16_t rswa[16], rswz[32], rswr[32], ruwa[16], ruwz[32], ruwr[32];
+    uint16_t rub[16], ruc[16], rsb[16], rsc[16];
+    int i;
+
+    /* Generate 32-byte random value. */
+    secp256k1_testrand256_test(buf);
+    /* Convert into 4 64-bit integers. */
+    for (i = 0; i < 4; ++i) {
+        uint64_t vi = 0;
+        int j;
+        for (j = 0; j < 8; ++j) vi = (vi << 8) + buf[8*i + j];
+        v[i] = vi;
+    }
+    /* Convert those into a 128-bit value and two 64-bit values (signed and unsigned). */
+    secp256k1_u128_load(&uwa, v[1], v[0]);
+    secp256k1_i128_load(&swa, v[1], v[0]);
+    ub = v[2];
+    sb = v[2];
+    uc = v[3];
+    sc = v[3];
+    /* Load those also into 16-bit array representations. */
+    load256u128(ruwa, &uwa);
+    load256i128(rswa, &swa);
+    load256u64(rub, ub, 0);
+    load256u64(rsb, sb, 1);
+    load256u64(ruc, uc, 0);
+    load256u64(rsc, sc, 1);
+    /* test secp256k1_u128_mul */
+    mulmod256(ruwr, rub, ruc, NULL);
+    secp256k1_u128_mul(&uwz, ub, uc);
+    load256u128(ruwz, &uwz);
+    CHECK(secp256k1_memcmp_var(ruwr, ruwz, 16) == 0);
+    /* test secp256k1_u128_accum_mul */
+    mulmod256(ruwr, rub, ruc, NULL);
+    add256(ruwr, ruwr, ruwa);
+    uwz = uwa;
+    secp256k1_u128_accum_mul(&uwz, ub, uc);
+    load256u128(ruwz, &uwz);
+    CHECK(secp256k1_memcmp_var(ruwr, ruwz, 16) == 0);
+    /* test secp256k1_u128_accum_u64 */
+    add256(ruwr, rub, ruwa);
+    uwz = uwa;
+    secp256k1_u128_accum_u64(&uwz, ub);
+    load256u128(ruwz, &uwz);
+    CHECK(secp256k1_memcmp_var(ruwr, ruwz, 16) == 0);
+    /* test secp256k1_u128_rshift */
+    rshift256(ruwr, ruwa, uc % 128, 0);
+    uwz = uwa;
+    secp256k1_u128_rshift(&uwz, uc % 128);
+    load256u128(ruwz, &uwz);
+    CHECK(secp256k1_memcmp_var(ruwr, ruwz, 16) == 0);
+    /* test secp256k1_u128_to_u64 */
+    CHECK(secp256k1_u128_to_u64(&uwa) == v[0]);
+    /* test secp256k1_u128_hi_u64 */
+    CHECK(secp256k1_u128_hi_u64(&uwa) == v[1]);
+    /* test secp256k1_u128_from_u64 */
+    secp256k1_u128_from_u64(&uwz, ub);
+    load256u128(ruwz, &uwz);
+    CHECK(secp256k1_memcmp_var(rub, ruwz, 16) == 0);
+    /* test secp256k1_u128_check_bits */
+    {
+        int uwa_bits = 0;
+        int j;
+        for (j = 0; j < 128; ++j) {
+            if (ruwa[j / 16] >> (j % 16)) uwa_bits = 1 + j;
+        }
+        for (j = 0; j < 128; ++j) {
+            CHECK(secp256k1_u128_check_bits(&uwa, j) == (uwa_bits <= j));
+        }
+    }
+    /* test secp256k1_i128_mul */
+    mulmod256(rswr, rsb, rsc, NULL);
+    secp256k1_i128_mul(&swz, sb, sc);
+    load256i128(rswz, &swz);
+    CHECK(secp256k1_memcmp_var(rswr, rswz, 16) == 0);
+    /* test secp256k1_i128_accum_mul */
+    mulmod256(rswr, rsb, rsc, NULL);
+    add256(rswr, rswr, rswa);
+    if (int256is127(rswr)) {
+        swz = swa;
+        secp256k1_i128_accum_mul(&swz, sb, sc);
+        load256i128(rswz, &swz);
+        CHECK(secp256k1_memcmp_var(rswr, rswz, 16) == 0);
+    }
+    /* test secp256k1_i128_det */
+    {
+        uint16_t rsd[16], rse[16], rst[32];
+        int64_t sd = v[0], se = v[1];
+        load256u64(rsd, sd, 1);
+        load256u64(rse, se, 1);
+        mulmod256(rst, rsc, rsd, NULL);
+        neg256(rst, rst);
+        mulmod256(rswr, rsb, rse, NULL);
+        add256(rswr, rswr, rst);
+        secp256k1_i128_det(&swz, sb, sc, sd, se);
+        load256i128(rswz, &swz);
+        CHECK(secp256k1_memcmp_var(rswr, rswz, 16) == 0);
+    }
+    /* test secp256k1_i128_rshift */
+    rshift256(rswr, rswa, uc % 127, 1);
+    swz = swa;
+    secp256k1_i128_rshift(&swz, uc % 127);
+    load256i128(rswz, &swz);
+    CHECK(secp256k1_memcmp_var(rswr, rswz, 16) == 0);
+    /* test secp256k1_i128_to_i64 */
+    CHECK((uint64_t)secp256k1_i128_to_i64(&swa) == v[0]);
+    /* test secp256k1_i128_from_i64 */
+    secp256k1_i128_from_i64(&swz, sb);
+    load256i128(rswz, &swz);
+    CHECK(secp256k1_memcmp_var(rsb, rswz, 16) == 0);
+    /* test secp256k1_i128_eq_var */
+    {
+        int expect = (uc & 1);
+        swz = swa;
+        if (!expect) {
+            /* Make sure swz != swa */
+            uint64_t v0c = v[0], v1c = v[1];
+            if (ub & 64) {
+                v1c ^= (((uint64_t)1) << (ub & 63));
+            } else {
+                v0c ^= (((uint64_t)1) << (ub & 63));
+            }
+            secp256k1_i128_load(&swz, v1c, v0c);
+        }
+        CHECK(secp256k1_i128_eq_var(&swa, &swz) == expect);
+    }
+    /* test secp256k1_i128_check_pow2 */
+    {
+        int expect = (uc & 1);
+        int pos = ub % 127;
+        if (expect) {
+            /* If expect==1, set swz to exactly (2 << pos). */
+            uint64_t hi = 0;
+            uint64_t lo = 0;
+            if (pos & 64) {
+                hi = (((uint64_t)1) << (pos & 63));
+            } else {
+                lo = (((uint64_t)1) << (pos & 63));
+            }
+            secp256k1_i128_load(&swz, hi, lo);
+        } else {
+            /* If expect==0, set swz = swa, but update expect=1 if swa happens to equal (2 << pos). */
+            if (pos & 64) {
+                if ((v[1] == (((uint64_t)1) << (pos & 63))) && v[0] == 0) expect = 1;
+            } else {
+                if ((v[0] == (((uint64_t)1) << (pos & 63))) && v[1] == 0) expect = 1;
+            }
+            swz = swa;
+        }
+        CHECK(secp256k1_i128_check_pow2(&swz, pos) == expect);
+    }
+}
+
+void run_int128_tests(void) {
+    {   /* secp256k1_u128_accum_mul */
+        secp256k1_uint128 res;
+
+        /* Check secp256k1_u128_accum_mul overflow */
+        secp256k1_u128_mul(&res, UINT64_MAX, UINT64_MAX);
+        secp256k1_u128_accum_mul(&res, UINT64_MAX, UINT64_MAX);
+        CHECK(secp256k1_u128_to_u64(&res) == 2);
+        CHECK(secp256k1_u128_hi_u64(&res) == 18446744073709551612U);
+    }
+    {   /* secp256k1_u128_accum_mul */
+        secp256k1_int128 res;
+
+        /* Compute INT128_MAX = 2^127 - 1 with secp256k1_i128_accum_mul */
+        secp256k1_i128_mul(&res, INT64_MAX, INT64_MAX);
+        secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MAX);
+        CHECK(secp256k1_i128_to_i64(&res) == 2);
+        secp256k1_i128_accum_mul(&res, 4, 9223372036854775807);
+        secp256k1_i128_accum_mul(&res, 1, 1);
+        CHECK((uint64_t)secp256k1_i128_to_i64(&res) == UINT64_MAX);
+        secp256k1_i128_rshift(&res, 64);
+        CHECK(secp256k1_i128_to_i64(&res) == INT64_MAX);
+
+        /* Compute INT128_MIN = - 2^127 with secp256k1_i128_accum_mul */
+        secp256k1_i128_mul(&res, INT64_MAX, INT64_MIN);
+        CHECK(secp256k1_i128_to_i64(&res) == INT64_MIN);
+        secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MIN);
+        CHECK(secp256k1_i128_to_i64(&res) == 0);
+        secp256k1_i128_accum_mul(&res, 2, INT64_MIN);
+        CHECK(secp256k1_i128_to_i64(&res) == 0);
+        secp256k1_i128_rshift(&res, 64);
+        CHECK(secp256k1_i128_to_i64(&res) == INT64_MIN);
+    }
+    {
+        /* Randomized tests. */
+        int i;
+        for (i = 0; i < 256 * count; ++i) run_int128_test_case();
+    }
+}
+#endif
+
+/***** SCALAR TESTS *****/
 
 void scalar_test(void) {
     secp256k1_scalar s;

@@ -288,6 +288,10 @@ task:
     - name: "x86_64 (MSVC): Windows (Debian stable, Wine, int128_struct)"
       env:
         WIDEMUL: int128_struct
+    - name: "x86_64 (MSVC): Windows (Debian stable, Wine, int128_struct with __(u)mulh)"
+      env:
+        WIDEMUL: int128_struct
+        CPPFLAGS: -DSECP256K1_MSVC_MULH_TEST_OVERRIDE
     - name: "i686 (MSVC): Windows (Debian stable, Wine)"
       env:
         HOST: i686-w64-mingw32
