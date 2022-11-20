@@ -180,8 +180,26 @@ endif
 endif
 
 ### Precomputed tables
-EXTRA_PROGRAMS = precompute_ecmult precompute_ecmult_gen
-CLEANFILES = $(EXTRA_PROGRAMS)
+PROGRAMS_FOR_BUILD = precompute_ecmult precompute_ecmult_gen
+$(addsuffix $(BUILD_EXEEXT),$(PROGRAMS_FOR_BUILD)) : override CC = $(CC_FOR_BUILD)
+$(addsuffix $(BUILD_EXEEXT),$(PROGRAMS_FOR_BUILD)) : override CFLAGS = $(CFLAGS_FOR_BUILD)
+$(addsuffix $(BUILD_EXEEXT),$(PROGRAMS_FOR_BUILD)) : override CPPFLAGS = $(CPPFLAGS_FOR_BUILD)
+$(addsuffix $(BUILD_EXEEXT),$(PROGRAMS_FOR_BUILD)) : override LDFLAGS = $(LDFLAGS_FOR_BUILD)
+# Automake has no support for PROGRAMS suffixed with BUILD_EXEEXT
+# instead of EXEEXT, so if those extensions differ, then we define a
+# recipe that builds the latter and renames it to the former. Since
+# Cygwin toolchains always append '.exe' to the output file name given
+# by '-o', we ignore rename failures since the toolchain will have
+# already created the right output file. (Note: The leading spaces
+# before ifneq and endif here are a hack so Automake won't try to
+# interpret them as an Automake conditional.)
+ ifneq ($(BUILD_EXEEXT),$(EXEEXT))
+%$(BUILD_EXEEXT) : %$(EXEEXT)
+	mv -- '$<' '$@' || :
+ endif
+
+EXTRA_PROGRAMS = $(PROGRAMS_FOR_BUILD)
+CLEANFILES = $(addsuffix $(BUILD_EXEEXT),$(PROGRAMS_FOR_BUILD))
 
 precompute_ecmult_SOURCES = src/precompute_ecmult.c
 precompute_ecmult_CPPFLAGS = $(SECP_INCLUDES)
@@ -198,11 +216,11 @@ precompute_ecmult_gen_LDADD = $(SECP_LIBS) $(COMMON_LIB)
 # This means that rebuilds of the prebuilt files always need to be
 # forced by deleting them, e.g., by invoking `make clean-precomp`.
 src/precomputed_ecmult.c:
-	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult$(EXEEXT)
-	./precompute_ecmult$(EXEEXT)
+	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult$(BUILD_EXEEXT)
+	./precompute_ecmult$(BUILD_EXEEXT)
 src/precomputed_ecmult_gen.c:
-	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult_gen$(EXEEXT)
-	./precompute_ecmult_gen$(EXEEXT)
+	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult_gen$(BUILD_EXEEXT)
+	./precompute_ecmult_gen$(BUILD_EXEEXT)
 
 PRECOMP = src/precomputed_ecmult_gen.c src/precomputed_ecmult.c
 precomp: $(PRECOMP)

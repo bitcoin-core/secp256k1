@@ -35,6 +35,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_PROG_CC
 AM_PROG_AS
 AM_PROG_AR
+AX_PROG_CC_FOR_BUILD
 
 # Clear some cache variables as a workaround for a bug that appears due to a bad
 # interaction between AM_PROG_AR and LT_INIT when combining MSVC's archiver lib.exe.
