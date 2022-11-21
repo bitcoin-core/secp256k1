@@ -1929,6 +1929,8 @@ void run_int128_test_case(void) {
     secp256k1_i128_from_i64(&swz, sb);
     load256i128(rswz, &swz);
     CHECK(secp256k1_memcmp_var(rsb, rswz, 16) == 0);
+    /* test secp256k1_i128_to_i64 */
+    CHECK(secp256k1_i128_to_i64(&swz) == sb);
     /* test secp256k1_i128_eq_var */
     {
         int expect = (uc & 1);
