@@ -155,20 +155,20 @@ AC_ARG_ENABLE(examples,
     [SECP_SET_DEFAULT([enable_examples], [no], [yes])])
 
 AC_ARG_ENABLE(module_ecdh,
-    AS_HELP_STRING([--enable-module-ecdh],[enable ECDH module [default=no]]), [],
-    [SECP_SET_DEFAULT([enable_module_ecdh], [no], [yes])])
+    AS_HELP_STRING([--enable-module-ecdh],[enable ECDH module [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_module_ecdh], [yes], [yes])])
 
 AC_ARG_ENABLE(module_recovery,
     AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module [default=no]]), [],
     [SECP_SET_DEFAULT([enable_module_recovery], [no], [yes])])
 
 AC_ARG_ENABLE(module_extrakeys,
-    AS_HELP_STRING([--enable-module-extrakeys],[enable extrakeys module [default=no]]), [],
-    [SECP_SET_DEFAULT([enable_module_extrakeys], [no], [yes])])
+    AS_HELP_STRING([--enable-module-extrakeys],[enable extrakeys module [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_module_extrakeys], [yes], [yes])])
 
 AC_ARG_ENABLE(module_schnorrsig,
-    AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module [default=no]]), [],
-    [SECP_SET_DEFAULT([enable_module_schnorrsig], [no], [yes])])
+    AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_module_schnorrsig], [yes], [yes])])
 
 AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]), [],
