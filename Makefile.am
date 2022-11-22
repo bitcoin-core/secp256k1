@@ -73,7 +73,9 @@ noinst_HEADERS += examples/random.h
 PRECOMPUTED_LIB = libsecp256k1_precomputed.la
 noinst_LTLIBRARIES = $(PRECOMPUTED_LIB)
 libsecp256k1_precomputed_la_SOURCES =  src/precomputed_ecmult.c src/precomputed_ecmult_gen.c
-libsecp256k1_precomputed_la_CPPFLAGS = $(SECP_INCLUDES) $(SECP_CONFIG_DEFINES)
+# We need `-I$(top_srcdir)/src` in VPATH builds if libsecp256k1_precomputed_la_SOURCES have been recreated in the build tree.
+# This helps users and packagers who insist on recreating the precomputed files (e.g., Gentoo).
+libsecp256k1_precomputed_la_CPPFLAGS = -I$(top_srcdir)/src $(SECP_INCLUDES) $(SECP_CONFIG_DEFINES)
 
 if USE_EXTERNAL_ASM
 COMMON_LIB = libsecp256k1_common.la
