@@ -7,7 +7,7 @@ extern "C" {
 
 #include <stddef.h>
 
-/* Unless explicitly stated all pointer arguments must not be NULL.
+/** Unless explicitly stated all pointer arguments must not be NULL.
  *
  * The following rules specify the order of arguments in API calls:
  *
@@ -134,7 +134,7 @@ typedef int (*secp256k1_nonce_function)(
 #  define SECP256K1_INLINE inline
 # endif
 
-/** When this header is used at build-time the SECP256K1_BUILD define needs to be set
+/*  When this header is used at build-time the SECP256K1_BUILD define needs to be set
  *  to correctly setup export attributes and nullness checks.  This is normally done
  *  by secp256k1.c but to guard against this header being included before secp256k1.c
  *  has had a chance to set the define (e.g. via test harnesses that just includes
@@ -163,9 +163,9 @@ typedef int (*secp256k1_nonce_function)(
 # endif
 #endif
 
-/**Warning attributes
-  * NONNULL is not used if SECP256K1_BUILD is set to avoid the compiler optimizing out
-  * some paranoid null checks. */
+/* Warning attributes
+ * NONNULL is not used if SECP256K1_BUILD is set to avoid the compiler optimizing out
+ * some paranoid null checks. */
 # if defined(__GNUC__) && SECP256K1_GNUC_PREREQ(3, 4)
 #  define SECP256K1_WARN_UNUSED_RESULT __attribute__ ((__warn_unused_result__))
 # else
@@ -177,7 +177,7 @@ typedef int (*secp256k1_nonce_function)(
 #  define SECP256K1_ARG_NONNULL(_x)
 # endif
 
-/** Attribute for marking functions, types, and variables as deprecated */
+/* Attribute for marking functions, types, and variables as deprecated */
 #if !defined(SECP256K1_BUILD) && defined(__has_attribute)
 # if __has_attribute(__deprecated__)
 #  define SECP256K1_DEPRECATED(_msg) __attribute__ ((__deprecated__(_msg)))
@@ -188,11 +188,11 @@ typedef int (*secp256k1_nonce_function)(
 # define SECP256K1_DEPRECATED(_msg)
 #endif
 
-/** All flags' lower 8 bits indicate what they're for. Do not use directly. */
+/* All flags' lower 8 bits indicate what they're for. Do not use directly. */
 #define SECP256K1_FLAGS_TYPE_MASK ((1 << 8) - 1)
 #define SECP256K1_FLAGS_TYPE_CONTEXT (1 << 0)
 #define SECP256K1_FLAGS_TYPE_COMPRESSION (1 << 1)
-/** The higher bits contain the actual data. Do not use directly. */
+/* The higher bits contain the actual data. Do not use directly. */
 #define SECP256K1_FLAGS_BIT_CONTEXT_VERIFY (1 << 8)
 #define SECP256K1_FLAGS_BIT_CONTEXT_SIGN (1 << 9)
 #define SECP256K1_FLAGS_BIT_CONTEXT_DEFAULT (1 << 9) /* DEFAULT is really just an alias for the deprecated SIGN */
