@@ -106,7 +106,7 @@ typedef struct {
  *  signatures from being valid in multiple contexts by accident.
  *
  *  Returns 1 on success, 0 on failure.
- *  Args:    ctx: pointer to a context object, initialized for signing.
+ *  Args:    ctx: pointer to a context object (not secp256k1_context_static).
  *  Out:   sig64: pointer to a 64-byte array to store the serialized signature.
  *  In:    msg32: the 32-byte message being signed.
  *       keypair: pointer to an initialized keypair.

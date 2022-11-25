@@ -159,7 +159,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_tweak_add_
  *
  *  Returns: 1: secret was valid, keypair is ready to use
  *           0: secret was invalid, try again with a different secret
- *  Args:    ctx: pointer to a context object, initialized for signing.
+ *  Args:    ctx: pointer to a context object (not secp256k1_context_static).
  *  Out: keypair: pointer to the created keypair.
  *  In:   seckey: pointer to a 32-byte secret key.
  */
