@@ -638,7 +638,7 @@ SECP256K1_API extern const secp256k1_nonce_function secp256k1_nonce_function_def
  *
  *  Returns: 1: signature created
  *           0: the nonce generation function failed, or the secret key was invalid.
- *  Args:    ctx:       pointer to a context object, initialized for signing.
+ *  Args:    ctx:       pointer to a context object (not secp256k1_context_static).
  *  Out:     sig:       pointer to an array where the signature will be placed.
  *  In:      msghash32: the 32-byte message hash being signed.
  *           seckey:    pointer to a 32-byte secret key.
@@ -682,7 +682,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_seckey_verify(
  *
  *  Returns: 1: secret was valid, public key stores.
  *           0: secret was invalid, try again.
- *  Args:    ctx:    pointer to a context object, initialized for signing.
+ *  Args:    ctx:    pointer to a context object (not secp256k1_context_static).
  *  Out:     pubkey: pointer to the created public key.
  *  In:      seckey: pointer to a 32-byte secret key.
  */
