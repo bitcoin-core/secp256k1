@@ -396,7 +396,7 @@ int main(int argc, char** argv) {
 
     while (count--) {
         /* Build context */
-        ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+        ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
         secp256k1_testrand256(rand32);
         CHECK(secp256k1_context_randomize(ctx, rand32));
 
