@@ -335,81 +335,82 @@ void run_scratch_tests(void) {
     int32_t ecount = 0;
     size_t checkpoint;
     size_t checkpoint_2;
-    secp256k1_context *none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     secp256k1_scratch_space *scratch;
     secp256k1_scratch_space local_scratch;
 
-    /* Test public API */
-    secp256k1_context_set_illegal_callback(none, counting_illegal_callback_fn, &ecount);
-    secp256k1_context_set_error_callback(none, counting_illegal_callback_fn, &ecount);
+    ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
-    scratch = secp256k1_scratch_space_create(none, 1000);
+    /* Test public API */
+    secp256k1_context_set_illegal_callback(ctx, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_error_callback(ctx, counting_illegal_callback_fn, &ecount);
+
+    scratch = secp256k1_scratch_space_create(ctx, 1000);
     CHECK(scratch != NULL);
     CHECK(ecount == 0);
 
     /* Test internal API */
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000);
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) == 1000 - (ALIGNMENT - 1));
+    CHECK(secp256k1_scratch_max_allocation(&ctx->error_callback, scratch, 0) == 1000);
+    CHECK(secp256k1_scratch_max_allocation(&ctx->error_callback, scratch, 1) == 1000 - (ALIGNMENT - 1));
     CHECK(scratch->alloc_size == 0);
     CHECK(scratch->alloc_size % ALIGNMENT == 0);
 
     /* Allocating 500 bytes succeeds */
-    checkpoint = secp256k1_scratch_checkpoint(&none->error_callback, scratch);
-    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) != NULL);
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000 - adj_alloc);
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) == 1000 - adj_alloc - (ALIGNMENT - 1));
+    checkpoint = secp256k1_scratch_checkpoint(&ctx->error_callback, scratch);
+    CHECK(secp256k1_scratch_alloc(&ctx->error_callback, scratch, 500) != NULL);
+    CHECK(secp256k1_scratch_max_allocation(&ctx->error_callback, scratch, 0) == 1000 - adj_alloc);
+    CHECK(secp256k1_scratch_max_allocation(&ctx->error_callback, scratch, 1) == 1000 - adj_alloc - (ALIGNMENT - 1));
     CHECK(scratch->alloc_size != 0);
     CHECK(scratch->alloc_size % ALIGNMENT == 0);
 
     /* Allocating another 501 bytes fails */
-    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 501) == NULL);
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000 - adj_alloc);
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 1) == 1000 - adj_alloc - (ALIGNMENT - 1));
+    CHECK(secp256k1_scratch_alloc(&ctx->error_callback, scratch, 501) == NULL);
+    CHECK(secp256k1_scratch_max_allocation(&ctx->error_callback, scratch, 0) == 1000 - adj_alloc);
+    CHECK(secp256k1_scratch_max_allocation(&ctx->error_callback, scratch, 1) == 1000 - adj_alloc - (ALIGNMENT - 1));
     CHECK(scratch->alloc_size != 0);
     CHECK(scratch->alloc_size % ALIGNMENT == 0);
 
     /* ...but it succeeds once we apply the checkpoint to undo it */
-    secp256k1_scratch_apply_checkpoint(&none->error_callback, scratch, checkpoint);
+    secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, checkpoint);
     CHECK(scratch->alloc_size == 0);
-    CHECK(secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0) == 1000);
-    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) != NULL);
+    CHECK(secp256k1_scratch_max_allocation(&ctx->error_callback, scratch, 0) == 1000);
+    CHECK(secp256k1_scratch_alloc(&ctx->error_callback, scratch, 500) != NULL);
     CHECK(scratch->alloc_size != 0);
 
     /* try to apply a bad checkpoint */
-    checkpoint_2 = secp256k1_scratch_checkpoint(&none->error_callback, scratch);
-    secp256k1_scratch_apply_checkpoint(&none->error_callback, scratch, checkpoint);
+    checkpoint_2 = secp256k1_scratch_checkpoint(&ctx->error_callback, scratch);
+    secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, checkpoint);
     CHECK(ecount == 0);
-    secp256k1_scratch_apply_checkpoint(&none->error_callback, scratch, checkpoint_2); /* checkpoint_2 is after checkpoint */
+    secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, checkpoint_2); /* checkpoint_2 is after checkpoint */
     CHECK(ecount == 1);
-    secp256k1_scratch_apply_checkpoint(&none->error_callback, scratch, (size_t) -1); /* this is just wildly invalid */
+    secp256k1_scratch_apply_checkpoint(&ctx->error_callback, scratch, (size_t) -1); /* this is just wildly invalid */
     CHECK(ecount == 2);
 
     /* try to use badly initialized scratch space */
-    secp256k1_scratch_space_destroy(none, scratch);
+    secp256k1_scratch_space_destroy(ctx, scratch);
     memset(&local_scratch, 0, sizeof(local_scratch));
     scratch = &local_scratch;
-    CHECK(!secp256k1_scratch_max_allocation(&none->error_callback, scratch, 0));
+    CHECK(!secp256k1_scratch_max_allocation(&ctx->error_callback, scratch, 0));
     CHECK(ecount == 3);
-    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, 500) == NULL);
+    CHECK(secp256k1_scratch_alloc(&ctx->error_callback, scratch, 500) == NULL);
     CHECK(ecount == 4);
-    secp256k1_scratch_space_destroy(none, scratch);
+    secp256k1_scratch_space_destroy(ctx, scratch);
     CHECK(ecount == 5);
 
     /* Test that large integers do not wrap around in a bad way */
-    scratch = secp256k1_scratch_space_create(none, 1000);
+    scratch = secp256k1_scratch_space_create(ctx, 1000);
     /* Try max allocation with a large number of objects. Only makes sense if
      * ALIGNMENT is greater than 1 because otherwise the objects take no extra
      * space. */
-    CHECK(ALIGNMENT <= 1 || !secp256k1_scratch_max_allocation(&none->error_callback, scratch, (SIZE_MAX / (ALIGNMENT - 1)) + 1));
+    CHECK(ALIGNMENT <= 1 || !secp256k1_scratch_max_allocation(&ctx->error_callback, scratch, (SIZE_MAX / (ALIGNMENT - 1)) + 1));
     /* Try allocating SIZE_MAX to test wrap around which only happens if
      * ALIGNMENT > 1, otherwise it returns NULL anyway because the scratch
      * space is too small. */
-    CHECK(secp256k1_scratch_alloc(&none->error_callback, scratch, SIZE_MAX) == NULL);
-    secp256k1_scratch_space_destroy(none, scratch);
+    CHECK(secp256k1_scratch_alloc(&ctx->error_callback, scratch, SIZE_MAX) == NULL);
+    secp256k1_scratch_space_destroy(ctx, scratch);
 
     /* cleanup */
-    secp256k1_scratch_space_destroy(none, NULL); /* no-op */
-    secp256k1_context_destroy(none);
+    secp256k1_scratch_space_destroy(ctx, NULL); /* no-op */
+    secp256k1_context_destroy(ctx);
 }
 
 
@@ -680,7 +681,6 @@ void run_rfc6979_hmac_sha256_tests(void) {
 
 void run_tagged_sha256_tests(void) {
     int ecount = 0;
-    secp256k1_context *none = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     unsigned char tag[32] = { 0 };
     unsigned char msg[32] = { 0 };
     unsigned char hash32[32];
@@ -691,23 +691,22 @@ void run_tagged_sha256_tests(void) {
         0xE2, 0x76, 0x55, 0x9A, 0x3B, 0xDE, 0x55, 0xB3
     };
 
-    secp256k1_context_set_illegal_callback(none, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_illegal_callback(ctx, counting_illegal_callback_fn, &ecount);
 
     /* API test */
-    CHECK(secp256k1_tagged_sha256(none, hash32, tag, sizeof(tag), msg, sizeof(msg)) == 1);
-    CHECK(secp256k1_tagged_sha256(none, NULL, tag, sizeof(tag), msg, sizeof(msg)) == 0);
+    CHECK(secp256k1_tagged_sha256(ctx, hash32, tag, sizeof(tag), msg, sizeof(msg)) == 1);
+    CHECK(secp256k1_tagged_sha256(ctx, NULL, tag, sizeof(tag), msg, sizeof(msg)) == 0);
     CHECK(ecount == 1);
-    CHECK(secp256k1_tagged_sha256(none, hash32, NULL, 0, msg, sizeof(msg)) == 0);
+    CHECK(secp256k1_tagged_sha256(ctx, hash32, NULL, 0, msg, sizeof(msg)) == 0);
     CHECK(ecount == 2);
-    CHECK(secp256k1_tagged_sha256(none, hash32, tag, sizeof(tag), NULL, 0) == 0);
+    CHECK(secp256k1_tagged_sha256(ctx, hash32, tag, sizeof(tag), NULL, 0) == 0);
     CHECK(ecount == 3);
 
     /* Static test vector */
     memcpy(tag, "tag", 3);
     memcpy(msg, "msg", 3);
-    CHECK(secp256k1_tagged_sha256(none, hash32, tag, 3, msg, 3) == 1);
+    CHECK(secp256k1_tagged_sha256(ctx, hash32, tag, 3, msg, 3) == 1);
     CHECK(secp256k1_memcmp_var(hash32, hash_expected, sizeof(hash32)) == 0);
-    secp256k1_context_destroy(none);
 }
 
 /***** RANDOM TESTS *****/
@@ -7366,7 +7365,7 @@ int main(int argc, char **argv) {
     run_context_tests(1);
     run_scratch_tests();
 
-    ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+    ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     /* Randomize the context only with probability 15/16
        to make sure we test without context randomization from time to time.
        TODO Reconsider this when recalibrating the tests. */
