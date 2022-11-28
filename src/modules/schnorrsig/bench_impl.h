@@ -50,7 +50,7 @@ void run_schnorrsig_bench(int iters, int argc, char** argv) {
     bench_schnorrsig_data data;
     int d = argc == 1;
 
-    data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY | SECP256K1_CONTEXT_SIGN);
+    data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     data.keypairs = (const secp256k1_keypair **)malloc(iters * sizeof(secp256k1_keypair *));
     data.pk = (const unsigned char **)malloc(iters * sizeof(unsigned char *));
     data.msgs = (const unsigned char **)malloc(iters * sizeof(unsigned char *));
