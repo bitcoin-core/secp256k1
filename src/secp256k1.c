@@ -57,6 +57,8 @@
     } \
 } while(0)
 
+/* Note that whenever you change the context struct, you must also change the
+ * context_eq function. */
 struct secp256k1_context_struct {
     secp256k1_ecmult_gen_context ecmult_gen_ctx;
     secp256k1_callback illegal_callback;
