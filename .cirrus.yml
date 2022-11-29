@@ -61,18 +61,18 @@ merge_base_script_snippet: &MERGE_BASE
     - git checkout FETCH_HEAD  # Use merged changes to detect silent merge conflicts
 
 linux_container_snippet: &LINUX_CONTAINER
-  container:
-    dockerfile: ci/linux-debian.Dockerfile
-    # Reduce number of CPUs to be able to do more builds in parallel.
-    cpu: 1
-    # Gives us more CPUs for free if they're available.
-    greedy: true
-    # More than enough for our scripts.
-    memory: 1G
+  dockerfile: ci/linux-debian.Dockerfile
+  # Reduce number of CPUs to be able to do more builds in parallel.
+  cpu: 1
+  # Gives us more CPUs for free if they're available.
+  greedy: true
+  # More than enough for our scripts.
+  memory: 1G
 
 task:
   name: "x86_64: Linux (Debian stable)"
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   matrix: &ENV_MATRIX
     - env: {WIDEMUL:  int64,  RECOVERY: yes}
     - env: {WIDEMUL:  int64,                 ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes}
@@ -100,7 +100,8 @@ task:
 
 task:
   name: "i686: Linux (Debian stable)"
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   env:
     HOST: i686-linux-gnu
     ECDH: yes
@@ -146,7 +147,8 @@ task:
 
 task:
   name: "s390x (big-endian): Linux (Debian stable, QEMU)"
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: qemu-s390x
     SECP256K1_TEST_ITERS: 16
@@ -166,7 +168,8 @@ task:
 
 task:
   name: "ARM32: Linux (Debian stable, QEMU)"
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: qemu-arm
     SECP256K1_TEST_ITERS: 16
@@ -187,7 +190,8 @@ task:
 
 task:
   name: "ARM64: Linux (Debian stable, QEMU)"
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: qemu-aarch64
     SECP256K1_TEST_ITERS: 16
@@ -205,7 +209,8 @@ task:
 
 task:
   name: "ppc64le: Linux (Debian stable, QEMU)"
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: qemu-ppc64le
     SECP256K1_TEST_ITERS: 16
@@ -222,7 +227,8 @@ task:
   << : *CAT_LOGS
 
 task:
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: wine
     WITH_VALGRIND: no
@@ -243,7 +249,8 @@ task:
   << : *CAT_LOGS
 
 task:
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   env:
     WRAPPER_CMD: wine
     WERROR_CFLAGS: -WX
@@ -287,7 +294,8 @@ task:
 
 # Sanitizers
 task:
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   env:
     ECDH: yes
     RECOVERY: yes
@@ -332,7 +340,8 @@ task:
 
 # Memory sanitizers
 task:
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   name: "MSan"
   env:
     ECDH: yes
@@ -359,7 +368,8 @@ task:
 
 task:
   name: "C++ -fpermissive (entire project)"
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   env:
     CC: g++
     CFLAGS: -fpermissive -g
@@ -376,7 +386,8 @@ task:
 
 task:
   name: "C++ (public headers)"
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   test_script:
     - g++ -Werror include/*.h
     - clang -Werror -x c++-header include/*.h
@@ -384,7 +395,8 @@ task:
 
 task:
   name: "sage prover"
-  << : *LINUX_CONTAINER
+  container:
+    << : *LINUX_CONTAINER
   test_script:
     - cd sage
     - sage prove_group_implementations.sage
