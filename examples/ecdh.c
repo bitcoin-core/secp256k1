@@ -11,7 +11,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include <secp256k1.h>
+#include <secp256k1_preallocated.h>
 #include <secp256k1_ecdh.h>
 
 #include "random.h"
@@ -30,8 +30,13 @@ int main(void) {
     secp256k1_pubkey pubkey1;
     secp256k1_pubkey pubkey2;
 
-    /* Before we can call actual API functions, we need to create a "context". */
-    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_DEFAULT);
+    /* The specification in secp256k1.h states that `secp256k1_ec_pubkey_create`
+     * needs a context object initialized for signing, which is why we create
+     * a context with the SECP256K1_CONTEXT_SIGN flag.
+     * (The docs for `secp256k1_ecdh` don't require any special context, just
+     * some initialized context) */
+    unsigned char mem[1000];
+    secp256k1_context* ctx = secp256k1_context_preallocated_create(mem, SECP256K1_CONTEXT_SIGN);
     if (!fill_random(randomize, sizeof(randomize))) {
         printf("Failed to generate randomness\n");
         return 1;
@@ -105,7 +110,7 @@ int main(void) {
     print_hex(shared_secret1, sizeof(shared_secret1));
 
     /* This will clear everything from the context and free the memory */
-    secp256k1_context_destroy(ctx);
+    secp256k1_context_preallocated_destroy(ctx);
 
     /* It's best practice to try to clear secrets from memory after using them.
      * This is done because some bugs can allow an attacker to leak memory, for
