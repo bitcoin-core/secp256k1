@@ -1,11 +1,15 @@
 #ifndef SECP256K1_PREALLOCATED_H
 #define SECP256K1_PREALLOCATED_H
 
-#include "secp256k1.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* See secp256k1.h */
+typedef struct secp256k1_context_struct secp256k1_context;
+typedef struct secp256k1_scratch_space_struct secp256k1_scratch_space;
+
+#include "secp256k1_main.h"
 
 /* The module provided by this header file is intended for settings in which it
  * is not possible or desirable to rely on dynamic memory allocation. It provides
