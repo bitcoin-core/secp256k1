@@ -26,11 +26,17 @@ extern "C" {
 
 /** Opaque data structure that holds context information
  *
- *  The purpose of context structures is to store the randomization data for
- *  blinding, see secp256k1_context_randomize.
+ *  The primary purpose of context objects is to store randomization data for
+ *  enhanced protection against side-channel leakage. This protection is only
+ *  effective if the context is randomized after its creation. See
+ *  secp256k1_context_create for creation of contexts and
+ *  secp256k1_context_randomize for randomization.
  *
- *  Do not create a new context object for each operation, as construction is
- *  far slower than all other API calls.
+ *  A secondary purpose of context objects is to store pointers to callback
+ *  functions that the library will call when certain error states arise. See
+ *  secp256k1_context_set_error_callback as well as
+ *  secp256k1_context_set_illegal_callback for details. Future library versions
+ *  may use context objects for additional purposes.
  *
  *  A constructed context can safely be used from multiple threads
  *  simultaneously, but API calls that take a non-const pointer to a context
@@ -43,7 +49,7 @@ extern "C" {
  */
 typedef struct secp256k1_context_struct secp256k1_context;
 
-/** Opaque data structure that holds rewriteable "scratch space"
+/** Opaque data structure that holds rewritable "scratch space"
  *
  *  The purpose of this structure is to replace dynamic memory allocations,
  *  because we target architectures where this may not be available. It is
@@ -265,6 +271,15 @@ SECP256K1_API void secp256k1_selftest(void);
  *  offered by the library. All other (deprecated) flags will be treated as equivalent
  *  to the SECP256K1_CONTEXT_NONE flag. Though the flags parameter primarily exists for
  *  historical reasons, future versions of the library may introduce new flags.
+ *
+ *  If the context is intended to be used for API functions that perform computations
+ *  involving secret keys, e.g., signing and public key generation, then it is highly
+ *  recommended to call secp256k1_context_randomize on the context before calling
+ *  those API functions. This will provide enhanced protection against side-channel
+ *  leakage, see secp256k1_context_randomize for details.
+ *
+ *  Do not create a new context object for each operation, as construction and
+ *  randomization can take non-negligible time.
  */
 SECP256K1_API secp256k1_context* secp256k1_context_create(
     unsigned int flags
@@ -344,7 +359,10 @@ SECP256K1_API void secp256k1_context_set_illegal_callback(
 ) SECP256K1_ARG_NONNULL(1);
 
 /** Set a callback function to be called when an internal consistency check
- *  fails. The default is crashing.
+ *  fails.
+ *
+ *  The default callback writes an error message to stderr and calls abort
+ *  to abort the program.
  *
  *  This can only trigger in case of a hardware failure, miscompilation,
  *  memory corruption, serious bug in the library, or other error would can
@@ -800,30 +818,41 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_mul(
     const unsigned char *tweak32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
-/** Updates the context randomization to protect against side-channel leakage.
- *  Returns: 1: randomization successfully updated or nothing to randomize
+/** Randomizes the context to provide enhanced protection against side-channel leakage.
+ *
+ *  Returns: 1: randomization successful (or called on copy of secp256k1_context_static)
  *           0: error
  *  Args:    ctx:       pointer to a context object.
  *  In:      seed32:    pointer to a 32-byte random seed (NULL resets to initial state)
  *
- * While secp256k1 code is written to be constant-time no matter what secret
- * values are, it's possible that a future compiler may output code which isn't,
+ * While secp256k1 code is written and tested to be constant-time no matter what
+ * secret values are, it is possible that a compiler may output code which is not,
  * and also that the CPU may not emit the same radio frequencies or draw the same
- * amount power for all values.
+ * amount of power for all values. Randomization of the context shields against
+ * side-channel observations which aim to exploit secret-dependent behaviour in
+ * certain computations which involve secret keys.
  *
- * This function provides a seed which is combined into the blinding value: that
- * blinding value is added before each multiplication (and removed afterwards) so
- * that it does not affect function results, but shields against attacks which
- * rely on any input-dependent behaviour.
+ * It is highly recommended to call this function on contexts returned from
+ * secp256k1_context_create or secp256k1_context_clone (or from the corresponding
+ * functions in secp256k1_preallocated.h) before using these contexts to call API
+ * functions that perform computations involving secret keys, e.g., signing and
+ * public key generation. It is possible to call this function more than once on
+ * the same context, and doing so before every few computations involving secret
+ * keys is recommended as a defense-in-depth measure.
  *
- * This function has currently an effect only on contexts initialized for signing
- * because randomization is currently used only for signing. However, this is not
- * guaranteed and may change in the future. It is safe to call this function on
- * contexts not initialized for signing; then it will have no effect and return 1.
+ * Currently, the random seed is mainly used for blinding multiplications of a
+ * secret scalar with the elliptic curve base point. Multiplications of this
+ * kind are performed by exactly those API functions which are documented to
+ * require a context that is not the secp256k1_context_static. As a rule of thumb,
+ * these are all functions which take a secret key (or a keypair) as an input.
+ * A notable exception to that rule is the ECDH module, which relies on a different
+ * kind of elliptic curve point multiplication and thus does not benefit from
+ * enhanced protection against side-channel leakage currently.
  *
- * You should call this after secp256k1_context_create or
- * secp256k1_context_clone (and secp256k1_context_preallocated_create or
- * secp256k1_context_clone, resp.), and you may call this repeatedly afterwards.
+ * It is safe call this function on a copy of secp256k1_context_static in writable
+ * memory (e.g., obtained via secp256k1_context_clone). In that case, this
+ * function is guaranteed to return 1, but the call will have no effect because
+ * the static context (or a copy thereof) is not meant to be randomized.
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_context_randomize(
     secp256k1_context* ctx,
