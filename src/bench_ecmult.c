@@ -84,9 +84,7 @@ static void bench_ecmult_teardown_helper(bench_data* data, size_t* seckey_offset
         }
     }
     secp256k1_ecmult_gen(&data->ctx->ecmult_gen_ctx, &tmp, &sum_scalars);
-    secp256k1_gej_neg(&tmp, &tmp);
-    secp256k1_gej_add_var(&tmp, &tmp, &sum_output, NULL);
-    CHECK(secp256k1_gej_is_infinity(&tmp));
+    CHECK(secp256k1_gej_eq_var(&tmp, &sum_output));
 }
 
 static void bench_ecmult_setup(void* arg) {
