@@ -8,7 +8,7 @@
      Make sure that the branch contains the right commits.
      Create commit on the release branch that sets `_PKG_VERSION_IS_RELEASE` in `configure.ac` to `true`.
    * if this **is** a patch release, open a pull request with the bugfixes to the `MAJOR.MINOR` branch.
-     Also include the release note commit bump `_PKG_VERSION_BUILD` and `_LIB_VERSIONS_*` in `configure.ac`.
+     Also include the release note commit bump `_PKG_VERSION_PATCH` and `_LIB_VERSIONS_*` in `configure.ac`.
 4. Tag the commit with `git tag -s vMAJOR.MINOR.PATCH`.
 5. Push branch and tag with `git push origin --tags`.
 6. Create a new GitHub release with a link to the corresponding entry in `CHANGELOG.md`.
