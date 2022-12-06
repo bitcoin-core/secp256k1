@@ -330,10 +330,11 @@ task:
     ECDH: yes
     RECOVERY: yes
     SCHNORRSIG: yes
-    CTIMETEST: no
+    CTIMETEST: yes
     CC: clang
     SECP256K1_TEST_ITERS: 32
     ASM: no
+    WITH_VALGRIND: no
   container:
     memory: 2G
   matrix:

@@ -62,6 +62,7 @@ fi
     --enable-module-ecdh="$ECDH" --enable-module-recovery="$RECOVERY" \
     --enable-module-schnorrsig="$SCHNORRSIG" \
     --enable-examples="$EXAMPLES" \
+    --enable-ctime-tests="$CTIMETEST" \
     --with-valgrind="$WITH_VALGRIND" \
     --host="$HOST" $EXTRAFLAGS
 
@@ -78,14 +79,15 @@ export LOG_COMPILER="$WRAPPER_CMD"
 
 make "$BUILD"
 
+# Using the local `libtool` because on macOS the system's libtool has nothing to do with GNU libtool
+EXEC='./libtool --mode=execute'
+if [ -n "$WRAPPER_CMD" ]
+then
+    EXEC="$EXEC $WRAPPER_CMD"
+fi
+
 if [ "$BENCH" = "yes" ]
 then
-    # Using the local `libtool` because on macOS the system's libtool has nothing to do with GNU libtool
-    EXEC='./libtool --mode=execute'
-    if [ -n "$WRAPPER_CMD" ]
-    then
-        EXEC="$EXEC $WRAPPER_CMD"
-    fi
     {
         $EXEC ./bench_ecmult
         $EXEC ./bench_internal
@@ -95,7 +97,11 @@ fi
 
 if [ "$CTIMETEST" = "yes" ]
 then
-    ./libtool --mode=execute valgrind --error-exitcode=42 ./ctime_tests > ctime_tests.log 2>&1
+    if [ "$WITH_VALGRIND" = "yes" ]; then
+        ./libtool --mode=execute valgrind --error-exitcode=42 ./ctime_tests > ctime_tests.log 2>&1
+    else
+        $EXEC ./ctime_tests > ctime_tests.log 2>&1
+    fi
 fi
 
 # Rebuild precomputed files (if not cross-compiling).
