@@ -10,6 +10,10 @@
 #include "assumptions.h"
 #include "checkmem.h"
 
+#if !SECP256K1_CHECKMEM_ENABLED
+#  error "This tool cannot be compiled without memory-checking interface (valgrind)"
+#endif
+
 #ifdef ENABLE_MODULE_ECDH
 # include "../include/secp256k1_ecdh.h"
 #endif
