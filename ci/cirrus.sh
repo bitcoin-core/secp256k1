@@ -95,7 +95,7 @@ fi
 
 if [ "$CTIMETEST" = "yes" ]
 then
-    ./libtool --mode=execute valgrind --error-exitcode=42 ./valgrind_ctime_test > valgrind_ctime_test.log 2>&1
+    ./libtool --mode=execute valgrind --error-exitcode=42 ./ctime_tests > ctime_tests.log 2>&1
 fi
 
 # Rebuild precomputed files (if not cross-compiling).

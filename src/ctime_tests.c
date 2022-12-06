@@ -39,7 +39,7 @@ int main(void) {
 
     if (!SECP256K1_CHECKMEM_RUNNING()) {
         fprintf(stderr, "Unless compiled under msan, this test can only usefully be run inside valgrind.\n");
-        fprintf(stderr, "Usage: libtool --mode=execute valgrind ./valgrind_ctime_test\n");
+        fprintf(stderr, "Usage: libtool --mode=execute valgrind ./ctime_tests\n");
         return 1;
     }
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_DECLASSIFY);
