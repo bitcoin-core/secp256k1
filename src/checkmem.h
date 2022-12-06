@@ -39,6 +39,20 @@
 /* Define a statement-like macro that ignores the arguments. */
 #define SECP256K1_CHECKMEM_NOOP(p, len) do { (void)(p); (void)(len); } while(0)
 
+/* If compiling under msan, map the SECP256K1_CHECKMEM_* functionality to msan.
+ * Choose this preferentially, even when VALGRIND is defined, as msan-compiled
+ * binaries can't be run under valgrind anyway. */
+#if defined(__has_feature)
+#  if __has_feature(memory_sanitizer)
+#    include <sanitizer/msan_interface.h>
+#    define SECP256K1_CHECKMEM_ENABLED 1
+#    define SECP256K1_CHECKMEM_UNDEFINE(p, len) __msan_allocated_memory((p), (len))
+#    define SECP256K1_CHECKMEM_DEFINE(p, len) __msan_unpoison((p), (len))
+#    define SECP256K1_CHECKMEM_CHECK(p, len) __msan_check_mem_is_initialized((p), (len))
+#    define SECP256K1_CHECKMEM_RUNNING() (1)
+#  endif
+#endif
+
 /* If valgrind integration is desired (through the VALGRIND define), implement the
  * SECP256K1_CHECKMEM_* macros using valgrind. */
 #if !defined SECP256K1_CHECKMEM_ENABLED
