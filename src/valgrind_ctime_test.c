@@ -11,7 +11,7 @@
 #include "checkmem.h"
 
 #if !SECP256K1_CHECKMEM_ENABLED
-#  error "This tool cannot be compiled without memory-checking interface (valgrind)"
+#  error "This tool cannot be compiled without memory-checking interface (valgrind or msan)"
 #endif
 
 #ifdef ENABLE_MODULE_ECDH
@@ -38,7 +38,7 @@ int main(void) {
     int ret, i;
 
     if (!SECP256K1_CHECKMEM_RUNNING()) {
-        fprintf(stderr, "This test can only usefully be run inside valgrind.\n");
+        fprintf(stderr, "Unless compiled under msan, this test can only usefully be run inside valgrind.\n");
         fprintf(stderr, "Usage: libtool --mode=execute valgrind ./valgrind_ctime_test\n");
         return 1;
     }
