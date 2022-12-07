@@ -128,8 +128,7 @@ void test_schnorrsig_api(void) {
     secp256k1_schnorrsig_extraparams invalid_extraparams = {{ 0 }, NULL, NULL};
 
     /** setup **/
-    secp256k1_context *sttc = secp256k1_context_clone(secp256k1_context_static);
-    int ecount;
+    int ecount = 0;
 
     secp256k1_context_set_error_callback(ctx, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(ctx, counting_illegal_callback_fn, &ecount);
@@ -198,7 +197,8 @@ void test_schnorrsig_api(void) {
     CHECK(secp256k1_schnorrsig_verify(ctx, sig, msg, sizeof(msg), &zero_pk) == 0);
     CHECK(ecount == 4);
 
-    secp256k1_context_destroy(sttc);
+    secp256k1_context_set_error_callback(sttc, NULL, NULL);
+    secp256k1_context_set_illegal_callback(sttc, NULL, NULL);
 }
 
 /* Checks that hash initialized by secp256k1_schnorrsig_sha256_tagged has the

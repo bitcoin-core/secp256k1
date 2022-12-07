@@ -336,7 +336,6 @@ void test_keypair(void) {
     secp256k1_xonly_pubkey xonly_pk, xonly_pk_tmp;
     int pk_parity, pk_parity_tmp;
     int ecount;
-    secp256k1_context *sttc = secp256k1_context_clone(secp256k1_context_static);
 
     set_counting_callbacks(ctx, &ecount);
     set_counting_callbacks(sttc, &ecount);
@@ -440,7 +439,9 @@ void test_keypair(void) {
     memset(&keypair, 0, sizeof(keypair));
     CHECK(secp256k1_keypair_sec(ctx, sk_tmp, &keypair) == 1);
     CHECK(secp256k1_memcmp_var(zeros96, sk_tmp, sizeof(sk_tmp)) == 0);
-    secp256k1_context_destroy(sttc);
+
+    secp256k1_context_set_error_callback(sttc, NULL, NULL);
+    secp256k1_context_set_illegal_callback(sttc, NULL, NULL);
 }
 
 void test_keypair_add(void) {

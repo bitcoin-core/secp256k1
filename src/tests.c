@@ -29,6 +29,7 @@
 
 static int count = 64;
 static secp256k1_context *ctx = NULL;
+static secp256k1_context *sttc = NULL;
 
 static void counting_illegal_callback_fn(const char* str, void* data) {
     /* Dummy callback function that just counts. */
@@ -180,9 +181,7 @@ void run_context_tests(int use_prealloc) {
     unsigned char ctmp[32];
     int32_t ecount;
     int32_t ecount2;
-    secp256k1_context *sttc;
     void *ctx_prealloc = NULL;
-    void *sttc_prealloc = NULL;
 
     secp256k1_gej pubj;
     secp256k1_ge pub;
@@ -196,11 +195,7 @@ void run_context_tests(int use_prealloc) {
         ctx_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
         CHECK(ctx_prealloc != NULL);
         ctx = secp256k1_context_preallocated_create(ctx_prealloc, SECP256K1_CONTEXT_NONE);
-        sttc_prealloc = malloc(secp256k1_context_preallocated_clone_size(secp256k1_context_static));
-        CHECK(sttc_prealloc != NULL);
-        sttc = secp256k1_context_preallocated_clone(secp256k1_context_static, sttc_prealloc);
     } else {
-        sttc = secp256k1_context_clone(secp256k1_context_static);
         ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     }
 
@@ -312,12 +307,9 @@ void run_context_tests(int use_prealloc) {
     /* cleanup */
     if (use_prealloc) {
         secp256k1_context_preallocated_destroy(ctx);
-        secp256k1_context_preallocated_destroy(sttc);
         free(ctx_prealloc);
-        free(sttc_prealloc);
     } else {
         secp256k1_context_destroy(ctx);
-        secp256k1_context_destroy(sttc);
     }
     /* Defined as no-op. */
     secp256k1_context_destroy(NULL);
@@ -7357,6 +7349,15 @@ int main(int argc, char **argv) {
     secp256k1_testrand_init(argc > 2 ? argv[2] : NULL);
 
     /* initialize */
+    /* Make a writable copy of secp256k1_context_static in order to test the effect of API functions
+       that write to the context. The API does not support cloning the static context, so we use
+       memcpy instead. The user is not supposed to copy a context but we should still ensure that
+       the API functions handle copies of the static context gracefully. */
+    sttc = malloc(sizeof(*secp256k1_context_static));
+    CHECK(sttc != NULL);
+    memcpy(sttc, secp256k1_context_static, sizeof(secp256k1_context));
+    CHECK(!secp256k1_context_is_proper(sttc));
+
     run_selftest_tests();
     run_context_tests(0);
     run_context_tests(1);
@@ -7463,6 +7464,7 @@ int main(int argc, char **argv) {
     secp256k1_testrand_finish();
 
     /* shutdown */
+    free(sttc);
     secp256k1_context_destroy(ctx);
 
     printf("no problems found\n");
