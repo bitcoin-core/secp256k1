@@ -291,8 +291,11 @@ SECP256K1_API secp256k1_context* secp256k1_context_create(
  *  called at most once for every call of this function. If you need to avoid dynamic
  *  memory allocation entirely, see the functions in secp256k1_preallocated.h.
  *
+ *  Cloning secp256k1_context_static is not possible, and should not be emulated by
+ *  the caller (e.g., using memcpy). Create a new context instead.
+ *
  *  Returns: a newly created context object.
- *  Args:    ctx: an existing context to copy
+ *  Args:    ctx: an existing context to copy (not secp256k1_context_static)
  */
 SECP256K1_API secp256k1_context* secp256k1_context_clone(
     const secp256k1_context* ctx
@@ -310,6 +313,7 @@ SECP256K1_API secp256k1_context* secp256k1_context_clone(
  *
  *  Args:   ctx: an existing context to destroy, constructed using
  *               secp256k1_context_create or secp256k1_context_clone
+ *               (i.e., not secp256k1_context_static).
  */
 SECP256K1_API void secp256k1_context_destroy(
     secp256k1_context* ctx

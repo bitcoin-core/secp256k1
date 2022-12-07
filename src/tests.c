@@ -32,6 +32,18 @@ static int COUNT = 64;
 static secp256k1_context *CTX = NULL;
 static secp256k1_context *STATIC_CTX = NULL;
 
+static int all_bytes_equal(const void* s, unsigned char value, size_t n) {
+    const unsigned char *p = s;
+    size_t i;
+
+    for (i = 0; i < n; i++) {
+        if (p[i] != value) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static void counting_illegal_callback_fn(const char* str, void* data) {
     /* Dummy callback function that just counts. */
     int32_t *p;
@@ -229,20 +241,47 @@ static void run_ec_illegal_argument_tests(void) {
     secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
 }
 
-static void run_static_context_tests(void) {
-    int32_t dummy = 0;
-
+static void run_static_context_tests(int use_prealloc) {
     /* Check that deprecated secp256k1_context_no_precomp is an alias to secp256k1_context_static. */
     CHECK(secp256k1_context_no_precomp == secp256k1_context_static);
 
-    /* check if sizes for cloning are consistent */
-    CHECK(secp256k1_context_preallocated_clone_size(STATIC_CTX) >= sizeof(secp256k1_context));
+    {
+        int ecount = 0;
+        secp256k1_context_set_illegal_callback(STATIC_CTX, counting_illegal_callback_fn, &ecount);
+        /* Destroying or cloning secp256k1_context_static is not supported. */
+        if (use_prealloc) {
+            CHECK(secp256k1_context_preallocated_clone_size(STATIC_CTX) == 0);
+            CHECK(ecount == 1);
+            {
+                secp256k1_context *my_static_ctx = malloc(sizeof(*STATIC_CTX));
+                CHECK(my_static_ctx != NULL);
+                memset(my_static_ctx, 0x2a, sizeof(*my_static_ctx));
+                CHECK(secp256k1_context_preallocated_clone(STATIC_CTX, my_static_ctx) == NULL);
+                CHECK(all_bytes_equal(my_static_ctx, 0x2a, sizeof(*my_static_ctx)));
+                CHECK(ecount == 2);
+                free(my_static_ctx);
+            }
+            secp256k1_context_preallocated_destroy(STATIC_CTX);
+            CHECK(ecount == 3);
+        } else {
+            CHECK(secp256k1_context_clone(STATIC_CTX) == NULL);
+            CHECK(ecount == 1);
+            secp256k1_context_destroy(STATIC_CTX);
+            CHECK(ecount == 2);
+        }
+        secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
+    }
 
-    /* Verify that setting and resetting illegal callback works */
-    secp256k1_context_set_illegal_callback(STATIC_CTX, counting_illegal_callback_fn, &dummy);
-    CHECK(STATIC_CTX->illegal_callback.fn == counting_illegal_callback_fn);
-    secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
-    CHECK(STATIC_CTX->illegal_callback.fn == secp256k1_default_illegal_callback_fn);
+    {
+        /* Verify that setting and resetting illegal callback works */
+        int32_t dummy = 0;
+        secp256k1_context_set_illegal_callback(STATIC_CTX, counting_illegal_callback_fn, &dummy);
+        CHECK(STATIC_CTX->illegal_callback.fn == counting_illegal_callback_fn);
+        CHECK(STATIC_CTX->illegal_callback.data == &dummy);
+        secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
+        CHECK(STATIC_CTX->illegal_callback.fn == secp256k1_default_illegal_callback_fn);
+        CHECK(STATIC_CTX->illegal_callback.data == NULL);
+    }
 }
 
 static void run_proper_context_tests(int use_prealloc) {
@@ -300,8 +339,10 @@ static void run_proper_context_tests(int use_prealloc) {
     /* Verify that setting and resetting illegal callback works */
     secp256k1_context_set_illegal_callback(my_ctx, counting_illegal_callback_fn, &dummy);
     CHECK(my_ctx->illegal_callback.fn == counting_illegal_callback_fn);
+    CHECK(my_ctx->illegal_callback.data == &dummy);
     secp256k1_context_set_illegal_callback(my_ctx, NULL, NULL);
     CHECK(my_ctx->illegal_callback.fn == secp256k1_default_illegal_callback_fn);
+    CHECK(my_ctx->illegal_callback.data == NULL);
 
     /*** attempt to use them ***/
     random_scalar_order_test(&msg);
@@ -327,6 +368,7 @@ static void run_proper_context_tests(int use_prealloc) {
     } else {
         secp256k1_context_destroy(my_ctx);
     }
+
     /* Defined as no-op. */
     secp256k1_context_destroy(NULL);
     secp256k1_context_preallocated_destroy(NULL);
@@ -7389,9 +7431,8 @@ int main(int argc, char **argv) {
     run_selftest_tests();
 
     /* context tests */
-    run_proper_context_tests(0);
-    run_proper_context_tests(1);
-    run_static_context_tests();
+    run_proper_context_tests(0); run_proper_context_tests(1);
+    run_static_context_tests(0); run_static_context_tests(1);
     run_deprecated_context_flags_test();
 
     /* scratch tests */

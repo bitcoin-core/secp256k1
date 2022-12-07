@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Changed
+ - Forbade cloning or destroying `secp256k1_context_static`. Create a new context instead of cloning the static context. (If this change breaks your code, your code is probably wrong.)
+
 ## [0.2.0] - 2022-12-12
 
 #### Added
