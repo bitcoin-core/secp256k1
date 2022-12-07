@@ -824,10 +824,10 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_mul(
 
 /** Randomizes the context to provide enhanced protection against side-channel leakage.
  *
- *  Returns: 1: randomization successful (or called on copy of secp256k1_context_static)
+ *  Returns: 1: randomization successful
  *           0: error
- *  Args:    ctx:       pointer to a context object.
- *  In:      seed32:    pointer to a 32-byte random seed (NULL resets to initial state)
+ *  Args:    ctx:       pointer to a context object (not secp256k1_context_static).
+ *  In:      seed32:    pointer to a 32-byte random seed (NULL resets to initial state).
  *
  * While secp256k1 code is written and tested to be constant-time no matter what
  * secret values are, it is possible that a compiler may output code which is not,
@@ -842,21 +842,17 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_mul(
  * functions that perform computations involving secret keys, e.g., signing and
  * public key generation. It is possible to call this function more than once on
  * the same context, and doing so before every few computations involving secret
- * keys is recommended as a defense-in-depth measure.
+ * keys is recommended as a defense-in-depth measure. Randomization of the static
+ * context secp256k1_context_static is not supported.
  *
  * Currently, the random seed is mainly used for blinding multiplications of a
  * secret scalar with the elliptic curve base point. Multiplications of this
  * kind are performed by exactly those API functions which are documented to
- * require a context that is not the secp256k1_context_static. As a rule of thumb,
+ * require a context that is not secp256k1_context_static. As a rule of thumb,
  * these are all functions which take a secret key (or a keypair) as an input.
  * A notable exception to that rule is the ECDH module, which relies on a different
  * kind of elliptic curve point multiplication and thus does not benefit from
  * enhanced protection against side-channel leakage currently.
- *
- * It is safe to call this function on a copy of secp256k1_context_static in writable
- * memory (e.g., obtained via secp256k1_context_clone). In that case, this
- * function is guaranteed to return 1, but the call will have no effect because
- * the static context (or a copy thereof) is not meant to be randomized.
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_context_randomize(
     secp256k1_context* ctx,

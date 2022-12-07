@@ -247,7 +247,16 @@ static void run_static_context_tests(int use_prealloc) {
 
     {
         int ecount = 0;
+        unsigned char seed[32] = {0x17};
         secp256k1_context_set_illegal_callback(STATIC_CTX, counting_illegal_callback_fn, &ecount);
+
+        /* Randomizing secp256k1_context_static is not supported. */
+        CHECK(secp256k1_context_randomize(STATIC_CTX, seed) == 0);
+        CHECK(ecount == 1);
+        CHECK(secp256k1_context_randomize(STATIC_CTX, NULL) == 0);
+        CHECK(ecount == 2);
+        ecount = 0;
+
         /* Destroying or cloning secp256k1_context_static is not supported. */
         if (use_prealloc) {
             CHECK(secp256k1_context_preallocated_clone_size(STATIC_CTX) == 0);
@@ -286,13 +295,18 @@ static void run_static_context_tests(int use_prealloc) {
 
 static void run_proper_context_tests(int use_prealloc) {
     int32_t dummy = 0;
-    secp256k1_context *my_ctx;
+    secp256k1_context *my_ctx, *my_ctx_fresh;
     void *my_ctx_prealloc = NULL;
+    unsigned char seed[32] = {0x17};
 
     secp256k1_gej pubj;
     secp256k1_ge pub;
     secp256k1_scalar msg, key, nonce;
     secp256k1_scalar sigr, sigs;
+
+    /* Fresh reference context for comparison */
+    my_ctx_fresh = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+
     if (use_prealloc) {
         my_ctx_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
         CHECK(my_ctx_prealloc != NULL);
@@ -300,6 +314,13 @@ static void run_proper_context_tests(int use_prealloc) {
     } else {
         my_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     }
+
+    /* Randomize and reset randomization */
+    CHECK(context_eq(my_ctx, my_ctx_fresh));
+    CHECK(secp256k1_context_randomize(my_ctx, seed) == 1);
+    CHECK(!context_eq(my_ctx, my_ctx_fresh));
+    CHECK(secp256k1_context_randomize(my_ctx, NULL) == 1);
+    CHECK(context_eq(my_ctx, my_ctx_fresh));
 
     /* set error callback (to a function that still aborts in case malloc() fails in secp256k1_context_clone() below) */
     secp256k1_context_set_error_callback(my_ctx, secp256k1_default_illegal_callback_fn, NULL);
@@ -315,16 +336,33 @@ static void run_proper_context_tests(int use_prealloc) {
 
         if (use_prealloc) {
             /* clone into a non-preallocated context and then again into a new preallocated one. */
-            ctx_tmp = my_ctx; my_ctx = secp256k1_context_clone(my_ctx); secp256k1_context_preallocated_destroy(ctx_tmp);
-            free(my_ctx_prealloc); my_ctx_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE)); CHECK(my_ctx_prealloc != NULL);
-            ctx_tmp = my_ctx; my_ctx = secp256k1_context_preallocated_clone(my_ctx, my_ctx_prealloc); secp256k1_context_destroy(ctx_tmp);
+            ctx_tmp = my_ctx;
+            my_ctx = secp256k1_context_clone(my_ctx);
+            CHECK(context_eq(ctx_tmp, my_ctx));
+            secp256k1_context_preallocated_destroy(ctx_tmp);
+
+            free(my_ctx_prealloc);
+            my_ctx_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
+            CHECK(my_ctx_prealloc != NULL);
+            ctx_tmp = my_ctx;
+            my_ctx = secp256k1_context_preallocated_clone(my_ctx, my_ctx_prealloc);
+            CHECK(context_eq(ctx_tmp, my_ctx));
+            secp256k1_context_destroy(ctx_tmp);
         } else {
             /* clone into a preallocated context and then again into a new non-preallocated one. */
             void *prealloc_tmp;
 
-            prealloc_tmp = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE)); CHECK(prealloc_tmp != NULL);
-            ctx_tmp = my_ctx; my_ctx = secp256k1_context_preallocated_clone(my_ctx, prealloc_tmp); secp256k1_context_destroy(ctx_tmp);
-            ctx_tmp = my_ctx; my_ctx = secp256k1_context_clone(my_ctx); secp256k1_context_preallocated_destroy(ctx_tmp);
+            prealloc_tmp = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
+            CHECK(prealloc_tmp != NULL);
+            ctx_tmp = my_ctx;
+            my_ctx = secp256k1_context_preallocated_clone(my_ctx, prealloc_tmp);
+            CHECK(context_eq(ctx_tmp, my_ctx));
+            secp256k1_context_destroy(ctx_tmp);
+
+            ctx_tmp = my_ctx;
+            my_ctx = secp256k1_context_clone(my_ctx);
+            CHECK(context_eq(ctx_tmp, my_ctx));
+            secp256k1_context_preallocated_destroy(ctx_tmp);
             free(prealloc_tmp);
         }
     }
@@ -335,6 +373,7 @@ static void run_proper_context_tests(int use_prealloc) {
     /* And that it resets back to default. */
     secp256k1_context_set_error_callback(my_ctx, NULL, NULL);
     CHECK(my_ctx->error_callback.fn == secp256k1_default_error_callback_fn);
+    CHECK(context_eq(my_ctx, my_ctx_fresh));
 
     /* Verify that setting and resetting illegal callback works */
     secp256k1_context_set_illegal_callback(my_ctx, counting_illegal_callback_fn, &dummy);
@@ -343,6 +382,7 @@ static void run_proper_context_tests(int use_prealloc) {
     secp256k1_context_set_illegal_callback(my_ctx, NULL, NULL);
     CHECK(my_ctx->illegal_callback.fn == secp256k1_default_illegal_callback_fn);
     CHECK(my_ctx->illegal_callback.data == NULL);
+    CHECK(context_eq(my_ctx, my_ctx_fresh));
 
     /*** attempt to use them ***/
     random_scalar_order_test(&msg);
@@ -368,6 +408,7 @@ static void run_proper_context_tests(int use_prealloc) {
     } else {
         secp256k1_context_destroy(my_ctx);
     }
+    secp256k1_context_destroy(my_ctx_fresh);
 
     /* Defined as no-op. */
     secp256k1_context_destroy(NULL);
