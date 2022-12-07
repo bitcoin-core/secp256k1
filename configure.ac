@@ -344,7 +344,7 @@ case $set_ecmult_gen_precision in
 esac
 
 if test x"$enable_valgrind" = x"yes"; then
-  SECP_INCLUDES="$SECP_INCLUDES $VALGRIND_CPPFLAGS"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES $VALGRIND_CPPFLAGS -DVALGRIND"
 fi
 
 # Add -Werror and similar flags passed from the outside (for testing, e.g., in CI).
