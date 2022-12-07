@@ -231,7 +231,8 @@ void run_ec_illegal_argument_tests(void) {
 void run_context_tests(int use_prealloc) {
     int32_t ecount;
     int32_t ecount2;
-    void *ctx_prealloc = NULL;
+    secp256k1_context *my_ctx;
+    void *my_ctx_prealloc = NULL;
 
     secp256k1_gej pubj;
     secp256k1_ge pub;
@@ -242,24 +243,24 @@ void run_context_tests(int use_prealloc) {
     CHECK(secp256k1_context_no_precomp == secp256k1_context_static);
 
     if (use_prealloc) {
-        ctx_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
-        CHECK(ctx_prealloc != NULL);
-        ctx = secp256k1_context_preallocated_create(ctx_prealloc, SECP256K1_CONTEXT_NONE);
+        my_ctx_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
+        CHECK(my_ctx_prealloc != NULL);
+        my_ctx = secp256k1_context_preallocated_create(my_ctx_prealloc, SECP256K1_CONTEXT_NONE);
     } else {
-        ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+        my_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     }
 
     ecount = 0;
     ecount2 = 10;
     secp256k1_context_set_illegal_callback(sttc, counting_illegal_callback_fn, &ecount);
-    secp256k1_context_set_illegal_callback(ctx, counting_illegal_callback_fn, &ecount2);
+    secp256k1_context_set_illegal_callback(my_ctx, counting_illegal_callback_fn, &ecount2);
     /* set error callback (to a function that still aborts in case malloc() fails in secp256k1_context_clone() below) */
-    secp256k1_context_set_error_callback(ctx, secp256k1_default_illegal_callback_fn, NULL);
-    CHECK(ctx->error_callback.fn != sttc->error_callback.fn);
-    CHECK(ctx->error_callback.fn == secp256k1_default_illegal_callback_fn);
+    secp256k1_context_set_error_callback(my_ctx, secp256k1_default_illegal_callback_fn, NULL);
+    CHECK(my_ctx->error_callback.fn != sttc->error_callback.fn);
+    CHECK(my_ctx->error_callback.fn == secp256k1_default_illegal_callback_fn);
 
     /* check if sizes for cloning are consistent */
-    CHECK(secp256k1_context_preallocated_clone_size(ctx) == secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
+    CHECK(secp256k1_context_preallocated_clone_size(my_ctx) == secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
     CHECK(secp256k1_context_preallocated_clone_size(sttc) >= sizeof(secp256k1_context));
 
     /*** clone and destroy all of them to make sure cloning was complete ***/
@@ -268,50 +269,50 @@ void run_context_tests(int use_prealloc) {
 
         if (use_prealloc) {
             /* clone into a non-preallocated context and then again into a new preallocated one. */
-            ctx_tmp = ctx; ctx = secp256k1_context_clone(ctx); secp256k1_context_preallocated_destroy(ctx_tmp);
-            free(ctx_prealloc); ctx_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE)); CHECK(ctx_prealloc != NULL);
-            ctx_tmp = ctx; ctx = secp256k1_context_preallocated_clone(ctx, ctx_prealloc); secp256k1_context_destroy(ctx_tmp);
+            ctx_tmp = my_ctx; my_ctx = secp256k1_context_clone(my_ctx); secp256k1_context_preallocated_destroy(ctx_tmp);
+            free(my_ctx_prealloc); my_ctx_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE)); CHECK(my_ctx_prealloc != NULL);
+            ctx_tmp = my_ctx; my_ctx = secp256k1_context_preallocated_clone(my_ctx, my_ctx_prealloc); secp256k1_context_destroy(ctx_tmp);
         } else {
             /* clone into a preallocated context and then again into a new non-preallocated one. */
             void *prealloc_tmp;
 
             prealloc_tmp = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE)); CHECK(prealloc_tmp != NULL);
-            ctx_tmp = ctx; ctx = secp256k1_context_preallocated_clone(ctx, prealloc_tmp); secp256k1_context_destroy(ctx_tmp);
-            ctx_tmp = ctx; ctx = secp256k1_context_clone(ctx); secp256k1_context_preallocated_destroy(ctx_tmp);
+            ctx_tmp = my_ctx; my_ctx = secp256k1_context_preallocated_clone(my_ctx, prealloc_tmp); secp256k1_context_destroy(ctx_tmp);
+            ctx_tmp = my_ctx; my_ctx = secp256k1_context_clone(my_ctx); secp256k1_context_preallocated_destroy(ctx_tmp);
             free(prealloc_tmp);
         }
     }
 
     /* Verify that the error callback makes it across the clone. */
-    CHECK(ctx->error_callback.fn != sttc->error_callback.fn);
-    CHECK(ctx->error_callback.fn == secp256k1_default_illegal_callback_fn);
+    CHECK(my_ctx->error_callback.fn != sttc->error_callback.fn);
+    CHECK(my_ctx->error_callback.fn == secp256k1_default_illegal_callback_fn);
     /* And that it resets back to default. */
-    secp256k1_context_set_error_callback(ctx, NULL, NULL);
-    CHECK(ctx->error_callback.fn == sttc->error_callback.fn);
+    secp256k1_context_set_error_callback(my_ctx, NULL, NULL);
+    CHECK(my_ctx->error_callback.fn == sttc->error_callback.fn);
 
     /*** attempt to use them ***/
     random_scalar_order_test(&msg);
     random_scalar_order_test(&key);
-    secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pubj, &key);
+    secp256k1_ecmult_gen(&my_ctx->ecmult_gen_ctx, &pubj, &key);
     secp256k1_ge_set_gej(&pub, &pubj);
 
     /* obtain a working nonce */
     do {
         random_scalar_order_test(&nonce);
-    } while(!secp256k1_ecdsa_sig_sign(&ctx->ecmult_gen_ctx, &sigr, &sigs, &key, &msg, &nonce, NULL));
+    } while(!secp256k1_ecdsa_sig_sign(&my_ctx->ecmult_gen_ctx, &sigr, &sigs, &key, &msg, &nonce, NULL));
 
     /* try signing */
-    CHECK(secp256k1_ecdsa_sig_sign(&ctx->ecmult_gen_ctx, &sigr, &sigs, &key, &msg, &nonce, NULL));
+    CHECK(secp256k1_ecdsa_sig_sign(&my_ctx->ecmult_gen_ctx, &sigr, &sigs, &key, &msg, &nonce, NULL));
 
     /* try verifying */
     CHECK(secp256k1_ecdsa_sig_verify(&sigr, &sigs, &pub, &msg));
 
     /* cleanup */
     if (use_prealloc) {
-        secp256k1_context_preallocated_destroy(ctx);
-        free(ctx_prealloc);
+        secp256k1_context_preallocated_destroy(my_ctx);
+        free(my_ctx_prealloc);
     } else {
-        secp256k1_context_destroy(ctx);
+        secp256k1_context_destroy(my_ctx);
     }
     /* Defined as no-op. */
     secp256k1_context_destroy(NULL);
@@ -7360,11 +7361,6 @@ int main(int argc, char **argv) {
     memcpy(sttc, secp256k1_context_static, sizeof(secp256k1_context));
     CHECK(!secp256k1_context_is_proper(sttc));
 
-    run_selftest_tests();
-    run_context_tests(0);
-    run_context_tests(1);
-    run_deprecated_context_flags_test();
-
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     /* Randomize the context only with probability 15/16
        to make sure we test without context randomization from time to time.
@@ -7375,6 +7371,10 @@ int main(int argc, char **argv) {
         CHECK(secp256k1_context_randomize(ctx, rand32));
     }
 
+    run_selftest_tests();
+    run_context_tests(0);
+    run_context_tests(1);
+    run_deprecated_context_flags_test();
     run_scratch_tests();
 
     run_rand_bits();
