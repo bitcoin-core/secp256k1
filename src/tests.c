@@ -158,27 +158,77 @@ int context_eq(const secp256k1_context *a, const secp256k1_context *b) {
             && a->error_callback.data == b->error_callback.data;
 }
 
-void test_deprecated_flags(void) {
+void run_deprecated_context_flags_test(void) {
+    /* Check that a context created with any of the flags in the flags array is
+     * identical to the NONE context. */
     unsigned int flags[] = { SECP256K1_CONTEXT_SIGN,
                              SECP256K1_CONTEXT_VERIFY,
                              SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY };
+    secp256k1_context *none_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     int i;
-    /* Check that a context created with any of the flags in the flags array is
-     * identical to the NONE context. */
     for (i = 0; i < (int)(sizeof(flags)/sizeof(flags[0])); i++) {
         secp256k1_context *tmp_ctx;
         CHECK(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE) == secp256k1_context_preallocated_size(flags[i]));
         tmp_ctx = secp256k1_context_create(flags[i]);
-        CHECK(context_eq(ctx, tmp_ctx));
+        CHECK(context_eq(none_ctx, tmp_ctx));
         secp256k1_context_destroy(tmp_ctx);
     }
+    secp256k1_context_destroy(none_ctx);
 }
 
-void run_context_tests(int use_prealloc) {
+void run_ec_illegal_argument_tests(void) {
+    int ecount = 0;
+    int ecount2 = 10;
     secp256k1_pubkey pubkey;
     secp256k1_pubkey zero_pubkey;
     secp256k1_ecdsa_signature sig;
     unsigned char ctmp[32];
+
+    /* Setup */
+    secp256k1_context_set_illegal_callback(sttc, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_illegal_callback(ctx, counting_illegal_callback_fn, &ecount2);
+    memset(ctmp, 1, 32);
+    memset(&zero_pubkey, 0, sizeof(zero_pubkey));
+
+    /* Verify context-type checking illegal-argument errors. */
+    CHECK(secp256k1_ec_pubkey_create(sttc, &pubkey, ctmp) == 0);
+    CHECK(ecount == 1);
+    VG_UNDEF(&pubkey, sizeof(pubkey));
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, ctmp) == 1);
+    VG_CHECK(&pubkey, sizeof(pubkey));
+    CHECK(secp256k1_ecdsa_sign(sttc, &sig, ctmp, ctmp, NULL, NULL) == 0);
+    CHECK(ecount == 2);
+    VG_UNDEF(&sig, sizeof(sig));
+    CHECK(secp256k1_ecdsa_sign(ctx, &sig, ctmp, ctmp, NULL, NULL) == 1);
+    VG_CHECK(&sig, sizeof(sig));
+    CHECK(ecount2 == 10);
+    CHECK(secp256k1_ecdsa_verify(ctx, &sig, ctmp, &pubkey) == 1);
+    CHECK(ecount2 == 10);
+    CHECK(secp256k1_ecdsa_verify(sttc, &sig, ctmp, &pubkey) == 1);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_ec_pubkey_tweak_add(ctx, &pubkey, ctmp) == 1);
+    CHECK(ecount2 == 10);
+    CHECK(secp256k1_ec_pubkey_tweak_add(sttc, &pubkey, ctmp) == 1);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_ec_pubkey_tweak_mul(ctx, &pubkey, ctmp) == 1);
+    CHECK(ecount2 == 10);
+    CHECK(secp256k1_ec_pubkey_negate(sttc, &pubkey) == 1);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_ec_pubkey_negate(ctx, &pubkey) == 1);
+    CHECK(ecount == 2);
+    CHECK(secp256k1_ec_pubkey_negate(sttc, &zero_pubkey) == 0);
+    CHECK(ecount == 3);
+    CHECK(secp256k1_ec_pubkey_negate(ctx, NULL) == 0);
+    CHECK(ecount2 == 11);
+    CHECK(secp256k1_ec_pubkey_tweak_mul(sttc, &pubkey, ctmp) == 1);
+    CHECK(ecount == 3);
+
+    /* Clean up */
+    secp256k1_context_set_illegal_callback(sttc, NULL, NULL);
+    secp256k1_context_set_illegal_callback(ctx, NULL, NULL);
+}
+
+void run_context_tests(int use_prealloc) {
     int32_t ecount;
     int32_t ecount2;
     void *ctx_prealloc = NULL;
@@ -198,10 +248,6 @@ void run_context_tests(int use_prealloc) {
     } else {
         ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     }
-
-    test_deprecated_flags();
-
-    memset(&zero_pubkey, 0, sizeof(zero_pubkey));
 
     ecount = 0;
     ecount2 = 10;
@@ -248,50 +294,6 @@ void run_context_tests(int use_prealloc) {
     random_scalar_order_test(&key);
     secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pubj, &key);
     secp256k1_ge_set_gej(&pub, &pubj);
-
-    /* Verify context-type checking illegal-argument errors. */
-    memset(ctmp, 1, 32);
-    CHECK(secp256k1_ec_pubkey_create(sttc, &pubkey, ctmp) == 0);
-    CHECK(ecount == 1);
-    VG_UNDEF(&pubkey, sizeof(pubkey));
-    CHECK(secp256k1_ec_pubkey_create(ctx, &pubkey, ctmp) == 1);
-    VG_CHECK(&pubkey, sizeof(pubkey));
-    CHECK(secp256k1_ecdsa_sign(sttc, &sig, ctmp, ctmp, NULL, NULL) == 0);
-    CHECK(ecount == 2);
-    VG_UNDEF(&sig, sizeof(sig));
-    CHECK(secp256k1_ecdsa_sign(ctx, &sig, ctmp, ctmp, NULL, NULL) == 1);
-    VG_CHECK(&sig, sizeof(sig));
-    CHECK(ecount2 == 10);
-    CHECK(secp256k1_ecdsa_verify(ctx, &sig, ctmp, &pubkey) == 1);
-    CHECK(ecount2 == 10);
-    CHECK(secp256k1_ecdsa_verify(sttc, &sig, ctmp, &pubkey) == 1);
-    CHECK(ecount == 2);
-    CHECK(secp256k1_ec_pubkey_tweak_add(ctx, &pubkey, ctmp) == 1);
-    CHECK(ecount2 == 10);
-    CHECK(secp256k1_ec_pubkey_tweak_add(sttc, &pubkey, ctmp) == 1);
-    CHECK(ecount == 2);
-    CHECK(secp256k1_ec_pubkey_tweak_mul(ctx, &pubkey, ctmp) == 1);
-    CHECK(ecount2 == 10);
-    CHECK(secp256k1_ec_pubkey_negate(sttc, &pubkey) == 1);
-    CHECK(ecount == 2);
-    CHECK(secp256k1_ec_pubkey_negate(ctx, &pubkey) == 1);
-    CHECK(ecount == 2);
-    CHECK(secp256k1_ec_pubkey_negate(ctx, NULL) == 0);
-    CHECK(ecount2 == 11);
-    CHECK(secp256k1_ec_pubkey_negate(sttc, &zero_pubkey) == 0);
-    CHECK(ecount == 3);
-    CHECK(secp256k1_ec_pubkey_tweak_mul(sttc, &pubkey, ctmp) == 1);
-    CHECK(ecount == 3);
-    CHECK(secp256k1_context_randomize(sttc, ctmp) == 1);
-    CHECK(ecount == 3);
-    CHECK(secp256k1_context_randomize(sttc, NULL) == 1);
-    CHECK(ecount == 3);
-    CHECK(secp256k1_context_randomize(ctx, ctmp) == 1);
-    CHECK(ecount2 == 11);
-    CHECK(secp256k1_context_randomize(ctx, NULL) == 1);
-    CHECK(ecount2 == 11);
-    secp256k1_context_set_illegal_callback(sttc, NULL, NULL);
-    secp256k1_context_set_illegal_callback(ctx, NULL, NULL);
 
     /* obtain a working nonce */
     do {
@@ -7361,7 +7363,7 @@ int main(int argc, char **argv) {
     run_selftest_tests();
     run_context_tests(0);
     run_context_tests(1);
-    run_scratch_tests();
+    run_deprecated_context_flags_test();
 
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     /* Randomize the context only with probability 15/16
@@ -7372,6 +7374,8 @@ int main(int argc, char **argv) {
         secp256k1_testrand256(rand32);
         CHECK(secp256k1_context_randomize(ctx, rand32));
     }
+
+    run_scratch_tests();
 
     run_rand_bits();
     run_rand_int();
@@ -7435,6 +7439,7 @@ int main(int argc, char **argv) {
 #endif
 
     /* ecdsa tests */
+    run_ec_illegal_argument_tests();
     run_pubkey_comparison();
     run_random_pubkeys();
     run_ecdsa_der_parse();
