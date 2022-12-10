@@ -75,7 +75,7 @@ static int secp256k1_modinv64_mul_cmp_62(const secp256k1_modinv64_signed62 *a, i
 static int secp256k1_modinv64_det_check_pow2(const secp256k1_modinv64_trans2x2 *t, unsigned int n) {
     secp256k1_int128 a;
     secp256k1_i128_det(&a, t->u, t->v, t->q, t->r);
-    return secp256k1_i128_check_pow2(&a, n);
+    return secp256k1_i128_check_pow2(&a, n, 1);
 }
 #endif
 

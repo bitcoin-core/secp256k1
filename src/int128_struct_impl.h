@@ -189,10 +189,11 @@ static SECP256K1_INLINE int secp256k1_i128_eq_var(const secp256k1_int128 *a, con
    return a->hi == b->hi && a->lo == b->lo;
 }
 
-static SECP256K1_INLINE int secp256k1_i128_check_pow2(const secp256k1_int128 *r, unsigned int n) {
-   VERIFY_CHECK(n < 127);
-   return n >= 64 ? r->hi == (uint64_t)1 << (n - 64) && r->lo == 0
-                  : r->hi == 0 && r->lo == (uint64_t)1 << n;
+static SECP256K1_INLINE int secp256k1_i128_check_pow2(const secp256k1_int128 *r, unsigned int n, int sign) {
+    VERIFY_CHECK(n < 127);
+    VERIFY_CHECK(sign == 1 || sign == -1);
+    return n >= 64 ? r->hi == (uint64_t)sign << (n - 64) && r->lo == 0
+                   : r->hi == (uint64_t)((sign - 1) >> 1) && r->lo == (uint64_t)sign << n;
 }
 
 #endif

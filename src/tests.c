@@ -2022,30 +2022,56 @@ static void run_int128_test_case(void) {
         }
         CHECK(secp256k1_i128_eq_var(&swa, &swz) == expect);
     }
-    /* test secp256k1_i128_check_pow2 */
+    /* test secp256k1_i128_check_pow2 (sign == 1) */
     {
         int expect = (uc & 1);
         int pos = ub % 127;
         if (expect) {
-            /* If expect==1, set swz to exactly (2 << pos). */
+            /* If expect==1, set swz to exactly 2^pos. */
             uint64_t hi = 0;
             uint64_t lo = 0;
-            if (pos & 64) {
+            if (pos >= 64) {
                 hi = (((uint64_t)1) << (pos & 63));
             } else {
                 lo = (((uint64_t)1) << (pos & 63));
             }
             secp256k1_i128_load(&swz, hi, lo);
         } else {
-            /* If expect==0, set swz = swa, but update expect=1 if swa happens to equal (2 << pos). */
-            if (pos & 64) {
+            /* If expect==0, set swz = swa, but update expect=1 if swa happens to equal 2^pos. */
+            if (pos >= 64) {
                 if ((v[1] == (((uint64_t)1) << (pos & 63))) && v[0] == 0) expect = 1;
             } else {
                 if ((v[0] == (((uint64_t)1) << (pos & 63))) && v[1] == 0) expect = 1;
             }
             swz = swa;
         }
-        CHECK(secp256k1_i128_check_pow2(&swz, pos) == expect);
+        CHECK(secp256k1_i128_check_pow2(&swz, pos, 1) == expect);
+    }
+    /* test secp256k1_i128_check_pow2 (sign == -1) */
+    {
+        int expect = (uc & 1);
+        int pos = ub % 127;
+        if (expect) {
+            /* If expect==1, set swz to exactly -2^pos. */
+            uint64_t hi = ~(uint64_t)0;
+            uint64_t lo = ~(uint64_t)0;
+            if (pos >= 64) {
+                hi <<= (pos & 63);
+                lo = 0;
+            } else {
+                lo <<= (pos & 63);
+            }
+            secp256k1_i128_load(&swz, hi, lo);
+        } else {
+            /* If expect==0, set swz = swa, but update expect=1 if swa happens to equal -2^pos. */
+            if (pos >= 64) {
+                if ((v[1] == ((~(uint64_t)0) << (pos & 63))) && v[0] == 0) expect = 1;
+            } else {
+                if ((v[0] == ((~(uint64_t)0) << (pos & 63))) && v[1] == ~(uint64_t)0) expect = 1;
+            }
+            swz = swa;
+        }
+        CHECK(secp256k1_i128_check_pow2(&swz, pos, -1) == expect);
     }
 }
 

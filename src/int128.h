@@ -80,10 +80,10 @@ static SECP256K1_INLINE void secp256k1_i128_from_i64(secp256k1_int128 *r, int64_
 /* Compare two 128-bit values for equality. */
 static SECP256K1_INLINE int secp256k1_i128_eq_var(const secp256k1_int128 *a, const secp256k1_int128 *b);
 
-/* Tests if r is equal to 2^n.
+/* Tests if r is equal to sign*2^n (sign must be 1 or -1).
  * n must be strictly less than 127.
  */
-static SECP256K1_INLINE int secp256k1_i128_check_pow2(const secp256k1_int128 *r, unsigned int n);
+static SECP256K1_INLINE int secp256k1_i128_check_pow2(const secp256k1_int128 *r, unsigned int n, int sign);
 
 #endif
 
