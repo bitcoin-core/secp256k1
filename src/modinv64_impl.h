@@ -71,11 +71,13 @@ static int secp256k1_modinv64_mul_cmp_62(const secp256k1_modinv64_signed62 *a, i
     return 0;
 }
 
-/* Check if the determinant of t is equal to 1 << n. */
-static int secp256k1_modinv64_det_check_pow2(const secp256k1_modinv64_trans2x2 *t, unsigned int n) {
+/* Check if the determinant of t is equal to 1 << n. If abs, check if |det t| == 1 << n. */
+static int secp256k1_modinv64_det_check_pow2(const secp256k1_modinv64_trans2x2 *t, unsigned int n, int abs) {
     secp256k1_int128 a;
     secp256k1_i128_det(&a, t->u, t->v, t->q, t->r);
-    return secp256k1_i128_check_pow2(&a, n, 1);
+    if (secp256k1_i128_check_pow2(&a, n, 1)) return 1;
+    if (abs && secp256k1_i128_check_pow2(&a, n, -1)) return 1;
+    return 0;
 }
 #endif
 
@@ -218,7 +220,7 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
      * aggregate of 59 of them will have determinant 2^59. Multiplying with the initial
      * 8*identity (which has determinant 2^6) means the overall outputs has determinant
      * 2^65. */
-    VERIFY_CHECK(secp256k1_modinv64_det_check_pow2(t, 65));
+    VERIFY_CHECK(secp256k1_modinv64_det_check_pow2(t, 65, 0));
 #endif
     return zeta;
 }
@@ -301,7 +303,7 @@ static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint
      * does not change the gcd of f and g, apart from adding a power-of-2 factor to it (which
      * will be divided out again). As each divstep's individual matrix has determinant 2, the
      * aggregate of 62 of them will have determinant 2^62. */
-    VERIFY_CHECK(secp256k1_modinv64_det_check_pow2(t, 62));
+    VERIFY_CHECK(secp256k1_modinv64_det_check_pow2(t, 62, 0));
 #endif
     return eta;
 }
