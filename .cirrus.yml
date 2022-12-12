@@ -27,9 +27,9 @@ env:
   EXAMPLES: yes
 
 # https://cirrus-ci.org/pricing/#compute-credits
-# Only use credits for pull requests to the main repo
 credits_snippet: &CREDITS
-  use_compute_credits: $CIRRUS_REPO_FULL_NAME == 'bitcoin-core/secp256k1' && $CIRRUS_PR != ""
+  # Don't use any credits for now.
+  use_compute_credits: false
 
 cat_logs_snippet: &CAT_LOGS
   always:
