@@ -216,7 +216,15 @@ maintainer-clean-local: clean-precomp
 clean-precomp:
 	rm -f $(PRECOMP)
 
-EXTRA_DIST = autogen.sh SECURITY.md
+EXTRA_DIST = autogen.sh CHANGELOG.md SECURITY.md
+EXTRA_DIST += doc/release-process.md doc/safegcd_implementation.md
+EXTRA_DIST += examples/EXAMPLES_COPYING
+EXTRA_DIST += sage/gen_exhaustive_groups.sage
+EXTRA_DIST += sage/gen_split_lambda_constants.sage
+EXTRA_DIST += sage/group_prover.sage
+EXTRA_DIST += sage/prove_group_implementations.sage
+EXTRA_DIST += sage/secp256k1_params.sage
+EXTRA_DIST += sage/weierstrass_prover.sage
 
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include
