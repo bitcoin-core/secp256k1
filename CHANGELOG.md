@@ -9,21 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] - 2022-12-12
 
-### Added
+#### Added
  - Added usage examples for common use cases in a new `examples/` directory.
  - Added `secp256k1_selftest`, to be used in conjunction with `secp256k1_context_static`.
  - Added support for 128-bit wide multiplication on MSVC for x86_64 and arm64, giving roughly a 20% speedup on those platforms.
 
-### Changed
+#### Changed
  - Enabled modules schnorrsig, extrakeys and ECDH by default in `./configure`.
  - The `secp256k1_nonce_function_rfc6979` nonce function, used by default by `secp256k1_ecdsa_sign`, now reduces the message hash modulo the group order to match the specification. This only affects improper use of ECDSA signing API.
 
-### Deprecated
+#### Deprecated
  - Deprecated context flags `SECP256K1_CONTEXT_VERIFY` and `SECP256K1_CONTEXT_SIGN`. Use `SECP256K1_CONTEXT_NONE` instead.
  - Renamed `secp256k1_context_no_precomp` to `secp256k1_context_static`.
  - Renamed `secp256k1_schnorrsig_sign` to `secp256k1_schnorrsig_sign32`.
 
-### ABI Compatibility
+#### ABI Compatibility
 
 Since this is the first release, we do not compare application binary interfaces.
 However, there are unreleased versions of libsecp256k1 that are *not* ABI compatible with this version.
