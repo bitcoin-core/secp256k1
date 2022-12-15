@@ -18,10 +18,6 @@
  *    imply normality.
  */
 
-#if defined HAVE_CONFIG_H
-#include "libsecp256k1-config.h"
-#endif
-
 #include "util.h"
 
 #if defined(SECP256K1_WIDEMUL_INT128)
