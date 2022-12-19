@@ -1,7 +1,6 @@
 #!/bin/sh
 
-set -e
-set -x
+set -eux
 
 export LC_ALL=C
 
@@ -11,14 +10,20 @@ print_environment() {
     set +x
     # There are many ways to print variable names and their content. This one
     # does not rely on bash.
-    for i in WERROR_CFLAGS MAKEFLAGS BUILD \
+    for var in WERROR_CFLAGS MAKEFLAGS BUILD \
             ECMULTWINDOW ECMULTGENPRECISION ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
             EXPERIMENTAL ECDH RECOVERY SCHNORRSIG \
             SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETEST\
             EXAMPLES \
-            WRAPPER_CMD CC AR NM HOST
+            HOST WRAPPER_CMD \
+            CC CFLAGS CPPFLAGS AR NM
     do
-        eval 'printf "%s %s " "$i=\"${'"$i"'}\""'
+        eval "isset=\${$var+x}"
+        if [ -n "$isset" ]; then
+            eval "val=\${$var}"
+            # shellcheck disable=SC2154
+            printf '%s="%s" ' "$var" "$val"
+        fi
     done
     echo "$0"
     set -x
@@ -36,7 +41,7 @@ esac
 
 env >> test_env.log
 
-if [ -n "$CC" ]; then
+if [ -n "${CC+x}" ]; then
     # The MSVC compiler "cl" doesn't understand "-v"
     $CC -v || true
 fi
