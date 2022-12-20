@@ -15,13 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Added support for 128-bit wide multiplication on MSVC for x86_64 and arm64, giving roughly a 20% speedup on those platforms.
 
 #### Changed
- - Enabled modules schnorrsig, extrakeys and ECDH by default in `./configure`.
+ - Enabled modules `schnorrsig`, `extrakeys` and `ecdh` by default in `./configure`.
  - The `secp256k1_nonce_function_rfc6979` nonce function, used by default by `secp256k1_ecdsa_sign`, now reduces the message hash modulo the group order to match the specification. This only affects improper use of ECDSA signing API.
 
 #### Deprecated
  - Deprecated context flags `SECP256K1_CONTEXT_VERIFY` and `SECP256K1_CONTEXT_SIGN`. Use `SECP256K1_CONTEXT_NONE` instead.
  - Renamed `secp256k1_context_no_precomp` to `secp256k1_context_static`.
- - Renamed `secp256k1_schnorrsig_sign` to `secp256k1_schnorrsig_sign32`.
+ - Module `schnorrsig`: renamed `secp256k1_schnorrsig_sign` to `secp256k1_schnorrsig_sign32`.
 
 #### ABI Compatibility
 
