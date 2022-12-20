@@ -13,7 +13,7 @@ print_environment() {
     for var in WERROR_CFLAGS MAKEFLAGS BUILD \
             ECMULTWINDOW ECMULTGENPRECISION ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
             EXPERIMENTAL ECDH RECOVERY SCHNORRSIG \
-            SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETEST\
+            SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS\
             EXAMPLES \
             HOST WRAPPER_CMD \
             CC CFLAGS CPPFLAGS AR NM
@@ -62,7 +62,7 @@ fi
     --enable-module-ecdh="$ECDH" --enable-module-recovery="$RECOVERY" \
     --enable-module-schnorrsig="$SCHNORRSIG" \
     --enable-examples="$EXAMPLES" \
-    --enable-ctime-tests="$CTIMETEST" \
+    --enable-ctime-tests="$CTIMETESTS" \
     --with-valgrind="$WITH_VALGRIND" \
     --host="$HOST" $EXTRAFLAGS
 
@@ -95,7 +95,7 @@ then
     } >> bench.log 2>&1
 fi
 
-if [ "$CTIMETEST" = "yes" ]
+if [ "$CTIMETESTS" = "yes" ]
 then
     if [ "$WITH_VALGRIND" = "yes" ]; then
         ./libtool --mode=execute valgrind --error-exitcode=42 ./ctime_tests > ctime_tests.log 2>&1
