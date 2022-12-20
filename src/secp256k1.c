@@ -99,6 +99,12 @@ size_t secp256k1_context_preallocated_size(unsigned int flags) {
             return 0;
     }
 
+    if (EXPECT(!SECP256K1_CHECKMEM_RUNNING() && (flags & SECP256K1_FLAGS_BIT_CONTEXT_DECLASSIFY), 0)) {
+            secp256k1_callback_call(&default_illegal_callback,
+                                    "Declassify flag requires running with memory checking");
+            return 0;
+    }
+
     return ret;
 }
 
