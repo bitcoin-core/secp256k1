@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### ABI Compatibility
 
 Since this is the first release, we do not compare application binary interfaces.
-However, there are unreleased versions of libsecp256k1 that are *not* ABI compatible with this version.
+However, there are earlier unreleased versions of libsecp256k1 that are *not* ABI compatible with this version.
 
 ## [0.1.0] - 2013-03-05 to 2021-12-25
 
