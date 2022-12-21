@@ -66,7 +66,12 @@ static SECP256K1_INLINE void secp256k1_i128_det(secp256k1_int128 *r, int64_t a, 
  */
 static SECP256K1_INLINE void secp256k1_i128_rshift(secp256k1_int128 *r, unsigned int b);
 
-/* Return the low 64-bits of a 128-bit value interpreted as an signed 64-bit value. */
+/* Return the input value modulo 2^64. */
+static SECP256K1_INLINE uint64_t secp256k1_i128_to_u64(const secp256k1_int128 *a);
+
+/* Return the value as a signed 64-bit value.
+ * Requires the input to be between INT64_MIN and INT64_MAX.
+ */
 static SECP256K1_INLINE int64_t secp256k1_i128_to_i64(const secp256k1_int128 *a);
 
 /* Write a signed 64-bit value to r. */

@@ -1781,7 +1781,7 @@ void load256i128(uint16_t* out, const secp256k1_int128* v) {
     uint64_t lo;
     int64_t hi;
     secp256k1_int128 c = *v;
-    lo = secp256k1_i128_to_i64(&c);
+    lo = secp256k1_i128_to_u64(&c);
     secp256k1_i128_rshift(&c, 64);
     hi = secp256k1_i128_to_i64(&c);
     load256two64(out, hi, lo, 1);
@@ -1898,12 +1898,14 @@ void run_int128_test_case(void) {
     secp256k1_i128_rshift(&swz, uc % 127);
     load256i128(rswz, &swz);
     CHECK(secp256k1_memcmp_var(rswr, rswz, 16) == 0);
-    /* test secp256k1_i128_to_i64 */
-    CHECK((uint64_t)secp256k1_i128_to_i64(&swa) == v[0]);
+    /* test secp256k1_i128_to_u64 */
+    CHECK(secp256k1_i128_to_u64(&swa) == v[0]);
     /* test secp256k1_i128_from_i64 */
     secp256k1_i128_from_i64(&swz, sb);
     load256i128(rswz, &swz);
     CHECK(secp256k1_memcmp_var(rsb, rswz, 16) == 0);
+    /* test secp256k1_i128_to_i64 */
+    CHECK(secp256k1_i128_to_i64(&swz) == sb);
     /* test secp256k1_i128_eq_var */
     {
         int expect = (uc & 1);
@@ -1963,20 +1965,20 @@ void run_int128_tests(void) {
         /* Compute INT128_MAX = 2^127 - 1 with secp256k1_i128_accum_mul */
         secp256k1_i128_mul(&res, INT64_MAX, INT64_MAX);
         secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MAX);
-        CHECK(secp256k1_i128_to_i64(&res) == 2);
+        CHECK(secp256k1_i128_to_u64(&res) == 2);
         secp256k1_i128_accum_mul(&res, 4, 9223372036854775807);
         secp256k1_i128_accum_mul(&res, 1, 1);
-        CHECK((uint64_t)secp256k1_i128_to_i64(&res) == UINT64_MAX);
+        CHECK(secp256k1_i128_to_u64(&res) == UINT64_MAX);
         secp256k1_i128_rshift(&res, 64);
         CHECK(secp256k1_i128_to_i64(&res) == INT64_MAX);
 
         /* Compute INT128_MIN = - 2^127 with secp256k1_i128_accum_mul */
         secp256k1_i128_mul(&res, INT64_MAX, INT64_MIN);
-        CHECK(secp256k1_i128_to_i64(&res) == INT64_MIN);
+        CHECK(secp256k1_i128_to_u64(&res) == (uint64_t)INT64_MIN);
         secp256k1_i128_accum_mul(&res, INT64_MAX, INT64_MIN);
-        CHECK(secp256k1_i128_to_i64(&res) == 0);
+        CHECK(secp256k1_i128_to_u64(&res) == 0);
         secp256k1_i128_accum_mul(&res, 2, INT64_MIN);
-        CHECK(secp256k1_i128_to_i64(&res) == 0);
+        CHECK(secp256k1_i128_to_u64(&res) == 0);
         secp256k1_i128_rshift(&res, 64);
         CHECK(secp256k1_i128_to_i64(&res) == INT64_MIN);
     }
