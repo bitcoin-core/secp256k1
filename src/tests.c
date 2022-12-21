@@ -152,8 +152,7 @@ int context_eq(const secp256k1_context *a, const secp256k1_context *b) {
     return a->declassify == b->declassify
             && ecmult_gen_context_eq(&a->ecmult_gen_ctx, &b->ecmult_gen_ctx)
             && a->illegal_callback.fn == b->illegal_callback.fn
-            && a->illegal_callback.data == b->illegal_callback.
-data
+            && a->illegal_callback.data == b->illegal_callback.data
             && a->error_callback.fn == b->error_callback.fn
             && a->error_callback.data == b->error_callback.data;
 }

@@ -51,9 +51,10 @@
     } \
 } while(0)
 
-#define ARG_CHECK_NO_RETURN(cond) do { \
+#define ARG_CHECK_VOID(cond) do { \
     if (EXPECT(!(cond), 0)) { \
         secp256k1_callback_call(&ctx->illegal_callback, #cond); \
+        return; \
     } \
 } while(0)
 
@@ -74,6 +75,15 @@ static const secp256k1_context secp256k1_context_static_ = {
 };
 const secp256k1_context *secp256k1_context_static = &secp256k1_context_static_;
 const secp256k1_context *secp256k1_context_no_precomp = &secp256k1_context_static_;
+
+/* Helper function that determines if a context is proper, i.e., is not the static context or a copy thereof.
+ *
+ * This is intended for "context" functions such as secp256k1_context_clone. Function which need specific
+ * features of a context should still check for these features directly. For example, a function that needs
+ * ecmult_gen should directly check for the existence of the ecmult_gen context. */
+static int secp256k1_context_is_proper(const secp256k1_context* ctx) {
+    return secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx);
+}
 
 void secp256k1_selftest(void) {
     if (!secp256k1_selftest_passes()) {
@@ -157,7 +167,7 @@ secp256k1_context* secp256k1_context_clone(const secp256k1_context* ctx) {
 }
 
 void secp256k1_context_preallocated_destroy(secp256k1_context* ctx) {
-    ARG_CHECK_NO_RETURN(ctx != secp256k1_context_static);
+    ARG_CHECK_VOID(ctx != secp256k1_context_static);
     if (ctx != NULL) {
         secp256k1_ecmult_gen_context_clear(&ctx->ecmult_gen_ctx);
     }
@@ -171,7 +181,10 @@ void secp256k1_context_destroy(secp256k1_context* ctx) {
 }
 
 void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
-    ARG_CHECK_NO_RETURN(ctx != secp256k1_context_static);
+    /* We compare pointers instead of checking secp256k1_context_is_proper() here
+       because setting callbacks is allowed on *copies* of the static context:
+       it's harmless and makes testing easier. */
+    ARG_CHECK_VOID(ctx != secp256k1_context_static);
     if (fun == NULL) {
         fun = secp256k1_default_illegal_callback_fn;
     }
@@ -180,7 +193,10 @@ void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(
 }
 
 void secp256k1_context_set_error_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
-    ARG_CHECK_NO_RETURN(ctx != secp256k1_context_static);
+    /* We compare pointers instead of checking secp256k1_context_is_proper() here
+       because setting callbacks is allowed on *copies* of the static context:
+       it's harmless and makes testing easier. */
+    ARG_CHECK_VOID(ctx != secp256k1_context_static);
     if (fun == NULL) {
         fun = secp256k1_default_error_callback_fn;
     }

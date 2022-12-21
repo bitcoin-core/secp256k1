@@ -849,7 +849,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_mul(
  * kind of elliptic curve point multiplication and thus does not benefit from
  * enhanced protection against side-channel leakage currently.
  *
- * It is safe call this function on a copy of secp256k1_context_static in writable
+ * It is safe to call this function on a copy of secp256k1_context_static in writable
  * memory (e.g., obtained via secp256k1_context_clone). In that case, this
  * function is guaranteed to return 1, but the call will have no effect because
  * the static context (or a copy thereof) is not meant to be randomized.
