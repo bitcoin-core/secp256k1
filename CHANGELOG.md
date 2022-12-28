@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Changed
+ - The implementation of the point multiplication algorithm used for signing and public key generation was changed, resulting in improved performance for those operations.
+   - The related configure option `--ecmult-gen-precision` was replaced with `--ecmult-gen-kb` (`ECMULT_GEN_KB` for CMake).
+   - This changes the supported precomputed table sizes for these operations. The new supported sizes are 2 KiB, 22 KiB, or 86 KiB (while the old supported sizes were 32 KiB, 64 KiB, or 512 KiB).
+
 ## [0.4.1] - 2023-12-21
 
 #### Changed
