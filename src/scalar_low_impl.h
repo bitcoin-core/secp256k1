@@ -205,4 +205,12 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     secp256k1_scalar_verify(r);
 }
 
+static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    secp256k1_scalar_verify(a);
+
+    *r = (*a + ((-(uint32_t)(*a & 1)) & EXHAUSTIVE_TEST_ORDER)) >> 1;
+
+    secp256k1_scalar_verify(r);
+}
+
 #endif /* SECP256K1_SCALAR_REPR_IMPL_H */

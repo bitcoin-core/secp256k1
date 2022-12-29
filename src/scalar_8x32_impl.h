@@ -245,6 +245,55 @@ static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar 
     secp256k1_scalar_verify(r);
 }
 
+static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    /* Writing `/` for field division and `//` for integer division, we compute
+     *
+     *   a/2 = (a - (a&1))/2 + (a&1)/2
+     *       = (a >> 1) + (a&1 ?    1/2 : 0)
+     *       = (a >> 1) + (a&1 ? n//2+1 : 0),
+     *
+     * where n is the group order and in the last equality we have used 1/2 = n//2+1 (mod n).
+     * For n//2, we have the constants SECP256K1_N_H_0, ...
+     *
+     * This sum does not overflow. The most extreme case is a = -2, the largest odd scalar. Here:
+     * - the left summand is:  a >> 1 = (a - a&1)/2 = (n-2-1)//2           = (n-3)//2
+     * - the right summand is: a&1 ? n//2+1 : 0 = n//2+1 = (n-1)//2 + 2//2 = (n+1)//2
+     * Together they sum to (n-3)//2 + (n+1)//2 = (2n-2)//2 = n - 1, which is less than n.
+     */
+    uint32_t mask = -(uint32_t)(a->d[0] & 1U);
+    uint64_t t = (uint32_t)((a->d[0] >> 1) | (a->d[1] << 31));
+    secp256k1_scalar_verify(a);
+
+    t += (SECP256K1_N_H_0 + 1U) & mask;
+    r->d[0] = t; t >>= 32;
+    t += (uint32_t)((a->d[1] >> 1) | (a->d[2] << 31));
+    t += SECP256K1_N_H_1 & mask;
+    r->d[1] = t; t >>= 32;
+    t += (uint32_t)((a->d[2] >> 1) | (a->d[3] << 31));
+    t += SECP256K1_N_H_2 & mask;
+    r->d[2] = t; t >>= 32;
+    t += (uint32_t)((a->d[3] >> 1) | (a->d[4] << 31));
+    t += SECP256K1_N_H_3 & mask;
+    r->d[3] = t; t >>= 32;
+    t += (uint32_t)((a->d[4] >> 1) | (a->d[5] << 31));
+    t += SECP256K1_N_H_4 & mask;
+    r->d[4] = t; t >>= 32;
+    t += (uint32_t)((a->d[5] >> 1) | (a->d[6] << 31));
+    t += SECP256K1_N_H_5 & mask;
+    r->d[5] = t; t >>= 32;
+    t += (uint32_t)((a->d[6] >> 1) | (a->d[7] << 31));
+    t += SECP256K1_N_H_6 & mask;
+    r->d[6] = t; t >>= 32;
+    r->d[7] = (uint32_t)t + (uint32_t)(a->d[7] >> 1) + (SECP256K1_N_H_7 & mask);
+#ifdef VERIFY
+    /* The line above only computed the bottom 32 bits of r->d[7]. Redo the computation
+     * in full 64 bits to make sure the top 32 bits are indeed zero. */
+    VERIFY_CHECK((t + (a->d[7] >> 1) + (SECP256K1_N_H_7 & mask)) >> 32 == 0);
+
+    secp256k1_scalar_verify(r);
+#endif
+}
+
 SECP256K1_INLINE static int secp256k1_scalar_is_one(const secp256k1_scalar *a) {
     secp256k1_scalar_verify(a);
 

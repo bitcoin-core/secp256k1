@@ -67,6 +67,9 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
 /** Compute the complement of a scalar (modulo the group order). */
 static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar *a);
 
+/** Multiply a scalar with the multiplicative inverse of 2. */
+static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a);
+
 /** Check whether a scalar equals zero. */
 static int secp256k1_scalar_is_zero(const secp256k1_scalar *a);
 

@@ -2285,6 +2285,13 @@ static void scalar_test(void) {
         CHECK(secp256k1_scalar_eq(&r1, &secp256k1_scalar_zero));
     }
 
+    {
+        /* Test halving. */
+        secp256k1_scalar r;
+        secp256k1_scalar_add(&r, &s, &s);
+        secp256k1_scalar_half(&r, &r);
+        CHECK(secp256k1_scalar_eq(&r, &s));
+    }
 }
 
 static void run_scalar_set_b32_seckey_tests(void) {
@@ -2335,6 +2342,38 @@ static void run_scalar_tests(void) {
         CHECK(secp256k1_scalar_is_zero(&o));
         secp256k1_scalar_negate(&o, &o);
         CHECK(secp256k1_scalar_is_zero(&o));
+    }
+
+    {
+        /* Test that halving and doubling roundtrips on some fixed values. */
+        static const secp256k1_scalar HALF_TESTS[] = {
+            /* 0 */
+            SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0),
+            /* 1 */
+            SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1),
+            /* -1 */
+            SECP256K1_SCALAR_CONST(0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffeul, 0xbaaedce6ul, 0xaf48a03bul, 0xbfd25e8cul, 0xd0364140ul),
+            /* -2 (largest odd value) */
+            SECP256K1_SCALAR_CONST(0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffeul, 0xbaaedce6ul, 0xaf48a03bul, 0xbfd25e8cul, 0xd036413Ful),
+            /* Half the secp256k1 order */
+            SECP256K1_SCALAR_CONST(0x7ffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0x5d576e73ul, 0x57a4501dul, 0xdfe92f46ul, 0x681b20a0ul),
+            /* Half the secp256k1 order + 1 */
+            SECP256K1_SCALAR_CONST(0x7ffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0x5d576e73ul, 0x57a4501dul, 0xdfe92f46ul, 0x681b20a1ul),
+            /* 2^255 */
+            SECP256K1_SCALAR_CONST(0x80000000ul, 0, 0, 0, 0, 0, 0, 0),
+            /* 2^255 - 1 */
+            SECP256K1_SCALAR_CONST(0x7ffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful),
+        };
+        unsigned n;
+        for (n = 0; n < sizeof(HALF_TESTS) / sizeof(HALF_TESTS[0]); ++n) {
+            secp256k1_scalar s;
+            secp256k1_scalar_half(&s, &HALF_TESTS[n]);
+            secp256k1_scalar_add(&s, &s, &s);
+            CHECK(secp256k1_scalar_eq(&s, &HALF_TESTS[n]));
+            secp256k1_scalar_add(&s, &s, &s);
+            secp256k1_scalar_half(&s, &s);
+            CHECK(secp256k1_scalar_eq(&s, &HALF_TESTS[n]));
+        }
     }
 
     {

@@ -98,6 +98,18 @@ static void bench_scalar_negate(void* arg, int iters) {
     }
 }
 
+static void bench_scalar_half(void* arg, int iters) {
+    int i;
+    bench_inv *data = (bench_inv*)arg;
+    secp256k1_scalar s = data->scalar[0];
+
+    for (i = 0; i < iters; i++) {
+        secp256k1_scalar_half(&s, &s);
+    }
+
+    data->scalar[0] = s;
+}
+
 static void bench_scalar_mul(void* arg, int iters) {
     int i;
     bench_inv *data = (bench_inv*)arg;
@@ -370,6 +382,7 @@ int main(int argc, char **argv) {
     int d = argc == 1; /* default */
     print_output_table_header_row();
 
+    if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "half")) run_benchmark("scalar_half", bench_scalar_half, bench_setup, NULL, &data, 10, iters*100);
     if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "add")) run_benchmark("scalar_add", bench_scalar_add, bench_setup, NULL, &data, 10, iters*100);
     if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "negate")) run_benchmark("scalar_negate", bench_scalar_negate, bench_setup, NULL, &data, 10, iters*100);
     if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "mul")) run_benchmark("scalar_mul", bench_scalar_mul, bench_setup, NULL, &data, 10, iters*10);
