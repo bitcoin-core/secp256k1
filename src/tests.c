@@ -4338,9 +4338,9 @@ static void test_ecmult_target(const secp256k1_scalar* target, int mode) {
         secp256k1_ecmult(&p2j, &pj, &n2, &zero);
         secp256k1_ecmult(&ptj, &pj, target, &zero);
     } else {
-        secp256k1_ecmult_const(&p1j, &p, &n1, 256);
-        secp256k1_ecmult_const(&p2j, &p, &n2, 256);
-        secp256k1_ecmult_const(&ptj, &p, target, 256);
+        secp256k1_ecmult_const(&p1j, &p, &n1);
+        secp256k1_ecmult_const(&p2j, &p, &n2);
+        secp256k1_ecmult_const(&ptj, &p, target);
     }
 
     /* Add them all up: n1*P + n2*P + target*P = (n1+n2+target)*P = (n1+n1-n1-n2)*P = 0. */
@@ -4403,7 +4403,7 @@ static void ecmult_const_random_mult(void) {
         0xb84e4e1b, 0xfb77e21f, 0x96baae2a, 0x63dec956
     );
     secp256k1_gej b;
-    secp256k1_ecmult_const(&b, &a, &xn, 256);
+    secp256k1_ecmult_const(&b, &a, &xn);
 
     CHECK(secp256k1_ge_is_valid_var(&a));
     ge_equals_gej(&expected_b, &b);
@@ -4419,12 +4419,12 @@ static void ecmult_const_commutativity(void) {
     random_scalar_order_test(&a);
     random_scalar_order_test(&b);
 
-    secp256k1_ecmult_const(&res1, &secp256k1_ge_const_g, &a, 256);
-    secp256k1_ecmult_const(&res2, &secp256k1_ge_const_g, &b, 256);
+    secp256k1_ecmult_const(&res1, &secp256k1_ge_const_g, &a);
+    secp256k1_ecmult_const(&res2, &secp256k1_ge_const_g, &b);
     secp256k1_ge_set_gej(&mid1, &res1);
     secp256k1_ge_set_gej(&mid2, &res2);
-    secp256k1_ecmult_const(&res1, &mid1, &b, 256);
-    secp256k1_ecmult_const(&res2, &mid2, &a, 256);
+    secp256k1_ecmult_const(&res1, &mid1, &b);
+    secp256k1_ecmult_const(&res2, &mid2, &a);
     secp256k1_ge_set_gej(&mid1, &res1);
     secp256k1_ge_set_gej(&mid2, &res2);
     ge_equals_ge(&mid1, &mid2);
@@ -4440,13 +4440,13 @@ static void ecmult_const_mult_zero_one(void) {
     secp256k1_scalar_negate(&negone, &one);
 
     random_group_element_test(&point);
-    secp256k1_ecmult_const(&res1, &point, &zero, 3);
+    secp256k1_ecmult_const(&res1, &point, &zero);
     secp256k1_ge_set_gej(&res2, &res1);
     CHECK(secp256k1_ge_is_infinity(&res2));
-    secp256k1_ecmult_const(&res1, &point, &one, 2);
+    secp256k1_ecmult_const(&res1, &point, &one);
     secp256k1_ge_set_gej(&res2, &res1);
     ge_equals_ge(&res2, &point);
-    secp256k1_ecmult_const(&res1, &point, &negone, 256);
+    secp256k1_ecmult_const(&res1, &point, &negone);
     secp256k1_gej_neg(&res1, &res1);
     secp256k1_ge_set_gej(&res2, &res1);
     ge_equals_ge(&res2, &point);
@@ -4476,7 +4476,7 @@ static void ecmult_const_mult_xonly(void) {
             n = base.x;
         }
         /* Perform x-only multiplication. */
-        res = secp256k1_ecmult_const_xonly(&resx, &n, (i & 1) ? &d : NULL, &q, 256, i & 2);
+        res = secp256k1_ecmult_const_xonly(&resx, &n, (i & 1) ? &d : NULL, &q, i & 2);
         CHECK(res);
         /* Perform normal multiplication. */
         secp256k1_gej_set_ge(&basej, &base);
@@ -4509,7 +4509,7 @@ static void ecmult_const_mult_xonly(void) {
         } else {
             n = x;
         }
-        res = secp256k1_ecmult_const_xonly(&r, &n, (i & 1) ? &d : NULL, &q, 256, 0);
+        res = secp256k1_ecmult_const_xonly(&r, &n, (i & 1) ? &d : NULL, &q, 0);
         CHECK(res == 0);
     }
 }
@@ -4534,7 +4534,7 @@ static void ecmult_const_chain_multiply(void) {
     for (i = 0; i < 100; ++i) {
         secp256k1_ge tmp;
         secp256k1_ge_set_gej(&tmp, &point);
-        secp256k1_ecmult_const(&point, &tmp, &scalar, 256);
+        secp256k1_ecmult_const(&point, &tmp, &scalar);
     }
     secp256k1_ge_set_gej(&res, &point);
     ge_equals_gej(&res, &expected_point);
@@ -5432,7 +5432,7 @@ static void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar
     secp256k1_ecmult(&rj3, &infj, &zero, x);
     secp256k1_ecmult_multi_var(NULL, scratch, &rj4, x, NULL, NULL, 0);
     secp256k1_ecmult_multi_var(NULL, scratch, &rj5, &zero, test_ecmult_accumulate_cb, (void*)x, 1);
-    secp256k1_ecmult_const(&rj6, &secp256k1_ge_const_g, x, 256);
+    secp256k1_ecmult_const(&rj6, &secp256k1_ge_const_g, x);
     secp256k1_ge_set_gej_var(&r, &rj1);
     ge_equals_gej(&r, &rj2);
     ge_equals_gej(&r, &rj3);

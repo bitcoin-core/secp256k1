@@ -203,19 +203,19 @@ static void test_exhaustive_ecmult(const secp256k1_ge *group, const secp256k1_ge
             secp256k1_scalar_set_int(&ng, j);
 
             /* Test secp256k1_ecmult_const. */
-            secp256k1_ecmult_const(&tmp, &group[i], &ng, 256);
+            secp256k1_ecmult_const(&tmp, &group[i], &ng);
             ge_equals_gej(&group[(i * j) % EXHAUSTIVE_TEST_ORDER], &tmp);
 
             if (j != 0) {
                 /* Test secp256k1_ecmult_const_xonly with all curve X coordinates, and xd=NULL. */
-                ret = secp256k1_ecmult_const_xonly(&tmpf, &group[i].x, NULL, &ng, 256, 0);
+                ret = secp256k1_ecmult_const_xonly(&tmpf, &group[i].x, NULL, &ng, 0);
                 CHECK(ret);
                 CHECK(secp256k1_fe_equal_var(&tmpf, &group[(i * j) % EXHAUSTIVE_TEST_ORDER].x));
 
                 /* Test secp256k1_ecmult_const_xonly with all curve X coordinates, with random xd. */
                 random_fe_non_zero(&xd);
                 secp256k1_fe_mul(&xn, &xd, &group[i].x);
-                ret = secp256k1_ecmult_const_xonly(&tmpf, &xn, &xd, &ng, 256, 0);
+                ret = secp256k1_ecmult_const_xonly(&tmpf, &xn, &xd, &ng, 0);
                 CHECK(ret);
                 CHECK(secp256k1_fe_equal_var(&tmpf, &group[(i * j) % EXHAUSTIVE_TEST_ORDER].x));
             }
