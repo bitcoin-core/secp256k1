@@ -2181,20 +2181,6 @@ static void scalar_test(void) {
     }
 
     {
-        /* test secp256k1_scalar_shr_int */
-        secp256k1_scalar r;
-        int i;
-        random_scalar_order_test(&r);
-        for (i = 0; i < 100; ++i) {
-            int low;
-            int shift = 1 + secp256k1_testrand_int(15);
-            int expected = r.d[0] % (1ULL << shift);
-            low = secp256k1_scalar_shr_int(&r, shift);
-            CHECK(expected == low);
-        }
-    }
-
-    {
         /* Test commutativity of add. */
         secp256k1_scalar r1, r2;
         secp256k1_scalar_add(&r1, &s1, &s2);
@@ -5280,13 +5266,12 @@ static void test_fixed_wnaf(const secp256k1_scalar *number, int w) {
     int wnaf[256] = {0};
     int i;
     int skew;
-    secp256k1_scalar num = *number;
+    secp256k1_scalar num, unused;
 
     secp256k1_scalar_set_int(&x, 0);
     secp256k1_scalar_set_int(&shift, 1 << w);
-    for (i = 0; i < 16; ++i) {
-        secp256k1_scalar_shr_int(&num, 8);
-    }
+    /* Make num a 128-bit scalar. */
+    secp256k1_scalar_split_128(&num, &unused, number);
     skew = secp256k1_wnaf_fixed(wnaf, &num, w);
 
     for (i = WNAF_SIZE(w)-1; i >= 0; --i) {

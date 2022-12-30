@@ -662,26 +662,6 @@ static void secp256k1_scalar_mul(secp256k1_scalar *r, const secp256k1_scalar *a,
     secp256k1_scalar_verify(r);
 }
 
-static int secp256k1_scalar_shr_int(secp256k1_scalar *r, int n) {
-    int ret;
-    secp256k1_scalar_verify(r);
-    VERIFY_CHECK(n > 0);
-    VERIFY_CHECK(n < 16);
-
-    ret = r->d[0] & ((1 << n) - 1);
-    r->d[0] = (r->d[0] >> n) + (r->d[1] << (32 - n));
-    r->d[1] = (r->d[1] >> n) + (r->d[2] << (32 - n));
-    r->d[2] = (r->d[2] >> n) + (r->d[3] << (32 - n));
-    r->d[3] = (r->d[3] >> n) + (r->d[4] << (32 - n));
-    r->d[4] = (r->d[4] >> n) + (r->d[5] << (32 - n));
-    r->d[5] = (r->d[5] >> n) + (r->d[6] << (32 - n));
-    r->d[6] = (r->d[6] >> n) + (r->d[7] << (32 - n));
-    r->d[7] = (r->d[7] >> n);
-
-    secp256k1_scalar_verify(r);
-    return ret;
-}
-
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k) {
     secp256k1_scalar_verify(k);
 
