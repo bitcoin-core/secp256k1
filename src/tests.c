@@ -5275,61 +5275,6 @@ static void test_wnaf(const secp256k1_scalar *number, int w) {
     CHECK(secp256k1_scalar_eq(&x, number)); /* check that wnaf represents number */
 }
 
-static void test_constant_wnaf_negate(const secp256k1_scalar *number) {
-    secp256k1_scalar neg1 = *number;
-    secp256k1_scalar neg2 = *number;
-    int sign1 = 1;
-    int sign2 = 1;
-
-    if (!secp256k1_scalar_get_bits(&neg1, 0, 1)) {
-        secp256k1_scalar_negate(&neg1, &neg1);
-        sign1 = -1;
-    }
-    sign2 = secp256k1_scalar_cond_negate(&neg2, secp256k1_scalar_is_even(&neg2));
-    CHECK(sign1 == sign2);
-    CHECK(secp256k1_scalar_eq(&neg1, &neg2));
-}
-
-static void test_constant_wnaf(const secp256k1_scalar *number, int w) {
-    secp256k1_scalar x, shift;
-    int wnaf[256] = {0};
-    int i;
-    int skew;
-    int bits = 256;
-    secp256k1_scalar num = *number;
-    secp256k1_scalar scalar_skew;
-
-    secp256k1_scalar_set_int(&x, 0);
-    secp256k1_scalar_set_int(&shift, 1 << w);
-    for (i = 0; i < 16; ++i) {
-        secp256k1_scalar_shr_int(&num, 8);
-    }
-    bits = 128;
-    skew = secp256k1_wnaf_const(wnaf, &num, w, bits);
-
-    for (i = WNAF_SIZE_BITS(bits, w); i >= 0; --i) {
-        secp256k1_scalar t;
-        int v = wnaf[i];
-        CHECK(v != 0); /* check nonzero */
-        CHECK(v & 1);  /* check parity */
-        CHECK(v > -(1 << w)); /* check range above */
-        CHECK(v < (1 << w));  /* check range below */
-
-        secp256k1_scalar_mul(&x, &x, &shift);
-        if (v >= 0) {
-            secp256k1_scalar_set_int(&t, v);
-        } else {
-            secp256k1_scalar_set_int(&t, -v);
-            secp256k1_scalar_negate(&t, &t);
-        }
-        secp256k1_scalar_add(&x, &x, &t);
-    }
-    /* Skew num because when encoding numbers as odd we use an offset */
-    secp256k1_scalar_set_int(&scalar_skew, skew);
-    secp256k1_scalar_add(&num, &num, &scalar_skew);
-    CHECK(secp256k1_scalar_eq(&x, &num));
-}
-
 static void test_fixed_wnaf(const secp256k1_scalar *number, int w) {
     secp256k1_scalar x, shift;
     int wnaf[256] = {0};
@@ -5433,32 +5378,7 @@ static void test_fixed_wnaf_small(void) {
 
 static void run_wnaf(void) {
     int i;
-    secp256k1_scalar n = {{0}};
-
-    test_constant_wnaf(&n, 4);
-    /* Sanity check: 1 and 2 are the smallest odd and even numbers and should
-     *               have easier-to-diagnose failure modes  */
-    n.d[0] = 1;
-    test_constant_wnaf(&n, 4);
-    n.d[0] = 2;
-    test_constant_wnaf(&n, 4);
-    /* Test -1, because it's a special case in wnaf_const */
-    n = secp256k1_scalar_one;
-    secp256k1_scalar_negate(&n, &n);
-    test_constant_wnaf(&n, 4);
-
-    /* Test -2, which may not lead to overflows in wnaf_const */
-    secp256k1_scalar_add(&n, &secp256k1_scalar_one, &secp256k1_scalar_one);
-    secp256k1_scalar_negate(&n, &n);
-    test_constant_wnaf(&n, 4);
-
-    /* Test (1/2) - 1 = 1/-2 and 1/2 = (1/-2) + 1
-       as corner cases of negation handling in wnaf_const */
-    secp256k1_scalar_inverse(&n, &n);
-    test_constant_wnaf(&n, 4);
-
-    secp256k1_scalar_add(&n, &n, &secp256k1_scalar_one);
-    test_constant_wnaf(&n, 4);
+    secp256k1_scalar n;
 
     /* Test 0 for fixed wnaf */
     test_fixed_wnaf_small();
@@ -5466,8 +5386,6 @@ static void run_wnaf(void) {
     for (i = 0; i < COUNT; i++) {
         random_scalar_order(&n);
         test_wnaf(&n, 4+(i%10));
-        test_constant_wnaf_negate(&n);
-        test_constant_wnaf(&n, 4 + (i % 10));
         test_fixed_wnaf(&n, 4 + (i % 10));
     }
     secp256k1_scalar_set_int(&n, 0);
