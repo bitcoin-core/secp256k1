@@ -7351,16 +7351,9 @@ int main(int argc, char **argv) {
     /* find random seed */
     secp256k1_testrand_init(argc > 2 ? argv[2] : NULL);
 
-    /* initialize */
-    /* Make a writable copy of secp256k1_context_static in order to test the effect of API functions
-       that write to the context. The API does not support cloning the static context, so we use
-       memcpy instead. The user is not supposed to copy a context but we should still ensure that
-       the API functions handle copies of the static context gracefully. */
-    sttc = malloc(sizeof(*secp256k1_context_static));
-    CHECK(sttc != NULL);
-    memcpy(sttc, secp256k1_context_static, sizeof(secp256k1_context));
-    CHECK(!secp256k1_context_is_proper(sttc));
+    /*** Setup test environment ***/
 
+    /* Create a global context available to all tests */
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     /* Randomize the context only with probability 15/16
        to make sure we test without context randomization from time to time.
@@ -7370,16 +7363,33 @@ int main(int argc, char **argv) {
         secp256k1_testrand256(rand32);
         CHECK(secp256k1_context_randomize(ctx, rand32));
     }
+    /* Make a writable copy of secp256k1_context_static in order to test the effect of API functions
+       that write to the context. The API does not support cloning the static context, so we use
+       memcpy instead. The user is not supposed to copy a context but we should still ensure that
+       the API functions handle copies of the static context gracefully. */
+    sttc = malloc(sizeof(*secp256k1_context_static));
+    CHECK(sttc != NULL);
+    memcpy(sttc, secp256k1_context_static, sizeof(secp256k1_context));
+    CHECK(!secp256k1_context_is_proper(sttc));
 
+    /*** Run actual tests ***/
+
+    /* selftest tests */
     run_selftest_tests();
+
+    /* context tests */
     run_context_tests(0);
     run_context_tests(1);
     run_deprecated_context_flags_test();
+
+    /* scratch tests */
     run_scratch_tests();
 
+    /* randomness tests */
     run_rand_bits();
     run_rand_int();
 
+    /* integer arithmetic tests */
 #ifdef SECP256K1_WIDEMUL_INT128
     run_int128_tests();
 #endif
@@ -7387,6 +7397,7 @@ int main(int argc, char **argv) {
     run_modinv_tests();
     run_inverse_tests();
 
+    /* hash tests */
     run_sha256_known_output_tests();
     run_sha256_counter_tests();
     run_hmac_sha256_tests();
@@ -7466,11 +7477,11 @@ int main(int argc, char **argv) {
 
     run_cmov_tests();
 
-    secp256k1_testrand_finish();
-
-    /* shutdown */
+    /*** Tear down test environment ***/
     free(sttc);
     secp256k1_context_destroy(ctx);
+
+    secp256k1_testrand_finish();
 
     printf("no problems found\n");
     return 0;
