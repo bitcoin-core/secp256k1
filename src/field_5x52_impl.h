@@ -664,4 +664,31 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *x) {
 #endif
 }
 
+static int secp256k1_fe_is_square_var(const secp256k1_fe *x) {
+    secp256k1_fe tmp;
+    secp256k1_modinv64_signed62 s;
+    int jac, ret;
+
+    tmp = *x;
+    secp256k1_fe_normalize_var(&tmp);
+    /* secp256k1_jacobi64_maybe_var cannot deal with input 0. */
+    if (secp256k1_fe_is_zero(&tmp)) return 1;
+    secp256k1_fe_to_signed62(&s, &tmp);
+    jac = secp256k1_jacobi64_maybe_var(&s, &secp256k1_const_modinfo_fe);
+    if (jac == 0) {
+        /* secp256k1_jacobi64_maybe_var failed to compute the Jacobi symbol. Fall back
+         * to computing a square root. This should be extremely rare with random
+         * input (except in VERIFY mode, where a lower iteration count is used). */
+        secp256k1_fe dummy;
+        ret = secp256k1_fe_sqrt(&dummy, &tmp);
+    } else {
+#ifdef VERIFY
+        secp256k1_fe dummy;
+        VERIFY_CHECK(jac == 2*secp256k1_fe_sqrt(&dummy, &tmp) - 1);
+#endif
+        ret = jac >= 0;
+    }
+    return ret;
+}
+
 #endif /* SECP256K1_FIELD_REPR_IMPL_H */

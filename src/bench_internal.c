@@ -219,6 +219,19 @@ static void bench_field_sqrt(void* arg, int iters) {
     CHECK(j <= iters);
 }
 
+static void bench_field_is_square_var(void* arg, int iters) {
+    int i, j = 0;
+    bench_inv *data = (bench_inv*)arg;
+    secp256k1_fe t = data->fe[0];
+
+    for (i = 0; i < iters; i++) {
+        j += secp256k1_fe_is_square_var(&t);
+        secp256k1_fe_add(&t, &data->fe[1]);
+        secp256k1_fe_normalize_var(&t);
+    }
+    CHECK(j <= iters);
+}
+
 static void bench_group_double_var(void* arg, int iters) {
     int i;
     bench_inv *data = (bench_inv*)arg;
@@ -371,6 +384,7 @@ int main(int argc, char **argv) {
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "mul")) run_benchmark("field_mul", bench_field_mul, bench_setup, NULL, &data, 10, iters*10);
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "inverse")) run_benchmark("field_inverse", bench_field_inverse, bench_setup, NULL, &data, 10, iters);
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "inverse")) run_benchmark("field_inverse_var", bench_field_inverse_var, bench_setup, NULL, &data, 10, iters);
+    if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "issquare")) run_benchmark("field_is_square_var", bench_field_is_square_var, bench_setup, NULL, &data, 10, iters);
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "sqrt")) run_benchmark("field_sqrt", bench_field_sqrt, bench_setup, NULL, &data, 10, iters);
 
     if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "double")) run_benchmark("group_double_var", bench_group_double_var, bench_setup, NULL, &data, 10, iters*10);

@@ -3299,8 +3299,10 @@ static void run_sqrt(void) {
         for (j = 0; j < COUNT; j++) {
             random_fe(&x);
             secp256k1_fe_sqr(&s, &x);
+            CHECK(secp256k1_fe_is_square_var(&s));
             test_sqrt(&s, &x);
             secp256k1_fe_negate(&t, &s, 1);
+            CHECK(!secp256k1_fe_is_square_var(&t));
             test_sqrt(&t, NULL);
             secp256k1_fe_mul(&t, &s, &ns);
             test_sqrt(&t, NULL);
