@@ -229,8 +229,7 @@ void run_ec_illegal_argument_tests(void) {
 }
 
 void run_context_tests(int use_prealloc) {
-    int32_t ecount;
-    int32_t ecount2;
+    int32_t dummy = 0;
     secp256k1_context *my_ctx;
     void *my_ctx_prealloc = NULL;
 
@@ -250,13 +249,9 @@ void run_context_tests(int use_prealloc) {
         my_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     }
 
-    ecount = 0;
-    ecount2 = 10;
-    secp256k1_context_set_illegal_callback(sttc, counting_illegal_callback_fn, &ecount);
-    secp256k1_context_set_illegal_callback(my_ctx, counting_illegal_callback_fn, &ecount2);
     /* set error callback (to a function that still aborts in case malloc() fails in secp256k1_context_clone() below) */
     secp256k1_context_set_error_callback(my_ctx, secp256k1_default_illegal_callback_fn, NULL);
-    CHECK(my_ctx->error_callback.fn != sttc->error_callback.fn);
+    CHECK(my_ctx->error_callback.fn != secp256k1_default_error_callback_fn);
     CHECK(my_ctx->error_callback.fn == secp256k1_default_illegal_callback_fn);
 
     /* check if sizes for cloning are consistent */
@@ -284,11 +279,22 @@ void run_context_tests(int use_prealloc) {
     }
 
     /* Verify that the error callback makes it across the clone. */
-    CHECK(my_ctx->error_callback.fn != sttc->error_callback.fn);
+    CHECK(my_ctx->error_callback.fn != secp256k1_default_error_callback_fn);
     CHECK(my_ctx->error_callback.fn == secp256k1_default_illegal_callback_fn);
     /* And that it resets back to default. */
     secp256k1_context_set_error_callback(my_ctx, NULL, NULL);
-    CHECK(my_ctx->error_callback.fn == sttc->error_callback.fn);
+    CHECK(my_ctx->error_callback.fn == secp256k1_default_error_callback_fn);
+
+    /* Verify that setting and resetting illegal callback works */
+    secp256k1_context_set_illegal_callback(sttc, counting_illegal_callback_fn, &dummy);
+    CHECK(sttc->illegal_callback.fn == counting_illegal_callback_fn);
+    secp256k1_context_set_illegal_callback(sttc, NULL, NULL);
+    CHECK(sttc->illegal_callback.fn == secp256k1_default_illegal_callback_fn);
+
+    secp256k1_context_set_illegal_callback(my_ctx, counting_illegal_callback_fn, &dummy);
+    CHECK(my_ctx->illegal_callback.fn == counting_illegal_callback_fn);
+    secp256k1_context_set_illegal_callback(my_ctx, NULL, NULL);
+    CHECK(my_ctx->illegal_callback.fn == secp256k1_default_illegal_callback_fn);
 
     /*** attempt to use them ***/
     random_scalar_order_test(&msg);
