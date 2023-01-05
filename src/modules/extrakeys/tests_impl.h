@@ -338,7 +338,7 @@ void test_keypair(void) {
     int ecount;
 
     set_counting_callbacks(CTX, &ecount);
-    set_counting_callbacks(STTC, &ecount);
+    set_counting_callbacks(STATIC_CTX, &ecount);
 
     CHECK(sizeof(zeros96) == sizeof(keypair));
     memset(overflows, 0xFF, sizeof(overflows));
@@ -359,7 +359,7 @@ void test_keypair(void) {
     CHECK(ecount == 2);
     CHECK(secp256k1_keypair_create(CTX, &keypair, sk) == 1);
     CHECK(ecount == 2);
-    CHECK(secp256k1_keypair_create(STTC, &keypair, sk) == 0);
+    CHECK(secp256k1_keypair_create(STATIC_CTX, &keypair, sk) == 0);
     CHECK(secp256k1_memcmp_var(zeros96, &keypair, sizeof(keypair)) == 0);
     CHECK(ecount == 3);
 
@@ -440,8 +440,8 @@ void test_keypair(void) {
     CHECK(secp256k1_keypair_sec(CTX, sk_tmp, &keypair) == 1);
     CHECK(secp256k1_memcmp_var(zeros96, sk_tmp, sizeof(sk_tmp)) == 0);
 
-    secp256k1_context_set_error_callback(STTC, NULL, NULL);
-    secp256k1_context_set_illegal_callback(STTC, NULL, NULL);
+    secp256k1_context_set_error_callback(STATIC_CTX, NULL, NULL);
+    secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
 }
 
 void test_keypair_add(void) {

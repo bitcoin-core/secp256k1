@@ -132,8 +132,8 @@ void test_schnorrsig_api(void) {
 
     secp256k1_context_set_error_callback(CTX, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(CTX, counting_illegal_callback_fn, &ecount);
-    secp256k1_context_set_error_callback(STTC, counting_illegal_callback_fn, &ecount);
-    secp256k1_context_set_illegal_callback(STTC, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_error_callback(STATIC_CTX, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_illegal_callback(STATIC_CTX, counting_illegal_callback_fn, &ecount);
 
     secp256k1_testrand256(sk1);
     secp256k1_testrand256(sk2);
@@ -159,7 +159,7 @@ void test_schnorrsig_api(void) {
     CHECK(ecount == 3);
     CHECK(secp256k1_schnorrsig_sign32(CTX, sig, msg, &invalid_keypair, NULL) == 0);
     CHECK(ecount == 4);
-    CHECK(secp256k1_schnorrsig_sign32(STTC, sig, msg, &keypairs[0], NULL) == 0);
+    CHECK(secp256k1_schnorrsig_sign32(STATIC_CTX, sig, msg, &keypairs[0], NULL) == 0);
     CHECK(ecount == 5);
 
     ecount = 0;
@@ -179,7 +179,7 @@ void test_schnorrsig_api(void) {
     CHECK(ecount == 4);
     CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &keypairs[0], &invalid_extraparams) == 0);
     CHECK(ecount == 5);
-    CHECK(secp256k1_schnorrsig_sign_custom(STTC, sig, msg, sizeof(msg), &keypairs[0], &extraparams) == 0);
+    CHECK(secp256k1_schnorrsig_sign_custom(STATIC_CTX, sig, msg, sizeof(msg), &keypairs[0], &extraparams) == 0);
     CHECK(ecount == 6);
 
     ecount = 0;
@@ -197,8 +197,8 @@ void test_schnorrsig_api(void) {
     CHECK(secp256k1_schnorrsig_verify(CTX, sig, msg, sizeof(msg), &zero_pk) == 0);
     CHECK(ecount == 4);
 
-    secp256k1_context_set_error_callback(STTC, NULL, NULL);
-    secp256k1_context_set_illegal_callback(STTC, NULL, NULL);
+    secp256k1_context_set_error_callback(STATIC_CTX, NULL, NULL);
+    secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
 }
 
 /* Checks that hash initialized by secp256k1_schnorrsig_sha256_tagged has the

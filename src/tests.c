@@ -29,7 +29,7 @@
 
 static int COUNT = 64;
 static secp256k1_context *CTX = NULL;
-static secp256k1_context *STTC = NULL;
+static secp256k1_context *STATIC_CTX = NULL;
 
 static void counting_illegal_callback_fn(const char* str, void* data) {
     /* Dummy callback function that just counts. */
@@ -185,18 +185,18 @@ void run_ec_illegal_argument_tests(void) {
     unsigned char ctmp[32];
 
     /* Setup */
-    secp256k1_context_set_illegal_callback(STTC, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_illegal_callback(STATIC_CTX, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(CTX, counting_illegal_callback_fn, &ecount2);
     memset(ctmp, 1, 32);
     memset(&zero_pubkey, 0, sizeof(zero_pubkey));
 
     /* Verify context-type checking illegal-argument errors. */
-    CHECK(secp256k1_ec_pubkey_create(STTC, &pubkey, ctmp) == 0);
+    CHECK(secp256k1_ec_pubkey_create(STATIC_CTX, &pubkey, ctmp) == 0);
     CHECK(ecount == 1);
     VG_UNDEF(&pubkey, sizeof(pubkey));
     CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, ctmp) == 1);
     VG_CHECK(&pubkey, sizeof(pubkey));
-    CHECK(secp256k1_ecdsa_sign(STTC, &sig, ctmp, ctmp, NULL, NULL) == 0);
+    CHECK(secp256k1_ecdsa_sign(STATIC_CTX, &sig, ctmp, ctmp, NULL, NULL) == 0);
     CHECK(ecount == 2);
     VG_UNDEF(&sig, sizeof(sig));
     CHECK(secp256k1_ecdsa_sign(CTX, &sig, ctmp, ctmp, NULL, NULL) == 1);
@@ -204,27 +204,27 @@ void run_ec_illegal_argument_tests(void) {
     CHECK(ecount2 == 10);
     CHECK(secp256k1_ecdsa_verify(CTX, &sig, ctmp, &pubkey) == 1);
     CHECK(ecount2 == 10);
-    CHECK(secp256k1_ecdsa_verify(STTC, &sig, ctmp, &pubkey) == 1);
+    CHECK(secp256k1_ecdsa_verify(STATIC_CTX, &sig, ctmp, &pubkey) == 1);
     CHECK(ecount == 2);
     CHECK(secp256k1_ec_pubkey_tweak_add(CTX, &pubkey, ctmp) == 1);
     CHECK(ecount2 == 10);
-    CHECK(secp256k1_ec_pubkey_tweak_add(STTC, &pubkey, ctmp) == 1);
+    CHECK(secp256k1_ec_pubkey_tweak_add(STATIC_CTX, &pubkey, ctmp) == 1);
     CHECK(ecount == 2);
     CHECK(secp256k1_ec_pubkey_tweak_mul(CTX, &pubkey, ctmp) == 1);
     CHECK(ecount2 == 10);
-    CHECK(secp256k1_ec_pubkey_negate(STTC, &pubkey) == 1);
+    CHECK(secp256k1_ec_pubkey_negate(STATIC_CTX, &pubkey) == 1);
     CHECK(ecount == 2);
     CHECK(secp256k1_ec_pubkey_negate(CTX, &pubkey) == 1);
     CHECK(ecount == 2);
-    CHECK(secp256k1_ec_pubkey_negate(STTC, &zero_pubkey) == 0);
+    CHECK(secp256k1_ec_pubkey_negate(STATIC_CTX, &zero_pubkey) == 0);
     CHECK(ecount == 3);
     CHECK(secp256k1_ec_pubkey_negate(CTX, NULL) == 0);
     CHECK(ecount2 == 11);
-    CHECK(secp256k1_ec_pubkey_tweak_mul(STTC, &pubkey, ctmp) == 1);
+    CHECK(secp256k1_ec_pubkey_tweak_mul(STATIC_CTX, &pubkey, ctmp) == 1);
     CHECK(ecount == 3);
 
     /* Clean up */
-    secp256k1_context_set_illegal_callback(STTC, NULL, NULL);
+    secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
     secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
 }
 
@@ -235,13 +235,13 @@ void run_static_context_tests(void) {
     CHECK(secp256k1_context_no_precomp == secp256k1_context_static);
 
     /* check if sizes for cloning are consistent */
-    CHECK(secp256k1_context_preallocated_clone_size(STTC) >= sizeof(secp256k1_context));
+    CHECK(secp256k1_context_preallocated_clone_size(STATIC_CTX) >= sizeof(secp256k1_context));
 
     /* Verify that setting and resetting illegal callback works */
-    secp256k1_context_set_illegal_callback(STTC, counting_illegal_callback_fn, &dummy);
-    CHECK(STTC->illegal_callback.fn == counting_illegal_callback_fn);
-    secp256k1_context_set_illegal_callback(STTC, NULL, NULL);
-    CHECK(STTC->illegal_callback.fn == secp256k1_default_illegal_callback_fn);
+    secp256k1_context_set_illegal_callback(STATIC_CTX, counting_illegal_callback_fn, &dummy);
+    CHECK(STATIC_CTX->illegal_callback.fn == counting_illegal_callback_fn);
+    secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
+    CHECK(STATIC_CTX->illegal_callback.fn == secp256k1_default_illegal_callback_fn);
 }
 
 void run_proper_context_tests(int use_prealloc) {
@@ -7379,10 +7379,10 @@ int main(int argc, char **argv) {
        that write to the context. The API does not support cloning the static context, so we use
        memcpy instead. The user is not supposed to copy a context but we should still ensure that
        the API functions handle copies of the static context gracefully. */
-    STTC = malloc(sizeof(*secp256k1_context_static));
-    CHECK(STTC != NULL);
-    memcpy(STTC, secp256k1_context_static, sizeof(secp256k1_context));
-    CHECK(!secp256k1_context_is_proper(STTC));
+    STATIC_CTX = malloc(sizeof(*secp256k1_context_static));
+    CHECK(STATIC_CTX != NULL);
+    memcpy(STATIC_CTX, secp256k1_context_static, sizeof(secp256k1_context));
+    CHECK(!secp256k1_context_is_proper(STATIC_CTX));
 
     /*** Run actual tests ***/
 
@@ -7491,7 +7491,7 @@ int main(int argc, char **argv) {
     run_cmov_tests();
 
     /*** Tear down test environment ***/
-    free(STTC);
+    free(STATIC_CTX);
     secp256k1_context_destroy(CTX);
 
     secp256k1_testrand_finish();

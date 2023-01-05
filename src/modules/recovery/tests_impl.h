@@ -47,8 +47,8 @@ void test_ecdsa_recovery_api(void) {
 
     secp256k1_context_set_error_callback(CTX, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_illegal_callback(CTX, counting_illegal_callback_fn, &ecount);
-    secp256k1_context_set_error_callback(STTC, counting_illegal_callback_fn, &ecount);
-    secp256k1_context_set_illegal_callback(STTC, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_error_callback(STATIC_CTX, counting_illegal_callback_fn, &ecount);
+    secp256k1_context_set_illegal_callback(STATIC_CTX, counting_illegal_callback_fn, &ecount);
 
     /* Construct and verify corresponding public key. */
     CHECK(secp256k1_ec_seckey_verify(CTX, privkey) == 1);
@@ -64,7 +64,7 @@ void test_ecdsa_recovery_api(void) {
     CHECK(ecount == 2);
     CHECK(secp256k1_ecdsa_sign_recoverable(CTX, &recsig, message, NULL, NULL, NULL) == 0);
     CHECK(ecount == 3);
-    CHECK(secp256k1_ecdsa_sign_recoverable(STTC, &recsig, message, privkey, NULL, NULL) == 0);
+    CHECK(secp256k1_ecdsa_sign_recoverable(STATIC_CTX, &recsig, message, privkey, NULL, NULL) == 0);
     CHECK(ecount == 4);
     /* This will fail or succeed randomly, and in either case will not ARG_CHECK failure */
     secp256k1_ecdsa_sign_recoverable(CTX, &recsig, message, privkey, recovery_test_nonce_function, NULL);
@@ -123,8 +123,8 @@ void test_ecdsa_recovery_api(void) {
     CHECK(ecount == 7);
 
     /* cleanup */
-    secp256k1_context_set_error_callback(STTC, NULL, NULL);
-    secp256k1_context_set_illegal_callback(STTC, NULL, NULL);
+    secp256k1_context_set_error_callback(STATIC_CTX, NULL, NULL);
+    secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
 }
 
 void test_ecdsa_recovery_end_to_end(void) {
