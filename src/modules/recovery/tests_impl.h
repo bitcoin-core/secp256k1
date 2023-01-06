@@ -30,7 +30,6 @@ static int recovery_test_nonce_function(unsigned char *nonce32, const unsigned c
 
 void test_ecdsa_recovery_api(void) {
     /* Setup contexts that just count errors */
-    secp256k1_context *sttc = secp256k1_context_clone(secp256k1_context_static);
     secp256k1_pubkey pubkey;
     secp256k1_pubkey recpubkey;
     secp256k1_ecdsa_signature normal_sig;
@@ -124,7 +123,8 @@ void test_ecdsa_recovery_api(void) {
     CHECK(ecount == 7);
 
     /* cleanup */
-    secp256k1_context_destroy(sttc);
+    secp256k1_context_set_error_callback(sttc, NULL, NULL);
+    secp256k1_context_set_illegal_callback(sttc, NULL, NULL);
 }
 
 void test_ecdsa_recovery_end_to_end(void) {
