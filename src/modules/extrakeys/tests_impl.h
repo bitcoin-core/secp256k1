@@ -14,7 +14,7 @@ static void set_counting_callbacks(secp256k1_context *ctx0, int *ecount) {
     secp256k1_context_set_illegal_callback(ctx0, counting_illegal_callback_fn, ecount);
 }
 
-void test_xonly_pubkey(void) {
+static void test_xonly_pubkey(void) {
     secp256k1_pubkey pk;
     secp256k1_xonly_pubkey xonly_pk, xonly_pk_tmp;
     secp256k1_ge pk1;
@@ -128,7 +128,7 @@ void test_xonly_pubkey(void) {
     CHECK(ecount == 2);
 }
 
-void test_xonly_pubkey_comparison(void) {
+static void test_xonly_pubkey_comparison(void) {
     unsigned char pk1_ser[32] = {
         0x58, 0x84, 0xb3, 0xa2, 0x4b, 0x97, 0x37, 0x88, 0x92, 0x38, 0xa6, 0x26, 0x62, 0x52, 0x35, 0x11,
         0xd0, 0x9a, 0xa1, 0x1b, 0x80, 0x0b, 0x5e, 0x93, 0x80, 0x26, 0x11, 0xef, 0x67, 0x4b, 0xd9, 0x23
@@ -164,7 +164,7 @@ void test_xonly_pubkey_comparison(void) {
     CHECK(ecount == 6);
 }
 
-void test_xonly_pubkey_tweak(void) {
+static void test_xonly_pubkey_tweak(void) {
     unsigned char zeros64[64] = { 0 };
     unsigned char overflows[32];
     unsigned char sk[32];
@@ -231,7 +231,7 @@ void test_xonly_pubkey_tweak(void) {
     CHECK(secp256k1_memcmp_var(&output_pk, zeros64, sizeof(output_pk))  == 0);
 }
 
-void test_xonly_pubkey_tweak_check(void) {
+static void test_xonly_pubkey_tweak_check(void) {
     unsigned char zeros64[64] = { 0 };
     unsigned char overflows[32];
     unsigned char sk[32];
@@ -297,7 +297,7 @@ void test_xonly_pubkey_tweak_check(void) {
  * additional pubkeys by calling tweak_add. Then verifies every tweak starting
  * from the last pubkey. */
 #define N_PUBKEYS 32
-void test_xonly_pubkey_tweak_recursive(void) {
+static void test_xonly_pubkey_tweak_recursive(void) {
     unsigned char sk[32];
     secp256k1_pubkey pk[N_PUBKEYS];
     unsigned char pk_serialized[32];
@@ -326,7 +326,7 @@ void test_xonly_pubkey_tweak_recursive(void) {
 }
 #undef N_PUBKEYS
 
-void test_keypair(void) {
+static void test_keypair(void) {
     unsigned char sk[32];
     unsigned char sk_tmp[32];
     unsigned char zeros96[96] = { 0 };
@@ -444,7 +444,7 @@ void test_keypair(void) {
     secp256k1_context_set_illegal_callback(sttc, NULL, NULL);
 }
 
-void test_keypair_add(void) {
+static void test_keypair_add(void) {
     unsigned char sk[32];
     secp256k1_keypair keypair;
     unsigned char overflows[32];
@@ -550,7 +550,7 @@ void test_keypair_add(void) {
     }
 }
 
-void run_extrakeys_tests(void) {
+static void run_extrakeys_tests(void) {
     /* xonly key test cases */
     test_xonly_pubkey();
     test_xonly_pubkey_tweak();

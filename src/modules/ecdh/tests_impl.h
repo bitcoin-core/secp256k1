@@ -7,7 +7,7 @@
 #ifndef SECP256K1_MODULE_ECDH_TESTS_H
 #define SECP256K1_MODULE_ECDH_TESTS_H
 
-int ecdh_hash_function_test_fail(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
+static int ecdh_hash_function_test_fail(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
     (void)output;
     (void)x;
     (void)y;
@@ -15,7 +15,7 @@ int ecdh_hash_function_test_fail(unsigned char *output, const unsigned char *x, 
     return 0;
 }
 
-int ecdh_hash_function_custom(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
+static int ecdh_hash_function_custom(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
     (void)data;
     /* Save x and y as uncompressed public key */
     output[0] = 0x04;
@@ -24,7 +24,7 @@ int ecdh_hash_function_custom(unsigned char *output, const unsigned char *x, con
     return 1;
 }
 
-void test_ecdh_api(void) {
+static void test_ecdh_api(void) {
     /* Setup context that just counts errors */
     secp256k1_context *tctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     secp256k1_pubkey point;
@@ -53,7 +53,7 @@ void test_ecdh_api(void) {
     secp256k1_context_destroy(tctx);
 }
 
-void test_ecdh_generator_basepoint(void) {
+static void test_ecdh_generator_basepoint(void) {
     unsigned char s_one[32] = { 0 };
     secp256k1_pubkey point[2];
     int i;
@@ -94,7 +94,7 @@ void test_ecdh_generator_basepoint(void) {
     }
 }
 
-void test_bad_scalar(void) {
+static void test_bad_scalar(void) {
     unsigned char s_zero[32] = { 0 };
     unsigned char s_overflow[32] = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -124,7 +124,7 @@ void test_bad_scalar(void) {
 }
 
 /** Test that ECDH(sG, 1/s) == ECDH((1/s)G, s) == ECDH(G, 1) for a few random s. */
-void test_result_basepoint(void) {
+static void test_result_basepoint(void) {
     secp256k1_pubkey point;
     secp256k1_scalar rand;
     unsigned char s[32];
@@ -155,7 +155,7 @@ void test_result_basepoint(void) {
     }
 }
 
-void run_ecdh_tests(void) {
+static void run_ecdh_tests(void) {
     test_ecdh_api();
     test_ecdh_generator_basepoint();
     test_bad_scalar();
