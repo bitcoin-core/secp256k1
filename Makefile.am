@@ -116,21 +116,26 @@ endif
 
 TESTS =
 if USE_TESTS
-noinst_PROGRAMS += tests
-tests_SOURCES = src/tests.c
-tests_CPPFLAGS = $(SECP_INCLUDES) $(SECP_TEST_INCLUDES) $(SECP_CONFIG_DEFINES)
+TESTS += noverify_tests
+noinst_PROGRAMS += noverify_tests
+noverify_tests_SOURCES = src/tests.c
+noverify_tests_CPPFLAGS = $(SECP_INCLUDES) $(SECP_TEST_INCLUDES) $(SECP_CONFIG_DEFINES)
+noverify_tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB) $(PRECOMPUTED_LIB)
+noverify_tests_LDFLAGS = -static
 if VALGRIND_ENABLED
-tests_CPPFLAGS += -DVALGRIND
+noverify_tests_CPPFLAGS += -DVALGRIND
 noinst_PROGRAMS += valgrind_ctime_test
 valgrind_ctime_test_SOURCES = src/valgrind_ctime_test.c
 valgrind_ctime_test_LDADD = libsecp256k1.la $(SECP_LIBS) $(COMMON_LIB)
 endif
 if !ENABLE_COVERAGE
-tests_CPPFLAGS += -DVERIFY
-endif
-tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB) $(PRECOMPUTED_LIB)
-tests_LDFLAGS = -static
 TESTS += tests
+noinst_PROGRAMS += tests
+tests_SOURCES  = $(noverify_tests_SOURCES)
+tests_CPPFLAGS = $(noverify_tests_CPPFLAGS) -DVERIFY
+tests_LDADD    = $(noverify_tests_LDADD)
+tests_LDFLAGS  = $(noverify_tests_LDFLAGS)
+endif
 endif
 
 if USE_EXHAUSTIVE_TESTS

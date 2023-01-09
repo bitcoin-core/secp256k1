@@ -36,6 +36,8 @@ cat_logs_snippet: &CAT_LOGS
   always:
     cat_tests_log_script:
       - cat tests.log || true
+    cat_noverify_tests_log_script:
+      - cat noverify_tests.log || true
     cat_exhaustive_tests_log_script:
       - cat exhaustive_tests.log || true
     cat_valgrind_ctime_test_log_script:
