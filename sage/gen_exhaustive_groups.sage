@@ -96,10 +96,7 @@ def output_generator(g, name):
     print(")")
 
 def output_b(b):
-    print("static const secp256k1_fe secp256k1_fe_const_b = SECP256K1_FE_CONST(")
-    print("    0x%08x, 0x%08x, 0x%08x, 0x%08x," % tuple((int(b) >> (32 * (7 - i))) & 0xffffffff for i in range(4)))
-    print("    0x%08x, 0x%08x, 0x%08x, 0x%08x" % tuple((int(b) >> (32 * (7 - i))) & 0xffffffff for i in range(4, 8)))
-    print(");")
+    print(f"#define SECP256K1_B {int(b)}")
 
 print()
 print("To be put in src/group_impl.h:")
@@ -128,7 +125,6 @@ for f in sorted(solutions.keys()):
     first = False
     print()
     print(f"static const secp256k1_ge secp256k1_ge_const_g = SECP256K1_G_ORDER_{f};")
-    print("")
     output_b(b)
     print()
 print("#  else")
@@ -137,7 +133,6 @@ print("#  endif")
 print("#else")
 print()
 print("static const secp256k1_ge secp256k1_ge_const_g = SECP256K1_G;")
-print("")
 output_b(7)
 print()
 print("#endif")
