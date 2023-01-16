@@ -13,7 +13,7 @@ print_environment() {
     for var in WERROR_CFLAGS MAKEFLAGS BUILD \
             ECMULTWINDOW ECMULTGENPRECISION ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
             EXPERIMENTAL ECDH RECOVERY SCHNORRSIG \
-            SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETEST\
+            SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS\
             EXAMPLES \
             HOST WRAPPER_CMD \
             CC CFLAGS CPPFLAGS AR NM
@@ -62,6 +62,7 @@ fi
     --enable-module-ecdh="$ECDH" --enable-module-recovery="$RECOVERY" \
     --enable-module-schnorrsig="$SCHNORRSIG" \
     --enable-examples="$EXAMPLES" \
+    --enable-ctime-tests="$CTIMETESTS" \
     --with-valgrind="$WITH_VALGRIND" \
     --host="$HOST" $EXTRAFLAGS
 
@@ -78,14 +79,15 @@ export LOG_COMPILER="$WRAPPER_CMD"
 
 make "$BUILD"
 
+# Using the local `libtool` because on macOS the system's libtool has nothing to do with GNU libtool
+EXEC='./libtool --mode=execute'
+if [ -n "$WRAPPER_CMD" ]
+then
+    EXEC="$EXEC $WRAPPER_CMD"
+fi
+
 if [ "$BENCH" = "yes" ]
 then
-    # Using the local `libtool` because on macOS the system's libtool has nothing to do with GNU libtool
-    EXEC='./libtool --mode=execute'
-    if [ -n "$WRAPPER_CMD" ]
-    then
-        EXEC="$EXEC $WRAPPER_CMD"
-    fi
     {
         $EXEC ./bench_ecmult
         $EXEC ./bench_internal
@@ -93,9 +95,13 @@ then
     } >> bench.log 2>&1
 fi
 
-if [ "$CTIMETEST" = "yes" ]
+if [ "$CTIMETESTS" = "yes" ]
 then
-    ./libtool --mode=execute valgrind --error-exitcode=42 ./valgrind_ctime_test > valgrind_ctime_test.log 2>&1
+    if [ "$WITH_VALGRIND" = "yes" ]; then
+        ./libtool --mode=execute valgrind --error-exitcode=42 ./ctime_tests > ctime_tests.log 2>&1
+    else
+        $EXEC ./ctime_tests > ctime_tests.log 2>&1
+    fi
 fi
 
 # Rebuild precomputed files (if not cross-compiling).

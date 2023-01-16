@@ -21,6 +21,7 @@
 #include "../include/secp256k1_preallocated.h"
 
 #include "assumptions.h"
+#include "checkmem.h"
 #include "util.h"
 
 #include "field_impl.h"
@@ -38,10 +39,6 @@
 
 #ifdef SECP256K1_NO_BUILD
 # error "secp256k1.h processed without SECP256K1_BUILD defined while building secp256k1.c"
-#endif
-
-#if defined(VALGRIND)
-# include <valgrind/memcheck.h>
 #endif
 
 #define ARG_CHECK(cond) do { \
@@ -99,6 +96,12 @@ size_t secp256k1_context_preallocated_size(unsigned int flags) {
     if (EXPECT((flags & SECP256K1_FLAGS_TYPE_MASK) != SECP256K1_FLAGS_TYPE_CONTEXT, 0)) {
             secp256k1_callback_call(&default_illegal_callback,
                                     "Invalid flags");
+            return 0;
+    }
+
+    if (EXPECT(!SECP256K1_CHECKMEM_RUNNING() && (flags & SECP256K1_FLAGS_BIT_CONTEXT_DECLASSIFY), 0)) {
+            secp256k1_callback_call(&default_illegal_callback,
+                                    "Declassify flag requires running with memory checking");
             return 0;
     }
 
@@ -215,17 +218,10 @@ void secp256k1_scratch_space_destroy(const secp256k1_context *ctx, secp256k1_scr
 }
 
 /* Mark memory as no-longer-secret for the purpose of analysing constant-time behaviour
- *  of the software. This is setup for use with valgrind but could be substituted with
- *  the appropriate instrumentation for other analysis tools.
+ *  of the software.
  */
 static SECP256K1_INLINE void secp256k1_declassify(const secp256k1_context* ctx, const void *p, size_t len) {
-#if defined(VALGRIND)
-    if (EXPECT(ctx->declassify,0)) VALGRIND_MAKE_MEM_DEFINED(p, len);
-#else
-    (void)ctx;
-    (void)p;
-    (void)len;
-#endif
+    if (EXPECT(ctx->declassify, 0)) SECP256K1_CHECKMEM_DEFINE(p, len);
 }
 
 static int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge, const secp256k1_pubkey* pubkey) {

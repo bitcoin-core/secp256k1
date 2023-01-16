@@ -142,6 +142,10 @@ AC_ARG_ENABLE(tests,
     AS_HELP_STRING([--enable-tests],[compile tests [default=yes]]), [],
     [SECP_SET_DEFAULT([enable_tests], [yes], [yes])])
 
+AC_ARG_ENABLE(ctime_tests,
+    AS_HELP_STRING([--enable-ctime-tests],[compile constant-time tests [default=yes if valgrind enabled]]), [],
+    [SECP_SET_DEFAULT([enable_ctime_tests], [auto], [auto])])
+
 AC_ARG_ENABLE(experimental,
     AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]), [],
     [SECP_SET_DEFAULT([enable_experimental], [no], [yes])])
@@ -225,7 +229,10 @@ else
     enable_valgrind=yes
   fi
 fi
-AM_CONDITIONAL([VALGRIND_ENABLED],[test "$enable_valgrind" = "yes"])
+
+if test x"$enable_ctime_tests" = x"auto"; then
+    enable_ctime_tests=$enable_valgrind
+fi
 
 if test x"$enable_coverage" = x"yes"; then
     SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOVERAGE=1"
@@ -344,7 +351,7 @@ case $set_ecmult_gen_precision in
 esac
 
 if test x"$enable_valgrind" = x"yes"; then
-  SECP_INCLUDES="$SECP_INCLUDES $VALGRIND_CPPFLAGS"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES $VALGRIND_CPPFLAGS -DVALGRIND"
 fi
 
 # Add -Werror and similar flags passed from the outside (for testing, e.g., in CI).
@@ -407,6 +414,7 @@ AC_SUBST(SECP_CFLAGS)
 AC_SUBST(SECP_CONFIG_DEFINES)
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"$enable_coverage" = x"yes"])
 AM_CONDITIONAL([USE_TESTS], [test x"$enable_tests" != x"no"])
+AM_CONDITIONAL([USE_CTIME_TESTS], [test x"$enable_ctime_tests" = x"yes"])
 AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$enable_exhaustive_tests" != x"no"])
 AM_CONDITIONAL([USE_EXAMPLES], [test x"$enable_examples" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$enable_benchmark" = x"yes"])
@@ -428,6 +436,7 @@ echo "Build Options:"
 echo "  with external callbacks = $enable_external_default_callbacks"
 echo "  with benchmarks         = $enable_benchmark"
 echo "  with tests              = $enable_tests"
+echo "  with ctime tests        = $enable_ctime_tests"
 echo "  with coverage           = $enable_coverage"
 echo "  with examples           = $enable_examples"
 echo "  module ecdh             = $enable_module_ecdh"

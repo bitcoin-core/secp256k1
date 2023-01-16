@@ -410,7 +410,7 @@ sufficient even. Given that every loop iteration performs *N* divsteps, it will 
 
 To deal with the branches in `divsteps_n_matrix` we will replace them with constant-time bitwise
 operations (and hope the C compiler isn't smart enough to turn them back into branches; see
-`valgrind_ctime_test.c` for automated tests that this isn't the case). To do so, observe that a
+`ctime_tests.c` for automated tests that this isn't the case). To do so, observe that a
 divstep can be written instead as (compare to the inner loop of `gcd` in section 1).
 
 ```python

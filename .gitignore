@@ -6,7 +6,7 @@ tests
 exhaustive_tests
 precompute_ecmult_gen
 precompute_ecmult
-valgrind_ctime_test
+ctime_tests
 ecdh_example
 ecdsa_example
 schnorr_example
