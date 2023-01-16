@@ -28,7 +28,7 @@ static int recovery_test_nonce_function(unsigned char *nonce32, const unsigned c
     return secp256k1_testrand_bits(1);
 }
 
-void test_ecdsa_recovery_api(void) {
+static void test_ecdsa_recovery_api(void) {
     /* Setup contexts that just count errors */
     secp256k1_pubkey pubkey;
     secp256k1_pubkey recpubkey;
@@ -127,7 +127,7 @@ void test_ecdsa_recovery_api(void) {
     secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
 }
 
-void test_ecdsa_recovery_end_to_end(void) {
+static void test_ecdsa_recovery_end_to_end(void) {
     unsigned char extra[32] = {0x00};
     unsigned char privkey[32];
     unsigned char message[32];
@@ -186,7 +186,7 @@ void test_ecdsa_recovery_end_to_end(void) {
 }
 
 /* Tests several edge cases. */
-void test_ecdsa_recovery_edge_cases(void) {
+static void test_ecdsa_recovery_edge_cases(void) {
     const unsigned char msg32[32] = {
         'T', 'h', 'i', 's', ' ', 'i', 's', ' ',
         'a', ' ', 'v', 'e', 'r', 'y', ' ', 's',
@@ -359,7 +359,7 @@ void test_ecdsa_recovery_edge_cases(void) {
     }
 }
 
-void run_recovery_tests(void) {
+static void run_recovery_tests(void) {
     int i;
     for (i = 0; i < COUNT; i++) {
         test_ecdsa_recovery_api();

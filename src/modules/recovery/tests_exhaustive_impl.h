@@ -10,7 +10,7 @@
 #include "main_impl.h"
 #include "../../../include/secp256k1_recovery.h"
 
-void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1_ge *group) {
+static void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1_ge *group) {
     int i, j, k;
     uint64_t iter = 0;
 
@@ -79,7 +79,7 @@ void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const secp256k1
     }
 }
 
-void test_exhaustive_recovery_verify(const secp256k1_context *ctx, const secp256k1_ge *group) {
+static void test_exhaustive_recovery_verify(const secp256k1_context *ctx, const secp256k1_ge *group) {
     /* This is essentially a copy of test_exhaustive_verify, with recovery added */
     int s, r, msg, key;
     uint64_t iter = 0;

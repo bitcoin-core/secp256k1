@@ -30,7 +30,7 @@
 #include "../include/secp256k1_schnorrsig.h"
 #endif
 
-void run_tests(secp256k1_context *ctx, unsigned char *key);
+static void run_tests(secp256k1_context *ctx, unsigned char *key);
 
 int main(void) {
     secp256k1_context* ctx;
@@ -63,7 +63,7 @@ int main(void) {
     return 0;
 }
 
-void run_tests(secp256k1_context *ctx, unsigned char *key) {
+static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     secp256k1_ecdsa_signature signature;
     secp256k1_pubkey pubkey;
     size_t siglen = 74;

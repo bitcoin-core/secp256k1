@@ -12,7 +12,7 @@
 /* Checks that a bit flip in the n_flip-th argument (that has n_bytes many
  * bytes) changes the hash function
  */
-void nonce_function_bip340_bitflip(unsigned char **args, size_t n_flip, size_t n_bytes, size_t msglen, size_t algolen) {
+static void nonce_function_bip340_bitflip(unsigned char **args, size_t n_flip, size_t n_bytes, size_t msglen, size_t algolen) {
     unsigned char nonces[2][32];
     CHECK(nonce_function_bip340(nonces[0], args[0], msglen, args[1], args[2], args[3], algolen, args[4]) == 1);
     secp256k1_testrand_flip(args[n_flip], n_bytes);
@@ -23,7 +23,7 @@ void nonce_function_bip340_bitflip(unsigned char **args, size_t n_flip, size_t n
 /* Tests for the equality of two sha256 structs. This function only produces a
  * correct result if an integer multiple of 64 many bytes have been written
  * into the hash functions. */
-void test_sha256_eq(const secp256k1_sha256 *sha1, const secp256k1_sha256 *sha2) {
+static void test_sha256_eq(const secp256k1_sha256 *sha1, const secp256k1_sha256 *sha2) {
     /* Is buffer fully consumed? */
     CHECK((sha1->bytes & 0x3F) == 0);
 
@@ -31,7 +31,7 @@ void test_sha256_eq(const secp256k1_sha256 *sha1, const secp256k1_sha256 *sha2) 
     CHECK(secp256k1_memcmp_var(sha1->s, sha2->s, sizeof(sha1->s)) == 0);
 }
 
-void run_nonce_function_bip340_tests(void) {
+static void run_nonce_function_bip340_tests(void) {
     unsigned char tag[13] = "BIP0340/nonce";
     unsigned char aux_tag[11] = "BIP0340/aux";
     unsigned char algo[13] = "BIP0340/nonce";
@@ -114,7 +114,7 @@ void run_nonce_function_bip340_tests(void) {
     CHECK(secp256k1_memcmp_var(nonce_z, nonce, 32) == 0);
 }
 
-void test_schnorrsig_api(void) {
+static void test_schnorrsig_api(void) {
     unsigned char sk1[32];
     unsigned char sk2[32];
     unsigned char sk3[32];
@@ -203,7 +203,7 @@ void test_schnorrsig_api(void) {
 
 /* Checks that hash initialized by secp256k1_schnorrsig_sha256_tagged has the
  * expected state. */
-void test_schnorrsig_sha256_tagged(void) {
+static void test_schnorrsig_sha256_tagged(void) {
     unsigned char tag[17] = "BIP0340/challenge";
     secp256k1_sha256 sha;
     secp256k1_sha256 sha_optimized;
@@ -215,7 +215,7 @@ void test_schnorrsig_sha256_tagged(void) {
 
 /* Helper function for schnorrsig_bip_vectors
  * Signs the message and checks that it's the same as expected_sig. */
-void test_schnorrsig_bip_vectors_check_signing(const unsigned char *sk, const unsigned char *pk_serialized, const unsigned char *aux_rand, const unsigned char *msg32, const unsigned char *expected_sig) {
+static void test_schnorrsig_bip_vectors_check_signing(const unsigned char *sk, const unsigned char *pk_serialized, const unsigned char *aux_rand, const unsigned char *msg32, const unsigned char *expected_sig) {
     unsigned char sig[64];
     secp256k1_keypair keypair;
     secp256k1_xonly_pubkey pk, pk_expected;
@@ -232,7 +232,7 @@ void test_schnorrsig_bip_vectors_check_signing(const unsigned char *sk, const un
 
 /* Helper function for schnorrsig_bip_vectors
  * Checks that both verify and verify_batch (TODO) return the same value as expected. */
-void test_schnorrsig_bip_vectors_check_verify(const unsigned char *pk_serialized, const unsigned char *msg32, const unsigned char *sig, int expected) {
+static void test_schnorrsig_bip_vectors_check_verify(const unsigned char *pk_serialized, const unsigned char *msg32, const unsigned char *sig, int expected) {
     secp256k1_xonly_pubkey pk;
 
     CHECK(secp256k1_xonly_pubkey_parse(CTX, &pk, pk_serialized));
@@ -241,7 +241,7 @@ void test_schnorrsig_bip_vectors_check_verify(const unsigned char *pk_serialized
 
 /* Test vectors according to BIP-340 ("Schnorr Signatures for secp256k1"). See
  * https://github.com/bitcoin/bips/blob/master/bip-0340/test-vectors.csv. */
-void test_schnorrsig_bip_vectors(void) {
+static void test_schnorrsig_bip_vectors(void) {
     {
         /* Test vector 0 */
         const unsigned char sk[32] = {
@@ -699,7 +699,7 @@ static int nonce_function_overflowing(unsigned char *nonce32, const unsigned cha
     return 1;
 }
 
-void test_schnorrsig_sign(void) {
+static void test_schnorrsig_sign(void) {
     unsigned char sk[32];
     secp256k1_xonly_pubkey pk;
     secp256k1_keypair keypair;
@@ -749,7 +749,7 @@ void test_schnorrsig_sign(void) {
 /* Creates N_SIGS valid signatures and verifies them with verify and
  * verify_batch (TODO). Then flips some bits and checks that verification now
  * fails. */
-void test_schnorrsig_sign_verify(void) {
+static void test_schnorrsig_sign_verify(void) {
     unsigned char sk[32];
     unsigned char msg[N_SIGS][32];
     unsigned char sig[N_SIGS][64];
@@ -826,7 +826,7 @@ void test_schnorrsig_sign_verify(void) {
 }
 #undef N_SIGS
 
-void test_schnorrsig_taproot(void) {
+static void test_schnorrsig_taproot(void) {
     unsigned char sk[32];
     secp256k1_keypair keypair;
     secp256k1_xonly_pubkey internal_pk;
@@ -862,7 +862,7 @@ void test_schnorrsig_taproot(void) {
     CHECK(secp256k1_xonly_pubkey_tweak_add_check(CTX, output_pk_bytes, pk_parity, &internal_pk, tweak) == 1);
 }
 
-void run_schnorrsig_tests(void) {
+static void run_schnorrsig_tests(void) {
     int i;
     run_nonce_function_bip340_tests();
 
