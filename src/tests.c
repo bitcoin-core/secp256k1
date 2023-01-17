@@ -44,11 +44,31 @@ static int all_bytes_equal(const void* s, unsigned char value, size_t n) {
     return 1;
 }
 
+/* TODO Use CHECK_ILLEGAL(_VOID) everywhere and get rid of the uncounting callback */
+/* CHECK that expr_or_stmt calls the illegal callback of ctx exactly once
+ *
+ * For checking functions that use ARG_CHECK_VOID */
+#define CHECK_ILLEGAL_VOID(ctx, expr_or_stmt) do { \
+    int32_t _calls_to_illegal_callback = 0; \
+    secp256k1_callback _saved_illegal_cb = ctx->illegal_callback; \
+    secp256k1_context_set_illegal_callback(ctx, \
+        counting_illegal_callback_fn, &_calls_to_illegal_callback); \
+    { expr_or_stmt; } \
+    ctx->illegal_callback = _saved_illegal_cb; \
+    CHECK(_calls_to_illegal_callback == 1); \
+} while(0);
+
+/* CHECK that expr calls the illegal callback of ctx exactly once and that expr == 0
+ *
+ * For checking functions that use ARG_CHECK */
+#define CHECK_ILLEGAL(ctx, expr) CHECK_ILLEGAL_VOID(ctx, CHECK((expr) == 0))
+
 static void counting_illegal_callback_fn(const char* str, void* data) {
     /* Dummy callback function that just counts. */
     int32_t *p;
     (void)str;
     p = data;
+    CHECK(*p != INT32_MAX);
     (*p)++;
 }
 
@@ -57,6 +77,7 @@ static void uncounting_illegal_callback_fn(const char* str, void* data) {
     int32_t *p;
     (void)str;
     p = data;
+    CHECK(*p != INT32_MIN);
     (*p)--;
 }
 
@@ -246,39 +267,28 @@ static void run_static_context_tests(int use_prealloc) {
     CHECK(secp256k1_context_no_precomp == secp256k1_context_static);
 
     {
-        int ecount = 0;
         unsigned char seed[32] = {0x17};
-        secp256k1_context_set_illegal_callback(STATIC_CTX, counting_illegal_callback_fn, &ecount);
 
         /* Randomizing secp256k1_context_static is not supported. */
-        CHECK(secp256k1_context_randomize(STATIC_CTX, seed) == 0);
-        CHECK(ecount == 1);
-        CHECK(secp256k1_context_randomize(STATIC_CTX, NULL) == 0);
-        CHECK(ecount == 2);
-        ecount = 0;
+        CHECK_ILLEGAL(STATIC_CTX, secp256k1_context_randomize(STATIC_CTX, seed));
+        CHECK_ILLEGAL(STATIC_CTX, secp256k1_context_randomize(STATIC_CTX, NULL));
 
         /* Destroying or cloning secp256k1_context_static is not supported. */
         if (use_prealloc) {
-            CHECK(secp256k1_context_preallocated_clone_size(STATIC_CTX) == 0);
-            CHECK(ecount == 1);
+            CHECK_ILLEGAL(STATIC_CTX, secp256k1_context_preallocated_clone_size(STATIC_CTX));
             {
                 secp256k1_context *my_static_ctx = malloc(sizeof(*STATIC_CTX));
                 CHECK(my_static_ctx != NULL);
                 memset(my_static_ctx, 0x2a, sizeof(*my_static_ctx));
-                CHECK(secp256k1_context_preallocated_clone(STATIC_CTX, my_static_ctx) == NULL);
+                CHECK_ILLEGAL(STATIC_CTX, secp256k1_context_preallocated_clone(STATIC_CTX, my_static_ctx));
                 CHECK(all_bytes_equal(my_static_ctx, 0x2a, sizeof(*my_static_ctx)));
-                CHECK(ecount == 2);
                 free(my_static_ctx);
             }
-            secp256k1_context_preallocated_destroy(STATIC_CTX);
-            CHECK(ecount == 3);
+            CHECK_ILLEGAL_VOID(STATIC_CTX, secp256k1_context_preallocated_destroy(STATIC_CTX));
         } else {
-            CHECK(secp256k1_context_clone(STATIC_CTX) == NULL);
-            CHECK(ecount == 1);
-            secp256k1_context_destroy(STATIC_CTX);
-            CHECK(ecount == 2);
+            CHECK_ILLEGAL(STATIC_CTX, secp256k1_context_clone(STATIC_CTX));
+            CHECK_ILLEGAL_VOID(STATIC_CTX, secp256k1_context_destroy(STATIC_CTX));
         }
-        secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
     }
 
     {
