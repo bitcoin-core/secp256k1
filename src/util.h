@@ -251,7 +251,7 @@ static SECP256K1_INLINE int secp256k1_ctz32_var_debruijn(uint32_t x) {
         0x10, 0x07, 0x0C, 0x1A, 0x1F, 0x17, 0x12, 0x05, 0x15, 0x09, 0x0F, 0x0B,
         0x1E, 0x11, 0x08, 0x0E, 0x1D, 0x0D, 0x1C, 0x1B
     };
-    return debruijn[((x & -x) * 0x04D7651F) >> 27];
+    return debruijn[(uint32_t)((x & -x) * 0x04D7651FU) >> 27];
 }
 
 /* Determine the number of trailing zero bits in a (non-zero) 64-bit x.
@@ -264,7 +264,7 @@ static SECP256K1_INLINE int secp256k1_ctz64_var_debruijn(uint64_t x) {
         63, 52, 6, 26, 37, 40, 33, 47, 61, 45, 43, 21, 23, 58, 17, 10,
         51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12
     };
-    return debruijn[((x & -x) * 0x022FDD63CC95386D) >> 58];
+    return debruijn[(uint64_t)((x & -x) * 0x022FDD63CC95386DU) >> 58];
 }
 
 /* Determine the number of trailing zero bits in a (non-zero) 32-bit x. */
