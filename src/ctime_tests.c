@@ -38,7 +38,7 @@ int main(void) {
     int ret, i;
 
     if (!SECP256K1_CHECKMEM_RUNNING()) {
-        fprintf(stderr, "Unless compiled under msan, this test can only usefully be run inside valgrind.\n");
+        fprintf(stderr, "This test can only usefully be run inside valgrind because it was not compiled under msan.\n");
         fprintf(stderr, "Usage: libtool --mode=execute valgrind ./ctime_tests\n");
         return 1;
     }
