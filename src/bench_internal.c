@@ -110,10 +110,11 @@ static void bench_scalar_mul(void* arg, int iters) {
 static void bench_scalar_split(void* arg, int iters) {
     int i, j = 0;
     bench_inv *data = (bench_inv*)arg;
+    secp256k1_scalar tmp;
 
     for (i = 0; i < iters; i++) {
-        secp256k1_scalar_split_lambda(&data->scalar[0], &data->scalar[1], &data->scalar[0]);
-        j += secp256k1_scalar_add(&data->scalar[0], &data->scalar[0], &data->scalar[1]);
+        secp256k1_scalar_split_lambda(&tmp, &data->scalar[1], &data->scalar[0]);
+        j += secp256k1_scalar_add(&data->scalar[0], &tmp, &data->scalar[1]);
     }
     CHECK(j <= iters);
 }

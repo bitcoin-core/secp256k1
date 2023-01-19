@@ -81,6 +81,7 @@ task:
     - env: {WIDEMUL: int128,                 ECDH: yes, SCHNORRSIG: yes}
     - env: {WIDEMUL: int128,  ASM: x86_64}
     - env: {                  RECOVERY: yes,            SCHNORRSIG: yes}
+    - env: {CTIMETESTS: no,    RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, CPPFLAGS: -DVERIFY}
     - env: {BUILD: distcheck, WITH_VALGRIND: no, CTIMETESTS: no, BENCH: no}
     - env: {CPPFLAGS: -DDETERMINISTIC}
     - env: {CFLAGS: -O0, CTIMETESTS: no}
