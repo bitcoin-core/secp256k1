@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Changed
+ - Forbade cloning or destroying `secp256k1_context_static`. Create a new context instead of cloning the static context. (If this change breaks your code, your code is probably wrong.)
+ - Forbade randomizing (copies of) `secp256k1_context_static`. Randomizing a copy of `secp256k1_context_static` did not have any effect and did not provide defense-in-depth protection against side-channel attacks. Create a new context if you want to benefit from randomization.
+
 ## [0.2.0] - 2022-12-12
 
 #### Added
