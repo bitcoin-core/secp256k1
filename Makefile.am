@@ -103,7 +103,7 @@ noinst_PROGRAMS =
 if USE_BENCHMARK
 noinst_PROGRAMS += bench bench_internal bench_ecmult
 bench_SOURCES = src/bench.c
-bench_LDADD = libsecp256k1.la $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB)
+bench_LDADD = libsecp256k1.la $(SECP_LIBS) $(COMMON_LIB)
 bench_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 bench_internal_SOURCES = src/bench_internal.c
 bench_internal_LDADD = $(SECP_LIBS) $(COMMON_LIB) $(PRECOMPUTED_LIB)
@@ -118,8 +118,8 @@ if USE_TESTS
 TESTS += noverify_tests
 noinst_PROGRAMS += noverify_tests
 noverify_tests_SOURCES = src/tests.c
-noverify_tests_CPPFLAGS = $(SECP_INCLUDES) $(SECP_TEST_INCLUDES) $(SECP_CONFIG_DEFINES)
-noverify_tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB) $(PRECOMPUTED_LIB)
+noverify_tests_CPPFLAGS = $(SECP_INCLUDES) $(SECP_CONFIG_DEFINES)
+noverify_tests_LDADD = $(SECP_LIBS) $(COMMON_LIB) $(PRECOMPUTED_LIB)
 noverify_tests_LDFLAGS = -static
 if !ENABLE_COVERAGE
 TESTS += tests
