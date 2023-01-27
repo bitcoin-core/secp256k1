@@ -25,6 +25,22 @@ typedef int (*secp256k1_ecdh_hash_function)(
   void *data
 );
 
+/** A pointer to a function that hashes an X coordinate to obtain an ECDH secret
+ *
+ *  Returns: 1 if the point was successfully hashed.
+ *           0 will cause secp256k1_ecdh_xonly to fail and return 0.
+ *           Other return values are not allowed, and the behaviour of
+ *           secp256k1_ecdh_xonly is undefined for other return values.
+ *  Out:     output:     pointer to an array to be filled by the function
+ *  In:      x32:        pointer to a 32-byte x coordinate
+ *           data:       arbitrary data pointer that is passed through
+ */
+typedef int (*secp256k1_ecdh_xonly_hash_function)(
+  unsigned char *output,
+  const unsigned char *x32,
+  void *data
+);
+
 /** An implementation of SHA256 hash function that applies to compressed public key.
  * Populates the output parameter with 32 bytes. */
 SECP256K1_API const secp256k1_ecdh_hash_function secp256k1_ecdh_hash_function_sha256;
@@ -32,6 +48,10 @@ SECP256K1_API const secp256k1_ecdh_hash_function secp256k1_ecdh_hash_function_sh
 /** A default ECDH hash function (currently equal to secp256k1_ecdh_hash_function_sha256).
  * Populates the output parameter with 32 bytes. */
 SECP256K1_API const secp256k1_ecdh_hash_function secp256k1_ecdh_hash_function_default;
+
+/** An implementation of SHA256 hash function that applies to the X coordinate.
+ * Populates the output parameter with 32 bytes. */
+SECP256K1_API const secp256k1_ecdh_xonly_hash_function secp256k1_ecdh_xonly_hash_function_sha256;
 
 /** Compute an EC Diffie-Hellman secret in constant time
  *
@@ -53,6 +73,33 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdh(
   const secp256k1_pubkey *pubkey,
   const unsigned char *seckey,
   secp256k1_ecdh_hash_function hashfp,
+  void *data
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
+/** Compute an EC X-only Diffie-Hellman secret in constant time
+ *
+ *  Returns: 1: exponentiation was successful
+ *           0: scalar was invalid (zero or overflow), input is not a valid X coordinate, or hashfp
+ *              returned 0.
+ *  Args:    ctx:        pointer to a context object.
+ *  Out:     output:     pointer to an array to be filled by hashfp.
+ *  In:      xpubkey:    a pointer to the 32-byte serialization of an x-only public key (see the
+ *                       extrakeys module for details).
+ *           seckey:     a 32-byte scalar with which to multiply the point.
+ *           hashfp:     pointer to a hash function. If NULL,
+ *                       secp256k1_ecdh_xonly+hash_function_sha256 is used
+ *                       (in which case, 32 bytes will be written to output).
+ *           data:       arbitrary data pointer that is passed through to hashfp
+ *                       (can be NULL for secp256k1_ecdh_xonly_hash_function_sha256).
+ *
+ * The function is constant time in seckey. It is not constant time in xpubkey, hashfp, or the output.
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdh_xonly(
+  const secp256k1_context* ctx,
+  unsigned char *output,
+  const unsigned char *xpubkey,
+  const unsigned char *seckey,
+  secp256k1_ecdh_xonly_hash_function hashfp,
   void *data
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
