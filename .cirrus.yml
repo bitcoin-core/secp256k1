@@ -1,4 +1,6 @@
 env:
+  ### cirrus config
+  CIRRUS_CLONE_DEPTH: 1
   ### compiler options
   HOST:
   WRAPPER_CMD:
@@ -56,7 +58,7 @@ merge_base_script_snippet: &MERGE_BASE
     - git config --global user.email "ci@ci.ci"
     - git config --global user.name "ci"
     - if [ "$CIRRUS_PR" = "" ]; then exit 0; fi
-    - git fetch $CIRRUS_REPO_CLONE_URL "pull/${CIRRUS_PR}/merge"
+    - git fetch --depth=1 $CIRRUS_REPO_CLONE_URL "pull/${CIRRUS_PR}/merge"
     - git checkout FETCH_HEAD  # Use merged changes to detect silent merge conflicts
 
 linux_container_snippet: &LINUX_CONTAINER
