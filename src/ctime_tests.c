@@ -115,6 +115,12 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     ret = secp256k1_ecdh(ctx, msg, &pubkey, key, NULL, NULL);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
     CHECK(ret == 1);
+
+    /* Test X-only ECDH. */
+    SECP256K1_CHECKMEM_UNDEFINE(key, 32);
+    ret = secp256k1_ecdh_xonly(ctx, msg, spubkey + 1, key, NULL, NULL);
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    CHECK(ret == 1);
 #endif
 
 #ifdef ENABLE_MODULE_RECOVERY
