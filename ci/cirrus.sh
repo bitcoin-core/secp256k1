@@ -34,6 +34,8 @@ print_environment
 # This speeds up jobs with many invocations of wine (e.g., ./configure with MSVC) tremendously.
 case "$WRAPPER_CMD" in
     *wine*)
+        # Make sure to shutdown wineserver whenever we exit.
+        trap "wineserver -k || true" EXIT INT HUP
         # This is apparently only reliable when we run a dummy command such as "hh.exe" afterwards.
         wineserver -p && wine hh.exe
         ;;
@@ -110,9 +112,6 @@ then
     make clean-precomp
     make precomp
 fi
-
-# Shutdown wineserver again
-wineserver -k || true
 
 # Check that no repo files have been modified by the build.
 # (This fails for example if the precomp files need to be updated in the repo.)
