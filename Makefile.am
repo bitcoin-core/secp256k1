@@ -103,7 +103,7 @@ noinst_PROGRAMS =
 if USE_BENCHMARK
 noinst_PROGRAMS += bench bench_internal bench_ecmult
 bench_SOURCES = src/bench.c
-bench_LDADD = libsecp256k1.la $(COMMON_LIB)
+bench_LDADD = libsecp256k1.la
 bench_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 bench_internal_SOURCES = src/bench_internal.c
 bench_internal_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
@@ -134,7 +134,7 @@ endif
 if USE_CTIME_TESTS
 noinst_PROGRAMS += ctime_tests
 ctime_tests_SOURCES = src/ctime_tests.c
-ctime_tests_LDADD = libsecp256k1.la $(COMMON_LIB)
+ctime_tests_LDADD = libsecp256k1.la
 ctime_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 endif
 
