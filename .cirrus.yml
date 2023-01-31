@@ -55,8 +55,6 @@ cat_logs_snippet: &CAT_LOGS
 
 merge_base_script_snippet: &MERGE_BASE
   merge_base_script:
-    - git config --global user.email "ci@ci.ci"
-    - git config --global user.name "ci"
     - if [ "$CIRRUS_PR" = "" ]; then exit 0; fi
     - git fetch --depth=1 $CIRRUS_REPO_CLONE_URL "pull/${CIRRUS_PR}/merge"
     - git checkout FETCH_HEAD  # Use merged changes to detect silent merge conflicts
