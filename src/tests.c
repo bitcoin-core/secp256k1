@@ -2961,6 +2961,69 @@ static void run_field_convert(void) {
     CHECK(secp256k1_memcmp_var(&fes2, &fes, sizeof(fes)) == 0);
 }
 
+static void run_field_be32_overflow(void) {
+    {
+        static const unsigned char zero_overflow[32] = {
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0xFF, 0xFC, 0x2F,
+        };
+        static const unsigned char zero[32] = { 0x00 };
+        unsigned char out[32];
+        secp256k1_fe fe;
+        CHECK(secp256k1_fe_set_b32(&fe, zero_overflow) == 0);
+        CHECK(secp256k1_fe_normalizes_to_zero(&fe) == 1);
+        secp256k1_fe_normalize(&fe);
+        CHECK(secp256k1_fe_is_zero(&fe) == 1);
+        secp256k1_fe_get_b32(out, &fe);
+        CHECK(secp256k1_memcmp_var(out, zero, 32) == 0);
+    }
+    {
+        static const unsigned char one_overflow[32] = {
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0xFF, 0xFC, 0x30,
+        };
+        static const unsigned char one[32] = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        };
+        unsigned char out[32];
+        secp256k1_fe fe;
+        CHECK(secp256k1_fe_set_b32(&fe, one_overflow) == 0);
+        secp256k1_fe_normalize(&fe);
+        CHECK(secp256k1_fe_cmp_var(&fe, &secp256k1_fe_one) == 0);
+        secp256k1_fe_get_b32(out, &fe);
+        CHECK(secp256k1_memcmp_var(out, one, 32) == 0);
+    }
+    {
+        static const unsigned char ff_overflow[32] = {
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        };
+        static const unsigned char ff[32] = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x03, 0xD0,
+        };
+        unsigned char out[32];
+        secp256k1_fe fe;
+        const secp256k1_fe fe_ff = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0x01, 0x000003d0);
+        CHECK(secp256k1_fe_set_b32(&fe, ff_overflow) == 0);
+        secp256k1_fe_normalize(&fe);
+        CHECK(secp256k1_fe_cmp_var(&fe, &fe_ff) == 0);
+        secp256k1_fe_get_b32(out, &fe);
+        CHECK(secp256k1_memcmp_var(out, ff, 32) == 0);
+    }
+}
+
 /* Returns true if two field elements have the same representation. */
 static int fe_identical(const secp256k1_fe *a, const secp256k1_fe *b) {
     int ret = 1;
@@ -7515,6 +7578,7 @@ int main(int argc, char **argv) {
     run_field_half();
     run_field_misc();
     run_field_convert();
+    run_field_be32_overflow();
     run_fe_mul();
     run_sqr();
     run_sqrt();
