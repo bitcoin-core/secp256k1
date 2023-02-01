@@ -347,6 +347,7 @@ static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a) {
         secp256k1_fe_verify(r);
     } else {
         r->normalized = 0;
+        secp256k1_fe_verify(r);
     }
 #endif
     return ret;
