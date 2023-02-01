@@ -44,6 +44,25 @@ static int all_bytes_equal(const void* s, unsigned char value, size_t n) {
     return 1;
 }
 
+/* Debug helper for printing arrays of unsigned char. */
+#define PRINT_BUF(buf, len) do { \
+    printf("%s[%lu] = ", #buf, (unsigned long)len); \
+    print_buf_plain(buf, len); \
+} while(0);
+static void print_buf_plain(const unsigned char *buf, size_t len) {
+    size_t i;
+    printf("{");
+    for (i = 0; i < len; i++) {
+        if (i % 8 == 0) {
+            printf("\n    ");
+        } else {
+            printf(" ");
+        }
+        printf("0x%02X,", buf[i]);
+    }
+    printf("\n}\n");
+}
+
 /* TODO Use CHECK_ILLEGAL(_VOID) everywhere and get rid of the uncounting callback */
 /* CHECK that expr_or_stmt calls the illegal callback of ctx exactly once
  *
