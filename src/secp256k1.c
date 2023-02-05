@@ -247,8 +247,8 @@ static int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge,
     } else {
         /* Otherwise, fall back to 32-byte big endian for X and Y. */
         secp256k1_fe x, y;
-        secp256k1_fe_set_b32(&x, pubkey->data);
-        secp256k1_fe_set_b32(&y, pubkey->data + 32);
+        secp256k1_fe_set_b32_mod(&x, pubkey->data);
+        secp256k1_fe_set_b32_mod(&y, pubkey->data + 32);
         secp256k1_ge_set_xy(ge, &x, &y);
     }
     ARG_CHECK(!secp256k1_fe_is_zero(&ge->x));

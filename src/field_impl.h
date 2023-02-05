@@ -260,13 +260,26 @@ SECP256K1_INLINE static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const se
     return secp256k1_fe_impl_cmp_var(a, b);
 }
 
-static int secp256k1_fe_impl_set_b32(secp256k1_fe *r, const unsigned char *a);
-SECP256K1_INLINE static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a) {
-    int ret = secp256k1_fe_impl_set_b32(r, a);
+static void secp256k1_fe_impl_set_b32_mod(secp256k1_fe *r, const unsigned char *a);
+SECP256K1_INLINE static void secp256k1_fe_set_b32_mod(secp256k1_fe *r, const unsigned char *a) {
+    secp256k1_fe_impl_set_b32_mod(r, a);
     r->magnitude = 1;
-    r->normalized = ret;
+    r->normalized = 0;
     secp256k1_fe_verify(r);
-    return ret;
+}
+
+static int secp256k1_fe_impl_set_b32_limit(secp256k1_fe *r, const unsigned char *a);
+SECP256K1_INLINE static int secp256k1_fe_set_b32_limit(secp256k1_fe *r, const unsigned char *a) {
+    if (secp256k1_fe_impl_set_b32_limit(r, a)) {
+        r->magnitude = 1;
+        r->normalized = 1;
+        secp256k1_fe_verify(r);
+        return 1;
+    } else {
+        /* Mark the output field element as invalid. */
+        r->magnitude = -1;
+        return 0;
+    }
 }
 
 static void secp256k1_fe_impl_get_b32(unsigned char *r, const secp256k1_fe *a);
