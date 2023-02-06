@@ -258,7 +258,7 @@ task:
     # Set non-essential options that affect the CLI messages here.
     # (They depend on the user's taste, so we don't want to set them automatically in configure.ac.)
     CFLAGS: -nologo -diagnostics:caret
-    LDFLAGS: -XCClinker -nologo -XCClinker -diagnostics:caret
+    LDFLAGS: -Xlinker -Xlinker -Xlinker -nologo
   matrix:
     - name: "x86_64 (MSVC): Windows (Debian stable, Wine)"
     - name: "x86_64 (MSVC): Windows (Debian stable, Wine, int128_struct)"
