@@ -242,7 +242,7 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t zeta, uint32_t f0, uint32_
  *
  * Implements the divsteps_n_matrix_var function from the explanation.
  */
-static int32_t secp256k1_modinv32_divsteps_30_var(int32_t eta, uint32_t f0, uint32_t g0, secp256k1_modinv32_trans2x2 *t) {
+static int secp256k1_modinv32_divsteps_30_var(int eta, uint32_t f0, uint32_t g0, secp256k1_modinv32_trans2x2 *t) {
     /* inv256[i] = -(2*i+1)^-1 (mod 256) */
     static const uint8_t inv256[128] = {
         0xFF, 0x55, 0x33, 0x49, 0xC7, 0x5D, 0x3B, 0x11, 0x0F, 0xE5, 0xC3, 0x59,
@@ -292,7 +292,7 @@ static int32_t secp256k1_modinv32_divsteps_30_var(int32_t eta, uint32_t f0, uint
         /* eta is now >= 0. In what follows we're going to cancel out the bottom bits of g. No more
          * than i can be cancelled out (as we'd be done before that point), and no more than eta+1
          * can be done as its sign will flip once that happens. */
-        limit = ((int)eta + 1) > i ? i : ((int)eta + 1);
+        limit = eta + 1 > i ? i : eta + 1;
         /* m is a mask for the bottom min(limit, 8) bits (our table only supports 8 bits). */
         VERIFY_CHECK(limit > 0 && limit <= 30);
         m = (UINT32_MAX >> (32 - limit)) & 255U;
@@ -515,7 +515,7 @@ static void secp256k1_modinv32_var(secp256k1_modinv32_signed30 *x, const secp256
     int i = 0;
 #endif
     int j, len = 9;
-    int32_t eta = -1; /* eta = -delta; delta is initially 1 (faster for the variable-time code) */
+    int eta = -1; /* eta = -delta; delta is initially 1 (faster for the variable-time code) */
     int32_t cond, fn, gn;
 
     /* Do iterations of 30 divsteps each until g=0. */

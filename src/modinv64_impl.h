@@ -233,7 +233,7 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
  *
  * Implements the divsteps_n_matrix_var function from the explanation.
  */
-static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint64_t g0, secp256k1_modinv64_trans2x2 *t) {
+static int secp256k1_modinv64_divsteps_62_var(int eta, uint64_t f0, uint64_t g0, secp256k1_modinv64_trans2x2 *t) {
     /* Transformation matrix; see comments in secp256k1_modinv64_divsteps_62. */
     uint64_t u = 1, v = 0, q = 0, r = 1;
     uint64_t f = f0, g = g0, m;
@@ -267,7 +267,7 @@ static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint
             /* Use a formula to cancel out up to 6 bits of g. Also, no more than i can be cancelled
              * out (as we'd be done before that point), and no more than eta+1 can be done as its
              * will flip again once that happens. */
-            limit = ((int)eta + 1) > i ? i : ((int)eta + 1);
+            limit = eta + 1 > i ? i : eta + 1;
             VERIFY_CHECK(limit > 0 && limit <= 62);
             /* m is a mask for the bottom min(limit, 6) bits. */
             m = (UINT64_MAX >> (64 - limit)) & 63U;
@@ -277,7 +277,7 @@ static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint
         } else {
             /* In this branch, use a simpler formula that only lets us cancel up to 4 bits of g, as
              * eta tends to be smaller here. */
-            limit = ((int)eta + 1) > i ? i : ((int)eta + 1);
+            limit = eta + 1 > i ? i : eta + 1;
             VERIFY_CHECK(limit > 0 && limit <= 62);
             /* m is a mask for the bottom min(limit, 4) bits. */
             m = (UINT64_MAX >> (64 - limit)) & 15U;
@@ -557,7 +557,7 @@ static void secp256k1_modinv64_var(secp256k1_modinv64_signed62 *x, const secp256
     int i = 0;
 #endif
     int j, len = 5;
-    int64_t eta = -1; /* eta = -delta; delta is initially 1 */
+    int eta = -1; /* eta = -delta; delta is initially 1 */
     int64_t cond, fn, gn;
 
     /* Do iterations of 62 divsteps each until g=0. */
