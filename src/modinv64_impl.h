@@ -153,7 +153,7 @@ static void secp256k1_modinv64_normalize_62(secp256k1_modinv64_signed62 *r, int6
 #endif
 }
 
-/* Compute the transition matrix and eta for 59 divsteps (where zeta=-(delta+1/2)).
+/* Compute the transition matrix and zeta for 59 divsteps (where zeta=-(delta+1/2)).
  * Note that the transformation matrix is scaled by 2^62 and not 2^59.
  *
  * Input:  zeta: initial zeta
