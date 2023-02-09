@@ -7430,6 +7430,32 @@ static void run_cmov_tests(void) {
     ge_storage_cmov_test();
 }
 
+static int process_args(int argc, char **argv) {
+    int is_count_arg_set = 0;
+    const char* env = getenv("SECP256K1_TEST_ITERS");
+
+    if (argc > 1) {
+        int count_arg = strtol(argv[1], NULL, 0);
+        if (count_arg > 0) {
+            is_count_arg_set = 1;
+            COUNT = count_arg;
+        }
+    }
+
+    if (env && strlen(env) > 0) {
+        COUNT = strtol(env, NULL, 0);
+        if (is_count_arg_set) {
+            fputs("Environment variable SECP256K1_TEST_ITERS and command line argument both try to set the iteration count.\n", stderr);
+            return 0;
+        }
+        if (COUNT <= 0) {
+            fputs("An iteration count of 0 or less is not allowed.\n", stderr);
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static void help(void) {
     printf("The command ./tests runs a test suite on the code base.\n");
     printf("\n");
@@ -7463,17 +7489,8 @@ int main(int argc, char **argv) {
         }
     }
 
-    /* find iteration count */
-    if (argc > 1) {
-        COUNT = strtol(argv[1], NULL, 0);
-    } else {
-        const char* env = getenv("SECP256K1_TEST_ITERS");
-        if (env && strlen(env) > 0) {
-            COUNT = strtol(env, NULL, 0);
-        }
-    }
-    if (COUNT <= 0) {
-        fputs("An iteration count of 0 or less is not allowed.\n", stderr);
+    if (!process_args(argc, argv)) {
+        help();
         return EXIT_FAILURE;
     }
     printf("test count = %i\n", COUNT);
