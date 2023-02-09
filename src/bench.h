@@ -129,18 +129,6 @@ static void run_benchmark(char *name, void (*benchmark)(void*, int), void (*setu
     printf("\n");
 }
 
-static int have_flag(int argc, char** argv, char *flag) {
-    char** argm = argv + argc;
-    argv++;
-    while (argv != argm) {
-        if (strcmp(*argv, flag) == 0) {
-            return 1;
-        }
-        argv++;
-    }
-    return 0;
-}
-
 /* takes an array containing the arguments that the user is allowed to enter on the command-line
    returns:
       - 1 if the user entered an invalid argument

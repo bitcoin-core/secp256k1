@@ -9,6 +9,7 @@
 #include "../include/secp256k1.h"
 
 #include "util.h"
+#include "cli_util.h"
 #include "hash_impl.h"
 #include "field_impl.h"
 #include "group_impl.h"

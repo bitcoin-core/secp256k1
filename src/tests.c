@@ -16,6 +16,7 @@
 #include "testrand_impl.h"
 #include "checkmem.h"
 #include "util.h"
+#include "cli_util.h"
 
 #include "../contrib/lax_der_parsing.c"
 #include "../contrib/lax_der_privatekey_parsing.c"
@@ -28,7 +29,8 @@
 
 #define CONDITIONAL_TEST(cnt, nam) if (COUNT < (cnt)) { printf("Skipping %s (iteration count too low)\n", nam); } else
 
-static int COUNT = 64;
+#define DEFAULT_COUNT 64
+static int COUNT = DEFAULT_COUNT;
 static secp256k1_context *CTX = NULL;
 static secp256k1_context *STATIC_CTX = NULL;
 
@@ -7428,6 +7430,21 @@ static void run_cmov_tests(void) {
     ge_storage_cmov_test();
 }
 
+static void help(void) {
+    printf("The command ./tests runs a test suite on the code base.\n");
+    printf("\n");
+    printf("Some randomized tests are run for a certain number of iterations,\n");
+    printf("which is set to %d by default. This number can be altered by either\n", DEFAULT_COUNT);
+    printf("setting the environment variable SECP256K1_TEST_ITERS or by providing\n");
+    printf("the iteration count as a command line argument.\n");
+    printf("\n");
+    printf("Usage: ./tests [args]\n");
+    printf("Available arguments:\n");
+    printf("    help              : display this help message and exit\n");
+    printf("    <count>           : set the iteration count to <count>\n");
+    printf("\n");
+}
+
 int main(int argc, char **argv) {
     /* Disable buffering for stdout to improve reliability of getting
      * diagnostic information. Happens right at the start of main because
@@ -7436,6 +7453,15 @@ int main(int argc, char **argv) {
     /* Also disable buffering for stderr because it's not guaranteed that it's
      * unbuffered on all systems. */
     setbuf(stderr, NULL);
+
+    if (argc > 1) {
+        if (have_flag(argc, argv, "-h")
+           || have_flag(argc, argv, "--help")
+           || have_flag(argc, argv, "help")) {
+            help();
+            return 0;
+        }
+    }
 
     /* find iteration count */
     if (argc > 1) {
