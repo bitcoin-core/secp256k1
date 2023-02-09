@@ -7430,9 +7430,13 @@ static void run_cmov_tests(void) {
     ge_storage_cmov_test();
 }
 
-static int process_args(int argc, char **argv) {
+static int process_args(int *all_enabled, int argc, char **argv) {
     int is_count_arg_set = 0;
     const char* env = getenv("SECP256K1_TEST_ITERS");
+    char* valid_args[] = {"integer", "hash", "scalar", "field", "group",
+                          "ecmult", "ecdh", "ecdsa", "recovery", "extrakeys",
+                          "schnorrsig"};
+    size_t valid_args_size = sizeof(valid_args)/sizeof(valid_args[0]);
 
     if (argc > 1) {
         int count_arg = strtol(argv[1], NULL, 0);
@@ -7453,8 +7457,30 @@ static int process_args(int argc, char **argv) {
             return 0;
         }
     }
+
+    *all_enabled = argc == 1 || (argc == 2 && is_count_arg_set);
+
+    if (is_count_arg_set) {
+        argc--;
+        argv++;
+    }
+    if (have_invalid_args(argc, argv, valid_args, valid_args_size)) {
+        fprintf(stderr, "./tests: unrecognized argument.\n\n");
+        return 0;
+    }
+
     return 1;
 }
+
+static int module_unavailable(int argc, char **argv, char *module) {
+    if (have_flag(argc, argv, module)) {
+        fprintf(stderr, "./tests: %s module not enabled.\n", module);
+        fprintf(stderr, "Use ./configure --enable-module-%s.\n\n", module);
+        return 1;
+    }
+    return 0;
+}
+
 
 static void help(void) {
     printf("The command ./tests runs a test suite on the code base.\n");
@@ -7464,14 +7490,36 @@ static void help(void) {
     printf("setting the environment variable SECP256K1_TEST_ITERS or by providing\n");
     printf("the iteration count as a command line argument.\n");
     printf("\n");
+    printf("By default, all tests are enabled.\n");
     printf("Usage: ./tests [args]\n");
     printf("Available arguments:\n");
     printf("    help              : display this help message and exit\n");
     printf("    <count>           : set the iteration count to <count>\n");
+    printf("    integer           : enable integer tests\n");
+    printf("    hash              : enable hash tests\n");
+    printf("    scalar            : enable scalar tests\n");
+    printf("    field             : enable field tests\n");
+    printf("    group             : enable group tests\n");
+    printf("    ecmult            : enable ecmult tests\n");
+#ifdef ENABLE_MODULE_ECDH
+    printf("    ecdh              : enable ecdh tests\n");
+#endif
+    printf("    ecdsa             : enable ecdsa tests\n");
+#ifdef ENABLE_MODULE_RECOVERY
+    printf("    recovery          : enable recovery tests\n");
+#endif
+#ifdef ENABLE_MODULE_EXTRAKEYS
+    printf("    extrakeys         : enable extrakeys tests\n");
+#endif
+#ifdef ENABLE_MODULE_SCHNORRSIG
+    printf("    schnorrsig        : enable schnorrsig tests\n");
+#endif
     printf("\n");
 }
 
 int main(int argc, char **argv) {
+    /* This variable is set to true if all tests are enabled by the user */
+    int all_enabled;
     /* Disable buffering for stdout to improve reliability of getting
      * diagnostic information. Happens right at the start of main because
      * setbuf must be used before any other operation on the stream. */
@@ -7489,7 +7537,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (!process_args(argc, argv)) {
+    if (!process_args(&all_enabled, argc, argv)) {
         help();
         return EXIT_FAILURE;
     }
@@ -7537,47 +7585,59 @@ int main(int argc, char **argv) {
     run_rand_int();
 
     /* integer arithmetic tests */
+    if (all_enabled || have_flag(argc, argv, "integer")) {
 #ifdef SECP256K1_WIDEMUL_INT128
-    run_int128_tests();
+        run_int128_tests();
 #endif
-    run_ctz_tests();
-    run_modinv_tests();
-    run_inverse_tests();
+        run_ctz_tests();
+        run_modinv_tests();
+        run_inverse_tests();
+    }
 
     /* hash tests */
-    run_sha256_known_output_tests();
-    run_sha256_counter_tests();
-    run_hmac_sha256_tests();
-    run_rfc6979_hmac_sha256_tests();
-    run_tagged_sha256_tests();
+    if (all_enabled || have_flag(argc, argv, "hash")) {
+        run_sha256_known_output_tests();
+        run_sha256_counter_tests();
+        run_hmac_sha256_tests();
+        run_rfc6979_hmac_sha256_tests();
+        run_tagged_sha256_tests();
+    }
 
     /* scalar tests */
-    run_scalar_tests();
+    if (all_enabled || have_flag(argc, argv, "scalar")) {
+        run_scalar_tests();
+    }
 
     /* field tests */
-    run_field_half();
-    run_field_misc();
-    run_field_convert();
-    run_fe_mul();
-    run_sqr();
-    run_sqrt();
+    if (all_enabled || have_flag(argc, argv, "field")) {
+        run_field_half();
+        run_field_misc();
+        run_field_convert();
+        run_fe_mul();
+        run_sqr();
+        run_sqrt();
+    }
 
     /* group tests */
-    run_ge();
-    run_gej();
-    run_group_decompress();
+    if (all_enabled || have_flag(argc, argv, "group")) {
+        run_ge();
+        run_gej();
+        run_group_decompress();
+    }
 
     /* ecmult tests */
-    run_ecmult_pre_g();
-    run_wnaf();
-    run_point_times_order();
-    run_ecmult_near_split_bound();
-    run_ecmult_chain();
-    run_ecmult_constants();
-    run_ecmult_gen_blind();
-    run_ecmult_const_tests();
-    run_ecmult_multi_tests();
-    run_ec_combine();
+    if (all_enabled || have_flag(argc, argv, "ecmult")) {
+        run_ecmult_pre_g();
+        run_wnaf();
+        run_point_times_order();
+        run_ecmult_near_split_bound();
+        run_ecmult_chain();
+        run_ecmult_constants();
+        run_ecmult_gen_blind();
+        run_ecmult_const_tests();
+        run_ecmult_multi_tests();
+        run_ec_combine();
+    }
 
     /* endomorphism tests */
     run_endomorphism_tests();
@@ -7593,29 +7653,59 @@ int main(int argc, char **argv) {
 
 #ifdef ENABLE_MODULE_ECDH
     /* ecdh tests */
-    run_ecdh_tests();
+    if (all_enabled || have_flag(argc, argv, "ecdh")) {
+        run_ecdh_tests();
+    }
+#endif
+#ifndef ENABLE_MODULE_ECDH
+    if (module_unavailable(argc, argv, "ecdh")) {
+        return EXIT_FAILURE;
+    }
 #endif
 
     /* ecdsa tests */
-    run_ec_illegal_argument_tests();
-    run_pubkey_comparison();
-    run_random_pubkeys();
-    run_ecdsa_der_parse();
-    run_ecdsa_sign_verify();
-    run_ecdsa_end_to_end();
-    run_ecdsa_edge_cases();
+    if (all_enabled || have_flag(argc, argv, "ecdsa")) {
+        run_ec_illegal_argument_tests();
+        run_pubkey_comparison();
+        run_random_pubkeys();
+        run_ecdsa_der_parse();
+        run_ecdsa_sign_verify();
+        run_ecdsa_end_to_end();
+        run_ecdsa_edge_cases();
+    }
 
 #ifdef ENABLE_MODULE_RECOVERY
     /* ECDSA pubkey recovery tests */
-    run_recovery_tests();
+    if (all_enabled || have_flag(argc, argv, "recovery")) {
+        run_recovery_tests();
+    }
+#endif
+#ifndef ENABLE_MODULE_RECOVERY
+    if (module_unavailable(argc, argv, "recovery")) {
+        return EXIT_FAILURE;
+    }
 #endif
 
 #ifdef ENABLE_MODULE_EXTRAKEYS
-    run_extrakeys_tests();
+    if (all_enabled || have_flag(argc, argv, "extrakeys")) {
+        run_extrakeys_tests();
+    }
+#endif
+#ifndef ENABLE_MODULE_EXTRAKEYS
+    if (module_unavailable(argc, argv, "extrakeys")) {
+        return EXIT_FAILURE;
+    }
 #endif
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
-    run_schnorrsig_tests();
+    if (all_enabled || have_flag(argc, argv, "schnorrsig")) {
+        run_schnorrsig_tests();
+    }
+#endif
+#ifndef ENABLE_MODULE_SCHNORRSIG
+    if (module_unavailable(argc, argv, "schnorrsig")) {
+        return EXIT_FAILURE;
+    }
 #endif
 
     /* util tests */

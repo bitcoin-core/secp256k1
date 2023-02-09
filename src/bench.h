@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 
 #if (defined(_MSC_VER) && _MSC_VER >= 1900)
 #  include <time.h>
@@ -79,7 +78,7 @@ static void print_number(const int64_t x) {
             y /= 10;
         }
     } else if (c == 0) { /* fractional part is 0 */
-        buffer[--ptr] = '0'; 
+        buffer[--ptr] = '0';
     }
     buffer[--ptr] = '.';
     do {
@@ -127,32 +126,6 @@ static void run_benchmark(char *name, void (*benchmark)(void*, int), void (*setu
     printf("   , ");
     print_number(max * FP_MULT / iter);
     printf("\n");
-}
-
-/* takes an array containing the arguments that the user is allowed to enter on the command-line
-   returns:
-      - 1 if the user entered an invalid argument
-      - 0 if all the user entered arguments are valid */
-static int have_invalid_args(int argc, char** argv, char** valid_args, size_t n) {
-    size_t i;
-    int found_valid;
-    char** argm = argv + argc;
-    argv++;
-
-    while (argv != argm) {
-        found_valid = 0;
-        for (i = 0; i < n; i++) {
-            if (strcmp(*argv, valid_args[i]) == 0) {
-                found_valid = 1; /* user entered a valid arg from the list */
-                break;
-            }
-        }
-        if (found_valid == 0) {
-            return 1; /* invalid arg found */
-        }
-        argv++;
-    }
-    return 0;
 }
 
 static int get_iters(int default_iters) {
