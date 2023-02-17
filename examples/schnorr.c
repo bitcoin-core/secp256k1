@@ -15,7 +15,7 @@
 #include <secp256k1_extrakeys.h>
 #include <secp256k1_schnorrsig.h>
 
-#include "random.h"
+#include "examples_util.h"
 
 int main(void) {
     unsigned char msg[12] = "Hello World!";
@@ -140,9 +140,8 @@ int main(void) {
      * example through "out of bounds" array access (see Heartbleed), Or the OS
      * swapping them to disk. Hence, we overwrite the secret key buffer with zeros.
      *
-     * TODO: Prevent these writes from being optimized out, as any good compiler
+     * Here we are preventing these writes from being optimized out, as any good compiler
      * will remove any writes that aren't used. */
-    memset(seckey, 0, sizeof(seckey));
-
+    secure_erase(seckey, sizeof(seckey));
     return 0;
 }
