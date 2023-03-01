@@ -12,7 +12,7 @@
  * Linux   -> `getrandom(2)`(`sys/random.h`), if not available `/dev/urandom` should be used. http://man7.org/linux/man-pages/man2/getrandom.2.html, https://linux.die.net/man/4/urandom
  * macOS   -> `getentropy(2)`(`sys/random.h`), if not available `/dev/urandom` should be used. https://www.unix.com/man-page/mojave/2/getentropy, https://opensource.apple.com/source/xnu/xnu-517.12.7/bsd/man/man4/random.4.auto.html
  * FreeBSD -> `getrandom(2)`(`sys/random.h`), if not available `kern.arandom` should be used. https://www.freebsd.org/cgi/man.cgi?query=getrandom, https://www.freebsd.org/cgi/man.cgi?query=random&sektion=4
- * OpenBSD -> `getentropy(2)`(`unistd.h`), if not available `/dev/urandom` should be used. https://man.openbsd.org/getentropy, https://man.openbsd.org/urandom
+ * OpenBSD -> `arc4random_buf(3)`(`stdlib.h`), if not available `/dev/urandom` should be used. https://man.openbsd.org/arc4random.3, https://man.openbsd.org/urandom
  * Windows -> `BCryptGenRandom`(`bcrypt.h`). https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptgenrandom
  */
 
@@ -23,7 +23,7 @@
 #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/random.h>
 #elif defined(__OpenBSD__)
-#include <unistd.h>
+#include <stdlib.h>
 #else
 #error "Couldn't identify the OS"
 #endif
@@ -50,7 +50,7 @@ static int fill_random(unsigned char* data, size_t size) {
     } else {
         return 1;
     }
-#elif defined(__APPLE__) || defined(__OpenBSD__)
+#elif defined(__APPLE__)
     /* If `getentropy(2)` is not available you should fallback to either
      * `SecRandomCopyBytes` or /dev/urandom */
     int res = getentropy(data, size);
@@ -59,6 +59,11 @@ static int fill_random(unsigned char* data, size_t size) {
     } else {
         return 0;
     }
+#elif defined(__OpenBSD__)
+    /* This function is always successful, and no return value is reserved to
+     indicate an error.  */
+    arc4random_buf(data, size);
+    return 1;
 #endif
     return 0;
 }
