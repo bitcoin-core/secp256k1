@@ -85,6 +85,9 @@ static void secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe *a);
  *  as an argument. The magnitude of the output is one higher. */
 static void secp256k1_fe_negate(secp256k1_fe *r, const secp256k1_fe *a, int m);
 
+/** Adds a small integer (up to 0x7FFF) to r. The resulting magnitude increases by one. */
+static void secp256k1_fe_add_int(secp256k1_fe *r, int a);
+
 /** Multiplies the passed field element with a small integer constant. Multiplies the magnitude by that
  *  small integer. */
 static void secp256k1_fe_mul_int(secp256k1_fe *r, int a);

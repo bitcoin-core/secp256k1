@@ -3093,6 +3093,7 @@ static void run_field_misc(void) {
     secp256k1_fe y;
     secp256k1_fe z;
     secp256k1_fe q;
+    int v;
     secp256k1_fe fe5 = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 5);
     int i, j;
     for (i = 0; i < 1000 * COUNT; i++) {
@@ -3103,6 +3104,14 @@ static void run_field_misc(void) {
             random_fe_test(&x);
         }
         random_fe_non_zero(&y);
+        v = secp256k1_testrand_bits(15);
+        /* Test that fe_add_int is equivalent to fe_set_int + fe_add. */
+        secp256k1_fe_set_int(&q, v); /* q = v */
+        z = x; /* z = x */
+        secp256k1_fe_add(&z, &q); /* z = x+v */
+        q = x; /* q = x */
+        secp256k1_fe_add_int(&q, v); /* q = x+v */
+        CHECK(check_fe_equal(&q, &z));
         /* Test the fe equality and comparison operations. */
         CHECK(secp256k1_fe_cmp_var(&x, &x) == 0);
         CHECK(secp256k1_fe_equal_var(&x, &x));
@@ -3371,7 +3380,7 @@ static void test_inverse_field(secp256k1_fe* out, const secp256k1_fe* x, int var
     (var ? secp256k1_fe_inv_var : secp256k1_fe_inv)(&r, &r);   /* r = 1/(x-1) */
     secp256k1_fe_add(&l, &fe_minus_one);                       /* l = 1/x-1 */
     (var ? secp256k1_fe_inv_var : secp256k1_fe_inv)(&l, &l);   /* l = 1/(1/x-1) */
-    secp256k1_fe_add(&l, &secp256k1_fe_one);                   /* l = 1/(1/x-1)+1 */
+    secp256k1_fe_add_int(&l, 1);                               /* l = 1/(1/x-1)+1 */
     secp256k1_fe_add(&l, &r);                                  /* l = 1/(1/x-1)+1 + 1/(x-1) */
     CHECK(secp256k1_fe_normalizes_to_zero_var(&l));            /* l == 0 */
 }
