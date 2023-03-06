@@ -415,10 +415,14 @@ static void secp256k1_modinv32_update_de_30(secp256k1_modinv32_signed30 *d, secp
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(d, 9, &modinfo->modulus, 1) < 0);  /* d <    modulus */
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(e, 9, &modinfo->modulus, -2) > 0); /* e > -2*modulus */
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(e, 9, &modinfo->modulus, 1) < 0);  /* e <    modulus */
-    VERIFY_CHECK((labs(u) + labs(v)) >= 0); /* |u|+|v| doesn't overflow */
-    VERIFY_CHECK((labs(q) + labs(r)) >= 0); /* |q|+|r| doesn't overflow */
-    VERIFY_CHECK((labs(u) + labs(v)) <= M30 + 1); /* |u|+|v| <= 2^30 */
-    VERIFY_CHECK((labs(q) + labs(r)) <= M30 + 1); /* |q|+|r| <= 2^30 */
+    VERIFY_CHECK(labs(u) <= (int32_t)1 << 30); /* |u| <= 2^30 */
+    VERIFY_CHECK(labs(v) <= (int32_t)1 << 30); /* |v| <= 2^30 */
+    VERIFY_CHECK(labs(q) <= (int32_t)1 << 30); /* |q| <= 2^30 */
+    VERIFY_CHECK(labs(r) <= (int32_t)1 << 30); /* |r| <= 2^30 */
+    /* Assuming labs() returns a non-negative value,
+     * the previous checks imply that the additions |u|+|v| and |q|+|r| in the following checks do not overflow. */
+    VERIFY_CHECK((labs(u) + labs(v)) <= (int32_t)1 << 30); /* |u|+|v| <= 2^30 */
+    VERIFY_CHECK((labs(q) + labs(r)) <= (int32_t)1 << 30); /* |q|+|r| <= 2^30 */
 #endif
     /* [md,me] start as zero; plus [u,q] if d is negative; plus [v,r] if e is negative. */
     sd = d->v[8] >> 31;

@@ -30,9 +30,11 @@ typedef struct {
 /* Helper function to compute the absolute value of an int64_t.
  * (we don't use abs/labs/llabs as it depends on the int sizes). */
 static int64_t secp256k1_modinv64_abs(int64_t v) {
+    int64_t r;
     VERIFY_CHECK(v > INT64_MIN);
-    if (v < 0) return -v;
-    return v;
+    r = (v < 0) ? -v : v;
+    VERIFY_CHECK(r >= 0);
+    return r;
 }
 
 static const secp256k1_modinv64_signed62 SECP256K1_SIGNED62_ONE = {{1}};
@@ -419,8 +421,12 @@ static void secp256k1_modinv64_update_de_62(secp256k1_modinv64_signed62 *d, secp
     VERIFY_CHECK(secp256k1_modinv64_mul_cmp_62(d, 5, &modinfo->modulus, 1) < 0);  /* d <    modulus */
     VERIFY_CHECK(secp256k1_modinv64_mul_cmp_62(e, 5, &modinfo->modulus, -2) > 0); /* e > -2*modulus */
     VERIFY_CHECK(secp256k1_modinv64_mul_cmp_62(e, 5, &modinfo->modulus, 1) < 0);  /* e <    modulus */
-    VERIFY_CHECK((secp256k1_modinv64_abs(u) + secp256k1_modinv64_abs(v)) >= 0); /* |u|+|v| doesn't overflow */
-    VERIFY_CHECK((secp256k1_modinv64_abs(q) + secp256k1_modinv64_abs(r)) >= 0); /* |q|+|r| doesn't overflow */
+    VERIFY_CHECK(secp256k1_modinv64_abs(u) <= (int64_t)1 << 62); /* |u| <= 2^62 */
+    VERIFY_CHECK(secp256k1_modinv64_abs(v) <= (int64_t)1 << 62); /* |v| <= 2^62 */
+    VERIFY_CHECK(secp256k1_modinv64_abs(q) <= (int64_t)1 << 62); /* |q| <= 2^62 */
+    VERIFY_CHECK(secp256k1_modinv64_abs(r) <= (int64_t)1 << 62); /* |r| <= 2^62 */
+    /* Assuming secp256k1_modinv64_abs() returns a non-negative value (which is checked within that function),
+     * the previous checks imply that the additions |u|+|v| and |q|+|r| in the following checks do not overflow. */
     VERIFY_CHECK((secp256k1_modinv64_abs(u) + secp256k1_modinv64_abs(v)) <= (int64_t)1 << 62); /* |u|+|v| <= 2^62 */
     VERIFY_CHECK((secp256k1_modinv64_abs(q) + secp256k1_modinv64_abs(r)) <= (int64_t)1 << 62); /* |q|+|r| <= 2^62 */
 #endif
