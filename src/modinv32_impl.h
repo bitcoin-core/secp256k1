@@ -415,10 +415,10 @@ static void secp256k1_modinv32_update_de_30(secp256k1_modinv32_signed30 *d, secp
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(d, 9, &modinfo->modulus, 1) < 0);  /* d <    modulus */
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(e, 9, &modinfo->modulus, -2) > 0); /* e > -2*modulus */
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(e, 9, &modinfo->modulus, 1) < 0);  /* e <    modulus */
-    VERIFY_CHECK((labs(u) + labs(v)) >= 0); /* |u|+|v| doesn't overflow */
-    VERIFY_CHECK((labs(q) + labs(r)) >= 0); /* |q|+|r| doesn't overflow */
-    VERIFY_CHECK((labs(u) + labs(v)) <= M30 + 1); /* |u|+|v| <= 2^30 */
-    VERIFY_CHECK((labs(q) + labs(r)) <= M30 + 1); /* |q|+|r| <= 2^30 */
+    VERIFY_CHECK(labs(v) <= M30 + 1);             /*     |v| <= 2^30 */
+    VERIFY_CHECK(labs(u) <= (M30 + 1 - labs(v))); /* |u|+|v| <= 2^30 */
+    VERIFY_CHECK(labs(r) <= M30 + 1);             /*     |r| <= 2^30 */
+    VERIFY_CHECK(labs(q) <= (M30 + 1 - labs(r))); /* |q|+|r| <= 2^30 */
 #endif
     /* [md,me] start as zero; plus [u,q] if d is negative; plus [v,r] if e is negative. */
     sd = d->v[8] >> 31;
