@@ -9,9 +9,9 @@ target_link_libraries(example INTERFACE
   $<$<PLATFORM_ID:Windows>:bcrypt>
 )
 if(SECP256K1_BUILD_SHARED)
-  target_link_libraries(example INTERFACE ${PROJECT_NAME})
+  target_link_libraries(example INTERFACE secp256k1)
 elseif(SECP256K1_BUILD_STATIC)
-  target_link_libraries(example INTERFACE ${PROJECT_NAME}_static)
+  target_link_libraries(example INTERFACE secp256k1_static)
   if(MSVC)
     target_link_options(example INTERFACE /IGNORE:4217)
   endif()
