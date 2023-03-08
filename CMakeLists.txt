@@ -10,7 +10,7 @@ endif()
 # The package (a.k.a. release) version is based on semantic versioning 2.0.0 of
 # the API. All changes in experimental modules are treated as
 # backwards-compatible and therefore at most increase the minor version.
-project(secp256k1 VERSION 0.2.1 LANGUAGES C)
+project(libsecp256k1 VERSION 0.2.1 LANGUAGES C)
 
 # The library version is based on libtool versioning of the ABI. The set of
 # rules for updating the version can be found here:

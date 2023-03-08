@@ -17,42 +17,42 @@ add_library(precomputed OBJECT
 )
 set(internal_obj "$<TARGET_OBJECTS:precomputed>" "${common_obj}")
 
-add_library(${PROJECT_NAME} SHARED EXCLUDE_FROM_ALL
+add_library(secp256k1 SHARED EXCLUDE_FROM_ALL
   secp256k1.c
   ${internal_obj}
 )
-target_include_directories(${PROJECT_NAME} INTERFACE
+target_include_directories(secp256k1 INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_compile_definitions(${PROJECT_NAME} PRIVATE
+target_compile_definitions(secp256k1 PRIVATE
   $<$<PLATFORM_ID:Windows>:DLL_EXPORT>
 )
-set_target_properties(${PROJECT_NAME} PROPERTIES
+set_target_properties(secp256k1 PROPERTIES
   VERSION "${${PROJECT_NAME}_LIB_VERSION_CURRENT}.${${PROJECT_NAME}_LIB_VERSION_AGE}.${${PROJECT_NAME}_LIB_VERSION_REVISION}"
   SOVERSION "${${PROJECT_NAME}_LIB_VERSION_CURRENT}"
 )
 if(SECP256K1_BUILD_SHARED)
-  get_target_property(use_pic ${PROJECT_NAME} POSITION_INDEPENDENT_CODE)
+  get_target_property(use_pic secp256k1 POSITION_INDEPENDENT_CODE)
   set_target_properties(precomputed PROPERTIES POSITION_INDEPENDENT_CODE ${use_pic})
-  set_target_properties(${PROJECT_NAME} PROPERTIES EXCLUDE_FROM_ALL FALSE)
-  list(APPEND ${PROJECT_NAME}_installables ${PROJECT_NAME})
+  set_target_properties(secp256k1 PROPERTIES EXCLUDE_FROM_ALL FALSE)
+  list(APPEND ${PROJECT_NAME}_installables secp256k1)
 endif()
 
-add_library(${PROJECT_NAME}_static STATIC EXCLUDE_FROM_ALL
+add_library(secp256k1_static STATIC EXCLUDE_FROM_ALL
   secp256k1.c
   ${internal_obj}
 )
-target_include_directories(${PROJECT_NAME}_static INTERFACE
+target_include_directories(secp256k1_static INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 if(NOT MSVC)
-  set_target_properties(${PROJECT_NAME}_static PROPERTIES
-    OUTPUT_NAME ${PROJECT_NAME}
+  set_target_properties(secp256k1_static PROPERTIES
+    OUTPUT_NAME secp256k1
   )
 endif()
 if(SECP256K1_BUILD_STATIC)
-  set_target_properties(${PROJECT_NAME}_static PROPERTIES EXCLUDE_FROM_ALL FALSE)
-  list(APPEND ${PROJECT_NAME}_installables ${PROJECT_NAME}_static)
+  set_target_properties(secp256k1_static PROPERTIES EXCLUDE_FROM_ALL FALSE)
+  list(APPEND ${PROJECT_NAME}_installables secp256k1_static)
 endif()
 
 add_library(binary_interface INTERFACE)
@@ -62,9 +62,9 @@ target_compile_definitions(binary_interface INTERFACE
 
 add_library(link_library INTERFACE)
 if(SECP256K1_BUILD_SHARED)
-  target_link_libraries(link_library INTERFACE ${PROJECT_NAME})
+  target_link_libraries(link_library INTERFACE secp256k1)
 elseif(SECP256K1_BUILD_STATIC)
-  target_link_libraries(link_library INTERFACE ${PROJECT_NAME}_static)
+  target_link_libraries(link_library INTERFACE secp256k1_static)
 endif()
 
 if(SECP256K1_BUILD_BENCHMARK)
