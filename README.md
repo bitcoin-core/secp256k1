@@ -106,7 +106,7 @@ The following example assumes using of Visual Studio 2022 and CMake v3.21+.
 In "Developer Command Prompt for VS 2022":
 
     >cmake -G "Visual Studio 17 2022" -A x64 -S . -B build
-    >cmake --build build --config Release
+    >cmake --build build --config RelWithDebInfo
 
 Usage examples
 -----------
