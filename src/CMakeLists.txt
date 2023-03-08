@@ -102,6 +102,7 @@ if(SECP256K1_BUILD_CTIME_TESTS)
 endif()
 
 install(TARGETS ${${PROJECT_NAME}_installables}
+  EXPORT ${PROJECT_NAME}-targets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -124,4 +125,27 @@ if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
 endif()
 install(FILES ${${PROJECT_NAME}_headers}
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(EXPORT ${PROJECT_NAME}-targets
+  FILE ${PROJECT_NAME}-targets.cmake
+  NAMESPACE ${PROJECT_NAME}::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+  ${PROJECT_SOURCE_DIR}/cmake/config.cmake.in
+  ${PROJECT_NAME}-config.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+  NO_SET_AND_CHECK_MACRO
+)
+write_basic_package_version_file(${PROJECT_NAME}-config-version.cmake
+  COMPATIBILITY SameMajorVersion
+)
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
