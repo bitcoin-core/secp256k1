@@ -58,3 +58,6 @@ build-aux/missing
 build-aux/compile
 build-aux/test-driver
 libsecp256k1.pc
+
+# Default CMake build directory.
+/build
