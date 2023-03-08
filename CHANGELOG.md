@@ -8,8 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 #### Added
+ - Added experimental support for CMake builds. Traditional GNU Autotools builds (`./configure` and `make`) remain fully supported.
  - Usage examples: Added a recommended method for securely clearing sensitive data, e.g., secret keys, from memory.
- - Tests: Added a new test binary `noverify_tests`. This binary runs the tests without some additional checks present in the ordinary `tests` binary and is thereby closer to production binaries. The `noverify_tests` binary is automatically run as part of the `make check` target. 
+ - Tests: Added a new test binary `noverify_tests`. This binary runs the tests without some additional checks present in the ordinary `tests` binary and is thereby closer to production binaries. The `noverify_tests` binary is automatically run as part of the `make check` target.
 
 #### Fixed
  - Fixed declarations of API variables for MSVC (`__declspec(dllimport)`). This fixes MSVC builds of programs which link against a libsecp256k1 DLL dynamically and use API variables (and not only API functions). Unfortunately, the MSVC linker now will emit warning `LNK4217` when trying to link against libsecp256k1 statically. Pass `/ignore:4217` to the linker to suppress this warning.
@@ -19,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Forbade randomizing (copies of) `secp256k1_context_static`. Randomizing a copy of `secp256k1_context_static` did not have any effect and did not provide defense-in-depth protection against side-channel attacks. Create a new context if you want to benefit from randomization.
 
 #### Removed
- - Removed the configuration header `src/libsecp256k1-config.h`. We recommend passing flags to `./configure` to set configuration options (see `./configure --help`). If you cannot or do not want to use `./configure`, pass configuration flags such as `-DSECP256K1_ENABLE_MODULE_SCHNORRSIG` manually to the compiler (see the file `configure.ac` for supported flags). 
+ - Removed the configuration header `src/libsecp256k1-config.h`. We recommend passing flags to `./configure` or `cmake` to set configuration options (see `./configure --help` or `cmake -LH`). If you cannot or do not want to use one of the supported build systems, pass configuration flags such as `-DSECP256K1_ENABLE_MODULE_SCHNORRSIG` manually to the compiler (see the file `configure.ac` for supported flags).
 
 ## [0.2.0] - 2022-12-12
 
