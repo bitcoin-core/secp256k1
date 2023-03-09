@@ -7,6 +7,8 @@
 #ifndef SECP256K1_UTIL_H
 #define SECP256K1_UTIL_H
 
+#include "../include/secp256k1.h"
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -16,6 +18,18 @@
 #define STR(x) STR_(x)
 #define DEBUG_CONFIG_MSG(x) "DEBUG_CONFIG: " x
 #define DEBUG_CONFIG_DEF(x) DEBUG_CONFIG_MSG(#x "=" STR(x))
+
+# if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
+#  if SECP256K1_GNUC_PREREQ(2,7)
+#   define SECP256K1_INLINE __inline__
+#  elif (defined(_MSC_VER))
+#   define SECP256K1_INLINE __inline
+#  else
+#   define SECP256K1_INLINE
+#  endif
+# else
+#  define SECP256K1_INLINE inline
+# endif
 
 typedef struct {
     void (*fn)(const char *text, void* data);
