@@ -11,15 +11,21 @@ else()
   set(common_obj "")
 endif()
 
-add_library(precomputed OBJECT
+add_library(precomputed_for_shared OBJECT EXCLUDE_FROM_ALL
   precomputed_ecmult.c
   precomputed_ecmult_gen.c
 )
-set(internal_obj "$<TARGET_OBJECTS:precomputed>" "${common_obj}")
+set_target_properties(precomputed_for_shared PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
+add_library(precomputed_for_static OBJECT EXCLUDE_FROM_ALL
+  precomputed_ecmult.c
+  precomputed_ecmult_gen.c
+)
 
 add_library(secp256k1 SHARED EXCLUDE_FROM_ALL
   secp256k1.c
-  ${internal_obj}
+  ${common_obj}
+  $<TARGET_OBJECTS:precomputed_for_shared>
 )
 target_include_directories(secp256k1 INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
@@ -32,15 +38,14 @@ set_target_properties(secp256k1 PROPERTIES
   SOVERSION "${${PROJECT_NAME}_LIB_VERSION_CURRENT}"
 )
 if(SECP256K1_BUILD_SHARED)
-  get_target_property(use_pic secp256k1 POSITION_INDEPENDENT_CODE)
-  set_target_properties(precomputed PROPERTIES POSITION_INDEPENDENT_CODE ${use_pic})
   set_target_properties(secp256k1 PROPERTIES EXCLUDE_FROM_ALL FALSE)
   list(APPEND ${PROJECT_NAME}_installables secp256k1)
 endif()
 
 add_library(secp256k1_static STATIC EXCLUDE_FROM_ALL
   secp256k1.c
-  ${internal_obj}
+  ${common_obj}
+  $<TARGET_OBJECTS:precomputed_for_static>
 )
 target_include_directories(secp256k1_static INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
@@ -63,8 +68,10 @@ target_compile_definitions(binary_interface INTERFACE
 add_library(link_library INTERFACE)
 if(SECP256K1_BUILD_SHARED)
   target_link_libraries(link_library INTERFACE secp256k1)
+  set(internal_obj "$<TARGET_OBJECTS:precomputed_for_shared>" "${common_obj}")
 elseif(SECP256K1_BUILD_STATIC)
   target_link_libraries(link_library INTERFACE secp256k1_static)
+  set(internal_obj "$<TARGET_OBJECTS:precomputed_for_static>" "${common_obj}")
 endif()
 
 if(SECP256K1_BUILD_BENCHMARK)
