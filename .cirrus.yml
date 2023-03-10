@@ -403,7 +403,7 @@ task:
     - cmake --build build --config RelWithDebInfo -- -property:UseMultiToolTask=true;CL_MPcount=5
   check_script:
     - '%x64_NATIVE_TOOLS%'
-    - ctest --test-dir build -j 5
-    - build\src\RelWithDebInfo\bench_ecmult.exe
-    - build\src\RelWithDebInfo\bench_internal.exe
-    - build\src\RelWithDebInfo\bench.exe
+    - ctest --test-dir build -C RelWithDebInfo -j 5
+    - build\RelWithDebInfo\bench_ecmult.exe
+    - build\RelWithDebInfo\bench_internal.exe
+    - build\RelWithDebInfo\bench.exe
