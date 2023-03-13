@@ -32,6 +32,11 @@ set_target_properties(secp256k1 PROPERTIES
   VERSION "${${PROJECT_NAME}_soversion}.${${PROJECT_NAME}_LIB_VERSION_AGE}.${${PROJECT_NAME}_LIB_VERSION_REVISION}"
   SOVERSION ${${PROJECT_NAME}_soversion}
 )
+if(MSVC)
+  set_target_properties(secp256k1 PROPERTIES
+    OUTPUT_NAME ${PROJECT_NAME}
+  )
+endif()
 if(SECP256K1_BUILD_SHARED)
   get_target_property(use_pic secp256k1 POSITION_INDEPENDENT_CODE)
   set_target_properties(precomputed PROPERTIES POSITION_INDEPENDENT_CODE ${use_pic})
@@ -46,7 +51,11 @@ add_library(secp256k1_static STATIC EXCLUDE_FROM_ALL
 target_include_directories(secp256k1_static INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-if(NOT MSVC)
+if(MSVC)
+  set_target_properties(secp256k1_static PROPERTIES
+    OUTPUT_NAME ${PROJECT_NAME}_static
+  )
+else()
   set_target_properties(secp256k1_static PROPERTIES
     OUTPUT_NAME secp256k1
   )
