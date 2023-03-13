@@ -34,7 +34,7 @@ set_target_properties(secp256k1 PROPERTIES
 )
 if(MSVC)
   set_target_properties(secp256k1 PROPERTIES
-    OUTPUT_NAME ${PROJECT_NAME}
+    OUTPUT_NAME ${PROJECT_NAME}-${${PROJECT_NAME}_soversion}
   )
 endif()
 if(SECP256K1_BUILD_SHARED)
