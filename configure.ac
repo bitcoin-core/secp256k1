@@ -29,6 +29,11 @@ AM_INIT_AUTOMAKE([1.11.2 foreign subdir-objects])
 # Make the compilation flags quiet unless V=1 is used.
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
+if test "${CFLAGS+set}" = "set"; then
+  CFLAGS_overridden=yes
+else
+  CFLAGS_overridden=no
+fi
 AC_PROG_CC
 AM_PROG_AS
 AM_PROG_AR
@@ -241,6 +246,12 @@ fi
 if test x"$enable_coverage" = x"yes"; then
     SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOVERAGE=1"
     SECP_CFLAGS="-O0 --coverage $SECP_CFLAGS"
+    # If coverage is enabled, and the user has not overridden CFLAGS,
+    # override Autoconf's value "-g -O2" with "-g". Otherwise we'd end up
+    # with "-O0 --coverage -g -O2".
+    if test "$CFLAGS_overridden" = "no"; then
+      CFLAGS="-g"
+    fi
     LDFLAGS="--coverage $LDFLAGS"
 else
     # Most likely the CFLAGS already contain -O2 because that is autoconf's default.
