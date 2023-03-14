@@ -115,6 +115,7 @@ static void secp256k1_ecmult_odd_multiples_table(int n, secp256k1_ge *pre_a, sec
 }
 
 #define SECP256K1_ECMULT_TABLE_VERIFY(n,w) \
+    (void)w; \
     VERIFY_CHECK(((n) & 1) == 1); \
     VERIFY_CHECK((n) >= -((1 << ((w)-1)) - 1)); \
     VERIFY_CHECK((n) <=  ((1 << ((w)-1)) - 1));
