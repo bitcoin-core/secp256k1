@@ -6,15 +6,11 @@ target_compile_options(example INTERFACE
   $<$<C_COMPILER_ID:MSVC>:/wd4005>
 )
 target_link_libraries(example INTERFACE
+  secp256k1
   $<$<PLATFORM_ID:Windows>:bcrypt>
 )
-if(SECP256K1_BUILD_SHARED)
-  target_link_libraries(example INTERFACE secp256k1)
-elseif(SECP256K1_BUILD_STATIC)
-  target_link_libraries(example INTERFACE secp256k1_static)
-  if(MSVC)
-    target_link_options(example INTERFACE /IGNORE:4217)
-  endif()
+if(NOT BUILD_SHARED_LIBS AND MSVC)
+  target_link_options(example INTERFACE /IGNORE:4217)
 endif()
 
 add_executable(ecdsa_example ecdsa.c)

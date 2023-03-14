@@ -1,97 +1,79 @@
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
 include(GNUInstallDirs)
-set(${PROJECT_NAME}_installables "")
 
-if(SECP256K1_ASM STREQUAL "arm")
-  add_library(common OBJECT
-    asm/field_10x26_arm.s
-  )
-  set(common_obj "$<TARGET_OBJECTS:common>")
-else()
-  set(common_obj "")
-endif()
-
-add_library(precomputed OBJECT
+add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL
   precomputed_ecmult.c
   precomputed_ecmult_gen.c
 )
-set(internal_obj "$<TARGET_OBJECTS:precomputed>" "${common_obj}")
 
-add_library(secp256k1 SHARED EXCLUDE_FROM_ALL
-  secp256k1.c
-  ${internal_obj}
-)
-target_include_directories(secp256k1 INTERFACE
+# Add objects explicitly rather than linking to the object libs to keep them
+# from being exported.
+add_library(secp256k1 secp256k1.c $<TARGET_OBJECTS:secp256k1_precomputed>)
+
+add_library(secp256k1_asm INTERFACE)
+if(SECP256K1_ASM STREQUAL "arm")
+  add_library(secp256k1_asm_arm OBJECT EXCLUDE_FROM_ALL)
+  target_sources(secp256k1_asm_arm PUBLIC
+    asm/field_10x26_arm.s
+  )
+  target_sources(secp256k1 PRIVATE $<TARGET_OBJECTS:secp256k1_asm_arm>)
+  target_link_libraries(secp256k1_asm INTERFACE secp256k1_asm_arm)
+endif()
+
+# Define our export symbol only for Win32 and only for shared libs.
+# This matches libtool's usage of DLL_EXPORT
+if(WIN32)
+  set_target_properties(secp256k1 PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
+endif()
+
+# Object libs don't know if they're being built for a shared or static lib.
+# Grab the PIC property from secp256k1 which knows.
+get_target_property(use_pic secp256k1 POSITION_INDEPENDENT_CODE)
+set_target_properties(secp256k1_precomputed PROPERTIES POSITION_INDEPENDENT_CODE ${use_pic})
+
+target_include_directories(secp256k1 PUBLIC
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-target_compile_definitions(secp256k1 PRIVATE
-  $<$<PLATFORM_ID:Windows>:DLL_EXPORT>
 )
 set_target_properties(secp256k1 PROPERTIES
   VERSION "${${PROJECT_NAME}_LIB_VERSION_CURRENT}.${${PROJECT_NAME}_LIB_VERSION_AGE}.${${PROJECT_NAME}_LIB_VERSION_REVISION}"
   SOVERSION "${${PROJECT_NAME}_LIB_VERSION_CURRENT}"
 )
-if(SECP256K1_BUILD_SHARED)
-  get_target_property(use_pic secp256k1 POSITION_INDEPENDENT_CODE)
-  set_target_properties(precomputed PROPERTIES POSITION_INDEPENDENT_CODE ${use_pic})
-  set_target_properties(secp256k1 PROPERTIES EXCLUDE_FROM_ALL FALSE)
-  list(APPEND ${PROJECT_NAME}_installables secp256k1)
-endif()
-
-add_library(secp256k1_static STATIC EXCLUDE_FROM_ALL
-  secp256k1.c
-  ${internal_obj}
-)
-target_include_directories(secp256k1_static INTERFACE
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-if(NOT MSVC)
-  set_target_properties(secp256k1_static PROPERTIES
-    OUTPUT_NAME secp256k1
-  )
-endif()
-if(SECP256K1_BUILD_STATIC)
-  set_target_properties(secp256k1_static PROPERTIES EXCLUDE_FROM_ALL FALSE)
-  list(APPEND ${PROJECT_NAME}_installables secp256k1_static)
-endif()
-
-add_library(link_library INTERFACE)
-if(SECP256K1_BUILD_SHARED)
-  target_link_libraries(link_library INTERFACE secp256k1)
-elseif(SECP256K1_BUILD_STATIC)
-  target_link_libraries(link_library INTERFACE secp256k1_static)
-endif()
 
 if(SECP256K1_BUILD_BENCHMARK)
   add_executable(bench bench.c)
-  target_link_libraries(bench link_library)
-  add_executable(bench_internal bench_internal.c ${internal_obj})
-  add_executable(bench_ecmult bench_ecmult.c ${internal_obj})
+  target_link_libraries(bench secp256k1)
+  add_executable(bench_internal bench_internal.c)
+  target_link_libraries(bench_internal secp256k1_precomputed secp256k1_asm)
+  add_executable(bench_ecmult bench_ecmult.c)
+  target_link_libraries(bench_ecmult secp256k1_precomputed secp256k1_asm)
 endif()
 
 if(SECP256K1_BUILD_TESTS)
-  add_executable(noverify_tests tests.c ${internal_obj})
+  add_executable(noverify_tests tests.c)
+  target_link_libraries(noverify_tests secp256k1_precomputed secp256k1_asm)
   add_test(noverify_tests noverify_tests)
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Coverage")
-    add_executable(tests tests.c ${internal_obj})
+    add_executable(tests tests.c)
     target_compile_definitions(tests PRIVATE VERIFY)
+    target_link_libraries(tests secp256k1_precomputed secp256k1_asm)
     add_test(tests tests)
   endif()
 endif()
 
 if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
-  # Note: do not include $<TARGET_OBJECTS:precomputed> in exhaustive_tests (it uses runtime-generated tables).
-  add_executable(exhaustive_tests tests_exhaustive.c ${common_obj})
+  # Note: do not include secp256k1_precomputed in exhaustive_tests (it uses runtime-generated tables).
+  add_executable(exhaustive_tests tests_exhaustive.c)
+  target_link_libraries(exhaustive_tests secp256k1_asm)
   target_compile_definitions(exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
   add_test(exhaustive_tests exhaustive_tests)
 endif()
 
 if(SECP256K1_BUILD_CTIME_TESTS)
   add_executable(ctime_tests ctime_tests.c)
-  target_link_libraries(ctime_tests link_library)
+  target_link_libraries(ctime_tests secp256k1)
 endif()
 
-install(TARGETS ${${PROJECT_NAME}_installables}
+install(TARGETS secp256k1
   EXPORT ${PROJECT_NAME}-targets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
