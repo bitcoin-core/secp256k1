@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.13)
 
 if(CMAKE_VERSION VERSION_GREATER 3.14)
   # MSVC runtime library flags are selected by the CMAKE_MSVC_RUNTIME_LIBRARY abstraction.
@@ -203,11 +203,6 @@ else()
   try_add_compile_option(-Wundef)
 endif()
 
-if(CMAKE_VERSION VERSION_GREATER 3.2)
-  # Honor visibility properties for all target types.
-  # See: https://cmake.org/cmake/help/latest/policy/CMP0063.html
-  cmake_policy(SET CMP0063 NEW)
-endif()
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 
 # Ask CTest to create a "check" target (e.g., make check) as alias for the "test" target.
