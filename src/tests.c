@@ -7306,6 +7306,44 @@ static void run_ecdsa_edge_cases(void) {
     test_ecdsa_edge_cases();
 }
 
+/** Wycheproof tests
+
+The tests check for known attacks (range checks in (r,s), arithmetic errors, malleability).
+*/
+static void test_ecdsa_wycheproof(void) {
+    #include "wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h"
+
+    int t;
+    for (t = 0; t < SECP256K1_ECDSA_WYCHEPROOF_NUMBER_TESTVECTORS; t++) {
+        secp256k1_ecdsa_signature signature;
+        secp256k1_sha256 hasher;
+        secp256k1_pubkey pubkey;
+        const unsigned char *msg, *sig, *pk;
+        unsigned char out[32] = {0};
+        int actual_verify = 0;
+
+        memset(&pubkey, 0, sizeof(pubkey));
+        pk = &wycheproof_ecdsa_public_keys[testvectors[t].pk_offset];
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pk, 65) == 1);
+
+        secp256k1_sha256_initialize(&hasher);
+        msg = &wycheproof_ecdsa_messages[testvectors[t].msg_offset];
+        secp256k1_sha256_write(&hasher, msg, testvectors[t].msg_len);
+        secp256k1_sha256_finalize(&hasher, out);
+
+        sig = &wycheproof_ecdsa_signatures[testvectors[t].sig_offset];
+        if (secp256k1_ecdsa_signature_parse_der(CTX, &signature, sig, testvectors[t].sig_len) == 1) {
+            actual_verify = secp256k1_ecdsa_verify(CTX, (const secp256k1_ecdsa_signature *)&signature, out, &pubkey);
+        }
+        CHECK(testvectors[t].expected_verify == actual_verify);
+    }
+}
+
+/* Tests cases from Wycheproof test suite. */
+static void run_ecdsa_wycheproof(void) {
+    test_ecdsa_wycheproof();
+}
+
 #ifdef ENABLE_MODULE_ECDH
 # include "modules/ecdh/tests_impl.h"
 #endif
@@ -7638,6 +7676,7 @@ int main(int argc, char **argv) {
     run_ecdsa_sign_verify();
     run_ecdsa_end_to_end();
     run_ecdsa_edge_cases();
+    run_ecdsa_wycheproof();
 
 #ifdef ENABLE_MODULE_RECOVERY
     /* ECDSA pubkey recovery tests */
