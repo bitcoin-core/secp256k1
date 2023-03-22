@@ -16,7 +16,7 @@ function(secp256k1_check_c_flags_internal flags output)
 endfunction()
 
 # Append flags to the COMPILE_OPTIONS directory property if CC accepts them.
-macro(try_add_compile_option)
+macro(try_append_c_flags)
   secp256k1_check_c_flags_internal("${ARGV}" result)
   if(result)
     add_compile_options(${ARGV})
