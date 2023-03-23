@@ -1363,7 +1363,9 @@ static void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *x) {
     secp256k1_modinv32(&s, &secp256k1_const_modinfo_fe);
     secp256k1_fe_from_signed30(r, &s);
 
+#ifdef VERIFY
     VERIFY_CHECK(secp256k1_fe_normalizes_to_zero(r) == secp256k1_fe_normalizes_to_zero(&tmp));
+#endif
 }
 
 static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *x) {
@@ -1376,7 +1378,9 @@ static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256k1_fe *x) {
     secp256k1_modinv32_var(&s, &secp256k1_const_modinfo_fe);
     secp256k1_fe_from_signed30(r, &s);
 
+#ifdef VERIFY
     VERIFY_CHECK(secp256k1_fe_normalizes_to_zero(r) == secp256k1_fe_normalizes_to_zero(&tmp));
+#endif
 }
 
 static int secp256k1_fe_is_square_var(const secp256k1_fe *x) {
