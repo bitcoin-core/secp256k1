@@ -171,21 +171,24 @@ mark_as_advanced(
   CMAKE_SHARED_LINKER_FLAGS_COVERAGE
 )
 
-if(CMAKE_CONFIGURATION_TYPES)
-  set(CMAKE_CONFIGURATION_TYPES "RelWithDebInfo" "Release" "Debug" "MinSizeRel" "Coverage")
-endif()
-
-get_property(cached_cmake_build_type CACHE CMAKE_BUILD_TYPE PROPERTY TYPE)
-if(cached_cmake_build_type)
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
-    STRINGS "RelWithDebInfo" "Release" "Debug" "MinSizeRel" "Coverage"
-  )
-endif()
-
+get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 set(default_build_type "RelWithDebInfo")
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to \"${default_build_type}\" as none was specified")
-  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING "Choose the type of build." FORCE)
+if(is_multi_config)
+  set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
+    "Supported configuration types."
+    FORCE
+  )
+else()
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
+    STRINGS "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage"
+  )
+  if(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "Setting build type to \"${default_build_type}\" as none was specified")
+    set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
+      "Choose the type of build."
+      FORCE
+    )
+  endif()
 endif()
 
 include(TryAddCompileOption)
@@ -279,7 +282,7 @@ message("CFLAGS ................................ ${CMAKE_C_FLAGS}")
 get_directory_property(compile_options COMPILE_OPTIONS)
 string(REPLACE ";" " " compile_options "${compile_options}")
 message("Compile options ....................... " ${compile_options})
-if(DEFINED CMAKE_BUILD_TYPE)
+if(NOT is_multi_config)
   message("Build type:")
   message(" - CMAKE_BUILD_TYPE ................... ${CMAKE_BUILD_TYPE}")
   string(TOUPPER "${CMAKE_BUILD_TYPE}" build_type)
@@ -287,7 +290,7 @@ if(DEFINED CMAKE_BUILD_TYPE)
   message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_${build_type}}")
   message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_${build_type}}")
 else()
-  message("Available configurations .............. ${CMAKE_CONFIGURATION_TYPES}")
+  message("Supported configurations .............. ${CMAKE_CONFIGURATION_TYPES}")
   message("RelWithDebInfo configuration:")
   message(" - CFLAGS ............................. ${CMAKE_C_FLAGS_RELWITHDEBINFO}")
   message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO}")
