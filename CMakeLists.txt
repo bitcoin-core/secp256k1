@@ -147,7 +147,7 @@ else()
 endif()
 
 # Define custom "Coverage" build type.
-set(CMAKE_C_FLAGS_COVERAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O0 -DCOVERAGE=1 --coverage -Wno-unused-parameter" CACHE STRING
+set(CMAKE_C_FLAGS_COVERAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O0 -DCOVERAGE=1 --coverage" CACHE STRING
   "Flags used by the C compiler during \"Coverage\" builds."
   FORCE
 )
