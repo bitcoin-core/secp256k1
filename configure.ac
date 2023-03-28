@@ -261,6 +261,7 @@ else
 fi
 
 if test x"$req_asm" = x"auto"; then
+  # TODO
   SECP_64BIT_ASM_CHECK
   if test x"$has_64bit_asm" = x"yes"; then
     set_asm=x86_64
@@ -272,6 +273,7 @@ else
   set_asm=$req_asm
   case $set_asm in
   x86_64)
+    # TODO
     SECP_64BIT_ASM_CHECK
     if test x"$has_64bit_asm" != x"yes"; then
       AC_MSG_ERROR([x86_64 assembly optimization requested but not available])
@@ -293,6 +295,7 @@ enable_external_asm=no
 case $set_asm in
 x86_64)
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_ASM_X86_64=1"
+  enable_external_asm=yes
   ;;
 arm)
   enable_external_asm=yes
@@ -435,6 +438,7 @@ AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$enable_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
+AM_CONDITIONAL([USE_ASM_X86_64], [test x"$set_asm" = x"x86_64"])
 AM_CONDITIONAL([BUILD_WINDOWS], [test "$build_windows" = "yes"])
 AC_SUBST(LIB_VERSION_CURRENT, _LIB_VERSION_CURRENT)
 AC_SUBST(LIB_VERSION_REVISION, _LIB_VERSION_REVISION)

@@ -89,6 +89,9 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsecp256k1.pc
 
 if USE_EXTERNAL_ASM
+if USE_ASM_X86_64
+libsecp256k1_common_la_SOURCES = src/asm/mul.s src/asm/square.s
+endif
 if USE_ASM_ARM
 libsecp256k1_common_la_SOURCES = src/asm/field_10x26_arm.s
 endif

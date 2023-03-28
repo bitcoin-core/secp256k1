@@ -12,8 +12,10 @@
 #include "field.h"
 #include "modinv64_impl.h"
 
-#if defined(USE_ASM_X86_64)
-#include "field_5x52_asm_impl.h"
+#if defined(USE_EXTERNAL_ASM) && defined(USE_ASM_X86_64)
+extern void secp256k1_fe_mul_inner(uint64_t *r, const uint64_t *a, const uint64_t *b);
+extern void secp256k1_fe_sqr_inner(uint64_t *r, const uint64_t *a);
+#pragma message "ASM enabled"
 #else
 #include "field_5x52_int128_impl.h"
 #endif
