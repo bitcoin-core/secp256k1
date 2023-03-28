@@ -122,22 +122,31 @@ Test coverage
 
 This library aims to have full coverage of the reachable lines and branches.
 
-To create a test coverage report, configure with `--enable-coverage` (use of GCC is necessary):
+To create a test coverage report, configure for coverage analysis (use of GCC is necessary), build and run the tests:
 
-    $ ./configure --enable-coverage
+* using Autotools-based build system:
 
-Run the tests:
+```
+$ ./configure --enable-coverage
+$ make check
+```
 
-    $ make check
+* using CMake-based build system:
+
+```
+$ cmake --preset coverage -S . -B build
+$ cmake --build build
+$ ctest --test-dir build
+```
 
 To create a report, `gcovr` is recommended, as it includes branch coverage reporting:
 
-    $ gcovr --exclude 'src/bench*' --print-summary
+    $ gcovr --exclude 'build/*' --exclude 'src/bench*' --print-summary
 
 To create a HTML report with coloured and annotated source code:
 
     $ mkdir -p coverage
-    $ gcovr --exclude 'src/bench*' --html --html-details -o coverage/coverage.html
+    $ gcovr --exclude 'build/*' --exclude 'src/bench*' --html --html-details -o coverage/coverage.html
 
 Benchmark
 ------------
