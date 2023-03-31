@@ -15,7 +15,7 @@
 #ifndef SECP256K1_FIELD_INNER5X52_IMPL_H
 #define SECP256K1_FIELD_INNER5X52_IMPL_H
 
-#include "dettman.h"
+// #include "dettman.h"
 SECP256K1_INLINE static void
 secp256k1_fe_mul_inner(uint64_t *r, const uint64_t *a,
                        const uint64_t *SECP256K1_RESTRICT b) {
