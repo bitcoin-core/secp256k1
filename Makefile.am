@@ -36,6 +36,7 @@ noinst_HEADERS += src/ecmult_gen_compute_table.h
 noinst_HEADERS += src/ecmult_gen_compute_table_impl.h
 noinst_HEADERS += src/field_10x26.h
 noinst_HEADERS += src/field_10x26_impl.h
+noinst_HEADERS += src/dettman.h
 noinst_HEADERS += src/field_5x52.h
 noinst_HEADERS += src/field_5x52_impl.h
 noinst_HEADERS += src/field_5x52_int128_impl.h
@@ -97,7 +98,7 @@ libsecp256k1_common_la_SOURCES = src/asm/field_10x26_arm.s
 endif
 endif
 
-libsecp256k1_la_SOURCES = src/secp256k1.c
+libsecp256k1_la_SOURCES = src/secp256k1.c src/asm/square.s src/asm/mul.s
 libsecp256k1_la_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 libsecp256k1_la_LIBADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
 libsecp256k1_la_LDFLAGS = -no-undefined -version-info $(LIB_VERSION_CURRENT):$(LIB_VERSION_REVISION):$(LIB_VERSION_AGE)
