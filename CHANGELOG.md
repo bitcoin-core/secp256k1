@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Security
+ - Fix "constant-timeness" issue with Clang >=14 that could leave applications using libsecp256k1 vulnerable to a timing side-channel attack. The fix avoids secret-dependent control flow and secret-dependent memory accesses in conditional moves of memory objects when libsecp256k1 is compiled with Clang >=14.
+
+#### Added
+  - Added tests against [Project Wycheproof's](https://github.com/google/wycheproof/) set of ECDSA test vectors (Bitcoin "low-S" variant), a fixed set of test cases designed to trigger various edge cases.
+
+#### Changed
+ - Increased minimum required CMake version to 3.13. CMake builds remain experimental.
+
 ## [0.3.0] - 2023-03-08
 
 #### Added
