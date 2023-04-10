@@ -34,7 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Removed the configuration header `src/libsecp256k1-config.h`. We recommend passing flags to `./configure` or `cmake` to set configuration options (see `./configure --help` or `cmake -LH`). If you cannot or do not want to use one of the supported build systems, pass configuration flags such as `-DSECP256K1_ENABLE_MODULE_SCHNORRSIG` manually to the compiler (see the file `configure.ac` for supported flags).
 
 #### ABI Compatibility
-
 Due to changes in the API regarding `secp256k1_context_static` described above, the ABI is *not* compatible with previous versions.
 
 ## [0.2.0] - 2022-12-12
@@ -54,7 +53,6 @@ Due to changes in the API regarding `secp256k1_context_static` described above, 
  - Module `schnorrsig`: renamed `secp256k1_schnorrsig_sign` to `secp256k1_schnorrsig_sign32`.
 
 #### ABI Compatibility
-
 Since this is the first release, we do not compare application binary interfaces.
 However, there are earlier unreleased versions of libsecp256k1 that are *not* ABI compatible with this version.
 
