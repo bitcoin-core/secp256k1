@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
 ## [0.3.1] - 2023-04-10
 We strongly recommend updating to 0.3.1 if you use or plan to use Clang >=14 to compile libsecp256k1, e.g., Xcode >=14 on macOS has Clang >=14. When in doubt, check the Clang version using `clang -v`.
 
@@ -66,7 +68,7 @@ This version was in fact never released.
 The number was given by the build system since the introduction of autotools in Jan 2014 (ea0fe5a5bf0c04f9cc955b2966b614f5f378c6f6).
 Therefore, this version number does not uniquely identify a set of source files.
 
-[unreleased]: https://github.com/bitcoin-core/secp256k1/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/bitcoin-core/secp256k1/compare/v0.3.1...HEAD
 [0.3.1]: https://github.com/bitcoin-core/secp256k1/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/bitcoin-core/secp256k1/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/bitcoin-core/secp256k1/compare/423b6d19d373f1224fd671a982584d7e7900bc93..v0.2.0
