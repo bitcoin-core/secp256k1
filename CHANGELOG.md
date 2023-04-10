@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.1] - 2023-04-10
+We strongly recommend updating to 0.3.1 if you use or plan to use Clang >=14 to compile libsecp256k1, e.g., Xcode >=14 on macOS has Clang >=14. When in doubt, check the Clang version using `clang -v`.
 
 #### Security
  - Fix "constant-timeness" issue with Clang >=14 that could leave applications using libsecp256k1 vulnerable to a timing side-channel attack. The fix avoids secret-dependent control flow and secret-dependent memory accesses in conditional moves of memory objects when libsecp256k1 is compiled with Clang >=14.
@@ -15,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Changed
  - Increased minimum required CMake version to 3.13. CMake builds remain experimental.
+
+#### ABI Compatibility
+The ABI is compatible with version 0.3.0.
 
 ## [0.3.0] - 2023-03-08
 
