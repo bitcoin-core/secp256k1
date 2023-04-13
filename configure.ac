@@ -122,7 +122,6 @@ AC_DEFUN([SECP_TRY_APPEND_DEFAULT_CFLAGS], [
     # Note that "/opt" and "-opt" are equivalent for MSVC; we use "-opt" because "/opt" looks like a path.
     if test x"$GCC" != x"yes" && test x"$build_windows" = x"yes"; then
       SECP_TRY_APPEND_CFLAGS([-W2 -wd4146], $1) # Moderate warning level, disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned"
-      SECP_TRY_APPEND_CFLAGS([-external:anglebrackets -external:W0], $1) # Suppress warnings from #include <...> files
       # We pass -ignore:4217 to the MSVC linker to suppress warning 4217 when
       # importing variables from a statically linked secp256k1.
       # (See the libtool manual, section "Windows DLLs" for background.)

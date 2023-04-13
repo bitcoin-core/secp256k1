@@ -2,9 +2,6 @@ add_library(example INTERFACE)
 target_include_directories(example INTERFACE
   ${PROJECT_SOURCE_DIR}/include
 )
-target_compile_options(example INTERFACE
-  $<$<C_COMPILER_ID:MSVC>:/wd4005>
-)
 target_link_libraries(example INTERFACE
   $<$<PLATFORM_ID:Windows>:bcrypt>
 )
