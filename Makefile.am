@@ -223,6 +223,20 @@ maintainer-clean-local: clean-precomp
 clean-precomp:
 	rm -f $(PRECOMP)
 
+### Pregenerated test vectors
+TESTVECTORS = src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
+
+src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
+	python3 tools/tests_wycheproof_generate.py src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json > $@
+
+testvectors: $(TESTVECTORS)
+
+maintainer-clean-testvectors: clean-testvectors
+
+clean-testvectors:
+	rm -f $(TESTVECTORS)
+
+### Additional files to distribute
 EXTRA_DIST = autogen.sh CHANGELOG.md SECURITY.md
 EXTRA_DIST += doc/release-process.md doc/safegcd_implementation.md
 EXTRA_DIST += examples/EXAMPLES_COPYING
@@ -232,6 +246,9 @@ EXTRA_DIST += sage/group_prover.sage
 EXTRA_DIST += sage/prove_group_implementations.sage
 EXTRA_DIST += sage/secp256k1_params.sage
 EXTRA_DIST += sage/weierstrass_prover.sage
+EXTRA_DIST += src/wycheproof/WYCHEPROOF_COPYING
+EXTRA_DIST += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json
+EXTRA_DIST += tools/tests_wycheproof_generate.py
 
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include
@@ -248,19 +265,3 @@ endif
 if ENABLE_MODULE_SCHNORRSIG
 include src/modules/schnorrsig/Makefile.am.include
 endif
-
-EXTRA_DIST += src/wycheproof/WYCHEPROOF_COPYING
-EXTRA_DIST += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json
-EXTRA_DIST += tools/tests_wycheproof_generate.py
-
-TESTVECTORS = src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
-
-src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
-	python3 tools/tests_wycheproof_generate.py src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json > $@
-
-testvectors: $(TESTVECTORS)
-
-maintainer-clean-testvectors: clean-testvectors
-
-clean-testvectors:
-	rm -f $(TESTVECTORS)
