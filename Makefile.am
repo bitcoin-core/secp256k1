@@ -203,7 +203,7 @@ precompute_ecmult_gen_LDADD = $(COMMON_LIB)
 # otherwise make's decision whether to rebuild them (even in the first
 # build by a normal user) depends on mtimes, and thus is very fragile.
 # This means that rebuilds of the prebuilt files always need to be
-# forced by deleting them, e.g., by invoking `make clean-precomp`.
+# forced by deleting them.
 src/precomputed_ecmult.c:
 	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult$(EXEEXT)
 	./precompute_ecmult$(EXEEXT)
@@ -224,6 +224,7 @@ clean-precomp:
 	rm -f $(PRECOMP)
 
 ### Pregenerated test vectors
+### (see the comments in the previous section for detailed rationale)
 TESTVECTORS = src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
 
 src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
@@ -231,7 +232,9 @@ src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
 
 testvectors: $(TESTVECTORS)
 
-maintainer-clean-testvectors: clean-testvectors
+BUILT_SOURCES += $(TESTVECTORS)
+
+maintainer-clean-local: clean-testvectors
 
 clean-testvectors:
 	rm -f $(TESTVECTORS)
