@@ -1,5 +1,3 @@
-.PHONY: clean-precomp precomp
-
 ACLOCAL_AMFLAGS = -I build-aux/m4
 
 # AM_CFLAGS will be automatically prepended to CFLAGS by Automake when compiling some foo
@@ -218,10 +216,10 @@ precomp: $(PRECOMP)
 # e.g., after `make maintainer-clean`).
 BUILT_SOURCES = $(PRECOMP)
 
-maintainer-clean-local: clean-precomp
-
+.PHONY: clean-precomp
 clean-precomp:
 	rm -f $(PRECOMP)
+maintainer-clean-local: clean-precomp
 
 ### Pregenerated test vectors
 ### (see the comments in the previous section for detailed rationale)
@@ -234,10 +232,10 @@ testvectors: $(TESTVECTORS)
 
 BUILT_SOURCES += $(TESTVECTORS)
 
-maintainer-clean-local: clean-testvectors
-
+.PHONY: clean-testvectors
 clean-testvectors:
 	rm -f $(TESTVECTORS)
+maintainer-clean-local: clean-testvectors
 
 ### Additional files to distribute
 EXTRA_DIST = autogen.sh CHANGELOG.md SECURITY.md
