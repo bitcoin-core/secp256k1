@@ -12,6 +12,18 @@ endif()
 # backwards-compatible and therefore at most increase the minor version.
 project(libsecp256k1 VERSION 0.3.2 LANGUAGES C)
 
+if(CMAKE_VERSION VERSION_LESS 3.21)
+  get_directory_property(parent_directory PARENT_DIRECTORY)
+  if(parent_directory)
+    set(PROJECT_IS_TOP_LEVEL OFF CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+    set(${PROJECT_NAME}_IS_TOP_LEVEL OFF CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+  else()
+    set(PROJECT_IS_TOP_LEVEL ON CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+    set(${PROJECT_NAME}_IS_TOP_LEVEL ON CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+  endif()
+  unset(parent_directory)
+endif()
+
 # The library version is based on libtool versioning of the ABI. The set of
 # rules for updating the version can be found here:
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
