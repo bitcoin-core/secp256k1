@@ -73,51 +73,54 @@ if(SECP256K1_BUILD_CTIME_TESTS)
   target_link_libraries(ctime_tests secp256k1)
 endif()
 
-install(TARGETS secp256k1
-  EXPORT ${PROJECT_NAME}-targets
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-set(${PROJECT_NAME}_headers
-  "${PROJECT_SOURCE_DIR}/include/secp256k1.h"
-  "${PROJECT_SOURCE_DIR}/include/secp256k1_preallocated.h"
-)
-if(SECP256K1_ENABLE_MODULE_ECDH)
-  list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_ecdh.h")
-endif()
-if(SECP256K1_ENABLE_MODULE_RECOVERY)
-  list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_recovery.h")
-endif()
-if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
-  list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_extrakeys.h")
-endif()
-if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
-  list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_schnorrsig.h")
-endif()
-install(FILES ${${PROJECT_NAME}_headers}
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+if(SECP256K1_INSTALL)
+  install(TARGETS secp256k1
+    EXPORT ${PROJECT_NAME}-targets
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
+  set(${PROJECT_NAME}_headers
+    "${PROJECT_SOURCE_DIR}/include/secp256k1.h"
+    "${PROJECT_SOURCE_DIR}/include/secp256k1_preallocated.h"
+  )
+  if(SECP256K1_ENABLE_MODULE_ECDH)
+    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_ecdh.h")
+  endif()
+  if(SECP256K1_ENABLE_MODULE_RECOVERY)
+    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_recovery.h")
+  endif()
+  if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
+    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_extrakeys.h")
+  endif()
+  if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
+    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_schnorrsig.h")
+  endif()
+  install(FILES ${${PROJECT_NAME}_headers}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  )
 
-install(EXPORT ${PROJECT_NAME}-targets
-  FILE ${PROJECT_NAME}-targets.cmake
-  NAMESPACE ${PROJECT_NAME}::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-)
+  install(EXPORT ${PROJECT_NAME}-targets
+    FILE ${PROJECT_NAME}-targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+  )
 
-include(CMakePackageConfigHelpers)
-configure_package_config_file(
-  ${PROJECT_SOURCE_DIR}/cmake/config.cmake.in
-  ${PROJECT_NAME}-config.cmake
-  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-  NO_SET_AND_CHECK_MACRO
+  include(CMakePackageConfigHelpers)
+  configure_package_config_file(
+    ${PROJECT_SOURCE_DIR}/cmake/config.cmake.in
+    ${PROJECT_NAME}-config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+    NO_SET_AND_CHECK_MACRO
+  )
+  write_basic_package_version_file(${PROJECT_NAME}-config-version.cmake
+    COMPATIBILITY SameMajorVersion
+  )
+
+  install(
+    FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
-write_basic_package_version_file(${PROJECT_NAME}-config-version.cmake
-  COMPATIBILITY SameMajorVersion
-)
-install(
-  FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-)
+endif()

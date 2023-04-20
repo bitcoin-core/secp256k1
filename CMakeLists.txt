@@ -32,6 +32,8 @@ if(SECP256K1_DISABLE_SHARED)
   set(BUILD_SHARED_LIBS OFF)
 endif()
 
+option(SECP256K1_INSTALL "Enable installation" ON)
+
 option(SECP256K1_ENABLE_MODULE_ECDH "Enable ECDH module." ON)
 if(SECP256K1_ENABLE_MODULE_ECDH)
   add_definitions(-DENABLE_MODULE_ECDH=1)
