@@ -10,6 +10,7 @@
 #include "checkmem.h"
 #include "int128.h"
 #include "modinv64_impl.h"
+#include "util.h"
 
 /* Limbs of the secp256k1 order. */
 #define SECP256K1_N_0 ((uint64_t)0xBFD25E8CD0364141ULL)
