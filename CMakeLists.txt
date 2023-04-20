@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-if(CMAKE_VERSION VERSION_GREATER 3.14)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.15)
   # MSVC runtime library flags are selected by the CMAKE_MSVC_RUNTIME_LIBRARY abstraction.
   cmake_policy(SET CMP0091 NEW)
   # MSVC warning flags are not in CMAKE_<LANG>_FLAGS by default.
