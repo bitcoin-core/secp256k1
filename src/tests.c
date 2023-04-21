@@ -48,7 +48,8 @@ static int all_bytes_equal(const void* s, unsigned char value, size_t n) {
 #define PRINT_BUF(buf, len) do { \
     printf("%s[%lu] = ", #buf, (unsigned long)len); \
     print_buf_plain(buf, len); \
-} while(0);
+} while(0)
+
 static void print_buf_plain(const unsigned char *buf, size_t len) {
     size_t i;
     printf("{");
