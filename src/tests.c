@@ -4498,7 +4498,7 @@ static void ecmult_const_mult_xonly(void) {
             random_field_element_test(&x);
             secp256k1_fe_sqr(&c, &x);
             secp256k1_fe_mul(&c, &c, &x);
-            secp256k1_fe_add(&c, &secp256k1_fe_const_b);
+            secp256k1_fe_add_int(&c, SECP256K1_B);
         } while (secp256k1_fe_is_square_var(&c));
         /* If i is odd, n=d*x for random non-zero d. */
         if (i & 1) {
