@@ -1,2 +1,7 @@
 src/precomputed_ecmult.c linguist-generated
 src/precomputed_ecmult_gen.c linguist-generated
+
+ci/ export-ignore
+.cirrus.yml export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
