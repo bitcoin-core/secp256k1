@@ -367,12 +367,8 @@ static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a) {
     ret = !((r->n[9] == 0x3FFFFFUL) & ((r->n[8] & r->n[7] & r->n[6] & r->n[5] & r->n[4] & r->n[3] & r->n[2]) == 0x3FFFFFFUL) & ((r->n[1] + 0x40UL + ((r->n[0] + 0x3D1UL) >> 26)) > 0x3FFFFFFUL));
 #ifdef VERIFY
     r->magnitude = 1;
-    if (ret) {
-        r->normalized = 1;
-        secp256k1_fe_verify(r);
-    } else {
-        r->normalized = 0;
-    }
+    r->normalized = ret;
+    secp256k1_fe_verify(r);
 #endif
     return ret;
 }

@@ -75,7 +75,9 @@ static int secp256k1_fe_equal_var(const secp256k1_fe *a, const secp256k1_fe *b);
 /** Compare two field elements. Requires both inputs to be normalized */
 static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
 
-/** Set a field element equal to 32-byte big endian value. If successful, the resulting field element is normalized. */
+/** Set a field element equal to 32-byte big endian value.
+ *  Returns 1 if no overflow occurred, and then the output is normalized.
+ *  Returns 0 if overflow occurred, and then the output is only weakly normalized. */
 static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a);
 
 /** Convert a field element to a 32-byte big endian value. Requires the input to be normalized */

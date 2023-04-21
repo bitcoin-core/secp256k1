@@ -44,6 +44,25 @@ static int all_bytes_equal(const void* s, unsigned char value, size_t n) {
     return 1;
 }
 
+/* Debug helper for printing arrays of unsigned char. */
+#define PRINT_BUF(buf, len) do { \
+    printf("%s[%lu] = ", #buf, (unsigned long)len); \
+    print_buf_plain(buf, len); \
+} while(0);
+static void print_buf_plain(const unsigned char *buf, size_t len) {
+    size_t i;
+    printf("{");
+    for (i = 0; i < len; i++) {
+        if (i % 8 == 0) {
+            printf("\n    ");
+        } else {
+            printf(" ");
+        }
+        printf("0x%02X,", buf[i]);
+    }
+    printf("\n}\n");
+}
+
 /* TODO Use CHECK_ILLEGAL(_VOID) everywhere and get rid of the uncounting callback */
 /* CHECK that expr_or_stmt calls the illegal callback of ctx exactly once
  *
@@ -3025,6 +3044,69 @@ static void run_field_convert(void) {
     CHECK(secp256k1_memcmp_var(b322, b32, 32) == 0);
     secp256k1_fe_to_storage(&fes2, &fe);
     CHECK(secp256k1_memcmp_var(&fes2, &fes, sizeof(fes)) == 0);
+}
+
+static void run_field_be32_overflow(void) {
+    {
+        static const unsigned char zero_overflow[32] = {
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0xFF, 0xFC, 0x2F,
+        };
+        static const unsigned char zero[32] = { 0x00 };
+        unsigned char out[32];
+        secp256k1_fe fe;
+        CHECK(secp256k1_fe_set_b32(&fe, zero_overflow) == 0);
+        CHECK(secp256k1_fe_normalizes_to_zero(&fe) == 1);
+        secp256k1_fe_normalize(&fe);
+        CHECK(secp256k1_fe_is_zero(&fe) == 1);
+        secp256k1_fe_get_b32(out, &fe);
+        CHECK(secp256k1_memcmp_var(out, zero, 32) == 0);
+    }
+    {
+        static const unsigned char one_overflow[32] = {
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0xFF, 0xFC, 0x30,
+        };
+        static const unsigned char one[32] = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        };
+        unsigned char out[32];
+        secp256k1_fe fe;
+        CHECK(secp256k1_fe_set_b32(&fe, one_overflow) == 0);
+        secp256k1_fe_normalize(&fe);
+        CHECK(secp256k1_fe_cmp_var(&fe, &secp256k1_fe_one) == 0);
+        secp256k1_fe_get_b32(out, &fe);
+        CHECK(secp256k1_memcmp_var(out, one, 32) == 0);
+    }
+    {
+        static const unsigned char ff_overflow[32] = {
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        };
+        static const unsigned char ff[32] = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x03, 0xD0,
+        };
+        unsigned char out[32];
+        secp256k1_fe fe;
+        const secp256k1_fe fe_ff = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0x01, 0x000003d0);
+        CHECK(secp256k1_fe_set_b32(&fe, ff_overflow) == 0);
+        secp256k1_fe_normalize(&fe);
+        CHECK(secp256k1_fe_cmp_var(&fe, &fe_ff) == 0);
+        secp256k1_fe_get_b32(out, &fe);
+        CHECK(secp256k1_memcmp_var(out, ff, 32) == 0);
+    }
 }
 
 /* Returns true if two field elements have the same representation. */
@@ -7693,6 +7775,7 @@ int main(int argc, char **argv) {
     run_field_half();
     run_field_misc();
     run_field_convert();
+    run_field_be32_overflow();
     run_fe_mul();
     run_sqr();
     run_sqrt();
