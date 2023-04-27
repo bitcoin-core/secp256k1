@@ -114,7 +114,7 @@ if(SECP256K1_INSTALL)
     NO_SET_AND_CHECK_MACRO
   )
   write_basic_package_version_file(${PROJECT_NAME}-config-version.cmake
-    COMPATIBILITY SameMajorVersion
+    COMPATIBILITY SameMinorVersion
   )
 
   install(
