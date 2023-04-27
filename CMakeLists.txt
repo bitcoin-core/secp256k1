@@ -17,6 +17,18 @@ project(libsecp256k1
   LANGUAGES C
 )
 
+if(CMAKE_VERSION VERSION_LESS 3.21)
+  get_directory_property(parent_directory PARENT_DIRECTORY)
+  if(parent_directory)
+    set(PROJECT_IS_TOP_LEVEL OFF CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+    set(${PROJECT_NAME}_IS_TOP_LEVEL OFF CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+  else()
+    set(PROJECT_IS_TOP_LEVEL ON CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+    set(${PROJECT_NAME}_IS_TOP_LEVEL ON CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+  endif()
+  unset(parent_directory)
+endif()
+
 # The library version is based on libtool versioning of the ABI. The set of
 # rules for updating the version can be found here:
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
@@ -31,13 +43,13 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
-option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(BUILD_SHARED_LIBS "Build shared libraries." ON)
 option(SECP256K1_DISABLE_SHARED "Disable shared library. Overrides BUILD_SHARED_LIBS." OFF)
 if(SECP256K1_DISABLE_SHARED)
   set(BUILD_SHARED_LIBS OFF)
 endif()
 
-option(SECP256K1_INSTALL "Enable installation" ON)
+option(SECP256K1_INSTALL "Enable installation." ${PROJECT_IS_TOP_LEVEL})
 
 option(SECP256K1_ENABLE_MODULE_ECDH "Enable ECDH module." ON)
 if(SECP256K1_ENABLE_MODULE_ECDH)
