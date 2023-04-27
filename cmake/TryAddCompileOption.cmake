@@ -1,23 +1,24 @@
 include(CheckCCompilerFlag)
 
-function(try_add_compile_option option)
-  string(MAKE_C_IDENTIFIER ${option} result)
-  string(TOUPPER ${result} result)
-  set(result "C_SUPPORTS${result}")
-  set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+function(secp256k1_check_c_flags_internal flags output)
+  string(MAKE_C_IDENTIFIER "${flags}" result)
+  string(TOUPPER "${result}" result)
+  set(result "C_SUPPORTS_${result}")
   if(NOT MSVC)
     set(CMAKE_REQUIRED_FLAGS "-Werror")
   endif()
-  check_c_compiler_flag(${option} ${result})
-  if(${result})
-    get_property(compile_options
-      DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-      PROPERTY COMPILE_OPTIONS
-    )
-    list(APPEND compile_options "${option}")
-    set_property(
-      DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-      PROPERTY COMPILE_OPTIONS "${compile_options}"
-    )
-  endif()
+
+  # This avoids running a linker.
+  set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+  check_c_compiler_flag("${flags}" ${result})
+
+  set(${output} ${${result}} PARENT_SCOPE)
 endfunction()
+
+# Append flags to the COMPILE_OPTIONS directory property if CC accepts them.
+macro(try_add_compile_option)
+  secp256k1_check_c_flags_internal("${ARGV}" result)
+  if(result)
+    add_compile_options(${ARGV})
+  endif()
+endmacro()
