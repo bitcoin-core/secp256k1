@@ -191,25 +191,27 @@ else()
   endif()
 endif()
 
-include(TryAddCompileOption)
+include(TryAppendCFlags)
 if(MSVC)
-  try_add_compile_option(/W2)
-  try_add_compile_option(/wd4146)
+  # Keep the following commands ordered lexicographically.
+  try_append_c_flags(/W2) # Moderate warning level.
+  try_append_c_flags(/wd4146) # Disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned".
 else()
-  try_add_compile_option(-pedantic)
-  try_add_compile_option(-Wall)
-  try_add_compile_option(-Wcast-align)
-  try_add_compile_option(-Wcast-align=strict)
-  try_add_compile_option(-Wconditional-uninitialized)
-  try_add_compile_option(-Wextra)
-  try_add_compile_option(-Wnested-externs)
-  try_add_compile_option(-Wno-long-long)
-  try_add_compile_option(-Wno-overlength-strings)
-  try_add_compile_option(-Wno-unused-function)
-  try_add_compile_option(-Wreserved-identifier)
-  try_add_compile_option(-Wshadow)
-  try_add_compile_option(-Wstrict-prototypes)
-  try_add_compile_option(-Wundef)
+  # Keep the following commands ordered lexicographically.
+  try_append_c_flags(-pedantic)
+  try_append_c_flags(-Wall) # GCC >= 2.95 and probably many other compilers.
+  try_append_c_flags(-Wcast-align) # GCC >= 2.95.
+  try_append_c_flags(-Wcast-align=strict) # GCC >= 8.0.
+  try_append_c_flags(-Wconditional-uninitialized) # Clang >= 3.0 only.
+  try_append_c_flags(-Wextra) # GCC >= 3.4, this is the newer name of -W, which we don't use because older GCCs will warn about unused functions.
+  try_append_c_flags(-Wnested-externs)
+  try_append_c_flags(-Wno-long-long) # GCC >= 3.0, -Wlong-long is implied by -pedantic.
+  try_append_c_flags(-Wno-overlength-strings) # GCC >= 4.2, -Woverlength-strings is implied by -pedantic.
+  try_append_c_flags(-Wno-unused-function) # GCC >= 3.0, -Wunused-function is implied by -Wall.
+  try_append_c_flags(-Wreserved-identifier) # Clang >= 13.0 only.
+  try_append_c_flags(-Wshadow)
+  try_append_c_flags(-Wstrict-prototypes)
+  try_append_c_flags(-Wundef)
 endif()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)
