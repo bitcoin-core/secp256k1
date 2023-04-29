@@ -156,9 +156,20 @@ if(SECP256K1_VALGRIND)
 endif()
 
 option(SECP256K1_BUILD_BENCHMARK "Build benchmarks." ON)
+
+include(CMakeDependentOption)
+cmake_dependent_option(SECP256K1_COVERAGE "Enable coverage analysis support." OFF "NOT MSVC" OFF)
+include(TryAppendCFlags)
+if(SECP256K1_COVERAGE)
+  add_compile_definitions(COVERAGE)
+  try_append_c_flags(-O0 --coverage)
+  add_link_options(--coverage)
+endif()
+
 option(SECP256K1_BUILD_TESTS "Build tests." ON)
 option(SECP256K1_BUILD_EXHAUSTIVE_TESTS "Build exhaustive tests." ON)
 option(SECP256K1_BUILD_CTIME_TESTS "Build constant-time tests." ${SECP256K1_VALGRIND})
+
 option(SECP256K1_BUILD_EXAMPLES "Build examples." OFF)
 
 include(ProcessConfigurations)
@@ -170,37 +181,14 @@ if(MSVC)
   remove_flag_from_all_configs(/DNDEBUG)
 else()
   remove_flag_from_all_configs(-DNDEBUG)
-  # Prefer -O2 optimization level. (-O3 is CMake's default for Release for many compilers.)
-  replace_flag_in_config(Release -O3 -O2)
+  if(SECP256K1_COVERAGE)
+    remove_flag_from_all_configs(-O[s0-9])
+  else()
+    # Prefer -O2 optimization level. (-O3 is CMake's default for Release for many compilers.)
+    replace_flag_in_config(Release -O3 -O2)
+  endif()
 endif()
 
-# Define custom "Coverage" build type.
-set(CMAKE_C_FLAGS_COVERAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O0 -DCOVERAGE=1 --coverage" CACHE STRING
-  "Flags used by the C compiler during \"Coverage\" builds."
-  FORCE
-)
-set(CMAKE_EXE_LINKER_FLAGS_COVERAGE "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} --coverage" CACHE STRING
-  "Flags used for linking binaries during \"Coverage\" builds."
-  FORCE
-)
-set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE "${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO} --coverage" CACHE STRING
-  "Flags used by the shared libraries linker during \"Coverage\" builds."
-  FORCE
-)
-mark_as_advanced(
-  CMAKE_C_FLAGS_COVERAGE
-  CMAKE_EXE_LINKER_FLAGS_COVERAGE
-  CMAKE_SHARED_LINKER_FLAGS_COVERAGE
-)
-
-get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-if(is_multi_config)
-  list(APPEND CMAKE_CONFIGURATION_TYPES Coverage)
-else()
-  set_property(CACHE CMAKE_BUILD_TYPE APPEND PROPERTY STRINGS Coverage)
-endif()
-
-include(TryAppendCFlags)
 if(MSVC)
   # Keep the following commands ordered lexicographically.
   try_append_c_flags(/W3) # Production quality warning level.
@@ -275,7 +263,7 @@ message("Optional binaries:")
 message("  benchmark ........................... ${SECP256K1_BUILD_BENCHMARK}")
 message("  noverify_tests ...................... ${SECP256K1_BUILD_TESTS}")
 set(tests_status "${SECP256K1_BUILD_TESTS}")
-if(CMAKE_BUILD_TYPE STREQUAL "Coverage")
+if(SECP256K1_COVERAGE)
   set(tests_status OFF)
 endif()
 message("  tests ............................... ${tests_status}")
