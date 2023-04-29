@@ -161,18 +161,17 @@ option(SECP256K1_BUILD_EXHAUSTIVE_TESTS "Build exhaustive tests." ON)
 option(SECP256K1_BUILD_CTIME_TESTS "Build constant-time tests." ${SECP256K1_VALGRIND})
 option(SECP256K1_BUILD_EXAMPLES "Build examples." OFF)
 
+include(ProcessConfigurations)
+set_default_config(RelWithDebInfo)
+
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
 if(MSVC)
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
+  remove_flag_from_all_configs(/DNDEBUG)
 else()
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
+  remove_flag_from_all_configs(-DNDEBUG)
   # Prefer -O2 optimization level. (-O3 is CMake's default for Release for many compilers.)
-  string(REGEX REPLACE "-O3[ \t\r\n]*" "-O2" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+  replace_flag_in_config(Release -O3 -O2)
 endif()
 
 # Define custom "Coverage" build type.
@@ -195,23 +194,10 @@ mark_as_advanced(
 )
 
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-set(default_build_type "RelWithDebInfo")
 if(is_multi_config)
-  set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
-    "Supported configuration types."
-    FORCE
-  )
+  list(APPEND CMAKE_CONFIGURATION_TYPES Coverage)
 else()
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
-    STRINGS "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage"
-  )
-  if(NOT CMAKE_BUILD_TYPE)
-    message(STATUS "Setting build type to \"${default_build_type}\" as none was specified")
-    set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
-      "Choose the type of build."
-      FORCE
-    )
-  endif()
+  set_property(CACHE CMAKE_BUILD_TYPE APPEND PROPERTY STRINGS Coverage)
 endif()
 
 include(TryAppendCFlags)
@@ -312,24 +298,7 @@ message("CFLAGS ................................ ${CMAKE_C_FLAGS}")
 get_directory_property(compile_options COMPILE_OPTIONS)
 string(REPLACE ";" " " compile_options "${compile_options}")
 message("Compile options ....................... " ${compile_options})
-if(NOT is_multi_config)
-  message("Build type:")
-  message(" - CMAKE_BUILD_TYPE ................... ${CMAKE_BUILD_TYPE}")
-  string(TOUPPER "${CMAKE_BUILD_TYPE}" build_type)
-  message(" - CFLAGS ............................. ${CMAKE_C_FLAGS_${build_type}}")
-  message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_${build_type}}")
-  message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_${build_type}}")
-else()
-  message("Supported configurations .............. ${CMAKE_CONFIGURATION_TYPES}")
-  message("RelWithDebInfo configuration:")
-  message(" - CFLAGS ............................. ${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-  message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO}")
-  message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO}")
-  message("Debug configuration:")
-  message(" - CFLAGS ............................. ${CMAKE_C_FLAGS_DEBUG}")
-  message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
-  message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_DEBUG}")
-endif()
+print_config_flags()
 message("\n")
 if(SECP256K1_EXPERIMENTAL)
   message(
