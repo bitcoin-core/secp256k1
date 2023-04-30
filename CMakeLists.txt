@@ -207,7 +207,6 @@ include(TryAppendCFlags)
 if(MSVC)
   # Keep the following commands ordered lexicographically.
   try_append_c_flags(/W2) # Moderate warning level.
-  try_append_c_flags(/wd4146) # Disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned".
 else()
   # Keep the following commands ordered lexicographically.
   try_append_c_flags(-pedantic)

@@ -184,7 +184,7 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
         VERIFY_CHECK((q * f0 + r * g0) == g << i);
         /* Compute conditional masks for (zeta < 0) and for (g & 1). */
         c1 = zeta >> 63;
-        c2 = -(g & 1);
+        c2 = 0 - (g & 1);
         /* Compute x,y,z, conditionally negated versions of f,u,v. */
         x = (f ^ c1) - c1;
         y = (u ^ c1) - c1;
@@ -263,9 +263,9 @@ static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint
         if (eta < 0) {
             uint64_t tmp;
             eta = -eta;
-            tmp = f; f = g; g = -tmp;
-            tmp = u; u = q; q = -tmp;
-            tmp = v; v = r; r = -tmp;
+            tmp = f; f = g; g = 0 - tmp;
+            tmp = u; u = q; q = 0 - tmp;
+            tmp = v; v = r; r = 0 - tmp;
             /* Use a formula to cancel out up to 6 bits of g. Also, no more than i can be cancelled
              * out (as we'd be done before that point), and no more than eta+1 can be done as its
              * sign will flip again once that happens. */
@@ -286,7 +286,7 @@ static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint
             /* Find what multiple of f must be added to g to cancel its bottom min(limit, 4)
              * bits. */
             w = f + (((f + 1) & 4) << 1);
-            w = (-w * g) & m;
+            w = ((0 - w) * g) & m;
         }
         g += f * w;
         q += u * w;
@@ -377,7 +377,7 @@ static int64_t secp256k1_modinv64_posdivsteps_62_var(int64_t eta, uint64_t f0, u
             /* Find what multiple of f must be added to g to cancel its bottom min(limit, 4)
              * bits. */
             w = f + (((f + 1) & 4) << 1);
-            w = (-w * g) & m;
+            w = ((0 - w) * g) & m;
         }
         g += f * w;
         q += u * w;

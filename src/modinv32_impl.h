@@ -195,7 +195,7 @@ static int32_t secp256k1_modinv32_divsteps_30(int32_t zeta, uint32_t f0, uint32_
         VERIFY_CHECK((q * f0 + r * g0) == g << i);
         /* Compute conditional masks for (zeta < 0) and for (g & 1). */
         c1 = zeta >> 31;
-        c2 = -(g & 1);
+        c2 = 0 - (g & 1);
         /* Compute x,y,z, conditionally negated versions of f,u,v. */
         x = (f ^ c1) - c1;
         y = (u ^ c1) - c1;
@@ -285,9 +285,9 @@ static int32_t secp256k1_modinv32_divsteps_30_var(int32_t eta, uint32_t f0, uint
         if (eta < 0) {
             uint32_t tmp;
             eta = -eta;
-            tmp = f; f = g; g = -tmp;
-            tmp = u; u = q; q = -tmp;
-            tmp = v; v = r; r = -tmp;
+            tmp = f; f = g; g = 0 - tmp;
+            tmp = u; u = q; q = 0 - tmp;
+            tmp = v; v = r; r = 0 - tmp;
         }
         /* eta is now >= 0. In what follows we're going to cancel out the bottom bits of g. No more
          * than i can be cancelled out (as we'd be done before that point), and no more than eta+1

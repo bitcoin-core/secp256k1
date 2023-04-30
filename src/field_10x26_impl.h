@@ -1169,7 +1169,7 @@ static SECP256K1_INLINE void secp256k1_fe_half(secp256k1_fe *r) {
     uint32_t t0 = r->n[0], t1 = r->n[1], t2 = r->n[2], t3 = r->n[3], t4 = r->n[4],
              t5 = r->n[5], t6 = r->n[6], t7 = r->n[7], t8 = r->n[8], t9 = r->n[9];
     uint32_t one = (uint32_t)1;
-    uint32_t mask = -(t0 & one) >> 6;
+    uint32_t mask = (0 - (t0 & one)) >> 6;
 
 #ifdef VERIFY
     secp256k1_fe_verify(r);
