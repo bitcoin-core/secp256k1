@@ -228,15 +228,18 @@ endif()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 
-# Ask CTest to create a "check" target (e.g., make check) as alias for the "test" target.
-# CTEST_TEST_TARGET_ALIAS is not documented but supposed to be user-facing.
-# See: https://gitlab.kitware.com/cmake/cmake/-/commit/816c9d1aa1f2b42d40c81a991b68c96eb12b6d2
-set(CTEST_TEST_TARGET_ALIAS check)
 include(CTest)
 # We do not use CTest's BUILD_TESTING because a single toggle for all tests is too coarse for our needs.
 mark_as_advanced(BUILD_TESTING)
 if(SECP256K1_BUILD_BENCHMARK OR SECP256K1_BUILD_TESTS OR SECP256K1_BUILD_EXHAUSTIVE_TESTS OR SECP256K1_BUILD_CTIME_TESTS OR SECP256K1_BUILD_EXAMPLES)
   enable_testing()
+  if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+    # Emulate GNU Autotools 'make check -jN'.
+    add_custom_target(check
+      COMMAND @$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan \"Running tests...\"
+      COMMAND ${CMAKE_CTEST_COMMAND} --force-new-ctest-process -$(MAKEFLAGS)
+    )
+  endif()
 endif()
 
 add_subdirectory(src)
