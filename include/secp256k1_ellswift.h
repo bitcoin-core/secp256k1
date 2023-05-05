@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 /* This module provides an implementation of ElligatorSwift as well as a
- * version of x-only ECDH using it.
+ * version of x-only ECDH using it (including compatibility with BIP324).
  *
  * ElligatorSwift is described in https://eprint.iacr.org/2022/759 by
  * Chavez-Saab, Rodriguez-Henriquez, and Tibouchi. It permits encoding
@@ -66,6 +66,19 @@ typedef int (*secp256k1_ellswift_xdh_hash_function)(
     const unsigned char *ell_b64,
     void *data
 );
+
+/** An implementation of an secp256k1_ellswift_xdh_hash_function which uses
+ *  SHA256(prefix64 || ell_a64 || ell_b64 || x32), where prefix64 is the 64-byte
+ *  array pointed to by data. */
+SECP256K1_API_VAR const secp256k1_ellswift_xdh_hash_function secp256k1_ellswift_xdh_hash_function_prefix;
+
+/** An implementation of an secp256k1_ellswift_xdh_hash_function compatible with
+ *  BIP324. It returns H_tag(ell_a64 || ell_b64 || x32), where H_tag is the
+ *  BIP340 tagged hash function with tag "bip324_ellswift_xonly_ecdh". Equivalent
+ *  to secp256k1_ellswift_xdh_hash_function_prefix with prefix64 set to
+ *  SHA256("bip324_ellswift_xonly_ecdh")||SHA256("bip324_ellswift_xonly_ecdh").
+ *  The data argument is ignored. */
+SECP256K1_API_VAR const secp256k1_ellswift_xdh_hash_function secp256k1_ellswift_xdh_hash_function_bip324;
 
 /** Construct a 64-byte ElligatorSwift encoding of a given pubkey.
  *

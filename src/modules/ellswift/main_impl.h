@@ -498,6 +498,51 @@ int secp256k1_ellswift_decode(const secp256k1_context *ctx, secp256k1_pubkey *pu
     return 1;
 }
 
+static int ellswift_xdh_hash_function_prefix(unsigned char *output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
+    secp256k1_sha256 sha;
+
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, data, 64);
+    secp256k1_sha256_write(&sha, ell_a64, 64);
+    secp256k1_sha256_write(&sha, ell_b64, 64);
+    secp256k1_sha256_write(&sha, x32, 32);
+    secp256k1_sha256_finalize(&sha, output);
+
+    return 1;
+}
+
+/** Set hash state to the BIP340 tagged hash midstate for "bip324_ellswift_xonly_ecdh". */
+static void secp256k1_ellswift_sha256_init_bip324(secp256k1_sha256* hash) {
+    secp256k1_sha256_initialize(hash);
+    hash->s[0] = 0x8c12d730ul;
+    hash->s[1] = 0x827bd392ul;
+    hash->s[2] = 0x9e4fb2eeul;
+    hash->s[3] = 0x207b373eul;
+    hash->s[4] = 0x2292bd7aul;
+    hash->s[5] = 0xaa5441bcul;
+    hash->s[6] = 0x15c3779ful;
+    hash->s[7] = 0xcfb52549ul;
+
+    hash->bytes = 64;
+}
+
+static int ellswift_xdh_hash_function_bip324(unsigned char* output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
+    secp256k1_sha256 sha;
+
+    (void)data;
+
+    secp256k1_ellswift_sha256_init_bip324(&sha);
+    secp256k1_sha256_write(&sha, ell_a64, 64);
+    secp256k1_sha256_write(&sha, ell_b64, 64);
+    secp256k1_sha256_write(&sha, x32, 32);
+    secp256k1_sha256_finalize(&sha, output);
+
+    return 1;
+}
+
+const secp256k1_ellswift_xdh_hash_function secp256k1_ellswift_xdh_hash_function_prefix = ellswift_xdh_hash_function_prefix;
+const secp256k1_ellswift_xdh_hash_function secp256k1_ellswift_xdh_hash_function_bip324 = ellswift_xdh_hash_function_bip324;
+
 int secp256k1_ellswift_xdh(const secp256k1_context *ctx, unsigned char *output, const unsigned char *ell_a64, const unsigned char *ell_b64, const unsigned char *seckey32, int party, secp256k1_ellswift_xdh_hash_function hashfp, void *data) {
     int ret = 0;
     int overflow;
