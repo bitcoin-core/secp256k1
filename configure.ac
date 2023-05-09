@@ -136,6 +136,13 @@ AC_ARG_ENABLE(module_schnorrsig,
     [enable_module_schnorrsig=$enableval],
     [enable_module_schnorrsig=no])
 
+# FROST_SPECIFIC - START
+AC_ARG_ENABLE(module_frost,
+    AS_HELP_STRING([--enable-module-frost],[enable FROST module (experimental)]),
+    [enable_module_frost=$enableval],
+    [enable_module_frost=no])
+# FROST_SPECIFIC - END
+
 AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]),
     [use_external_default_callbacks=$enableval],
@@ -327,6 +334,13 @@ if test x"$enable_module_schnorrsig" = x"yes"; then
   enable_module_extrakeys=yes
 fi
 
+# FROST_SPECIFIC - START
+if test x"$enable_module_frost" = x"yes"; then
+  AC_DEFINE(ENABLE_MODULE_FROST, 1, [Define this symbol to enable the FROST module])
+  enable_module_frost=yes
+fi
+# FROST_SPECIFIC - END
+
 # Test if extrakeys is set after the schnorrsig module to allow the schnorrsig
 # module to set enable_module_extrakeys=yes
 if test x"$enable_module_extrakeys" = x"yes"; then
@@ -347,6 +361,7 @@ if test x"$enable_experimental" = x"yes"; then
   AC_MSG_NOTICE([Experimental features do not have stable APIs or properties, and may not be safe for production use.])
   AC_MSG_NOTICE([Building extrakeys module: $enable_module_extrakeys])
   AC_MSG_NOTICE([Building schnorrsig module: $enable_module_schnorrsig])
+  AC_MSG_NOTICE([Building frost module: $enable_module_frost]) # FROST_SPECIFIC
   AC_MSG_NOTICE([******])
 else
   if test x"$enable_module_extrakeys" = x"yes"; then
@@ -355,6 +370,11 @@ else
   if test x"$enable_module_schnorrsig" = x"yes"; then
     AC_MSG_ERROR([schnorrsig module is experimental. Use --enable-experimental to allow.])
   fi
+  # FROST_SPECIFIC - START
+  if test x"$enable_module_frost" = x"yes"; then
+    AC_MSG_ERROR([frost module is experimental. Use --enable-experimental to allow.])
+  fi
+  # FROST_SPECIFIC - END
   if test x"$set_asm" = x"arm"; then
     AC_MSG_ERROR([ARM assembly optimization is experimental. Use --enable-experimental to allow.])
   fi
@@ -379,6 +399,7 @@ AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
+AM_CONDITIONAL([ENABLE_MODULE_FROST], [test x"$enable_module_frost" != x"no"]) # FROST_SPECIFIC
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$use_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
 
@@ -399,6 +420,7 @@ echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
 echo "  module extrakeys        = $enable_module_extrakeys"
 echo "  module schnorrsig       = $enable_module_schnorrsig"
+echo "  module frost            = $enable_module_frost" # FROST_SPECIFIC
 echo
 echo "  asm                     = $set_asm"
 echo "  ecmult window size      = $set_ecmult_window"

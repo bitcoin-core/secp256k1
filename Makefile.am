@@ -184,3 +184,9 @@ endif
 if ENABLE_MODULE_SCHNORRSIG
 include src/modules/schnorrsig/Makefile.am.include
 endif
+
+# FROST_SPECIFIC - START
+if ENABLE_MODULE_FROST
+include src/modules/frost/Makefile.am.include
+endif
+# FROST_SPECIFIC - END

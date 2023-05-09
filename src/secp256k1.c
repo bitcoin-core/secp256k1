@@ -761,3 +761,9 @@ int secp256k1_tagged_sha256(const secp256k1_context* ctx, unsigned char *hash32,
 #ifdef ENABLE_MODULE_SCHNORRSIG
 # include "modules/schnorrsig/main_impl.h"
 #endif
+
+/* FROST_SPECIFIC - START */
+#ifdef ENABLE_MODULE_FROST
+# include "modules/frost/main_impl.h"
+#endif
+/* FROST_SPECIFIC - END */
