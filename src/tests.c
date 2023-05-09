@@ -172,6 +172,35 @@ static void random_scalar_order_b32(unsigned char *b32) {
     secp256k1_scalar_get_b32(b32, &num);
 }
 
+static void run_xoshiro256pp_tests(void) {
+    {
+        size_t i;
+        /* Sanity check that we run before the actual seeding. */
+        for (i = 0; i < sizeof(secp256k1_test_state)/sizeof(secp256k1_test_state[0]); i++) {
+            CHECK(secp256k1_test_state[i] == 0);
+        }
+    }
+    {
+        int i;
+        unsigned char buf32[32];
+        unsigned char seed16[16] = {
+            'C', 'H', 'I', 'C', 'K', 'E', 'N', '!',
+            'C', 'H', 'I', 'C', 'K', 'E', 'N', '!',
+        };
+        unsigned char buf32_expected[32] = {
+            0xAF, 0xCC, 0xA9, 0x16, 0xB5, 0x6C, 0xE3, 0xF0,
+            0x44, 0x3F, 0x45, 0xE0, 0x47, 0xA5, 0x08, 0x36,
+            0x4C, 0xCC, 0xC1, 0x18, 0xB2, 0xD8, 0x8F, 0xEF,
+            0x43, 0x26, 0x15, 0x57, 0x37, 0x00, 0xEF, 0x30,
+        };
+        secp256k1_testrand_seed(seed16);
+        for (i = 0; i < 17; i++) {
+            secp256k1_testrand256(buf32);
+        }
+        CHECK(secp256k1_memcmp_var(buf32, buf32_expected, sizeof(buf32)) == 0);
+    }
+}
+
 static void run_selftest_tests(void) {
     /* Test public API */
     secp256k1_selftest();
@@ -7620,6 +7649,9 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
     printf("test count = %i\n", COUNT);
+
+    /* run test RNG tests (must run before we really initialize the test RNG) */
+    run_xoshiro256pp_tests();
 
     /* find random seed */
     secp256k1_testrand_init(argc > 2 ? argv[2] : NULL);
