@@ -748,7 +748,9 @@ static void secp256k1_gej_rescale(secp256k1_gej *r, const secp256k1_fe *s) {
     secp256k1_fe zz;
     secp256k1_gej_verify(r);
     secp256k1_fe_verify(s);
-    VERIFY_CHECK(!secp256k1_fe_is_zero(s));
+#ifdef VERIFY
+    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero_var(s));
+#endif
     secp256k1_fe_sqr(&zz, s);
     secp256k1_fe_mul(&r->x, &r->x, &zz);                /* r->x *= s^2 */
     secp256k1_fe_mul(&r->y, &r->y, &zz);
