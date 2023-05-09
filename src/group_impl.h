@@ -92,12 +92,26 @@ static void secp256k1_gej_verify(const secp256k1_gej *a) {
     (void)a;
 }
 
+/* Set r to the affine coordinates of Jacobian point (a.x, a.y, 1/zi). */
 static void secp256k1_ge_set_gej_zinv(secp256k1_ge *r, const secp256k1_gej *a, const secp256k1_fe *zi) {
     secp256k1_fe zi2;
     secp256k1_fe zi3;
-    /* Do not call secp256k1_ge_verify, as we do not require a->z to be initialized. */
-    secp256k1_fe_verify(&a->x);
-    secp256k1_fe_verify(&a->y);
+    secp256k1_gej_verify(a);
+    secp256k1_fe_verify(zi);
+    VERIFY_CHECK(!a->infinity);
+    secp256k1_fe_sqr(&zi2, zi);
+    secp256k1_fe_mul(&zi3, &zi2, zi);
+    secp256k1_fe_mul(&r->x, &a->x, &zi2);
+    secp256k1_fe_mul(&r->y, &a->y, &zi3);
+    r->infinity = a->infinity;
+    secp256k1_ge_verify(r);
+}
+
+/* Set r to the affine coordinates of Jacobian point (a.x, a.y, 1/zi). */
+static void secp256k1_ge_set_ge_zinv(secp256k1_ge *r, const secp256k1_ge *a, const secp256k1_fe *zi) {
+    secp256k1_fe zi2;
+    secp256k1_fe zi3;
+    secp256k1_ge_verify(a);
     secp256k1_fe_verify(zi);
     VERIFY_CHECK(!a->infinity);
     secp256k1_fe_sqr(&zi2, zi);
@@ -221,7 +235,6 @@ static void secp256k1_ge_table_set_globalz(size_t len, secp256k1_ge *a, const se
 
         /* Work our way backwards, using the z-ratios to scale the x/y values. */
         while (i > 0) {
-            secp256k1_gej tmpa;
             /* Verify all inputs a[i] and zr[i]. */
             secp256k1_fe_verify(&zr[i]);
             secp256k1_ge_verify(&a[i]);
@@ -229,10 +242,7 @@ static void secp256k1_ge_table_set_globalz(size_t len, secp256k1_ge *a, const se
                 secp256k1_fe_mul(&zs, &zs, &zr[i]);
             }
             i--;
-            tmpa.x = a[i].x;
-            tmpa.y = a[i].y;
-            tmpa.infinity = 0;
-            secp256k1_ge_set_gej_zinv(&a[i], &tmpa, &zs);
+            secp256k1_ge_set_ge_zinv(&a[i], &a[i], &zs);
             /* Verify the output a[i]. */
             secp256k1_ge_verify(&a[i]);
         }
