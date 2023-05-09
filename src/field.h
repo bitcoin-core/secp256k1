@@ -143,9 +143,7 @@ static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m);
 /** Determine whether a is a square (modulo p). */
 static int secp256k1_fe_is_square_var(const secp256k1_fe *a);
 
-#ifdef VERIFY
-/** Check invariants on a field element. */
+/** Check invariants on a field element (no-op unless VERIFY is enabled). */
 static void secp256k1_fe_verify(const secp256k1_fe *a);
-#endif
 
 #endif /* SECP256K1_FIELD_H */

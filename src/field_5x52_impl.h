@@ -33,8 +33,8 @@
  *  0 or 1, and its value is already reduced modulo the order of the field.
  */
 
-#ifdef VERIFY
 static void secp256k1_fe_verify(const secp256k1_fe *a) {
+#ifdef VERIFY
     const uint64_t *d = a->n;
     int m = a->normalized ? 1 : 2 * a->magnitude, r = 1;
    /* secp256k1 'p' value defined in "Standards for Efficient Cryptography" (SEC2) 2.7.1. */
@@ -52,8 +52,9 @@ static void secp256k1_fe_verify(const secp256k1_fe *a) {
         }
     }
     VERIFY_CHECK(r == 1);
-}
 #endif
+    (void)a;
+}
 
 static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m) {
     VERIFY_CHECK(m >= 0);
@@ -422,11 +423,9 @@ SECP256K1_INLINE static void secp256k1_fe_mul_int(secp256k1_fe *r, int a) {
 }
 
 SECP256K1_INLINE static void secp256k1_fe_add_int(secp256k1_fe *r, int a) {
-#ifdef VERIFY
     secp256k1_fe_verify(r);
     VERIFY_CHECK(a >= 0);
     VERIFY_CHECK(a <= 0x7FFF);
-#endif
     r->n[0] += a;
 #ifdef VERIFY
     r->magnitude += 1;
@@ -436,9 +435,7 @@ SECP256K1_INLINE static void secp256k1_fe_add_int(secp256k1_fe *r, int a) {
 }
 
 SECP256K1_INLINE static void secp256k1_fe_add(secp256k1_fe *r, const secp256k1_fe *a) {
-#ifdef VERIFY
     secp256k1_fe_verify(a);
-#endif
     r->n[0] += a->n[0];
     r->n[1] += a->n[1];
     r->n[2] += a->n[2];
