@@ -64,11 +64,11 @@ typedef struct {
     size_t siglen;
     unsigned char pubkey[33];
     size_t pubkeylen;
-} bench_verify_data;
+} bench_data;
 
 static void bench_verify(void* arg, int iters) {
     int i;
-    bench_verify_data* data = (bench_verify_data*)arg;
+    bench_data* data = (bench_data*)arg;
 
     for (i = 0; i < iters; i++) {
         secp256k1_pubkey pubkey;
@@ -85,15 +85,9 @@ static void bench_verify(void* arg, int iters) {
     }
 }
 
-typedef struct {
-    secp256k1_context* ctx;
-    unsigned char msg[32];
-    unsigned char key[32];
-} bench_sign_data;
-
 static void bench_sign_setup(void* arg) {
     int i;
-    bench_sign_data *data = (bench_sign_data*)arg;
+    bench_data *data = (bench_data*)arg;
 
     for (i = 0; i < 32; i++) {
         data->msg[i] = i + 1;
@@ -105,7 +99,7 @@ static void bench_sign_setup(void* arg) {
 
 static void bench_sign_run(void* arg, int iters) {
     int i;
-    bench_sign_data *data = (bench_sign_data*)arg;
+    bench_data *data = (bench_data*)arg;
 
     unsigned char sig[74];
     for (i = 0; i < iters; i++) {
@@ -137,7 +131,7 @@ int main(int argc, char** argv) {
     int i;
     secp256k1_pubkey pubkey;
     secp256k1_ecdsa_signature sig;
-    bench_verify_data data;
+    bench_data data;
 
     int d = argc == 1;
     int default_iters = 20000;
