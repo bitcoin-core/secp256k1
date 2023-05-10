@@ -144,6 +144,11 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
 
     int i;
 
+    if (secp256k1_ge_is_infinity(a)) {
+        secp256k1_gej_set_infinity(r);
+        return;
+    }
+
     /* build wnaf representation for q. */
     /* split q into q_1 and q_lam (where q = q_1 + q_lam*lambda, and q_1 and q_lam are ~128 bit) */
     secp256k1_scalar_split_lambda(&q_1, &q_lam, scalar);

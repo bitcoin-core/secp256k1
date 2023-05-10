@@ -193,7 +193,7 @@ static void test_exhaustive_ecmult(const secp256k1_ge *group, const secp256k1_ge
     }
 
     for (j = 0; j < EXHAUSTIVE_TEST_ORDER; j++) {
-        for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {
+        for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++) {
             int ret;
             secp256k1_gej tmp;
             secp256k1_fe xn, xd, tmpf;
@@ -207,7 +207,7 @@ static void test_exhaustive_ecmult(const secp256k1_ge *group, const secp256k1_ge
             secp256k1_ecmult_const(&tmp, &group[i], &ng);
             ge_equals_gej(&group[(i * j) % EXHAUSTIVE_TEST_ORDER], &tmp);
 
-            if (j != 0) {
+            if (i != 0 && j != 0) {
                 /* Test secp256k1_ecmult_const_xonly with all curve X coordinates, and xd=NULL. */
                 ret = secp256k1_ecmult_const_xonly(&tmpf, &group[i].x, NULL, &ng, 0);
                 CHECK(ret);
