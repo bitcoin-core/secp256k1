@@ -197,8 +197,8 @@ AC_ARG_ENABLE(external_default_callbacks,
 #  *  and auto (the default).
 AC_ARG_WITH([test-override-wide-multiply], [] ,[set_widemul=$withval], [set_widemul=auto])
 
-AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto],
-[assembly optimizations to use (experimental: arm) [default=auto]])],[req_asm=$withval], [req_asm=auto])
+AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm32|no|auto],
+[assembly optimizations to use (experimental: arm32) [default=auto]])],[req_asm=$withval], [req_asm=auto])
 
 AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
 [window size for ecmult precomputation for verification, specified as integer in range [2..24].]
@@ -279,7 +279,7 @@ else
       AC_MSG_ERROR([x86_64 assembly optimization requested but not available])
     fi
     ;;
-  arm)
+  arm32)
     ;;
   no)
     ;;
@@ -296,7 +296,7 @@ case $set_asm in
 x86_64)
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_ASM_X86_64=1"
   ;;
-arm)
+arm32)
   enable_external_asm=yes
   ;;
 no)
@@ -413,8 +413,8 @@ if test x"$enable_experimental" = x"yes"; then
   AC_MSG_NOTICE([Experimental features do not have stable APIs or properties, and may not be safe for production use.])
   AC_MSG_NOTICE([******])
 else
-  if test x"$set_asm" = x"arm"; then
-    AC_MSG_ERROR([ARM assembly optimization is experimental. Use --enable-experimental to allow.])
+  if test x"$set_asm" = x"arm32"; then
+    AC_MSG_ERROR([ARM32 assembly optimization is experimental. Use --enable-experimental to allow.])
   fi
 fi
 
@@ -436,7 +436,7 @@ AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"ye
 AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$enable_external_asm" = x"yes"])
-AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
+AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm32"])
 AM_CONDITIONAL([BUILD_WINDOWS], [test "$build_windows" = "yes"])
 AC_SUBST(LIB_VERSION_CURRENT, _LIB_VERSION_CURRENT)
 AC_SUBST(LIB_VERSION_REVISION, _LIB_VERSION_REVISION)
