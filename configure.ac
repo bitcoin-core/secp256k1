@@ -280,6 +280,10 @@ else
     fi
     ;;
   arm32)
+    SECP_ARM32_ASM_CHECK
+    if test x"$has_arm32_asm" != x"yes"; then
+      AC_MSG_ERROR([ARM32 assembly optimization requested but not available])
+    fi
     ;;
   no)
     ;;

@@ -9,6 +9,25 @@ AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 AC_MSG_RESULT([$has_64bit_asm])
 ])
 
+AC_DEFUN([SECP_ARM32_ASM_CHECK], [
+  AC_MSG_CHECKING(for ARM32 assembly availability)
+  SECP_ARM32_ASM_CHECK_CFLAGS_saved_CFLAGS="$CFLAGS"
+  CFLAGS="-x assembler"
+  AC_LINK_IFELSE([AC_LANG_SOURCE([[
+    .syntax unified
+    .eabi_attribute 24, 1
+    .eabi_attribute 25, 1
+    .text
+    .global main
+    main:
+      ldr r0, =0x002A
+      mov r7, #1
+      swi 0   
+    ]])], [has_arm32_asm=yes], [has_arm32_asm=no])
+  AC_MSG_RESULT([$has_arm32_asm])
+  CFLAGS="$SECP_ARM32_ASM_CHECK_CFLAGS_saved_CFLAGS"
+])
+
 AC_DEFUN([SECP_VALGRIND_CHECK],[
 AC_MSG_CHECKING([for valgrind support])
 if test x"$has_valgrind" != x"yes"; then
