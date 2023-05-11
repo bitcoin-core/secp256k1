@@ -13,7 +13,12 @@
 #define EXHAUSTIVE_TEST_ORDER 13
 #endif
 
+#ifdef USE_EXTERNAL_DEFAULT_CALLBACKS
+    #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in exhaustive_tests.")
+    #undef USE_EXTERNAL_DEFAULT_CALLBACKS
+#endif
 #include "secp256k1.c"
+
 #include "../include/secp256k1.h"
 #include "assumptions.h"
 #include "group.h"
