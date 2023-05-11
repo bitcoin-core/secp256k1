@@ -99,6 +99,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_inv_var secp256k1_fe_impl_inv_var
 #  define secp256k1_fe_get_bounds secp256k1_fe_impl_get_bounds
 #  define secp256k1_fe_half secp256k1_fe_impl_half
+#  define secp256k1_fe_add_int secp256k1_fe_impl_add_int
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -213,7 +214,11 @@ static void secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe *a);
  */
 static void secp256k1_fe_negate(secp256k1_fe *r, const secp256k1_fe *a, int m);
 
-/** Adds a small integer (up to 0x7FFF) to r. The resulting magnitude increases by one. */
+/** Add a small integer to a field element.
+ *
+ * Performs {r += a}. The magnitude of r increases by 1, and normalized is cleared.
+ * a must be in range [0,0xFFFF].
+ */
 static void secp256k1_fe_add_int(secp256k1_fe *r, int a);
 
 /** Multiply a field element with a small integer.
