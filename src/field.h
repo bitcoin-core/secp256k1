@@ -100,6 +100,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_get_bounds secp256k1_fe_impl_get_bounds
 #  define secp256k1_fe_half secp256k1_fe_impl_half
 #  define secp256k1_fe_add_int secp256k1_fe_impl_add_int
+#  define secp256k1_fe_is_square_var secp256k1_fe_impl_is_square_var
 #endif /* !defined(VERIFY) */
 
 /** Normalize a field element.
@@ -321,7 +322,10 @@ static void secp256k1_fe_half(secp256k1_fe *r);
  *  internal overflows. */
 static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m);
 
-/** Determine whether a is a square (modulo p). */
+/** Determine whether a is a square (modulo p).
+ *
+ * On input, a must be a valid field element.
+ */
 static int secp256k1_fe_is_square_var(const secp256k1_fe *a);
 
 /** Check invariants on a field element (no-op unless VERIFY is enabled). */

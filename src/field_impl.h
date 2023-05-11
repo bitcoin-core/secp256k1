@@ -384,6 +384,17 @@ SECP256K1_INLINE static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256
     secp256k1_fe_verify(r);
 }
 
+static int secp256k1_fe_impl_is_square_var(const secp256k1_fe *x);
+SECP256K1_INLINE static int secp256k1_fe_is_square_var(const secp256k1_fe *x) {
+    int ret;
+    secp256k1_fe tmp = *x, sqrt;
+    secp256k1_fe_verify(x);
+    ret = secp256k1_fe_impl_is_square_var(x);
+    secp256k1_fe_normalize_weak(&tmp);
+    VERIFY_CHECK(ret == secp256k1_fe_sqrt(&sqrt, &tmp));
+    return ret;
+}
+
 static void secp256k1_fe_impl_get_bounds(secp256k1_fe* r, int m);
 SECP256K1_INLINE static void secp256k1_fe_get_bounds(secp256k1_fe* r, int m) {
     VERIFY_CHECK(m >= 0);
