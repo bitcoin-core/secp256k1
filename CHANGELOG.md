@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Document `doc/musig.md` for further notes on API usage.
    - Usage example `examples/musig.c`.
 
+#### Removed
+ - Removed the `secp256k1_scratch_space` struct and its associated functions `secp256k1_scratch_space_create` `secp256k1_scratch_space_destroy` because the scratch space was unused in the API.
+
 ## [0.5.1] - 2024-08-01
 
 #### Added
