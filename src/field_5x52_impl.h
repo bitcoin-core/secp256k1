@@ -21,19 +21,18 @@
 #ifdef VERIFY
 static void secp256k1_fe_impl_verify(const secp256k1_fe *a) {
     const uint64_t *d = a->n;
-    int m = a->normalized ? 1 : 2 * a->magnitude, r = 1;
+    int m = a->normalized ? 1 : 2 * a->magnitude;
    /* secp256k1 'p' value defined in "Standards for Efficient Cryptography" (SEC2) 2.7.1. */
-    r &= (d[0] <= 0xFFFFFFFFFFFFFULL * m);
-    r &= (d[1] <= 0xFFFFFFFFFFFFFULL * m);
-    r &= (d[2] <= 0xFFFFFFFFFFFFFULL * m);
-    r &= (d[3] <= 0xFFFFFFFFFFFFFULL * m);
-    r &= (d[4] <= 0x0FFFFFFFFFFFFULL * m);
+    VERIFY_CHECK(d[0] <= 0xFFFFFFFFFFFFFULL * m);
+    VERIFY_CHECK(d[1] <= 0xFFFFFFFFFFFFFULL * m);
+    VERIFY_CHECK(d[2] <= 0xFFFFFFFFFFFFFULL * m);
+    VERIFY_CHECK(d[3] <= 0xFFFFFFFFFFFFFULL * m);
+    VERIFY_CHECK(d[4] <= 0x0FFFFFFFFFFFFULL * m);
     if (a->normalized) {
-        if (r && (d[4] == 0x0FFFFFFFFFFFFULL) && ((d[3] & d[2] & d[1]) == 0xFFFFFFFFFFFFFULL)) {
-            r &= (d[0] < 0xFFFFEFFFFFC2FULL);
+        if ((d[4] == 0x0FFFFFFFFFFFFULL) && ((d[3] & d[2] & d[1]) == 0xFFFFFFFFFFFFFULL)) {
+            VERIFY_CHECK(d[0] < 0xFFFFEFFFFFC2FULL);
         }
     }
-    VERIFY_CHECK(r == 1);
 }
 #endif
 

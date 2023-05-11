@@ -15,26 +15,25 @@
 #ifdef VERIFY
 static void secp256k1_fe_impl_verify(const secp256k1_fe *a) {
     const uint32_t *d = a->n;
-    int m = a->normalized ? 1 : 2 * a->magnitude, r = 1;
-    r &= (d[0] <= 0x3FFFFFFUL * m);
-    r &= (d[1] <= 0x3FFFFFFUL * m);
-    r &= (d[2] <= 0x3FFFFFFUL * m);
-    r &= (d[3] <= 0x3FFFFFFUL * m);
-    r &= (d[4] <= 0x3FFFFFFUL * m);
-    r &= (d[5] <= 0x3FFFFFFUL * m);
-    r &= (d[6] <= 0x3FFFFFFUL * m);
-    r &= (d[7] <= 0x3FFFFFFUL * m);
-    r &= (d[8] <= 0x3FFFFFFUL * m);
-    r &= (d[9] <= 0x03FFFFFUL * m);
+    int m = a->normalized ? 1 : 2 * a->magnitude;
+    VERIFY_CHECK(d[0] <= 0x3FFFFFFUL * m);
+    VERIFY_CHECK(d[1] <= 0x3FFFFFFUL * m);
+    VERIFY_CHECK(d[2] <= 0x3FFFFFFUL * m);
+    VERIFY_CHECK(d[3] <= 0x3FFFFFFUL * m);
+    VERIFY_CHECK(d[4] <= 0x3FFFFFFUL * m);
+    VERIFY_CHECK(d[5] <= 0x3FFFFFFUL * m);
+    VERIFY_CHECK(d[6] <= 0x3FFFFFFUL * m);
+    VERIFY_CHECK(d[7] <= 0x3FFFFFFUL * m);
+    VERIFY_CHECK(d[8] <= 0x3FFFFFFUL * m);
+    VERIFY_CHECK(d[9] <= 0x03FFFFFUL * m);
     if (a->normalized) {
-        if (r && (d[9] == 0x03FFFFFUL)) {
+        if (d[9] == 0x03FFFFFUL) {
             uint32_t mid = d[8] & d[7] & d[6] & d[5] & d[4] & d[3] & d[2];
             if (mid == 0x3FFFFFFUL) {
-                r &= ((d[1] + 0x40UL + ((d[0] + 0x3D1UL) >> 26)) <= 0x3FFFFFFUL);
+                VERIFY_CHECK((d[1] + 0x40UL + ((d[0] + 0x3D1UL) >> 26)) <= 0x3FFFFFFUL);
             }
         }
     }
-    VERIFY_CHECK(r == 1);
 }
 #endif
 

@@ -163,12 +163,11 @@ static void secp256k1_fe_verify(const secp256k1_fe *a) { (void)a; }
 static void secp256k1_fe_impl_verify(const secp256k1_fe *a);
 static void secp256k1_fe_verify(const secp256k1_fe *a) {
     /* Magnitude between 0 and 32. */
-    int r = (a->magnitude >= 0) & (a->magnitude <= 32);
+    VERIFY_CHECK((a->magnitude >= 0) && (a->magnitude <= 32));
     /* Normalized is 0 or 1. */
-    r &= (a->normalized == 0) | (a->normalized == 1);
+    VERIFY_CHECK((a->normalized == 0) || (a->normalized == 1));
     /* If normalized, magnitude must be 0 or 1. */
-    if (a->normalized) r &= (a->magnitude <= 1);
-    VERIFY_CHECK(r == 1);
+    if (a->normalized) VERIFY_CHECK(a->magnitude <= 1);
     /* Invoke implementation-specific checks. */
     secp256k1_fe_impl_verify(a);
 }
