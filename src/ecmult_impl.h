@@ -279,9 +279,6 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
          */
         tmp = a[np];
         if (no) {
-#ifdef VERIFY
-            secp256k1_fe_normalize_var(&Z);
-#endif
             secp256k1_gej_rescale(&tmp, &Z);
         }
         secp256k1_ecmult_odd_multiples_table(ECMULT_TABLE_SIZE(WINDOW_A), state->pre_a + no * ECMULT_TABLE_SIZE(WINDOW_A), state->aux + no * ECMULT_TABLE_SIZE(WINDOW_A), &Z, &tmp);
