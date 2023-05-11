@@ -2221,7 +2221,7 @@ static void scalar_test(void) {
         for (i = 0; i < 100; ++i) {
             int low;
             int shift = 1 + secp256k1_testrand_int(15);
-            int expected = r.d[0] % (1 << shift);
+            int expected = r.d[0] % (1ULL << shift);
             low = secp256k1_scalar_shr_int(&r, shift);
             CHECK(expected == low);
         }
