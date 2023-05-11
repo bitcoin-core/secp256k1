@@ -85,7 +85,8 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_is_zero secp256k1_fe_impl_is_zero
 #  define secp256k1_fe_is_odd secp256k1_fe_impl_is_odd
 #  define secp256k1_fe_cmp_var secp256k1_fe_impl_cmp_var
-#  define secp256k1_fe_set_b32 secp256k1_fe_impl_set_b32
+#  define secp256k1_fe_set_b32_mod secp256k1_fe_impl_set_b32_mod
+#  define secp256k1_fe_set_b32_limit secp256k1_fe_impl_set_b32_limit
 #  define secp256k1_fe_get_b32 secp256k1_fe_impl_get_b32
 #  define secp256k1_fe_negate secp256k1_fe_impl_negate
 #  define secp256k1_fe_mul_int secp256k1_fe_impl_mul_int
@@ -189,16 +190,20 @@ static int secp256k1_fe_equal_var(const secp256k1_fe *a, const secp256k1_fe *b);
  */
 static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
 
-/** Set a field element equal to a provided 32-byte big endian value.
+/** Set a field element equal to a provided 32-byte big endian value, reducing it.
  *
  * On input, r does not need to be initalized. a must be a pointer to an initialized 32-byte array.
- * On output, r = a (mod p). It will have magnitude 1, and if (a < p), it will be normalized.
- * If not, it will only be weakly normalized. Returns whether (a < p).
- *
- * Note that this function is unusual in that the normalization of the output depends on the
- * run-time value of a.
+ * On output, r = a (mod p). It will have magnitude 1, and not be normalized.
  */
-static int secp256k1_fe_set_b32(secp256k1_fe *r, const unsigned char *a);
+static void secp256k1_fe_set_b32_mod(secp256k1_fe *r, const unsigned char *a);
+
+/** Set a field element equal to a provided 32-byte big endian value, checking for overflow.
+ *
+ * On input, r does not need to be initalized. a must be a pointer to an initialized 32-byte array.
+ * On output, r = a if (a < p), it will be normalized with magnitude 1, and 1 is returned.
+ * If a >= p, 0 is returned, and r will be made invalid (and must not be used without overwriting).
+ */
+static int secp256k1_fe_set_b32_limit(secp256k1_fe *r, const unsigned char *a);
 
 /** Convert a field element to 32-byte big endian byte array.
  * On input, a must be a valid normalized field element, and r a pointer to a 32-byte array.
