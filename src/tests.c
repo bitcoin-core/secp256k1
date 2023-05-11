@@ -10,7 +10,12 @@
 
 #include <time.h>
 
+#ifdef USE_EXTERNAL_DEFAULT_CALLBACKS
+    #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in tests.")
+    #undef USE_EXTERNAL_DEFAULT_CALLBACKS
+#endif
 #include "secp256k1.c"
+
 #include "../include/secp256k1.h"
 #include "../include/secp256k1_preallocated.h"
 #include "testrand_impl.h"
