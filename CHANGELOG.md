@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Fixed
+ - Fixed an old bug that permitted compilers to potentially output bad assembly code on x86_64. In theory, it could lead to a crash or a read of unrelated memory, but this has never been observed on any compilers so far.
+
 ## [0.3.1] - 2023-04-10
 We strongly recommend updating to 0.3.1 if you use or plan to use Clang >=14 to compile libsecp256k1, e.g., Xcode >=14 on macOS has Clang >=14. When in doubt, check the Clang version using `clang -v`.
 
