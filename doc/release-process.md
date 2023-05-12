@@ -38,7 +38,10 @@ gcc -o ecdsa examples/ecdsa.c -I $dir/include -L $dir/lib*/ -l secp256k1 -Wl,-rp
 ## Regular release
 
 1. Open a PR to the master branch with a commit (using message `"release: prepare for $MAJOR.$MINOR.$PATCH"`, for example) that
-   * finalizes the release notes in [CHANGELOG.md](../CHANGELOG.md) (make sure to include an entry for `### ABI Compatibility`),
+   * finalizes the release notes in [CHANGELOG.md](../CHANGELOG.md) by
+       * adding a section for the release (make sure that the version number is a link to a diff between the previous and new version),
+       * removing the `[Unreleased]` section header, and
+       * including an entry for `### ABI Compatibility` if it doesn't exist that mentions the library soname of the release,
    * sets `_PKG_VERSION_IS_RELEASE` to `true` in `configure.ac`, and
    * if this is not a patch release
        * updates `_PKG_VERSION_*` and `_LIB_VERSION_*`  in `configure.ac` and
@@ -50,8 +53,9 @@ gcc -o ecdsa examples/ecdsa.c -I $dir/include -L $dir/lib*/ -l secp256k1 -Wl,-rp
    git push git@github.com:bitcoin-core/secp256k1.git v$MAJOR.$MINOR.$PATCH
    ```
 3. Open a PR to the master branch with a commit (using message `"release cleanup: bump version after $MAJOR.$MINOR.$PATCH"`, for example) that
-   * sets `_PKG_VERSION_IS_RELEASE` to `false` and increments `_PKG_VERSION_PATCH` and `_LIB_VERSION_REVISION` in `configure.ac`, and
-   * increments the `$PATCH` component of `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_REVISION` in `CMakeLists.txt`.
+   * sets `_PKG_VERSION_IS_RELEASE` to `false` and increments `_PKG_VERSION_PATCH` and `_LIB_VERSION_REVISION` in `configure.ac`,
+   * increments the `$PATCH` component of `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_REVISION` in `CMakeLists.txt`, and
+   * adds an `[Unreleased]` section header to the [CHANGELOG.md](../CHANGELOG.md).
 
    If other maintainers are not present to approve the PR, it can be merged without ACKs.
 4. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
