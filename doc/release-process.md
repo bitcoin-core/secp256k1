@@ -12,6 +12,27 @@ It is best if the maintainers are present during the release, so they can help e
 
 This process also assumes that there will be no minor releases for old major releases.
 
+## Sanity Checks
+Perform these checks before creating a release:
+
+1. Ensure `make distcheck` doesn't fail.
+```shell
+./autogen.sh && ./configure --enable-dev-mode && make distcheck
+```
+2. Check installation with autotools:
+```shell
+dir=$(mktemp -d)
+./autogen.sh && ./configure --prefix=$dir && make clean && make install && ls -l $dir/include $dir/lib
+gcc -o ecdsa examples/ecdsa.c $(PKG_CONFIG_PATH=$dir/lib/pkgconfig pkg-config --cflags --libs libsecp256k1) -Wl,-rpath,"$dir/lib" && ./ecdsa
+```
+3. Check installation with CMake:
+```shell
+dir=$(mktemp -d)
+build=$(mktemp -d)
+cmake -B $build -DCMAKE_INSTALL_PREFIX=$dir && cmake --build $build --target install && ls -l $dir/include $dir/lib*
+gcc -o ecdsa examples/ecdsa.c -I $dir/include -L $dir/lib*/ -l secp256k1 -Wl,-rpath,"$dir/lib",-rpath,"$dir/lib64" && ./ecdsa
+```
+
 ## Regular release
 
 1. Open a PR to the master branch with a commit (using message `"release: prepare for $MAJOR.$MINOR.$PATCH"`, for example) that
