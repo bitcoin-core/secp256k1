@@ -280,7 +280,7 @@ __asm__ __volatile__(
     "addq %%rsi,%%r8\n"
     /* r[4] = c */
     "movq %%r8,32(%%rdi)\n"
-: "+S"(a), "=m"(tmp1), "=m"(tmp2), "=m"(tmp3)
+: "+S"(a), "=&m"(tmp1), "=&m"(tmp2), "=&m"(tmp3)
 : "b"(b), "D"(r)
 : "%rax", "%rcx", "%rdx", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "cc", "memory"
 );
@@ -495,7 +495,7 @@ __asm__ __volatile__(
     "addq %%rsi,%%r8\n"
     /* r[4] = c */
     "movq %%r8,32(%%rdi)\n"
-: "+S"(a), "=m"(tmp1), "=m"(tmp2), "=m"(tmp3)
+: "+S"(a), "=&m"(tmp1), "=&m"(tmp2), "=&m"(tmp3)
 : "D"(r)
 : "%rax", "%rbx", "%rcx", "%rdx", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "cc", "memory"
 );
