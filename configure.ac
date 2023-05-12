@@ -263,8 +263,8 @@ else
 fi
 
 if test x"$req_asm" = x"auto"; then
-  SECP_64BIT_ASM_CHECK
-  if test x"$has_64bit_asm" = x"yes"; then
+  SECP_X86_64_ASM_CHECK
+  if test x"$has_x86_64_asm" = x"yes"; then
     set_asm=x86_64
   fi
   if test x"$set_asm" = x; then
@@ -274,8 +274,8 @@ else
   set_asm=$req_asm
   case $set_asm in
   x86_64)
-    SECP_64BIT_ASM_CHECK
-    if test x"$has_64bit_asm" != x"yes"; then
+    SECP_X86_64_ASM_CHECK
+    if test x"$has_x86_64_asm" != x"yes"; then
       AC_MSG_ERROR([x86_64 assembly optimization requested but not available])
     fi
     ;;
