@@ -60,14 +60,14 @@ gcc -o ecdsa examples/ecdsa.c -I $dir/include -L $dir/lib*/ -l secp256k1 -Wl,-rp
 
 Note that bugfixes only need to be backported to releases for which no compatible release without the bug exists.
 
-1. If `$PATCH = 1`, create maintenance branch `$MAJOR.$MINOR`:
+1. If there's no maintenance branch `$MAJOR.$MINOR`, create one:
    ```
-   git checkout -b $MAJOR.$MINOR v$MAJOR.$MINOR.0
+   git checkout -b $MAJOR.$MINOR v$MAJOR.$MINOR.$((PATCH - 1))
    git push git@github.com:bitcoin-core/secp256k1.git $MAJOR.$MINOR
    ```
 2. Open a pull request to the `$MAJOR.$MINOR` branch that
    * includes the bugfixes,
-   * finalizes the release notes,
+   * finalizes the release notes similar to a regular release,
    * increments `_PKG_VERSION_PATCH` and `_LIB_VERSION_REVISION` in `configure.ac`
      and the `$PATCH` component of `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_REVISION` in `CMakeLists.txt`
      (with commit message `"release: bump versions for $MAJOR.$MINOR.$PATCH"`, for example).
