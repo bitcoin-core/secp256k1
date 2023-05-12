@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Security
+ - Module `ecdh`: Fix "constant-timeness" issue with GCC 13.1 (and potentially future versions of GCC) that could leave applications using libsecp256k1's ECDH module vulnerable to a timing side-channel attack. The fix avoids secret-dependent control flow during ECDH computations when libsecp256k1 is compiled with GCC 13.1.
+
 #### Fixed
  - Fixed an old bug that permitted compilers to potentially output bad assembly code on x86_64. In theory, it could lead to a crash or a read of unrelated memory, but this has never been observed on any compilers so far.
 
