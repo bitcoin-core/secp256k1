@@ -176,7 +176,7 @@ task:
     CTIMETESTS: no
   matrix:
     - env: {}
-    - env: {EXPERIMENTAL: yes, ASM: arm}
+    - env: {EXPERIMENTAL: yes, ASM: arm32}
   << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
