@@ -62,7 +62,7 @@ linux_container_snippet: &LINUX_CONTAINER
     # Gives us more CPUs for free if they're available.
     greedy: true
     # More than enough for our scripts.
-    memory: 1G
+    memory: 2G
 
 task:
   name: "x86_64: Linux (Debian stable)"
@@ -88,6 +88,10 @@ task:
         CC: gcc
     - env:
         CC: clang
+    - env:
+        CC: gcc-snapshot
+    - env:
+        CC: clang-snapshot
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
