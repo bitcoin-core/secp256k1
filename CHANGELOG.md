@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.2] - 2023-05-13
+We strongly recommend updating to 0.3.2 if you use or plan to use GCC >=13 to compile libsecp256k1. When in doubt, check the GCC version using `gcc -v`.
 
 #### Security
  - Module `ecdh`: Fix "constant-timeness" issue with GCC 13.1 (and potentially future versions of GCC) that could leave applications using libsecp256k1's ECDH module vulnerable to a timing side-channel attack. The fix avoids secret-dependent control flow during ECDH computations when libsecp256k1 is compiled with GCC 13.1.
@@ -19,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Switched to `BUILD_SHARED_LIBS` variable for controlling whether to build a static or a shared library.
    - Added `SECP256K1_INSTALL` variable for the controlling whether to install the build artefacts.
  - Renamed asm build option `arm` to `arm32`. Use `--with-asm=arm32` instead of `--with-asm=arm` (GNU Autotools), and `-DSECP256K1_ASM=arm32` instead of `-DSECP256K1_ASM=arm` (CMake).
+
+#### ABI Compatibility
+The ABI is compatible with versions 0.3.0 and 0.3.1.
 
 ## [0.3.1] - 2023-04-10
 We strongly recommend updating to 0.3.1 if you use or plan to use Clang >=14 to compile libsecp256k1, e.g., Xcode >=14 on macOS has Clang >=14. When in doubt, check the Clang version using `clang -v`.
@@ -81,7 +85,8 @@ This version was in fact never released.
 The number was given by the build system since the introduction of autotools in Jan 2014 (ea0fe5a5bf0c04f9cc955b2966b614f5f378c6f6).
 Therefore, this version number does not uniquely identify a set of source files.
 
-[unreleased]: https://github.com/bitcoin-core/secp256k1/compare/v0.3.1...HEAD
+[unreleased]: https://github.com/bitcoin-core/secp256k1/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/bitcoin-core/secp256k1/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/bitcoin-core/secp256k1/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/bitcoin-core/secp256k1/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/bitcoin-core/secp256k1/compare/423b6d19d373f1224fd671a982584d7e7900bc93..v0.2.0

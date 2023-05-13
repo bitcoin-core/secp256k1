@@ -6,7 +6,7 @@ AC_PREREQ([2.60])
 define(_PKG_VERSION_MAJOR, 0)
 define(_PKG_VERSION_MINOR, 3)
 define(_PKG_VERSION_PATCH, 2)
-define(_PKG_VERSION_IS_RELEASE, false)
+define(_PKG_VERSION_IS_RELEASE, true)
 
 # The library version is based on libtool versioning of the ABI. The set of
 # rules for updating the version can be found here:
