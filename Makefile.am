@@ -189,11 +189,11 @@ EXTRA_PROGRAMS = precompute_ecmult precompute_ecmult_gen
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 precompute_ecmult_SOURCES = src/precompute_ecmult.c
-precompute_ecmult_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+precompute_ecmult_CPPFLAGS = $(SECP_CONFIG_DEFINES) -DVERIFY
 precompute_ecmult_LDADD = $(COMMON_LIB)
 
 precompute_ecmult_gen_SOURCES = src/precompute_ecmult_gen.c
-precompute_ecmult_gen_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+precompute_ecmult_gen_CPPFLAGS = $(SECP_CONFIG_DEFINES) -DVERIFY
 precompute_ecmult_gen_LDADD = $(COMMON_LIB)
 
 # See Automake manual, Section "Errors with distclean".
