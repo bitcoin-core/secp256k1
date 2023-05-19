@@ -66,6 +66,36 @@ typedef struct {
 /* ------ Keygen-related functions ------ */
 
 /*
+ * Initialize secp256k1_frost_keypair using the compact (33-bytes) representation of public keys.
+ *  Returns 1 on success, 0 on failure.
+ *  Out:          pubkey: pointer to a secp256k1_frost_pubkey to update.
+ *  In:            index: identifier of participant.
+ *      max_participants: maximum number of participants (coherent with group public key).
+ *              pubkey33: pointer to compact public key (33 bytes).
+ *        group_pubkey33: pointer to compact group public key (33 bytes).
+ */
+SECP256K1_API int secp256k1_frost_pubkey_load(secp256k1_frost_pubkey *pubkey,
+                                              const uint32_t index,
+                                              const uint32_t max_participants,
+                                              const unsigned char *pubkey33,
+                                              const unsigned char *group_pubkey33)
+SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(4)
+SECP256K1_ARG_NONNULL(5);
+
+/*
+ * Return the compact (33-bytes) representation of the public keys in secp256k1_frost_keypair.
+ *  Returns 1 on success, 0 on failure.
+ *  Out:        pubkey33: pointer to a 33-byte array where the public key will be stored.
+ *        group_pubkey33: pointer to a 33-byte array where the group public key will be stored.
+ *  In:           pubkey: pointer to an initialized secp256k1_frost_pubkey.
+ */
+SECP256K1_API int secp256k1_frost_pubkey_save(unsigned char *pubkey33,
+                                              unsigned char *group_pubkey33,
+                                              const secp256k1_frost_pubkey *pubkey)
+SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2)
+SECP256K1_ARG_NONNULL(3);
+
+/*
  * Initialize a secp256k1_frost_pubkey using information in secp256k1_frost_keypair.
  *  Returns 1 on success, 0 on failure.
  *  Out:   pubkey: pointer to a secp256k1_frost_pubkey to update.

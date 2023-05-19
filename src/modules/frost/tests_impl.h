@@ -2891,6 +2891,51 @@ void test_serialize_and_deserialize_frost_signature(void) {
 }
 
 /*
+ * Test save and load a secp256k1_frost_pubkey.
+ */
+void test_secp256k1_frost_pubkey_save_and_load(void) {
+    secp256k1_gej ref_pk, ref_gpk, test_pk, test_gpk;
+    secp256k1_scalar seed_pk, seed_gpk;
+    secp256k1_context *test_ctx;
+    secp256k1_frost_pubkey reference_pubkey, loaded_pubkey;
+    unsigned char saved_pubkey[33];
+    unsigned char saved_group_pubkey[33];
+
+    /* Initialize public keys */
+    test_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+    secp256k1_scalar_set_int(&seed_pk, 42);
+    secp256k1_scalar_set_int(&seed_gpk, 57);
+    secp256k1_ecmult_gen(&test_ctx->ecmult_gen_ctx, &ref_pk, &seed_pk);
+    secp256k1_ecmult_gen(&test_ctx->ecmult_gen_ctx, &ref_gpk, &seed_gpk);
+
+    /* Prepare reference pubkey */
+    reference_pubkey.index = 1;
+    reference_pubkey.max_participants = 2;
+    serialize_point(&ref_pk, reference_pubkey.public_key);
+    serialize_point(&ref_gpk, reference_pubkey.group_public_key);
+
+    /* Save pubkey and check if function returns 1 */
+    CHECK(secp256k1_frost_pubkey_save(saved_pubkey, saved_group_pubkey,
+                                      &reference_pubkey) == 1);
+
+    /* Load pubkey and check if function returns 1 */
+    CHECK(secp256k1_frost_pubkey_load(&loaded_pubkey,
+                                      reference_pubkey.index, reference_pubkey.max_participants,
+                                      saved_pubkey, saved_group_pubkey) == 1);
+
+    /* Check equality on every field of secp256k1_frost_pubkey */
+    deserialize_point(&test_pk, loaded_pubkey.public_key);
+    deserialize_point(&test_gpk, loaded_pubkey.group_public_key);
+
+    CHECK(loaded_pubkey.index == reference_pubkey.index);
+    CHECK(loaded_pubkey.max_participants == reference_pubkey.max_participants);
+    CHECK(secp256k1_gej_eq(&test_pk, &ref_pk) == 1);
+    CHECK(secp256k1_gej_eq(&test_gpk, &ref_gpk) == 1);
+
+    secp256k1_context_destroy(test_ctx);
+}
+
+/*
  * Test verify function on a signature expected to be valid.
  */
 void test_secp256k1_frost_verify_to_be_valid(void) {
@@ -3056,6 +3101,7 @@ void run_frost_tests(void) {
     test_secp256k1_frost_nonce_destroy_null_nonce();
     test_secp256k1_frost_keypair_create_and_destroy();
     test_secp256k1_frost_keypair_destroy_null_keypair();
+    test_secp256k1_frost_pubkey_save_and_load();
 
     /* Test key generation (DKG and based on a single dealer) */
     test_secp256k1_frost_keygen_begin();

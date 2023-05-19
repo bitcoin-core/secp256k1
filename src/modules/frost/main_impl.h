@@ -220,6 +220,99 @@ static void nonce_generate(unsigned char *out32, const secp256k1_frost_keypair *
     memset(buffer, 0, sizeof(buffer));
 }
 
+static int secp256k1_frost_expand_compact_pubkey(unsigned char *pubkey64,
+                                                 const unsigned char *pubkey33) {
+    secp256k1_ge elem;
+    if (secp256k1_eckey_pubkey_parse(&elem, pubkey33, 33) == 0) {
+        return 0;
+    }
+    secp256k1_fe_normalize_var(&elem.x);
+    secp256k1_fe_normalize_var(&elem.y);
+    secp256k1_fe_get_b32(pubkey64, &elem.x);
+    secp256k1_fe_get_b32(pubkey64 + SERIALIZED_PUBKEY_X_ONLY_SIZE, &elem.y);
+    return 1;
+}
+
+SECP256K1_API int secp256k1_frost_pubkey_load(secp256k1_frost_pubkey *pubkey,
+                                              const uint32_t index,
+                                              const uint32_t max_participants,
+                                              const unsigned char *pubkey33,
+                                              const unsigned char *group_pubkey33) {
+    if (pubkey == NULL || pubkey33 == NULL || group_pubkey33 == NULL) {
+        return 0;
+    }
+    memset(pubkey, 0, sizeof(secp256k1_frost_pubkey));
+
+    pubkey->index = index;
+    pubkey->max_participants = max_participants;
+
+    if (secp256k1_frost_expand_compact_pubkey(pubkey->public_key, pubkey33) == 0) {
+        return 0;
+    }
+    if (secp256k1_frost_expand_compact_pubkey(pubkey->group_public_key, group_pubkey33) == 0) {
+        return 0;
+    }
+
+    return 1;
+}
+
+SECP256K1_API int secp256k1_frost_pubkey_save(unsigned char *pubkey33,
+                                              unsigned char *group_pubkey33,
+                                              const secp256k1_frost_pubkey *pubkey) {
+    size_t size;
+    int compressed;
+    secp256k1_ge pk, gpk;
+
+    if (pubkey == NULL || pubkey33 == NULL || group_pubkey33 == NULL) {
+        return 0;
+    }
+    compressed = 1;
+
+    if (secp256k1_fe_set_b32(&pk.x, pubkey->public_key) == 0) {
+        return 0;
+    }
+    if (secp256k1_fe_set_b32(&pk.y, pubkey->public_key + SERIALIZED_PUBKEY_X_ONLY_SIZE) == 0) {
+        return 0;
+    }
+
+    pk.infinity = 0;
+    /*
+     * 0 is a purposedly illegal value. We will verify that
+     * secp256k1_eckey_pubkey_serialize() sets it to 33
+     */
+    size = 0;
+    if (secp256k1_eckey_pubkey_serialize(&pk, pubkey33, &size, compressed) == 0) {
+        return 0;
+    }
+    if (size != 33) {
+        return 0;
+    }
+    secp256k1_ge_clear(&pk);
+
+    if (secp256k1_fe_set_b32(&gpk.x, pubkey->group_public_key) == 0) {
+        return 0;
+    }
+    if (secp256k1_fe_set_b32(&gpk.y, pubkey->group_public_key + SERIALIZED_PUBKEY_X_ONLY_SIZE) == 0) {
+        return 0;
+    }
+
+    gpk.infinity = 0;
+    /*
+     * 0 is a purposedly illegal value. We will verify that
+     * secp256k1_eckey_pubkey_serialize() sets it to 33
+     */
+    size = 0;
+    if (secp256k1_eckey_pubkey_serialize(&gpk, group_pubkey33, &size, compressed) == 0) {
+        return 0;
+    }
+    if (size != 33) {
+        return 0;
+    }
+    secp256k1_ge_clear(&gpk);
+
+    return 1;
+}
+
 SECP256K1_API secp256k1_frost_vss_commitments *secp256k1_frost_vss_commitments_create(uint32_t threshold) {
     uint32_t num_coefficients;
     secp256k1_frost_vss_commitments *vss;
