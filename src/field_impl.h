@@ -352,10 +352,8 @@ SECP256K1_INLINE static void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_
     secp256k1_fe_verify(a);
     secp256k1_fe_verify(r);
     secp256k1_fe_impl_cmov(r, a, flag);
-    if (flag) {
-        r->magnitude = a->magnitude;
-        r->normalized = a->normalized;
-    }
+    if (a->magnitude > r->magnitude) r->magnitude = a->magnitude;
+    if (!a->normalized) r->normalized = 0;
     secp256k1_fe_verify(r);
 }
 

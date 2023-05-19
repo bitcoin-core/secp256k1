@@ -310,7 +310,9 @@ static void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, const secp256k1_f
  *
  * On input, both r and a must be valid field elements. Flag must be 0 or 1.
  * Performs {r = flag ? a : r}.
- * On output, r's magnitude and normalized will equal a's in case of flag=1, unchanged otherwise.
+ *
+ * On output, r's magnitude will be the maximum of both input magnitudes.
+ * It will be normalized if and only if both inputs were normalized.
  */
 static void secp256k1_fe_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag);
 

@@ -3101,10 +3101,6 @@ static void run_field_be32_overflow(void) {
 /* Returns true if two field elements have the same representation. */
 static int fe_identical(const secp256k1_fe *a, const secp256k1_fe *b) {
     int ret = 1;
-#ifdef VERIFY
-    ret &= (a->magnitude == b->magnitude);
-    ret &= (a->normalized == b->normalized);
-#endif
     /* Compare the struct member that holds the limbs. */
     ret &= (secp256k1_memcmp_var(a->n, b->n, sizeof(a->n)) == 0);
     return ret;
@@ -3192,16 +3188,22 @@ static void run_field_misc(void) {
         q = x;
         secp256k1_fe_cmov(&x, &z, 0);
 #ifdef VERIFY
-        CHECK(x.normalized && x.magnitude == 1);
+        CHECK(!x.normalized);
+        CHECK((x.magnitude == q.magnitude) || (x.magnitude == z.magnitude));
+        CHECK((x.magnitude >= q.magnitude) && (x.magnitude >= z.magnitude));
 #endif
+        x = q;
         secp256k1_fe_cmov(&x, &x, 1);
         CHECK(!fe_identical(&x, &z));
         CHECK(fe_identical(&x, &q));
         secp256k1_fe_cmov(&q, &z, 1);
 #ifdef VERIFY
-        CHECK(!q.normalized && q.magnitude == z.magnitude);
+        CHECK(!q.normalized);
+        CHECK((q.magnitude == x.magnitude) || (q.magnitude == z.magnitude));
+        CHECK((q.magnitude >= x.magnitude) && (q.magnitude >= z.magnitude));
 #endif
         CHECK(fe_identical(&q, &z));
+        q = z;
         secp256k1_fe_normalize_var(&x);
         secp256k1_fe_normalize_var(&z);
         CHECK(!secp256k1_fe_equal_var(&x, &z));
@@ -3215,7 +3217,7 @@ static void run_field_misc(void) {
             secp256k1_fe_normalize_var(&q);
             secp256k1_fe_cmov(&q, &z, (j&1));
 #ifdef VERIFY
-            CHECK((q.normalized != (j&1)) && q.magnitude == ((j&1) ? z.magnitude : 1));
+            CHECK(!q.normalized && q.magnitude == z.magnitude);
 #endif
         }
         secp256k1_fe_normalize_var(&z);
@@ -7558,23 +7560,23 @@ static void fe_cmov_test(void) {
     secp256k1_fe a = zero;
 
     secp256k1_fe_cmov(&r, &a, 0);
-    CHECK(secp256k1_memcmp_var(&r, &max, sizeof(r)) == 0);
+    CHECK(fe_identical(&r, &max));
 
     r = zero; a = max;
     secp256k1_fe_cmov(&r, &a, 1);
-    CHECK(secp256k1_memcmp_var(&r, &max, sizeof(r)) == 0);
+    CHECK(fe_identical(&r, &max));
 
     a = zero;
     secp256k1_fe_cmov(&r, &a, 1);
-    CHECK(secp256k1_memcmp_var(&r, &zero, sizeof(r)) == 0);
+    CHECK(fe_identical(&r, &zero));
 
     a = one;
     secp256k1_fe_cmov(&r, &a, 1);
-    CHECK(secp256k1_memcmp_var(&r, &one, sizeof(r)) == 0);
+    CHECK(fe_identical(&r, &one));
 
     r = one; a = zero;
     secp256k1_fe_cmov(&r, &a, 0);
-    CHECK(secp256k1_memcmp_var(&r, &one, sizeof(r)) == 0);
+    CHECK(fe_identical(&r, &one));
 }
 
 static void fe_storage_cmov_test(void) {
