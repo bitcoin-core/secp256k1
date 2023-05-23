@@ -1,3 +1,9 @@
+/***********************************************************************
+ * Copyright (c) 2023 Bank of Italy                                    *
+ * Distributed under the MIT software license, see the accompanying    *
+ * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
+ ***********************************************************************/
+
 #ifndef SECP256K1_FROST_H
 #define SECP256K1_FROST_H
 
