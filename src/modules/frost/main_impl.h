@@ -74,7 +74,7 @@ static SECP256K1_WARN_UNUSED_RESULT int secp256k1_gej_eq(const secp256k1_gej *a,
 static int convert_b32_to_scalar(const unsigned char *hash_value, secp256k1_scalar *output) {
     int overflow = 0;
     secp256k1_scalar_set_b32(output, hash_value, &overflow);
-    if (overflow != 0){
+    if (overflow != 0) {
         return 0;
     }
     return 1;
@@ -118,13 +118,13 @@ static void serialize_frost_signature(unsigned char *output64,
 }
 
 static SECP256K1_WARN_UNUSED_RESULT int deserialize_frost_signature(secp256k1_frost_signature *signature,
-                                        const unsigned char *serialized_signature) {
+                                                                    const unsigned char *serialized_signature) {
     secp256k1_fe x;
     secp256k1_ge deserialized_point;
     secp256k1_fe_set_b32(&x, serialized_signature);
     secp256k1_ge_set_xo_var(&deserialized_point, &x, 0);
     secp256k1_gej_set_ge(&(signature->r), &deserialized_point);
-    if (convert_b32_to_scalar(&serialized_signature[SERIALIZED_PUBKEY_X_ONLY_SIZE], &(signature->z)) == 0){
+    if (convert_b32_to_scalar(&serialized_signature[SERIALIZED_PUBKEY_X_ONLY_SIZE], &(signature->z)) == 0) {
         return 0;
     }
     return 1;
@@ -367,8 +367,10 @@ SECP256K1_API void secp256k1_frost_keypair_destroy(secp256k1_frost_keypair *keyp
  *             threshold: min number of participants needed to reconstruct the secret.
  */
 static SECP256K1_WARN_UNUSED_RESULT int generate_coefficients(const secp256k1_context *ctx,
-                                 secp256k1_frost_vss_commitments *dkg_commitments, shamir_coefficients *coefficients,
-                                 uint32_t generator_index, const secp256k1_scalar *secret, uint32_t threshold) {
+                                                              secp256k1_frost_vss_commitments *dkg_commitments,
+                                                              shamir_coefficients *coefficients,
+                                                              uint32_t generator_index, const secp256k1_scalar *secret,
+                                                              uint32_t threshold) {
     uint32_t c_idx;
     secp256k1_gej coefficient_cmt;
     const uint32_t num_coefficients = threshold - 1;
@@ -451,10 +453,11 @@ static void evaluate_shamir_polynomial(secp256k1_frost_keygen_secret_share *shar
  *                secret: Secret value to use as constant term of the polynomial
  */
 static SECP256K1_WARN_UNUSED_RESULT int generate_shares(const secp256k1_context *ctx,
-                           secp256k1_frost_vss_commitments *dkg_commitments,
-                           secp256k1_frost_keygen_secret_share *shares,
-                           uint32_t num_participants, uint32_t threshold, uint32_t generator_index,
-                           const secp256k1_scalar *secret) {
+                                                        secp256k1_frost_vss_commitments *dkg_commitments,
+                                                        secp256k1_frost_keygen_secret_share *shares,
+                                                        uint32_t num_participants, uint32_t threshold,
+                                                        uint32_t generator_index,
+                                                        const secp256k1_scalar *secret) {
     int ret_coefficients;
     shamir_coefficients *coefficients;
     coefficients = shamir_coefficients_create(threshold);
@@ -481,8 +484,10 @@ static SECP256K1_WARN_UNUSED_RESULT int generate_shares(const secp256k1_context 
  *       commitment: commitment to a random value.
  */
 static SECP256K1_WARN_UNUSED_RESULT int generate_dkg_challenge(secp256k1_scalar *challenge,
-                                  const uint32_t index, const unsigned char *context_nonce, const uint32_t nonce_length,
-                                  const secp256k1_gej *public_key, const secp256k1_gej *commitment) {
+                                                               const uint32_t index, const unsigned char *context_nonce,
+                                                               const uint32_t nonce_length,
+                                                               const secp256k1_gej *public_key,
+                                                               const secp256k1_gej *commitment) {
     uint32_t challenge_input_length;
     unsigned char *challenge_input;
     unsigned char hash_value[SHA256_SIZE];
@@ -510,7 +515,7 @@ static SECP256K1_WARN_UNUSED_RESULT int generate_dkg_challenge(secp256k1_scalar 
 }
 
 static SECP256K1_WARN_UNUSED_RESULT int is_valid_zkp(const secp256k1_context *ctx, const secp256k1_scalar *challenge,
-                        const secp256k1_frost_vss_commitments *commitment) {
+                                                     const secp256k1_frost_vss_commitments *commitment) {
     secp256k1_gej reference, z_commitment, commitment_challenge, zkp_r, coefficient_commitment;
     secp256k1_scalar z;
 
@@ -588,16 +593,17 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_keygen_dkg_commit
     deserialize_point(&peer_zkp_r, peer_commitment->zkp_r);
     deserialize_point(&secret_commitment, peer_commitment->coefficient_commitments[0].data);
     if (generate_dkg_challenge(&challenge, peer_commitment->index,
-                           context, context_length,
-                           &secret_commitment,
-                           &peer_zkp_r) == 0) {
+                               context, context_length,
+                               &secret_commitment,
+                               &peer_zkp_r) == 0) {
         return 0;
     }
     return is_valid_zkp(ctx, &challenge, peer_commitment);
 }
 
-static SECP256K1_WARN_UNUSED_RESULT int verify_secret_share(const secp256k1_context *ctx, const secp256k1_frost_keygen_secret_share *share,
-                               const secp256k1_frost_vss_commitments *commitment) {
+static SECP256K1_WARN_UNUSED_RESULT int verify_secret_share(const secp256k1_context *ctx,
+                                                            const secp256k1_frost_keygen_secret_share *share,
+                                                            const secp256k1_frost_vss_commitments *commitment) {
     secp256k1_scalar x, x_to_the_i, scalar_share_value;
     secp256k1_gej f_result, result;
     uint32_t index;
@@ -777,9 +783,9 @@ static void signing_commitment_sort(secp256k1_frost_nonce_commitment *v, int p, 
 
 static SECP256K1_WARN_UNUSED_RESULT int compute_group_commitment(/* out */ secp256k1_gej *group_commitment,
         /* out */ int *is_group_commitment_odd,
-                                              uint32_t num_signers,
-                                              const secp256k1_frost_binding_factors *binding_factors,
-                                              const secp256k1_frost_nonce_commitment *signing_commitments) {
+                                                                           uint32_t num_signers,
+                                                                           const secp256k1_frost_binding_factors *binding_factors,
+                                                                           const secp256k1_frost_nonce_commitment *signing_commitments) {
     secp256k1_scalar scalar_unit;
     secp256k1_gej hiding_cmt, binding_cmt;
     uint32_t index, inner_index;
@@ -929,11 +935,12 @@ static void compute_binding_factor(
     free(encoded_group_commitments);
 }
 
-static SECP256K1_WARN_UNUSED_RESULT int compute_binding_factors(/* out */ secp256k1_frost_binding_factors *binding_factors,
-                                             const unsigned char *msg32,
-                                             uint32_t msg_len,
-                                             uint32_t num_signers,
-                                             secp256k1_frost_nonce_commitment *signing_commitments) {
+static SECP256K1_WARN_UNUSED_RESULT int compute_binding_factors(
+                                  /* out */ secp256k1_frost_binding_factors *binding_factors,
+                                  const unsigned char *msg32,
+                                  uint32_t msg_len,
+                                  uint32_t num_signers,
+                                  secp256k1_frost_nonce_commitment *signing_commitments) {
     uint32_t index;
     if (num_signers == 0) {
         return 0;
@@ -957,9 +964,9 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_binding_factors(/* out */ secp25
 }
 
 static SECP256K1_WARN_UNUSED_RESULT int derive_interpolating_value(/* out */ secp256k1_scalar *lambda_i,
-                                                const uint32_t signer_index,
-                                                uint32_t num_signers,
-                                                const uint32_t *all_signer_indices) {
+                                                                             const uint32_t signer_index,
+                                                                             uint32_t num_signers,
+                                                                             const uint32_t *all_signer_indices) {
     secp256k1_scalar num, den, den_inverse;
     uint32_t index;
 
@@ -998,13 +1005,14 @@ static SECP256K1_WARN_UNUSED_RESULT int derive_interpolating_value(/* out */ sec
     return 1;
 }
 
-static SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_sign_internal(/* out: */ secp256k1_frost_signature_share *response,
-                                                    const unsigned char *msg32,
-                                                    uint32_t num_signers,
-                                                    const secp256k1_frost_keypair *keypair,
-                                                    const secp256k1_frost_nonce *nonce,
-                                                    const secp256k1_frost_nonce_commitment *signing_commitments,
-                                                    const secp256k1_frost_binding_factors *bindings) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_sign_internal(
+                                         /* out: */ secp256k1_frost_signature_share *response,
+                                         const unsigned char *msg32,
+                                         uint32_t num_signers,
+                                         const secp256k1_frost_keypair *keypair,
+                                         const secp256k1_frost_nonce *nonce,
+                                         const secp256k1_frost_nonce_commitment *signing_commitments,
+                                         const secp256k1_frost_binding_factors *bindings) {
     secp256k1_gej group_commitment, group_pubkey;
     secp256k1_scalar lambda_i, c, sig_share, term1, term2, secret, hiding, binding;
     secp256k1_scalar *my_rho_i;
@@ -1133,8 +1141,8 @@ SECP256K1_API int secp256k1_frost_sign(
 
 static SECP256K1_WARN_UNUSED_RESULT int check_commitment_and_response_integrity(
         const secp256k1_frost_nonce_commitment *commitments,
-                                                   const secp256k1_frost_signature_share *signature_shares,
-                                                   uint32_t num_signers) {
+        const secp256k1_frost_signature_share *signature_shares,
+        uint32_t num_signers) {
     uint32_t cmt_index, shr_index, cmt_found;
     cmt_found = 0;
 
@@ -1154,11 +1162,11 @@ static SECP256K1_WARN_UNUSED_RESULT int check_commitment_and_response_integrity(
 }
 
 static SECP256K1_WARN_UNUSED_RESULT int is_signature_response_valid(const secp256k1_context *ctx,
-                                       const secp256k1_frost_signature_share *response,
-                                       const secp256k1_gej *pubkey,
-                                       const secp256k1_scalar *lambda_i,
-                                       const secp256k1_gej *commitment,
-                                       const secp256k1_scalar *challenge) {
+                                                                    const secp256k1_frost_signature_share *response,
+                                                                    const secp256k1_gej *pubkey,
+                                                                    const secp256k1_scalar *lambda_i,
+                                                                    const secp256k1_gej *commitment,
+                                                                    const secp256k1_scalar *challenge) {
     secp256k1_gej lhs, rhs, partial;
     secp256k1_scalar cl, resp;
 
@@ -1174,12 +1182,12 @@ static SECP256K1_WARN_UNUSED_RESULT int is_signature_response_valid(const secp25
 
 static SECP256K1_WARN_UNUSED_RESULT int verify_signature_share(const secp256k1_context *ctx,
         /* in */ const secp256k1_frost_signature_share *signature_share,
-                                  const secp256k1_scalar *challenge,
-                                  const secp256k1_frost_binding_factors *binding_factors,
-                                  const secp256k1_frost_nonce_commitment *commitments,
-                                  const secp256k1_frost_pubkey *public_keys,
-                                  int is_group_commitment_odd,
-                                  uint32_t num_signers) {
+                                                               const secp256k1_scalar *challenge,
+                                                               const secp256k1_frost_binding_factors *binding_factors,
+                                                               const secp256k1_frost_nonce_commitment *commitments,
+                                                               const secp256k1_frost_pubkey *public_keys,
+                                                               int is_group_commitment_odd,
+                                                               uint32_t num_signers) {
     const secp256k1_frost_nonce_commitment *matching_commitment = NULL;
     secp256k1_gej signer_pubkey;
     secp256k1_gej partial, commitment_i, hiding_cmt, binding_cmt;

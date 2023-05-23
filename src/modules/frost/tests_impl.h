@@ -1004,7 +1004,7 @@ void test_quicksort_on_signing_commitment_with_duplicates(void) {
 
     for (i = 0; i < 5; i++) {
         uint32_t rhs;
-        rhs = (uint32_t)(i > 0 ? i - 1 : i);
+        rhs = (uint32_t) (i > 0 ? i - 1 : i);
         CHECK(cmt[i].index == rhs);
     }
 }
