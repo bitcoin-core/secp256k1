@@ -36,8 +36,7 @@ case "$WRAPPER_CMD" in
     *wine*)
         # Make sure to shutdown wineserver whenever we exit.
         trap "wineserver -k || true" EXIT INT HUP
-        # This is apparently only reliable when we run a dummy command such as "hh.exe" afterwards.
-        wineserver -p && wine hh.exe
+        wineserver -p
         ;;
 esac
 
