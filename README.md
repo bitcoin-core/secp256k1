@@ -4,7 +4,8 @@ secp256k1-frost
 This repository extends the [secp256k1](https://github.com/bitcoin-core/secp256k1) library to implement FROST,
 a Schnorr threshold signature scheme originally designed by C. Komlo and I. Goldberg.
 
-The codebase of secp256k1-frost is a fork of the [secp256k1](https://github.com/bitcoin-core/secp256k1) repository.
+The codebase of secp256k1-frost is a fork of the [secp256k1](https://github.com/bitcoin-core/secp256k1)
+repository and was originally developed by Bank of Italy as part of the [itcoin project](https://bancaditalia.github.io/itcoin/).
 
 You can find more information about `secp256k1-frost` in the [dedicated README.md](./src/modules/frost/README.md) file.
 
