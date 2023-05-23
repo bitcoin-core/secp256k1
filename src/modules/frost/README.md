@@ -13,6 +13,8 @@ the [Cryptology ePrint Archive (Paper 2020/852)](https://eprint.iacr.org/2020/85
 
 Currently, FROST is undergoing an IETF standardization process ([status](https://datatracker.ietf.org/doc/draft-irtf-cfrg-frost/)).
 
+This module was originally developed by Bank of Italy as part of the [itcoin project](https://bancaditalia.github.io/itcoin/).
+
 ## Build
 
 FROST is implemented as a module of the secp256k1 library. Currently, it is an experimental module.
