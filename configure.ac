@@ -121,7 +121,12 @@ AC_DEFUN([SECP_TRY_APPEND_DEFAULT_CFLAGS], [
     # libtool makes the same assumption internally.
     # Note that "/opt" and "-opt" are equivalent for MSVC; we use "-opt" because "/opt" looks like a path.
     if test x"$GCC" != x"yes" && test x"$build_windows" = x"yes"; then
-      SECP_TRY_APPEND_CFLAGS([-W2 -wd4146], $1) # Moderate warning level, disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned"
+      SECP_TRY_APPEND_CFLAGS([-W3], $1) # Production quality warning level.
+      SECP_TRY_APPEND_CFLAGS([-wd4146], $1) # Disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned".
+      SECP_TRY_APPEND_CFLAGS([-wd4244], $1) # Disable warning C4244 "'conversion' conversion from 'type1' to 'type2', possible loss of data".
+      SECP_TRY_APPEND_CFLAGS([-wd4267], $1) # Disable warning C4267 "'var' : conversion from 'size_t' to 'type', possible loss of data".
+      # Eliminate deprecation warnings for the older, less secure functions.
+      CPPFLAGS="-D_CRT_SECURE_NO_WARNINGS $CPPFLAGS"
       # We pass -ignore:4217 to the MSVC linker to suppress warning 4217 when
       # importing variables from a statically linked secp256k1.
       # (See the libtool manual, section "Windows DLLs" for background.)
