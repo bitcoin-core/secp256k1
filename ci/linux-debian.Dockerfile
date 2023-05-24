@@ -31,7 +31,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3 msvc-wine/vsdownload.py --accept-license --dest /opt/msvc Microsoft.VisualStudio.Workload.VCTools && \
     msvc-wine/install.sh /opt/msvc
 
-# Initialize the wine environment. Wait until the wineserver process has
+# Moving the wine prefix to /tmp avoids error D8037 when invoking cl.exe.
+ENV WINEPREFIX=/tmp/wineprefix
+# Initialize the wine prefix. Wait until the wineserver process has
 # exited before closing the session, to avoid corrupting the wine prefix.
 RUN wine64 wineboot --init && \
     while (ps -A | grep wineserver) > /dev/null; do sleep 1; done
