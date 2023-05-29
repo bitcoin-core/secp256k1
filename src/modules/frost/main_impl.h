@@ -1403,6 +1403,7 @@ SECP256K1_API int secp256k1_frost_aggregate(const secp256k1_context *ctx,
 
     /* Compute the binding factor(s) */
     if (compute_binding_factors(&binding_factors, msg32, 32, num_signers, commitments) == 0) {
+        free_binding_factors(&binding_factors);
         return 0;
     }
 
