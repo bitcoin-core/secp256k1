@@ -138,12 +138,10 @@ static void bench_ecmult_1p_teardown(void* arg, int iters) {
 
 static void bench_ecmult_0p_g(void* arg, int iters) {
     bench_data* data = (bench_data*)arg;
-    secp256k1_scalar zero;
     int i;
 
-    secp256k1_scalar_set_int(&zero, 0);
     for (i = 0; i < iters; ++i) {
-        secp256k1_ecmult(&data->output[i], NULL, &zero, &data->scalars[(data->offset1+i) % POINTS]);
+        secp256k1_ecmult(&data->output[i], NULL, &secp256k1_scalar_zero, &data->scalars[(data->offset1+i) % POINTS]);
     }
 }
 
