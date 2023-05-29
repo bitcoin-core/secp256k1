@@ -122,7 +122,9 @@ static SECP256K1_WARN_UNUSED_RESULT int deserialize_frost_signature(secp256k1_fr
     secp256k1_fe x;
     secp256k1_ge deserialized_point;
     secp256k1_fe_set_b32(&x, serialized_signature);
-    secp256k1_ge_set_xo_var(&deserialized_point, &x, 0);
+    if (secp256k1_ge_set_xo_var(&deserialized_point, &x, 0) == 0) {
+        return 0;
+    }
     secp256k1_gej_set_ge(&(signature->r), &deserialized_point);
     if (convert_b32_to_scalar(&serialized_signature[SERIALIZED_PUBKEY_X_ONLY_SIZE], &(signature->z)) == 0) {
         return 0;
