@@ -158,9 +158,8 @@ AC_ARG_ENABLE(module_schnorrsig,
 
 # FROST_SPECIFIC - START
 AC_ARG_ENABLE(module_frost,
-    AS_HELP_STRING([--enable-module-frost],[enable FROST module (experimental)]),
-    [enable_module_frost=$enableval],
-    [enable_module_frost=no])
+    AS_HELP_STRING([--enable-module-frost],[enable FROST module (experimental) [default=no]]), [],
+    [SECP_SET_DEFAULT([enable_module_frost], [no], [yes])])
 # FROST_SPECIFIC - END
 
 AC_ARG_ENABLE(external_default_callbacks,
