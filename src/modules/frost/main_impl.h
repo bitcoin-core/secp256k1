@@ -1234,9 +1234,7 @@ SECP256K1_API int secp256k1_frost_sign(
     nonce->used = 1;
 
     /* Free all allocated vars */
-    free(binding_factors.binding_factors);
-    free(binding_factors.binding_factors_inputs); /*FIXME: also the allocated unsigned char *  to be freed */
-    free(binding_factors.participant_indexes);
+    free_binding_factors(&binding_factors); /*FIXME: also the allocated unsigned char *  to be freed */
 
     return 1;
 }
