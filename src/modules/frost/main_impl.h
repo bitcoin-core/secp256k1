@@ -235,6 +235,13 @@ static int secp256k1_frost_expand_compact_pubkey(unsigned char *pubkey64,
     return 1;
 }
 
+static void free_binding_factors(secp256k1_frost_binding_factors *binding_factors) {
+    /* Free all allocated vars */
+    free(binding_factors->binding_factors);
+    free(binding_factors->binding_factors_inputs);
+    free(binding_factors->participant_indexes);
+}
+
 SECP256K1_API int secp256k1_frost_pubkey_load(secp256k1_frost_pubkey *pubkey,
                                               const uint32_t index,
                                               const uint32_t max_participants,
@@ -1355,13 +1362,6 @@ static SECP256K1_WARN_UNUSED_RESULT int verify_signature_share(const secp256k1_c
         return 0;
     }
     return 1;
-}
-
-static void free_binding_factors(secp256k1_frost_binding_factors *binding_factors) {
-    /* Free all allocated vars */
-    free(binding_factors->binding_factors);
-    free(binding_factors->binding_factors_inputs);
-    free(binding_factors->participant_indexes);
 }
 
 SECP256K1_API int secp256k1_frost_aggregate(const secp256k1_context *ctx,
