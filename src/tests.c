@@ -14,6 +14,9 @@
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in tests.")
     #undef USE_EXTERNAL_DEFAULT_CALLBACKS
 #endif
+#if defined(VERIFY) && defined(COVERAGE)
+    #pragma message("Defining VERIFY for tests being built for coverage analysis support is meaningless.")
+#endif
 #include "secp256k1.c"
 
 #include "../include/secp256k1.h"
