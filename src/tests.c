@@ -2352,6 +2352,20 @@ static void run_scalar_tests(void) {
     }
 
     {
+        /* Check that the scalar constants secp256k1_scalar_zero and
+           secp256k1_scalar_one contain the expected values. */
+        secp256k1_scalar zero, one;
+
+        CHECK(secp256k1_scalar_is_zero(&secp256k1_scalar_zero));
+        secp256k1_scalar_set_int(&zero, 0);
+        CHECK(secp256k1_scalar_eq(&zero, &secp256k1_scalar_zero));
+
+        CHECK(secp256k1_scalar_is_one(&secp256k1_scalar_one));
+        secp256k1_scalar_set_int(&one, 1);
+        CHECK(secp256k1_scalar_eq(&one, &secp256k1_scalar_one));
+    }
+
+    {
         /* (-1)+1 should be zero. */
         secp256k1_scalar o;
         secp256k1_scalar_negate(&o, &secp256k1_scalar_one);
