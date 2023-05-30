@@ -19,7 +19,12 @@ function(try_append_c_flags flags)
 
   # This avoids running a linker.
   set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-  check_c_compiler_flag("${flags}" ${result})
+  # Some compilers (GCC) produce no diagnostic for -Wno-some-warning,
+  # if "some-warning" is unknown to the compiler and no other diagnostics
+  # are being produced. Therefore, test the -Wsome-warning case instead
+  # of the -Wno-some-warning one.
+  string(REPLACE "-Wno-" "-W" non_negated_flags "${flags}")
+  check_c_compiler_flag("${non_negated_flags}" ${result})
   if(${result})
     target_compile_options(${arg_TARGET} INTERFACE ${flags})
   endif()
