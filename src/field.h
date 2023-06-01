@@ -223,7 +223,7 @@ static void secp256k1_fe_negate(secp256k1_fe *r, const secp256k1_fe *a, int m);
 /** Add a small integer to a field element.
  *
  * Performs {r += a}. The magnitude of r increases by 1, and normalized is cleared.
- * a must be in range [0,0xFFFF].
+ * a must be in range [0,0x7FFF].
  */
 static void secp256k1_fe_add_int(secp256k1_fe *r, int a);
 
