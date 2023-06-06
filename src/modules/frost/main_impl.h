@@ -53,6 +53,10 @@ static void secp256k1_ge_set_gej_safe(secp256k1_ge *r, const secp256k1_gej *a) {
 
 static void secp256k1_gej_mul_scalar(secp256k1_gej *result, const secp256k1_gej *pt, const secp256k1_scalar *sc) {
     secp256k1_ge pt_ge;
+    if (secp256k1_gej_is_infinity(pt)) {
+        secp256k1_gej_set_infinity(result);
+        return;
+    }
     secp256k1_ge_set_gej_safe(&pt_ge, pt);
     secp256k1_ecmult_const(result, &pt_ge, sc, ECMULT_CONST_256_BIT_SIZE);
 }
