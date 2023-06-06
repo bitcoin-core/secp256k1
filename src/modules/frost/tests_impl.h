@@ -567,7 +567,7 @@ void test_secp256k1_frost_keygen_validate_invalid_secret_commitment(void) {
     secp256k1_context *sign_ctx;
     secp256k1_frost_vss_commitments *dkg_commitment;
     secp256k1_frost_keygen_secret_share shares[3];
-    secp256k1_gej _identityPoint;
+    secp256k1_gej _invalidPoint;
     int result;
     const unsigned char context[4] = "test";
     const uint32_t threshold = 2;
@@ -581,8 +581,8 @@ void test_secp256k1_frost_keygen_validate_invalid_secret_commitment(void) {
     CHECK(result == 1);
 
     /* now, set the first commitments to be invalid */
-    secp256k1_gej_clear(&_identityPoint);
-    serialize_point(&_identityPoint, dkg_commitment->coefficient_commitments[0].data);
+    secp256k1_gej_clear(&_invalidPoint);
+    serialize_point(&_invalidPoint, dkg_commitment->coefficient_commitments[0].data);
 
     /* now, ensure that this dkg commitment is marked as invalid */
     result = secp256k1_frost_keygen_dkg_commitment_validate(
@@ -925,7 +925,7 @@ void test_secp256k1_frost_keygen_finalize_invalid_commitments(void) {
     secp256k1_frost_keypair keypair;
     uint32_t index;
     const unsigned char context[4] = "test";
-    secp256k1_gej _identityPoint;
+    secp256k1_gej _invalidPoint;
 
     /* Step 1. initialization */
     num_participants = 3;
@@ -956,8 +956,8 @@ void test_secp256k1_frost_keygen_finalize_invalid_commitments(void) {
     }
 
     /* now, set the first commitments to be invalid */
-    secp256k1_gej_clear(&_identityPoint);
-    serialize_point(&_identityPoint, dkg_commitment[0]->coefficient_commitments[0].data);
+    secp256k1_gej_clear(&_invalidPoint);
+    serialize_point(&_invalidPoint, dkg_commitment[0]->coefficient_commitments[0].data);
 
     /* Step 4. keygen finalize for each participant */
     for (index = 0; index < num_participants; index++) {
