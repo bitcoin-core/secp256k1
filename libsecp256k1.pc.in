@@ -4,8 +4,8 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: libsecp256k1
-Description: Optimized C library for EC operations on curve secp256k1
-URL: https://github.com/bitcoin-core/secp256k1
+Description: Optimized C library for EC operations on curve secp256k1, with support for FROST signature scheme # FROST_SPECIFIC
+URL: https://github.com/bancaditalia/secp256k1-frost # FROST_SPECIFIC
 Version: @PACKAGE_VERSION@
 Cflags: -I${includedir}
 Libs: -L${libdir} -lsecp256k1
