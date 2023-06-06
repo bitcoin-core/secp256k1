@@ -719,7 +719,7 @@ static SECP256K1_WARN_UNUSED_RESULT int verify_secret_share(const secp256k1_cont
 
     secp256k1_scalar_set_int(&x, share->receiver_index);
     secp256k1_scalar_set_int(&x_to_the_i, 1);
-    secp256k1_gej_clear(&result);
+    secp256k1_gej_set_infinity(&result);
     secp256k1_gej_mul_scalar(&result, &result, &x_to_the_i);
 
     for (index = 0; index < commitment->num_coefficients; index++) {
@@ -768,7 +768,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_keygen_dkg_finali
     secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &pubkey, &scalar_secret);
     serialize_point(&pubkey, keypair->public_keys.public_key);
 
-    secp256k1_gej_clear(&group_pubkey);
+    secp256k1_gej_set_infinity(&group_pubkey);
     secp256k1_scalar_set_int(&scalar_unit, 1);
     secp256k1_gej_mul_scalar(&group_pubkey,
                              &group_pubkey, &scalar_unit);
@@ -897,7 +897,7 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_group_commitment(/* out */ secp2
     uint32_t index, inner_index;
 
     secp256k1_scalar_set_int(&scalar_unit, 1);
-    secp256k1_gej_clear(group_commitment);
+    secp256k1_gej_set_infinity(group_commitment);
     secp256k1_gej_mul_scalar(group_commitment, group_commitment, &scalar_unit);
 
     for (index = 0; index < num_signers; index++) {
@@ -919,7 +919,7 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_group_commitment(/* out */ secp2
             return 0;
         }
 
-        secp256k1_gej_clear(&partial);
+        secp256k1_gej_set_infinity(&partial);
         secp256k1_gej_mul_scalar(&partial, &partial, &scalar_unit);
 
         /* group_commitment += commitment.d + (commitment.e * rho_i) */
