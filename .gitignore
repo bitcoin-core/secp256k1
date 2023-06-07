@@ -8,6 +8,7 @@ precompute_ecmult
 valgrind_ctime_test
 ecdh_example
 ecdsa_example
+frost_example
 schnorr_example
 *.exe
 *.so
