@@ -11,7 +11,11 @@
 #include "../../../include/secp256k1.h"
 #include "../../../include/secp256k1_frost.h"
 
-static const unsigned char hash_context_prefix[26] = "FROST-secp256k1-SHA256-v11";
+static const unsigned char hash_context_prefix_h1[29] = "FROST-secp256k1-SHA256-v11rho";
+static const unsigned char hash_context_prefix_h3[31] = "FROST-secp256k1-SHA256-v11nonce";
+static const unsigned char hash_context_prefix_h4[29] = "FROST-secp256k1-SHA256-v11msg";
+static const unsigned char hash_context_prefix_h5[29] = "FROST-secp256k1-SHA256-v11com";
+
 #define SCALAR_SIZE (32U)
 #define SHA256_SIZE (32U)
 #define SERIALIZED_PUBKEY_X_ONLY_SIZE (32U)
@@ -152,67 +156,56 @@ static SECP256K1_WARN_UNUSED_RESULT int initialize_random_scalar(secp256k1_scala
     return 1;
 }
 
-static void compute_sha256(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
-    secp256k1_sha256 sha;
-    secp256k1_sha256_initialize(&sha);
-    secp256k1_sha256_write(&sha, msg, msg_len);
-    secp256k1_sha256_finalize(&sha, hash_value);
-}
-
-static void compute_hash_with_prefix(const unsigned char *prefix, uint32_t prefix_len,
-                                     const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
-    uint32_t ext_msg_len = prefix_len + msg_len;
-    unsigned char *ext_msg = (unsigned char *) checked_malloc(&default_error_callback, ext_msg_len);
-    memcpy(ext_msg, prefix, prefix_len);
-    memcpy(ext_msg + prefix_len, msg, msg_len);
-    compute_sha256(ext_msg, ext_msg_len, hash_value);
-    if (ext_msg != NULL) {
-        free(ext_msg);
-    }
-}
-
 static void compute_hash_h1(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
     /* TODO: replace with hash-to-curve
     * H1(m): Implemented using hash_to_field from [HASH-TO-CURVE], Section 5.3 using L = 48,
-    * expand_message_xmd with SHA-256, DST = contextString || "rho", and prime modulus equal to Order(). */
-    unsigned char prefix[26 + 3];
-    memcpy(prefix, hash_context_prefix, 26);
-    memcpy(prefix + 26, "rho", 3);
-    compute_hash_with_prefix(prefix, sizeof(prefix), msg, msg_len, hash_value);
+    * expand_message_xmd with SHA-256, DST = "FROST-secp256k1-SHA256-v11" || "rho", and prime modulus equal to Order(). */
+    secp256k1_sha256 sha;
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, hash_context_prefix_h1, sizeof(hash_context_prefix_h1));
+    secp256k1_sha256_write(&sha, msg, msg_len);
+    secp256k1_sha256_finalize(&sha, hash_value);
 }
 
 static void compute_hash_h2(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
     /* TODO: replace with hash-to-curve
     * H2(m): Implemented using hash_to_field from [HASH-TO-CURVE], Section 5.2 using L = 48,
-    * expand_message_xmd with SHA-256, DST = contextString || "chal", and prime modulus equal to Order().*/
+    * expand_message_xmd with SHA-256, DST = "FROST-secp256k1-SHA256-v11" || "chal", and prime modulus equal to Order().*/
     const unsigned char prefix[17] = "BIP0340/challenge";
-    compute_hash_with_prefix(prefix, sizeof(prefix), msg, msg_len, hash_value);
+    secp256k1_sha256 sha;
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, prefix, sizeof(prefix));
+    secp256k1_sha256_write(&sha, msg, msg_len);
+    secp256k1_sha256_finalize(&sha, hash_value);
 }
 
 static void compute_hash_h3(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
     /* TODO: replace with hash-to-curve
     * H3(m): Implemented using hash_to_field from [HASH-TO-CURVE], Section 5.2 using L = 48,
-    * expand_message_xmd with SHA-256, DST = contextString || "nonce", and prime modulus equal to Order(). */
-    unsigned char prefix[26 + 5];
-    memcpy(prefix, hash_context_prefix, 26);
-    memcpy(prefix + 26, "nonce", 5);
-    compute_hash_with_prefix(prefix, sizeof(prefix), msg, msg_len, hash_value);
+    * expand_message_xmd with SHA-256, DST = "FROST-secp256k1-SHA256-v11" || "nonce", and prime modulus equal to Order(). */
+    secp256k1_sha256 sha;
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, hash_context_prefix_h3, sizeof(hash_context_prefix_h3));
+    secp256k1_sha256_write(&sha, msg, msg_len);
+    secp256k1_sha256_finalize(&sha, hash_value);
 }
 
 static void compute_hash_h4(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
-    /* H4(m): Implemented by computing H(contextString || "msg" || m). */
-    unsigned char prefix[26 + 3];
-    memcpy(prefix, hash_context_prefix, 26);
-    memcpy(prefix + 26, "msg", 3);
-    compute_hash_with_prefix(prefix, sizeof(prefix), msg, msg_len, hash_value);
+    /* H4(m): Implemented by computing H("FROST-secp256k1-SHA256-v11" || "msg" || m). */
+    secp256k1_sha256 sha;
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, hash_context_prefix_h4, sizeof(hash_context_prefix_h4));
+    secp256k1_sha256_write(&sha, msg, msg_len);
+    secp256k1_sha256_finalize(&sha, hash_value);
 }
 
 static void compute_hash_h5(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
-    /* H5(m): Implemented by computing H(contextString || "com" || m). */
-    unsigned char prefix[26 + 3];
-    memcpy(prefix, hash_context_prefix, 26);
-    memcpy(prefix + 26, "com", 3);
-    compute_hash_with_prefix(prefix, sizeof(prefix), msg, msg_len, hash_value);
+    /* H5(m): Implemented by computing H("FROST-secp256k1-SHA256-v11" || "com" || m). */
+    secp256k1_sha256 sha;
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, hash_context_prefix_h5, sizeof(hash_context_prefix_h5));
+    secp256k1_sha256_write(&sha, msg, msg_len);
+    secp256k1_sha256_finalize(&sha, hash_value);
 }
 
 static void nonce_generate(unsigned char *out32, const secp256k1_frost_keypair *keypair,
@@ -589,6 +582,7 @@ static SECP256K1_WARN_UNUSED_RESULT int generate_dkg_challenge(secp256k1_scalar 
     uint32_t challenge_input_length;
     unsigned char *challenge_input;
     unsigned char hash_value[SHA256_SIZE];
+    secp256k1_sha256 sha;
 
     /* challenge_input = commitment || pk || index || context_nonce */
     challenge_input_length = SERIALIZED_PUBKEY_X_ONLY_SIZE + SERIALIZED_PUBKEY_X_ONLY_SIZE + SCALAR_SIZE + nonce_length;
@@ -601,7 +595,10 @@ static SECP256K1_WARN_UNUSED_RESULT int generate_dkg_challenge(secp256k1_scalar 
            context_nonce, nonce_length);
 
     /* compute hash of the challenge_input */
-    compute_sha256(challenge_input, challenge_input_length, hash_value);
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, challenge_input, challenge_input_length);
+    secp256k1_sha256_finalize(&sha, hash_value);
+
     /* save hash value as scalar (overflow ignored on purpose) */
     convert_b32_to_scalar(hash_value, challenge);
 
