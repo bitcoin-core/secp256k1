@@ -178,7 +178,7 @@ static void compute_hash_h1(const unsigned char *msg, uint32_t msg_len, unsigned
     unsigned char prefix[26 + 3];
     memcpy(prefix, hash_context_prefix, 26);
     memcpy(prefix + 26, "rho", 3);
-    compute_hash_with_prefix(prefix, sizeof prefix, msg, msg_len, hash_value);
+    compute_hash_with_prefix(prefix, sizeof(prefix), msg, msg_len, hash_value);
 }
 
 static void compute_hash_h2(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
@@ -186,7 +186,7 @@ static void compute_hash_h2(const unsigned char *msg, uint32_t msg_len, unsigned
     * H2(m): Implemented using hash_to_field from [HASH-TO-CURVE], Section 5.2 using L = 48,
     * expand_message_xmd with SHA-256, DST = contextString || "chal", and prime modulus equal to Order().*/
     const unsigned char prefix[17] = "BIP0340/challenge";
-    compute_hash_with_prefix(prefix, sizeof prefix, msg, msg_len, hash_value);
+    compute_hash_with_prefix(prefix, sizeof(prefix), msg, msg_len, hash_value);
 }
 
 static void compute_hash_h3(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
@@ -196,7 +196,7 @@ static void compute_hash_h3(const unsigned char *msg, uint32_t msg_len, unsigned
     unsigned char prefix[26 + 5];
     memcpy(prefix, hash_context_prefix, 26);
     memcpy(prefix + 26, "nonce", 5);
-    compute_hash_with_prefix(prefix, sizeof prefix, msg, msg_len, hash_value);
+    compute_hash_with_prefix(prefix, sizeof(prefix), msg, msg_len, hash_value);
 }
 
 static void compute_hash_h4(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
@@ -204,7 +204,7 @@ static void compute_hash_h4(const unsigned char *msg, uint32_t msg_len, unsigned
     unsigned char prefix[26 + 3];
     memcpy(prefix, hash_context_prefix, 26);
     memcpy(prefix + 26, "msg", 3);
-    compute_hash_with_prefix(prefix, sizeof prefix, msg, msg_len, hash_value);
+    compute_hash_with_prefix(prefix, sizeof(prefix), msg, msg_len, hash_value);
 }
 
 static void compute_hash_h5(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
@@ -212,7 +212,7 @@ static void compute_hash_h5(const unsigned char *msg, uint32_t msg_len, unsigned
     unsigned char prefix[26 + 3];
     memcpy(prefix, hash_context_prefix, 26);
     memcpy(prefix + 26, "com", 3);
-    compute_hash_with_prefix(prefix, sizeof prefix, msg, msg_len, hash_value);
+    compute_hash_with_prefix(prefix, sizeof(prefix), msg, msg_len, hash_value);
 }
 
 static void nonce_generate(unsigned char *out32, const secp256k1_frost_keypair *keypair,
