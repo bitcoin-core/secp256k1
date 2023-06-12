@@ -349,7 +349,6 @@ static int secp256k1_ge_is_valid_var(const secp256k1_ge *a) {
     secp256k1_fe_sqr(&y2, &a->y);
     secp256k1_fe_sqr(&x3, &a->x); secp256k1_fe_mul(&x3, &x3, &a->x);
     secp256k1_fe_add_int(&x3, SECP256K1_B);
-    secp256k1_fe_normalize_weak(&x3);
     return secp256k1_fe_equal_var(&y2, &x3);
 }
 
