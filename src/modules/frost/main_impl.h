@@ -1029,6 +1029,8 @@ static void compute_binding_factor(
     encode_group_commitments(encoded_group_commitments, num_signers, signing_commitments);
     compute_hash_h5(encoded_group_commitments, encoded_group_commitments_size, &(rho_input[SHA256_SIZE]));
 
+    free(encoded_group_commitments);
+
     /* rho_input = msg_hash || encoded_commitment_hash || serialize_scalar(identifier) */
     serialize_scalar(index, &(rho_input[SHA256_SIZE + SHA256_SIZE]));
 
@@ -1037,8 +1039,6 @@ static void compute_binding_factor(
 
     /* Convert to scalar (overflow ignored on purpose) */
     convert_b32_to_scalar(binding_factor_hash, binding_factor);
-
-    free(encoded_group_commitments);
 }
 
 static SECP256K1_WARN_UNUSED_RESULT int compute_binding_factors(
