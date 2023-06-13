@@ -88,8 +88,8 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_set_b32_mod secp256k1_fe_impl_set_b32_mod
 #  define secp256k1_fe_set_b32_limit secp256k1_fe_impl_set_b32_limit
 #  define secp256k1_fe_get_b32 secp256k1_fe_impl_get_b32
-#  define secp256k1_fe_negate secp256k1_fe_impl_negate
-#  define secp256k1_fe_mul_int secp256k1_fe_impl_mul_int
+#  define secp256k1_fe_negate_unchecked secp256k1_fe_impl_negate_unchecked
+#  define secp256k1_fe_mul_int_unchecked secp256k1_fe_impl_mul_int_unchecked
 #  define secp256k1_fe_add secp256k1_fe_impl_add
 #  define secp256k1_fe_mul secp256k1_fe_impl_mul
 #  define secp256k1_fe_sqr secp256k1_fe_impl_sqr
@@ -214,11 +214,17 @@ static void secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe *a);
 /** Negate a field element.
  *
  * On input, r does not need to be initialized. a must be a valid field element with
- * magnitude not exceeding m. m must be an integer in [0,31].
+ * magnitude not exceeding m. m must be an integer constant expression in [0,31].
  * Performs {r = -a}.
  * On output, r will not be normalized, and will have magnitude m+1.
  */
-static void secp256k1_fe_negate(secp256k1_fe *r, const secp256k1_fe *a, int m);
+#define secp256k1_fe_negate(r, a, m) ASSERT_INT_CONST_AND_DO(m, secp256k1_fe_negate_unchecked(r, a, m))
+
+/** Like secp256k1_fe_negate_unchecked but m is not checked to be an integer constant expression.
+ *
+ * Should not be called directly outside of tests.
+ */
+static void secp256k1_fe_negate_unchecked(secp256k1_fe *r, const secp256k1_fe *a, int m);
 
 /** Add a small integer to a field element.
  *
@@ -229,12 +235,18 @@ static void secp256k1_fe_add_int(secp256k1_fe *r, int a);
 
 /** Multiply a field element with a small integer.
  *
- * On input, r must be a valid field element. a must be an integer in [0,32].
+ * On input, r must be a valid field element. a must be an integer constant expression in [0,32].
  * The magnitude of r times a must not exceed 32.
  * Performs {r *= a}.
  * On output, r's magnitude is multiplied by a, and r will not be normalized.
  */
-static void secp256k1_fe_mul_int(secp256k1_fe *r, int a);
+#define secp256k1_fe_mul_int(r, a) ASSERT_INT_CONST_AND_DO(a, secp256k1_fe_mul_int_unchecked(r, a))
+
+/** Like secp256k1_fe_mul_int but a is not checked to be an integer constant expression.
+ * 
+ * Should not be called directly outside of tests.
+ */
+static void secp256k1_fe_mul_int_unchecked(secp256k1_fe *r, int a);
 
 /** Increment a field element by another.
  *

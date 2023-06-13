@@ -108,7 +108,7 @@ static void random_field_element_magnitude(secp256k1_fe *fe) {
     }
     secp256k1_fe_clear(&zero);
     secp256k1_fe_negate(&zero, &zero, 0);
-    secp256k1_fe_mul_int(&zero, n - 1);
+    secp256k1_fe_mul_int_unchecked(&zero, n - 1);
     secp256k1_fe_add(fe, &zero);
 #ifdef VERIFY
     CHECK(fe->magnitude == n);
@@ -3223,7 +3223,7 @@ static void run_field_misc(void) {
         CHECK(q.normalized && q.magnitude == 1);
 #endif
         for (j = 0; j < 6; j++) {
-            secp256k1_fe_negate(&z, &z, j+1);
+            secp256k1_fe_negate_unchecked(&z, &z, j+1);
             secp256k1_fe_normalize_var(&q);
             secp256k1_fe_cmov(&q, &z, (j&1));
 #ifdef VERIFY
