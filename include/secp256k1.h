@@ -140,7 +140,7 @@ typedef int (*secp256k1_nonce_function)(
 #   define SECP256K1_API            __declspec (dllexport)
 #   define SECP256K1_API_VAR extern __declspec (dllexport)
 #  endif
-# elif defined _MSC_VER
+# elif defined(_MSC_VER) && !defined(SECP256K1_STATICLIB)
 #  define SECP256K1_API
 #  define SECP256K1_API_VAR  extern __declspec (dllimport)
 # elif defined DLL_EXPORT
