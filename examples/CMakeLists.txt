@@ -7,7 +7,7 @@ target_link_libraries(example INTERFACE
   $<$<PLATFORM_ID:Windows>:bcrypt>
 )
 if(NOT BUILD_SHARED_LIBS AND MSVC)
-  target_link_options(example INTERFACE /IGNORE:4217)
+  target_compile_definitions(example INTERFACE SECP256K1_STATICLIB)
 endif()
 
 add_executable(ecdsa_example ecdsa.c)
