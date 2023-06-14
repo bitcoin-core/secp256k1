@@ -42,21 +42,21 @@ We refer to [draft v12](https://www.ietf.org/archive/id/draft-irtf-cfrg-frost-12
 
 #### Helper Functions (Section 4 of IETF Standard)
 
-- [x] nonce_generate(): our implementation expects to receive random 32-byte as a parameter (we want to remove dependencies from random generators);
-- [x] derive_interpolating_value()
-- [x] encode_group_commitment_list(): in our implementation, this function is named `encode_group_commitments()`
-- [x] participants_from_commitment_list(): in our implementation, it is implemented using arrays
-- [x] binding_factor_for_participant()
-- [x] compute_binding_factors()
-- [x] compute_group_commitment()
-- [ ] compute_challenge(): our implementation follows BIP-340 and initializes SHA256 with fixed midstate (SHA256("BIP0340/challenge")||SHA256("BIP0340/challenge"));
+- [x] `nonce_generate()`: our implementation expects to receive random 32-byte as a parameter (we want to remove dependencies from random generators);
+- [x] `derive_interpolating_value()`
+- [x] `encode_group_commitment_list()`: in our implementation, this function is named `encode_group_commitments()`
+- [x] `participants_from_commitment_list()`: in our implementation, it is implemented using arrays
+- [x] `binding_factor_for_participant()`
+- [x] `compute_binding_factors()`
+- [x] `compute_group_commitment()`
+- [ ] `compute_challenge()`: our implementation follows BIP-340 and initializes SHA256 with fixed midstate (SHA256("BIP0340/challenge")||SHA256("BIP0340/challenge"));
 
 #### Two-Round FROST Signing Protocol (Section 5 of IETF Standard)
 
-- [x] commit(): in our implementation, this function is named `secp256k1_frost_nonce_create()`
-- [x] sign(): in our implementation, this function is named `secp256k1_frost_sign()`
-- [x] aggregate(): in our implementation, this function is named `secp256k1_frost_aggregate()`
-- [x] verify_signature_share()
+- [x] `commit()`: in our implementation, this function is named `secp256k1_frost_nonce_create()`
+- [x] `sign()`: in our implementation, this function is named `secp256k1_frost_sign()`
+- [x] `aggregate()`: in our implementation, this function is named `secp256k1_frost_aggregate()`
+- [x] `verify_signature_share()`
 
 #### Ciphersuite (Section 6 of IETF Standard)
 
@@ -80,15 +80,15 @@ The IETF standard does not include a distributed key generation protocol.
 This library implements the DKG protocol described in the [FROST paper](https://eprint.iacr.org/2020/852) and implemented
 by Chelsea Komlo in the prototype [FROST repository](https://git.uwaterloo.ca/ckomlo/frost/).
 
-- secp256k1_frost_keygen_dkg_begin();
-- secp256k1_frost_keygen_dkg_commitment_validate();
-- secp256k1_frost_keygen_dkg_finalize();
+- `secp256k1_frost_keygen_dkg_begin()`;
+- `secp256k1_frost_keygen_dkg_commitment_validate()`;
+- `secp256k1_frost_keygen_dkg_finalize()`;
 
 #### Signature
 
 Our implementation follows BIP-340, which requires using x-only coordinates of points.
 
-- secp256k1_frost_sign(): to follow BIP-340, it adjusts the signature if the group commitment is odd.
-- secp256k1_frost_aggregate(): differently from the standard, our implementation verifies each signature share before computing the aggregated signature.
-- secp256k1_frost_aggregate(): to follow BIP-340, it returns the group commitment with even y coordinate.
-- secp256k1_frost_verify(): verify an aggregated signature. This is equivalent to a traditional Schnorr verification (e.g., as implemented in `secp256k1_schnorrsig_verify()`)
+- `secp256k1_frost_sign()`: to follow BIP-340, it adjusts the signature if the group commitment is odd.
+- `secp256k1_frost_aggregate()`: differently from the standard, our implementation verifies each signature share before computing the aggregated signature.
+- `secp256k1_frost_aggregate()`: to follow BIP-340, it returns the group commitment with even y coordinate.
+- `secp256k1_frost_verify()`: verify an aggregated signature. This is equivalent to a traditional Schnorr verification (e.g., as implemented in `secp256k1_schnorrsig_verify()`)
