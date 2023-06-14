@@ -208,7 +208,7 @@ static void compute_hash_h4(const unsigned char *msg, uint32_t msg_len, unsigned
 }
 
 static void compute_hash_h5(const unsigned char *msg, uint32_t msg_len, unsigned char *hash_value) {
-    /* H5(m): Implemented by computing H(contextString || "com" || m */
+    /* H5(m): Implemented by computing H(contextString || "com" || m). */
     unsigned char prefix[26 + 3];
     memcpy(prefix, hash_context_prefix, 26);
     memcpy(prefix + 26, "com", 3);
@@ -290,7 +290,7 @@ SECP256K1_API int secp256k1_frost_pubkey_save(unsigned char *pubkey33,
 
     pk.infinity = 0;
     /*
-     * 0 is a purposedly illegal value. We will verify that
+     * 0 is a purposely illegal value. We will verify that
      * secp256k1_eckey_pubkey_serialize() sets it to 33
      */
     size = 0;
@@ -311,7 +311,7 @@ SECP256K1_API int secp256k1_frost_pubkey_save(unsigned char *pubkey33,
 
     gpk.infinity = 0;
     /*
-     * 0 is a purposedly illegal value. We will verify that
+     * 0 is a purposely illegal value. We will verify that
      * secp256k1_eckey_pubkey_serialize() sets it to 33
      */
     size = 0;
