@@ -91,4 +91,4 @@ Our implementation follows BIP-340, which requires using x-only coordinates of p
 - secp256k1_frost_sign(): to follow BIP-340, it adjusts the signature if the group commitment is odd.
 - secp256k1_frost_aggregate(): differently from the standard, our implementation verifies each signature share before computing the aggregated signature.
 - secp256k1_frost_aggregate(): to follow BIP-340, it returns the group commitment with even y coordinate.
-- secp256k1_frost_verify(): verify an aggregated signature. This is equivalent to a tradition Schnorr verification (e.g., as implemented in `secp256k1_schnorrsig_verify()`)
+- secp256k1_frost_verify(): verify an aggregated signature. This is equivalent to a traditional Schnorr verification (e.g., as implemented in `secp256k1_schnorrsig_verify()`)
