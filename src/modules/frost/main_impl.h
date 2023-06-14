@@ -999,12 +999,13 @@ static void encode_group_commitments(
 /* TODO: H4(msg) and H5(encoded_group_commitments) is the same for each participant; move in
  * compute_binding_factors */
 static void compute_binding_factor(
-        /* out */ unsigned char *rho_input,
         /* out */ secp256k1_scalar *binding_factor,
                   uint32_t index,
                   const unsigned char *msg, uint32_t msg_len,
                   uint32_t num_signers,
                   const secp256k1_frost_nonce_commitment *signing_commitments) {
+
+    unsigned char rho_input[SHA256_SIZE + SHA256_SIZE + SCALAR_SIZE] = {0};
 
     /* Compute H4 of message */
     unsigned char binding_factor_hash[SHA256_SIZE];
@@ -1049,8 +1050,7 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_binding_factors(
     signing_commitment_sort(signing_commitments, 0, ((int32_t) num_signers) - 1);
 
     for (index = 0; index < num_signers; index++) {
-        unsigned char rho_input[SHA256_SIZE + SHA256_SIZE + SCALAR_SIZE];
-        compute_binding_factor(rho_input, &(binding_factors->binding_factors[index]),
+        compute_binding_factor(&(binding_factors->binding_factors[index]),
                                signing_commitments[index].index, msg32, msg_len,
                                num_signers, signing_commitments);
 
