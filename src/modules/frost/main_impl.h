@@ -335,10 +335,6 @@ SECP256K1_API secp256k1_frost_vss_commitments *secp256k1_frost_vss_commitments_c
     num_coefficients = threshold - 1;
     vss = (secp256k1_frost_vss_commitments *) checked_malloc(&default_error_callback,
                                                              sizeof(secp256k1_frost_vss_commitments));
-    if (EXPECT(vss == NULL, 0)) {
-        free(vss);
-        return NULL;
-    }
     vss->index = 0;
     memset(vss->zkp_z, 0, SCALAR_SIZE);
     memset(vss->zkp_r, 0, 64);
@@ -367,10 +363,6 @@ static SECP256K1_WARN_UNUSED_RESULT shamir_coefficients *shamir_coefficients_cre
     shamir_coefficients *s;
     s = (shamir_coefficients *) checked_malloc(&default_error_callback,
                                                sizeof(shamir_coefficients));
-    if (EXPECT(s == NULL, 0)) {
-        free(s);
-        return NULL;
-    }
     s->index = 0;
     s->num_coefficients = num_coefficients;
     s->coefficients = (secp256k1_scalar *)
