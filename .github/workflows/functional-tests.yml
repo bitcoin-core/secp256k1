@@ -1,0 +1,94 @@
+name: Execute tests with coverage enabled (gcc13)
+# In secp256k1 some assertions are not exactly equal when coverage is enabled
+# and when it is not. Hence, it is better to run the two cases separately.
+
+on:
+  push:
+    branches:
+      - frost
+  pull_request:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  functional-tests:
+    runs-on: ubuntu-22.04
+    # Use fedora:38 to compile using gcc-13
+    container:
+      image: fedora:38
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+              autoconf \
+              automake \
+              gcc \
+              gcovr \
+              libtool \
+              pkg-config
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      - name: Run autogen
+        run: ./autogen.sh
+      - name: Functional tests with code coverage, no -Werror. Generate a summary of code coverage
+        # When code coverage is enabled, the upstream secp256k1 generates a
+        # warning -> we cannot use -Werror.
+        continue-on-error: true
+        id: tests_with_coverage
+        run: |
+          ./configure \
+              SECP_CFLAGS="" \
+              --enable-tests \
+              --disable-exhaustive-tests \
+              --disable-benchmark \
+              --enable-coverage \
+              --enable-experimental \
+              --enable-module-frost
+          make -j
+          make check
+          gcovr --exclude 'src/bench*' --print-summary
+      - name: Clean the build
+        run: |
+          make clean
+          # make clean does not remove the compiled binaries, and we are going
+          # to regenerate "tests"
+          rm -f tests
+      - name: Functional tests with -Werror, no code coverage
+        continue-on-error: true
+        id: tests_no_coverage
+        run: |
+          ./configure \
+              SECP_CFLAGS="-Werror" \
+              --enable-tests \
+              --disable-exhaustive-tests \
+              --disable-benchmark \
+              --disable-coverage \
+              --enable-experimental \
+              --enable-module-frost
+          make -j
+          ./tests
+      - name: Summarize outcomes. Fail if any step failed.
+        run: |
+          # summary
+          RED='\033[0;31m'
+          GREEN='\033[0;32m'
+          NC='\033[0m' # No Color
+
+          echo -n "Functional tests with code coverage, no -Werror: "
+          if [[ ${{ steps.tests_with_coverage.outcome }} == "success" ]]; then
+            printf "${GREEN}SUCCESS${NC}\n"
+          else
+            printf "${RED}FAIL${NC} (${{ steps.tests_with_coverage.outcome }}), please check\n"
+          fi
+
+          echo -n "Functional tests with -Werror, no code coverage: "
+          if [[ ${{ steps.tests_no_coverage.outcome }} == "success" ]]; then
+            printf "${GREEN}SUCCESS${NC}\n"
+          else
+            printf "${RED}FAIL${NC} (${{ steps.tests_no_coverage.outcome }}), please check\n"
+          fi
+
+          if [[ ${{ steps.tests_with_coverage.outcome }} != "success" ]] || [[ ${{ steps.tests_no_coverage.outcome }} != "success" ]]; then
+            exit 1
+          fi
