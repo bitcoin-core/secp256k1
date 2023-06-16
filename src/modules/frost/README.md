@@ -27,6 +27,13 @@ Run the tests:
 
     $ make check
 
+## Usage example
+
+A [FROST usage example](../../../examples/frost.c) can be found in the [examples](../../../examples) directory.
+
+To compile the examples, you need to configure with `--enable-examples`.
+Specifically, to compile the [FROST example](../../../examples/frost.c), you also need to configure with `--enable-module-frost`.
+
 ## Compliance with the IETF Standardized version of FROST
 
 FROST is an experimental module of the `secp256k1` library.

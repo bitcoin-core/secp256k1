@@ -43,6 +43,7 @@ jobs:
               --disable-exhaustive-tests \
               --disable-benchmark \
               --enable-coverage \
+              --enable-examples \
               --enable-experimental \
               --enable-module-frost
           make -j
@@ -64,6 +65,7 @@ jobs:
               --disable-exhaustive-tests \
               --disable-benchmark \
               --disable-coverage \
+              --enable-examples \
               --enable-experimental \
               --enable-module-frost
           make -j
