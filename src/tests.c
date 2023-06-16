@@ -7516,16 +7516,31 @@ static void run_secp256k1_memczero_test(void) {
 }
 
 static void run_secp256k1_byteorder_tests(void) {
-    const uint32_t x = 0xFF03AB45;
-    const unsigned char x_be[4] = {0xFF, 0x03, 0xAB, 0x45};
-    unsigned char buf[4];
-    uint32_t x_;
+    {
+        const uint32_t x = 0xFF03AB45;
+        const unsigned char x_be[4] = {0xFF, 0x03, 0xAB, 0x45};
+        unsigned char buf[4];
+        uint32_t x_;
 
-    secp256k1_write_be32(buf, x);
-    CHECK(secp256k1_memcmp_var(buf, x_be, sizeof(buf)) == 0);
+        secp256k1_write_be32(buf, x);
+        CHECK(secp256k1_memcmp_var(buf, x_be, sizeof(buf)) == 0);
 
-    x_ = secp256k1_read_be32(buf);
-    CHECK(x == x_);
+        x_ = secp256k1_read_be32(buf);
+        CHECK(x == x_);
+    }
+
+    {
+        const uint64_t x = 0xCAFE0123BEEF4567;
+        const unsigned char x_be[8] = {0xCA, 0xFE, 0x01, 0x23, 0xBE, 0xEF, 0x45, 0x67};
+        unsigned char buf[8];
+        uint64_t x_;
+
+        secp256k1_write_be64(buf, x);
+        CHECK(secp256k1_memcmp_var(buf, x_be, sizeof(buf)) == 0);
+
+        x_ = secp256k1_read_be64(buf);
+        CHECK(x == x_);
+    }
 }
 
 static void int_cmov_test(void) {
