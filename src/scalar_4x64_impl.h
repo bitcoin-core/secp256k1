@@ -133,10 +133,10 @@ static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int
 
 static void secp256k1_scalar_set_b32(secp256k1_scalar *r, const unsigned char *b32, int *overflow) {
     int over;
-    r->d[0] = ((uint64_t)secp256k1_read_be32(&b32[24]) << 32) | (uint64_t)secp256k1_read_be32(&b32[28]);
-    r->d[1] = ((uint64_t)secp256k1_read_be32(&b32[16]) << 32) | (uint64_t)secp256k1_read_be32(&b32[20]);
-    r->d[2] = ((uint64_t)secp256k1_read_be32(&b32[8])  << 32) | (uint64_t)secp256k1_read_be32(&b32[12]);
-    r->d[3] = ((uint64_t)secp256k1_read_be32(&b32[0])  << 32) | (uint64_t)secp256k1_read_be32(&b32[4]);
+    r->d[0] = secp256k1_read_be64(&b32[24]);
+    r->d[1] = secp256k1_read_be64(&b32[16]);
+    r->d[2] = secp256k1_read_be64(&b32[8]);
+    r->d[3] = secp256k1_read_be64(&b32[0]);
     over = secp256k1_scalar_reduce(r, secp256k1_scalar_check_overflow(r));
     if (overflow) {
         *overflow = over;
@@ -144,10 +144,10 @@ static void secp256k1_scalar_set_b32(secp256k1_scalar *r, const unsigned char *b
 }
 
 static void secp256k1_scalar_get_b32(unsigned char *bin, const secp256k1_scalar* a) {
-    secp256k1_write_be32(&bin[0],  a->d[3] >> 32); secp256k1_write_be32(&bin[4],  a->d[3]);
-    secp256k1_write_be32(&bin[8],  a->d[2] >> 32); secp256k1_write_be32(&bin[12], a->d[2]);
-    secp256k1_write_be32(&bin[16], a->d[1] >> 32); secp256k1_write_be32(&bin[20], a->d[1]);
-    secp256k1_write_be32(&bin[24], a->d[0] >> 32); secp256k1_write_be32(&bin[28], a->d[0]);
+    secp256k1_write_be64(&bin[0],  a->d[3]);
+    secp256k1_write_be64(&bin[8],  a->d[2]);
+    secp256k1_write_be64(&bin[16], a->d[1]);
+    secp256k1_write_be64(&bin[24], a->d[0]);
 }
 
 SECP256K1_INLINE static int secp256k1_scalar_is_zero(const secp256k1_scalar *a) {
