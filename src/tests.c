@@ -4463,23 +4463,72 @@ static void ecmult_const_commutativity(void) {
 }
 
 static void ecmult_const_mult_zero_one(void) {
+    secp256k1_scalar s;
     secp256k1_scalar negone;
     secp256k1_gej res1;
     secp256k1_ge res2;
     secp256k1_ge point;
-    secp256k1_scalar_negate(&negone, &secp256k1_scalar_one);
+    secp256k1_ge inf;
 
+    random_scalar_order_test(&s);
+    secp256k1_scalar_negate(&negone, &secp256k1_scalar_one);
     random_group_element_test(&point);
+    secp256k1_ge_set_infinity(&inf);
+
+    /* 0*point */
     secp256k1_ecmult_const(&res1, &point, &secp256k1_scalar_zero);
-    secp256k1_ge_set_gej(&res2, &res1);
-    CHECK(secp256k1_ge_is_infinity(&res2));
+    CHECK(secp256k1_gej_is_infinity(&res1));
+
+    /* s*inf */
+    secp256k1_ecmult_const(&res1, &inf, &s);
+    CHECK(secp256k1_gej_is_infinity(&res1));
+
+    /* 1*point */
     secp256k1_ecmult_const(&res1, &point, &secp256k1_scalar_one);
     secp256k1_ge_set_gej(&res2, &res1);
     ge_equals_ge(&res2, &point);
+
+    /* -1*point */
     secp256k1_ecmult_const(&res1, &point, &negone);
     secp256k1_gej_neg(&res1, &res1);
     secp256k1_ge_set_gej(&res2, &res1);
     ge_equals_ge(&res2, &point);
+}
+
+static void ecmult_const_check_result(const secp256k1_ge *A, const secp256k1_scalar* q, const secp256k1_gej *res) {
+    secp256k1_gej pointj, res2j;
+    secp256k1_ge res2;
+    secp256k1_gej_set_ge(&pointj, A);
+    secp256k1_ecmult(&res2j, &pointj, q, &secp256k1_scalar_zero);
+    secp256k1_ge_set_gej(&res2, &res2j);
+    ge_equals_gej(&res2, res);
+}
+
+static void ecmult_const_edges(void) {
+    secp256k1_scalar q;
+    secp256k1_ge point;
+    secp256k1_gej res;
+    size_t i;
+    size_t cases = 1 + sizeof(scalars_near_split_bounds) / sizeof(scalars_near_split_bounds[0]);
+
+    /* We are trying to reach the following edge cases (variables are defined as
+     * in ecmult_const_impl.h):
+     *   1. i = 0: s = 0 <=> q = -K
+     *   2. i > 0: v1, v2 large values
+     *               <=> s1, s2 large values
+     *               <=> s = scalars_near_split_bounds[i]
+     *               <=> q = 2*scalars_near_split_bounds[i] - K
+     */
+    for (i = 0; i < cases; ++i) {
+        secp256k1_scalar_negate(&q, &secp256k1_ecmult_const_K);
+        if (i > 0) {
+            secp256k1_scalar_add(&q, &q, &scalars_near_split_bounds[i - 1]);
+            secp256k1_scalar_add(&q, &q, &scalars_near_split_bounds[i - 1]);
+        }
+        random_group_element_test(&point);
+        secp256k1_ecmult_const(&res, &point, &q);
+        ecmult_const_check_result(&point, &q, &res);
+    }
 }
 
 static void ecmult_const_mult_xonly(void) {
@@ -4565,6 +4614,7 @@ static void ecmult_const_chain_multiply(void) {
 
 static void run_ecmult_const_tests(void) {
     ecmult_const_mult_zero_one();
+    ecmult_const_edges();
     ecmult_const_random_mult();
     ecmult_const_commutativity();
     ecmult_const_chain_multiply();
