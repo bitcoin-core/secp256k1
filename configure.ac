@@ -266,10 +266,6 @@ else
 fi
 
 if test x"$req_asm" = x"auto"; then
-  SECP_X86_64_ASM_CHECK
-  if test x"$has_x86_64_asm" = x"yes"; then
-    set_asm=x86_64
-  fi
   if test x"$set_asm" = x; then
     set_asm=no
   fi
