@@ -190,6 +190,10 @@ AC_ARG_ENABLE(module_schnorrsig,
     AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module [default=yes]]), [],
     [SECP_SET_DEFAULT([enable_module_schnorrsig], [yes], [yes])])
 
+AC_ARG_ENABLE(module_ellswift,
+    AS_HELP_STRING([--enable-module-ellswift],[enable ElligatorSwift module [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_module_ellswift], [yes], [yes])])
+
 AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]), [],
     [SECP_SET_DEFAULT([enable_external_default_callbacks], [no], [no])])
@@ -402,6 +406,10 @@ if test x"$enable_module_schnorrsig" = x"yes"; then
   enable_module_extrakeys=yes
 fi
 
+if test x"$enable_module_ellswift" = x"yes"; then
+  AC_DEFINE(ENABLE_MODULE_ELLSWIFT, 1, [Define this symbol to enable the ElligatorSwift module])
+fi
+
 # Test if extrakeys is set after the schnorrsig module to allow the schnorrsig
 # module to set enable_module_extrakeys=yes
 if test x"$enable_module_extrakeys" = x"yes"; then
@@ -444,6 +452,7 @@ AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
+AM_CONDITIONAL([ENABLE_MODULE_ELLSWIFT], [test x"$enable_module_ellswift" = x"yes"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$enable_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm32"])
 AM_CONDITIONAL([BUILD_WINDOWS], [test "$build_windows" = "yes"])
@@ -465,6 +474,7 @@ echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
 echo "  module extrakeys        = $enable_module_extrakeys"
 echo "  module schnorrsig       = $enable_module_schnorrsig"
+echo "  module ellswift         = $enable_module_ellswift"
 echo
 echo "  asm                     = $set_asm"
 echo "  ecmult window size      = $set_ecmult_window"

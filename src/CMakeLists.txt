@@ -132,6 +132,9 @@ if(SECP256K1_INSTALL)
   if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
     list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_schnorrsig.h")
   endif()
+  if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
+    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_ellswift.h")
+  endif()
   install(FILES ${${PROJECT_NAME}_headers}
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
