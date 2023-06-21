@@ -267,8 +267,10 @@ static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a);
 /** Compute a square root of a field element.
  *
  * On input, a must be a valid field element with magnitude<=8; r need not be initialized.
- * Performs {r = sqrt(a)} or {r = sqrt(-a)}, whichever exists. The resulting value
- * represented by r will be a square itself. Variables r and a must not point to the same object.
+ * If sqrt(a) exists, performs {r = sqrt(a)} and returns 1.
+ * Otherwise, sqrt(-a) exists. The function performs {r = sqrt(-a)} and returns 0.
+ * The resulting value represented by r will be a square itself.
+ * Variables r and a must not point to the same object.
  * On output, r will have magnitude 1 but will not be normalized.
  */
 static int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k1_fe * SECP256K1_RESTRICT a);
