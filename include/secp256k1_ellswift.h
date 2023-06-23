@@ -41,6 +41,8 @@ extern "C" {
  * - The paper uses an additional encoding bit for the parity of y. Here the
  *   parity of t is used (negating t does not affect the decoded x coordinate,
  *   so this is possible).
+ *
+ * For mathematical background about the scheme, see the doc/ellswift.md file.
  */
 
 /** A pointer to a function used by secp256k1_ellswift_xdh to hash the shared X
