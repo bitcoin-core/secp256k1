@@ -1,4 +1,5 @@
-name: Execute tests with coverage enabled (gcc13)
+name: Functional tests, gcc13
+
 # In secp256k1 some assertions are not exactly equal when coverage is enabled
 # and when it is not. Hence, it is better to run the two cases separately.
 
