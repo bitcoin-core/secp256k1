@@ -1,6 +1,8 @@
 secp256k1-frost
 =====================================
 
+[![tests](https://github.com/bancaditalia/secp256k1-frost/actions/workflows/functional-tests.yml/badge.svg?branch=frost&event=push)](https://github.com/bancaditalia/secp256k1-frost/actions/workflows/functional-tests.yml)
+
 This repository extends the [secp256k1](https://github.com/bitcoin-core/secp256k1) library to implement FROST,
 a Schnorr threshold signature scheme originally designed by C. Komlo and I. Goldberg.
 
