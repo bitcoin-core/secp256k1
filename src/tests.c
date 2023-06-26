@@ -89,16 +89,6 @@ static void uncounting_illegal_callback_fn(const char* str, void* data) {
     (*p)--;
 }
 
-static void random_field_element_test(secp256k1_fe *fe) {
-    do {
-        unsigned char b32[32];
-        secp256k1_testrand256_test(b32);
-        if (secp256k1_fe_set_b32_limit(fe, b32)) {
-            break;
-        }
-    } while(1);
-}
-
 static void random_field_element_magnitude(secp256k1_fe *fe) {
     secp256k1_fe zero;
     int n = secp256k1_testrand_int(9);
@@ -115,10 +105,20 @@ static void random_field_element_magnitude(secp256k1_fe *fe) {
 #endif
 }
 
+static void random_fe_test(secp256k1_fe *x) {
+    unsigned char bin[32];
+    do {
+        secp256k1_testrand256_test(bin);
+        if (secp256k1_fe_set_b32_limit(x, bin)) {
+            return;
+        }
+    } while(1);
+}
+
 static void random_group_element_test(secp256k1_ge *ge) {
     secp256k1_fe fe;
     do {
-        random_field_element_test(&fe);
+        random_fe_test(&fe);
         if (secp256k1_ge_set_xo_var(ge, &fe, secp256k1_testrand_bits(1))) {
             secp256k1_fe_normalize(&ge->y);
             break;
@@ -130,7 +130,7 @@ static void random_group_element_test(secp256k1_ge *ge) {
 static void random_group_element_jacobian_test(secp256k1_gej *gej, const secp256k1_ge *ge) {
     secp256k1_fe z2, z3;
     do {
-        random_field_element_test(&gej->z);
+        random_fe_test(&gej->z);
         if (!secp256k1_fe_is_zero(&gej->z)) {
             break;
         }
@@ -2984,16 +2984,6 @@ static void random_fe(secp256k1_fe *x) {
     } while(1);
 }
 
-static void random_fe_test(secp256k1_fe *x) {
-    unsigned char bin[32];
-    do {
-        secp256k1_testrand256_test(bin);
-        if (secp256k1_fe_set_b32_limit(x, bin)) {
-            return;
-        }
-    } while(1);
-}
-
 static void random_fe_non_zero(secp256k1_fe *nz) {
     int tries = 10;
     while (--tries >= 0) {
@@ -3821,7 +3811,7 @@ static void test_ge(void) {
 
     /* Generate random zf, and zfi2 = 1/zf^2, zfi3 = 1/zf^3 */
     do {
-        random_field_element_test(&zf);
+        random_fe_test(&zf);
     } while(secp256k1_fe_is_zero(&zf));
     random_field_element_magnitude(&zf);
     secp256k1_fe_inv_var(&zfi3, &zf);
@@ -3830,7 +3820,7 @@ static void test_ge(void) {
 
     /* Generate random r */
     do {
-        random_field_element_test(&r);
+        random_fe_test(&r);
     } while(secp256k1_fe_is_zero(&r));
 
     for (i1 = 0; i1 < 1 + 4 * runs; i1++) {
@@ -4148,7 +4138,7 @@ static void run_gej(void) {
         CHECK(!secp256k1_gej_eq_var(&a, &b));
 
         b = a;
-        random_field_element_test(&fe);
+        random_fe_test(&fe);
         if (secp256k1_fe_is_zero(&fe)) {
             continue;
         }
@@ -4591,7 +4581,7 @@ static void ecmult_const_mult_xonly(void) {
         /* If i is odd, n=d*base.x for random non-zero d */
         if (i & 1) {
             do {
-                random_field_element_test(&d);
+                random_fe_test(&d);
             } while (secp256k1_fe_normalizes_to_zero_var(&d));
             secp256k1_fe_mul(&n, &base.x, &d);
         } else {
@@ -4617,12 +4607,12 @@ static void ecmult_const_mult_xonly(void) {
         random_scalar_order_test(&q);
         /* Generate random X coordinate not on the curve. */
         do {
-            random_field_element_test(&x);
+            random_fe_test(&x);
         } while (secp256k1_ge_x_on_curve_var(&x));
         /* If i is odd, n=d*x for random non-zero d. */
         if (i & 1) {
             do {
-                random_field_element_test(&d);
+                random_fe_test(&d);
             } while (secp256k1_fe_normalizes_to_zero_var(&d));
             secp256k1_fe_mul(&n, &x, &d);
         } else {
