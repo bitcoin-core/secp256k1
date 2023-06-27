@@ -136,11 +136,20 @@ typedef int (*secp256k1_nonce_function)(
 /* Symbol visibility. See https://gcc.gnu.org/wiki/Visibility */
 /* DLL_EXPORT is defined internally for shared builds */
 #if defined(_WIN32) || defined(__CYGWIN__)
+# if defined(SECP256K1_STATICLIB) && defined(SECP256K1_DLL)
+#  error "At most one of SECP256K1_STATICLIB and SECP256K1_DLL must be defined."
+# endif
 # ifdef SECP256K1_BUILD
 #  ifdef DLL_EXPORT
 #   define SECP256K1_API            __declspec (dllexport)
 #   define SECP256K1_API_VAR extern __declspec (dllexport)
 #  endif
+# elif defined(SECP256K1_STATICLIB)
+#  define SECP256K1_API
+#  define SECP256K1_API_VAR  extern
+# elif defined(SECP256K1_DLL)
+#  define SECP256K1_API             __declspec (dllimport)
+#  define SECP256K1_API_VAR  extern __declspec (dllimport)
 # elif defined _MSC_VER
 #  define SECP256K1_API
 #  define SECP256K1_API_VAR  extern __declspec (dllimport)
