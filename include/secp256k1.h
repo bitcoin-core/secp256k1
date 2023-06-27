@@ -133,8 +133,14 @@ typedef int (*secp256k1_nonce_function)(
 # define SECP256K1_NO_BUILD
 #endif
 
-/* Symbol visibility. See https://gcc.gnu.org/wiki/Visibility */
+/* Symbol visibility. */
 #if defined(_WIN32)
+  /* GCC for Windows (e.g., MinGW) accepts the __declspec syntax
+   * for MSVC compatibility. A __declspec declaration implies (but is not
+   * exactly equivalent to) __attribute__ ((visibility("default"))), and so we
+   * actually want __declspec even on GCC, see "Microsoft Windows Function
+   * Attributes" in the GCC manual and the recommendations in
+   * https://gcc.gnu.org/wiki/Visibility. */
 # if defined(SECP256K1_BUILD)
 #  if defined(DLL_EXPORT) || defined(SECP256K1_DLL_EXPORT)
     /* Building libsecp256k1 as a DLL.
@@ -151,8 +157,10 @@ typedef int (*secp256k1_nonce_function)(
 #endif
 #ifndef SECP256K1_API
 # if defined(__GNUC__) && (__GNUC__ >= 4) && defined(SECP256K1_BUILD)
+   /* Building libsecp256k1 on non-Windows using GCC or compatible. */
 #  define SECP256K1_API extern __attribute__ ((visibility ("default")))
 # else
+   /* All cases not captured above. */
 #  define SECP256K1_API extern
 # endif
 #endif
