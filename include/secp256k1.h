@@ -133,36 +133,56 @@ typedef int (*secp256k1_nonce_function)(
 # define SECP256K1_NO_BUILD
 #endif
 
-/* Symbol visibility. See https://gcc.gnu.org/wiki/Visibility */
-/* DLL_EXPORT is defined internally for shared builds */
+/* Symbol visibility. */
 #if defined(_WIN32) || defined(__CYGWIN__)
 # if defined(SECP256K1_STATICLIB) && defined(SECP256K1_DLL)
 #  error "At most one of SECP256K1_STATICLIB and SECP256K1_DLL must be defined."
 # endif
-# ifdef SECP256K1_BUILD
-#  ifdef DLL_EXPORT
+ /* GCC for Windows (e.g., MinGW) and for Cygwin accept the __declspec syntax
+  * for MSVC compatibility. A __declspec declaration implies (but is not
+  * exactly equivalent to) __attribute__ ((visibility("default"))), and so we
+  * actually want __declspec even on GCC, see "Microsoft Windows Function
+  * Attributes" in the GCC manual and the recommendations in
+  * https://gcc.gnu.org/wiki/Visibility. */
+# if defined(SECP256K1_BUILD)
+#  if defined(DLL_EXPORT)
+   /* Building libsecp256k1 as a DLL. (DLL_EXPORT is a libtool convention.) */
 #   define SECP256K1_API            __declspec (dllexport)
 #   define SECP256K1_API_VAR extern __declspec (dllexport)
 #  endif
 # elif defined(SECP256K1_STATICLIB)
+   /* Linking against static libsecp256k1 requested explicitly. */
 #  define SECP256K1_API
 #  define SECP256K1_API_VAR  extern
 # elif defined(SECP256K1_DLL)
+   /* Linking against a libsecp256k1 DLL requested explicitly. */
 #  define SECP256K1_API             __declspec (dllimport)
 #  define SECP256K1_API_VAR  extern __declspec (dllimport)
-# elif defined _MSC_VER
+# elif defined(_MSC_VER)
+   /* No method requested explicitly. The following works on MSVC for both
+    * static and dynamic linking, as long as if at least one function is
+    * imported (i.e., not only variables are imported), which should be the case
+    * for any meaningful program that uses the libsecp256k1 API. The drawback of
+    * the following is that it may provoke linker warnings LNK4217 and LNK4286.
+    * See "Windows DLLs" in the libtool manual. */
 #  define SECP256K1_API
 #  define SECP256K1_API_VAR  extern __declspec (dllimport)
-# elif defined DLL_EXPORT
+# elif defined(DLL_EXPORT)
+   /* No method requested explicitly and we're not on MSVC. We make an educated
+    * guess based on libtool's DLL_EXPORT convention: If the importing program
+    * is itself a DLL, then it is likely that it also wants to consume
+    * libsecp256k1 as a DLL. See "Windows DLLs" in the libtool manual. */
 #  define SECP256K1_API             __declspec (dllimport)
 #  define SECP256K1_API_VAR  extern __declspec (dllimport)
 # endif
 #endif
 #ifndef SECP256K1_API
 # if defined(__GNUC__) && (__GNUC__ >= 4) && defined(SECP256K1_BUILD)
+   /* Building libsecp256k1 on non-Windows using GCC or compatible. */
 #  define SECP256K1_API             __attribute__ ((visibility ("default")))
 #  define SECP256K1_API_VAR  extern __attribute__ ((visibility ("default")))
 # else
+   /* All cases not captured above. */
 #  define SECP256K1_API
 #  define SECP256K1_API_VAR  extern
 # endif
