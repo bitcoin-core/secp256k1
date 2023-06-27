@@ -4611,17 +4611,14 @@ static void ecmult_const_mult_xonly(void) {
 
     /* Test that secp256k1_ecmult_const_xonly correctly rejects X coordinates not on curve. */
     for (i = 0; i < 2*COUNT; ++i) {
-        secp256k1_fe x, n, d, c, r;
+        secp256k1_fe x, n, d, r;
         int res;
         secp256k1_scalar q;
         random_scalar_order_test(&q);
         /* Generate random X coordinate not on the curve. */
         do {
             random_field_element_test(&x);
-            secp256k1_fe_sqr(&c, &x);
-            secp256k1_fe_mul(&c, &c, &x);
-            secp256k1_fe_add_int(&c, SECP256K1_B);
-        } while (secp256k1_fe_is_square_var(&c));
+        } while (secp256k1_ge_x_on_curve_var(&x));
         /* If i is odd, n=d*x for random non-zero d. */
         if (i & 1) {
             do {
