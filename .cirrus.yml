@@ -67,7 +67,7 @@ linux_container_snippet: &LINUX_CONTAINER
 task:
   name: "x86_64: Linux (Debian stable)"
   << : *LINUX_CONTAINER
-  matrix: &ENV_MATRIX
+  matrix:
     - env: {WIDEMUL:  int64,  RECOVERY: yes}
     - env: {WIDEMUL:  int64,                 ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes}
     - env: {WIDEMUL: int128}
@@ -122,17 +122,20 @@ task:
     HOMEBREW_NO_INSTALL_CLEANUP: 1
     # Cirrus gives us a fixed number of 4 virtual CPUs. Not that we even have that many jobs at the moment...
     MAKEFLAGS: -j5
-  matrix:
-    << : *ENV_MATRIX
   env:
     ASM: no
     WITH_VALGRIND: no
     CTIMETESTS: no
+    CC: clang
   matrix:
-    - env:
-        CC: gcc
-    - env:
-        CC: clang
+    - env: {WIDEMUL:  int64,  RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes}
+    - env: {WIDEMUL:  int64,  RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes, CC: gcc}
+    - env: {WIDEMUL: int128_struct, ECMULTGENPRECISION: 2, ECMULTWINDOW: 4}
+    - env: {WIDEMUL: int128,                 ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes}
+    - env: {WIDEMUL: int128,  RECOVERY: yes,            SCHNORRSIG: yes}
+    - env: {WIDEMUL: int128,  RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes, CC: gcc}
+    - env: {WIDEMUL: int128,  RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes, CPPFLAGS: -DVERIFY}
+    - env: {BUILD: distcheck}
   brew_script:
     - brew install automake libtool gcc
   test_script:
