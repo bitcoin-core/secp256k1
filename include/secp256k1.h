@@ -145,7 +145,7 @@ typedef int (*secp256k1_nonce_function)(
   * Attributes" in the GCC manual and the recommendations in
   * https://gcc.gnu.org/wiki/Visibility. */
 # if defined(SECP256K1_BUILD)
-#  if defined(DLL_EXPORT)
+#  if defined(SECP256K1_DLL) || defined(DLL_EXPORT) 
    /* Building libsecp256k1 as a DLL. (DLL_EXPORT is a libtool convention.) */
 #   define SECP256K1_API            __declspec (dllexport)
 #   define SECP256K1_API_VAR extern __declspec (dllexport)
