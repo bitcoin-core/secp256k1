@@ -134,10 +134,12 @@ typedef int (*secp256k1_nonce_function)(
 #endif
 
 /* Symbol visibility. See https://gcc.gnu.org/wiki/Visibility */
-/* DLL_EXPORT is defined internally for shared builds */
 #if defined(_WIN32)
-# ifdef SECP256K1_BUILD
-#  ifdef DLL_EXPORT
+# if defined(SECP256K1_BUILD)
+#  if defined(DLL_EXPORT) || defined(SECP256K1_DLL_EXPORT)
+    /* Building libsecp256k1 as a DLL.
+     * 1. If using Libtool, it defines DLL_EXPORT automatically.
+     * 2. In other cases, SECP256K1_DLL_EXPORT must be defined. */
 #   define SECP256K1_API extern __declspec (dllexport)
 #  endif
   /* The user must define SECP256K1_STATIC when consuming libsecp256k1 as a static
