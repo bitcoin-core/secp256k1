@@ -383,12 +383,17 @@ task:
     # Ignore MSBuild warning MSB8029.
     # See: https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb8029?view=vs-2022
     IgnoreWarnIntDirInTempDetected: 'true'
+  matrix:
+    - env:
+        BUILD_SHARED_LIBS: ON
+    - env:
+        BUILD_SHARED_LIBS: OFF
   git_show_script:
     # Print commit to allow reproducing the job outside of CI.
     - git show --no-patch
   configure_script:
     - '%x64_NATIVE_TOOLS%'
-    - cmake -E env CFLAGS="/WX" cmake -G "Visual Studio 17 2022" -A x64 -S . -B build -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON
+    - cmake -E env CFLAGS="/WX" cmake -A x64 -B build -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON -DBUILD_SHARED_LIBS=%BUILD_SHARED_LIBS%
   build_script:
     - '%x64_NATIVE_TOOLS%'
     - cmake --build build --config RelWithDebInfo -- -property:UseMultiToolTask=true;CL_MPcount=5
