@@ -141,10 +141,10 @@ typedef int (*secp256k1_nonce_function)(
 #   define SECP256K1_API            __declspec (dllexport)
 #   define SECP256K1_API_VAR extern __declspec (dllexport)
 #  endif
-# elif defined _MSC_VER
-#  define SECP256K1_API
-#  define SECP256K1_API_VAR  extern __declspec (dllimport)
-# elif defined DLL_EXPORT
+  /* The user must define SECP256K1_STATIC when consuming libsecp256k1 as a static
+   * library on Windows. */
+# elif !defined(SECP256K1_STATIC)
+   /* Consuming libsecp256k1 as a DLL. */
 #  define SECP256K1_API             __declspec (dllimport)
 #  define SECP256K1_API_VAR  extern __declspec (dllimport)
 # endif

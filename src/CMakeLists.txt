@@ -24,6 +24,7 @@ endif()
 # This matches libtool's usage of DLL_EXPORT
 if(WIN32)
   set_target_properties(secp256k1 PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
+  target_compile_definitions(secp256k1 INTERFACE $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:SECP256K1_STATIC>)
 endif()
 
 # Object libs don't know if they're being built for a shared or static lib.
