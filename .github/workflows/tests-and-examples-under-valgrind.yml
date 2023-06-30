@@ -1,0 +1,61 @@
+name: Run FROST tests and example under Valgrind
+
+on:
+  push:
+    branches:
+      - frost
+  pull_request:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  tests-and-examples-under-valgrind:
+    runs-on: ubuntu-22.04
+    # Use fedora:38 to compile using gcc-13
+    container:
+      image: fedora:38
+    steps:
+      - name: Install build dependencies and Valgrind
+        run: |
+          dnf install -y \
+              autoconf \
+              automake \
+              gcc \
+              libtool \
+              pkg-config \
+              valgrind
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      - name: prepare the build (only enabling FROST, tests and examples)
+        run: |
+          ./autogen.sh
+          ./configure \
+              --disable-benchmark \
+              --disable-coverage \
+              --disable-exhaustive-tests \
+              --disable-module-ecdh \
+              --disable-module-extrakeys \
+              --disable-module-recovery \
+              --disable-module-schnorrsig \
+              --enable-examples \
+              --enable-experimental \
+              --enable-module-frost \
+              --enable-option-checking \
+              --enable-tests
+      - name: build the project
+        run: make -j
+      - name: run the FROST example under Valgrind
+        run: |
+          valgrind \
+              --show-error-list=yes \
+              --leak-check=yes \
+              --error-exitcode=17 \
+              ./frost_example
+      - name: run the FROST tests under Valgrind
+        run: |
+          valgrind \
+              --show-error-list=yes \
+              --leak-check=yes \
+              --error-exitcode=17 \
+              ./tests
