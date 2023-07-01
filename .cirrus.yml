@@ -54,12 +54,6 @@ cat_logs_snippet: &CAT_LOGS
     cat_ci_env_script:
       - env
 
-merge_base_script_snippet: &MERGE_BASE
-  merge_base_script:
-    - if [ "$CIRRUS_PR" = "" ]; then exit 0; fi
-    - git fetch --depth=1 $CIRRUS_REPO_CLONE_URL "pull/${CIRRUS_PR}/merge"
-    - git checkout FETCH_HEAD  # Use merged changes to detect silent merge conflicts
-
 linux_container_snippet: &LINUX_CONTAINER
   container:
     dockerfile: ci/linux-debian.Dockerfile
@@ -93,7 +87,6 @@ task:
         CC: gcc
     - env:
         CC: clang
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -111,7 +104,6 @@ task:
         CC: i686-linux-gnu-gcc
     - env:
         CC: clang --target=i686-pc-linux-gnu -isystem /usr/i686-linux-gnu/include
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -138,7 +130,6 @@ task:
         CC: clang
   brew_script:
     - brew install automake libtool gcc
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -157,7 +148,6 @@ task:
     SCHNORRSIG: yes
     ELLSWIFT: yes
     CTIMETESTS: no
-  << : *MERGE_BASE
   test_script:
     # https://sourceware.org/bugzilla/show_bug.cgi?id=27008
     - rm /etc/ld.so.cache
@@ -180,7 +170,6 @@ task:
   matrix:
     - env: {}
     - env: {EXPERIMENTAL: yes, ASM: arm32}
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -198,7 +187,6 @@ task:
     SCHNORRSIG: yes
     ELLSWIFT: yes
     CTIMETESTS: no
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -216,7 +204,6 @@ task:
     SCHNORRSIG: yes
     ELLSWIFT: yes
     CTIMETESTS: no
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -237,7 +224,6 @@ task:
     - name: "i686 (mingw32-w64): Windows (Debian stable, Wine)"
       env:
         HOST: i686-w64-mingw32
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -280,7 +266,6 @@ task:
         CC: /opt/msvc/bin/x86/cl
         AR: /opt/msvc/bin/x86/lib
         NM: /opt/msvc/bin/x86/dumpbin -symbols -headers
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -325,7 +310,6 @@ task:
     - env:
         HOST: i686-linux-gnu
         CC: i686-linux-gnu-gcc
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -352,7 +336,6 @@ task:
         ECMULTGENPRECISION: 2
         ECMULTWINDOW: 2
         CFLAGS: "-fsanitize=memory -g -O3"
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -369,7 +352,6 @@ task:
     RECOVERY: yes
     SCHNORRSIG: yes
     ELLSWIFT: yes
-  << : *MERGE_BASE
   test_script:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
@@ -401,8 +383,6 @@ task:
     # Ignore MSBuild warning MSB8029.
     # See: https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb8029?view=vs-2022
     IgnoreWarnIntDirInTempDetected: 'true'
-  merge_script:
-    - PowerShell -NoLogo -Command if ($env:CIRRUS_PR -ne $null) { git fetch $env:CIRRUS_REPO_CLONE_URL pull/$env:CIRRUS_PR/merge; git reset --hard FETCH_HEAD; }
   configure_script:
     - '%x64_NATIVE_TOOLS%'
     - cmake -E env CFLAGS="/WX" cmake -G "Visual Studio 17 2022" -A x64 -S . -B build -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON
