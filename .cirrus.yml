@@ -80,6 +80,7 @@ task:
     - env: {BUILD: distcheck, WITH_VALGRIND: no, CTIMETESTS: no, BENCH: no}
     - env: {CPPFLAGS: -DDETERMINISTIC}
     - env: {CFLAGS: -O0, CTIMETESTS: no}
+    - env: {CFLAGS: -O1, RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes}
     - env: { ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
     - env: { ECMULTGENPRECISION: 8, ECMULTWINDOW: 4 }
   matrix:
