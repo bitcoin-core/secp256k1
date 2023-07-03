@@ -133,29 +133,35 @@ typedef int (*secp256k1_nonce_function)(
 # define SECP256K1_NO_BUILD
 #endif
 
-/* Symbol visibility. See https://gcc.gnu.org/wiki/Visibility */
-/* DLL_EXPORT is defined internally for shared builds */
+/* Symbol visibility. */
 #if defined(_WIN32)
-# ifdef SECP256K1_BUILD
-#  ifdef DLL_EXPORT
-#   define SECP256K1_API            __declspec (dllexport)
-#   define SECP256K1_API_VAR extern __declspec (dllexport)
+  /* GCC for Windows (e.g., MinGW) accepts the __declspec syntax
+   * for MSVC compatibility. A __declspec declaration implies (but is not
+   * exactly equivalent to) __attribute__ ((visibility("default"))), and so we
+   * actually want __declspec even on GCC, see "Microsoft Windows Function
+   * Attributes" in the GCC manual and the recommendations in
+   * https://gcc.gnu.org/wiki/Visibility. */
+# if defined(SECP256K1_BUILD)
+#  if defined(DLL_EXPORT) || defined(SECP256K1_DLL_EXPORT)
+    /* Building libsecp256k1 as a DLL.
+     * 1. If using Libtool, it defines DLL_EXPORT automatically.
+     * 2. In other cases, SECP256K1_DLL_EXPORT must be defined. */
+#   define SECP256K1_API extern __declspec (dllexport)
 #  endif
-# elif defined _MSC_VER
-#  define SECP256K1_API
-#  define SECP256K1_API_VAR  extern __declspec (dllimport)
-# elif defined DLL_EXPORT
-#  define SECP256K1_API             __declspec (dllimport)
-#  define SECP256K1_API_VAR  extern __declspec (dllimport)
+  /* The user must define SECP256K1_STATIC when consuming libsecp256k1 as a static
+   * library on Windows. */
+# elif !defined(SECP256K1_STATIC)
+   /* Consuming libsecp256k1 as a DLL. */
+#  define SECP256K1_API extern __declspec (dllimport)
 # endif
 #endif
 #ifndef SECP256K1_API
 # if defined(__GNUC__) && (__GNUC__ >= 4) && defined(SECP256K1_BUILD)
-#  define SECP256K1_API             __attribute__ ((visibility ("default")))
-#  define SECP256K1_API_VAR  extern __attribute__ ((visibility ("default")))
+   /* Building libsecp256k1 on non-Windows using GCC or compatible. */
+#  define SECP256K1_API extern __attribute__ ((visibility ("default")))
 # else
-#  define SECP256K1_API
-#  define SECP256K1_API_VAR  extern
+   /* All cases not captured above. */
+#  define SECP256K1_API extern
 # endif
 #endif
 
@@ -227,10 +233,10 @@ typedef int (*secp256k1_nonce_function)(
  *
  *  It is highly recommended to call secp256k1_selftest before using this context.
  */
-SECP256K1_API_VAR const secp256k1_context *secp256k1_context_static;
+SECP256K1_API const secp256k1_context *secp256k1_context_static;
 
 /** Deprecated alias for secp256k1_context_static. */
-SECP256K1_API_VAR const secp256k1_context *secp256k1_context_no_precomp
+SECP256K1_API const secp256k1_context *secp256k1_context_no_precomp
 SECP256K1_DEPRECATED("Use secp256k1_context_static instead");
 
 /** Perform basic self tests (to be used in conjunction with secp256k1_context_static)
@@ -627,10 +633,10 @@ SECP256K1_API int secp256k1_ecdsa_signature_normalize(
  * If a data pointer is passed, it is assumed to be a pointer to 32 bytes of
  * extra entropy.
  */
-SECP256K1_API_VAR const secp256k1_nonce_function secp256k1_nonce_function_rfc6979;
+SECP256K1_API const secp256k1_nonce_function secp256k1_nonce_function_rfc6979;
 
 /** A default safe nonce generation function (currently equal to secp256k1_nonce_function_rfc6979). */
-SECP256K1_API_VAR const secp256k1_nonce_function secp256k1_nonce_function_default;
+SECP256K1_API const secp256k1_nonce_function secp256k1_nonce_function_default;
 
 /** Create an ECDSA signature.
  *

@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Document `doc/ellswift.md` which explains the mathematical background of the scheme.
    - The [paper](https://eprint.iacr.org/2022/759) on which the scheme is based.
 
+#### Changed
+ - When consuming libsecp256k1 as a static library on Windows, the user must now define the `SECP256K1_STATIC` macro before including `secp256k1.h`.
+
 ## [0.3.2] - 2023-05-13
 We strongly recommend updating to 0.3.2 if you use or plan to use GCC >=13 to compile libsecp256k1. When in doubt, check the GCC version using `gcc -v`.
 
