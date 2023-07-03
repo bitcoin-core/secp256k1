@@ -734,10 +734,10 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_negate(
  *                  invalid according to secp256k1_ec_seckey_verify, this
  *                  function returns 0. seckey will be set to some unspecified
  *                  value if this function returns 0.
- *  In:    tweak32: pointer to a 32-byte tweak. If the tweak is invalid according to
- *                  secp256k1_ec_seckey_verify, this function returns 0. For
- *                  uniformly random 32-byte arrays the chance of being invalid
- *                  is negligible (around 1 in 2^128).
+ *  In:    tweak32: pointer to a 32-byte tweak, which must be valid according to
+ *                  secp256k1_ec_seckey_verify or 32 zero bytes. For uniformly
+ *                  random 32-byte tweaks, the chance of being invalid is
+ *                  negligible (around 1 in 2^128).
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_seckey_tweak_add(
     const secp256k1_context *ctx,
@@ -762,10 +762,10 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_privkey_tweak_add(
  *  Args:    ctx:   pointer to a context object.
  *  In/Out: pubkey: pointer to a public key object. pubkey will be set to an
  *                  invalid value if this function returns 0.
- *  In:    tweak32: pointer to a 32-byte tweak. If the tweak is invalid according to
- *                  secp256k1_ec_seckey_verify, this function returns 0. For
- *                  uniformly random 32-byte arrays the chance of being invalid
- *                  is negligible (around 1 in 2^128).
+ *  In:    tweak32: pointer to a 32-byte tweak, which must be valid according to
+ *                  secp256k1_ec_seckey_verify or 32 zero bytes. For uniformly
+ *                  random 32-byte tweaks, the chance of being invalid is
+ *                  negligible (around 1 in 2^128).
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_add(
     const secp256k1_context *ctx,
