@@ -69,7 +69,7 @@ Building with Autotools
     $ make check  # run the test suite
     $ sudo make install  # optional
 
-To compile optional modules (such as Schnorr signatures), you need to run `./configure` with additional flags (such as `--enable-module-schnorrsig`). Run `./configure --help` to see the full list of available flags.
+To configure the build system, run the `./configure` script with additional [options](/doc/build-options.md).
 
 Building with CMake (experimental)
 ----------------------------------
@@ -84,7 +84,7 @@ To maintain a pristine source tree, CMake encourages to perform an out-of-source
     $ make check  # run the test suite
     $ sudo make install  # optional
 
-To compile optional modules (such as Schnorr signatures), you need to run `cmake` with additional flags (such as `-DSECP256K1_ENABLE_MODULE_SCHNORRSIG=ON`). Run `cmake .. -LH` to see the full list of available flags.
+To generate a non-default build system, run the `cmake` command with additional [options](/doc/build-options.md).
 
 ### Cross compiling
 
