@@ -57,7 +57,7 @@ RUN wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.
     ln -s $(ls /usr/bin/clang-?? | sort | tail -1) /usr/bin/clang-snapshot && \
     ln -s $(ls /usr/bin/clang-?? | sort | head -1) /usr/bin/clang
 
-# The "wine" package provides a convience wrapper that we need
+# The "wine" package provides a convenience wrapper that we need
 RUN apt-get update && apt-get install --no-install-recommends -y \
         git ca-certificates wine64 wine python3-simplejson python3-six msitools winbind procps && \
 # Workaround for `wine` package failure to employ the Debian alternatives system properly.
