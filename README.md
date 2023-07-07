@@ -34,7 +34,7 @@ Implementation details
   * Expose only higher level interfaces to minimize the API surface and improve application security. ("Be difficult to use insecurely.")
 * Field operations
   * Optimized implementation of arithmetic modulo the curve's field size (2^256 - 0x1000003D1).
-    * Using 5 52-bit limbs (including hand-optimized assembly for x86_64, by Diederik Huys).
+    * Using 5 52-bit limbs (including [CryptOpt](https://github.com/0xADE1A1DE/CryptOpt)-optimized assembly for x86_64, which includes formal correctness proofs).
     * Using 10 26-bit limbs (including hand-optimized assembly for 32-bit ARM, by Wladimir J. van der Laan).
       * This is an experimental feature that has not received enough scrutiny to satisfy the standard of quality of this library but is made available for testing and review by the community.
 * Scalar operations
