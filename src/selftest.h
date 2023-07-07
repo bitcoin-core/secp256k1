@@ -25,6 +25,34 @@ static int secp256k1_selftest_sha256(void) {
     return secp256k1_memcmp_var(out, output32, 32) == 0;
 }
 
+static int secp256k1_selftest_cpuid(void) {
+    int ret = 1;
+
+#if defined(USE_ASM_X86_64)
+    /* getting the CPU flags from the cpu, more information in the Intel manual,
+     * Table 3-8 Information Returned by CPUID instruction (3-194, Vol.2A)
+     */
+    const int CPU_FLAG_ENUMERATION = 7;
+    const int LEAF_NODE_ZERO = 0;
+
+    /* for the cpu self test, we need BMI2 and ADX support */
+    const int BIT_ADX = 19;
+    const int BIT_BMI2 = 8;
+    int flags = 0;
+    int has_adx = 0;
+    int has_bmi2 = 0;
+    __asm__ __volatile__("cpuid\n"
+                       : "=b"(flags)
+                       : "a"(CPU_FLAG_ENUMERATION), "c"(LEAF_NODE_ZERO)
+                       : "rdx", "cc");
+
+    has_adx = (flags >> BIT_ADX) & 1;
+    has_bmi2 = (flags >> BIT_BMI2) & 1;
+    ret = has_adx && has_bmi2;
+#endif
+    return ret;
+}
+
 static int secp256k1_selftest_passes(void) {
     return secp256k1_selftest_sha256();
 }

@@ -83,6 +83,11 @@ static int secp256k1_context_is_proper(const secp256k1_context* ctx) {
 }
 
 void secp256k1_selftest(void) {
+    if (!SECP256K1_CHECKMEM_RUNNING()) {
+        if (!secp256k1_selftest_cpuid()) {
+            secp256k1_callback_call(&default_error_callback, "required CPU flags are not present.");
+        }
+    }
     if (!secp256k1_selftest_passes()) {
         secp256k1_callback_call(&default_error_callback, "self test failed");
     }
