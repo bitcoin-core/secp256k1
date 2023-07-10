@@ -4035,22 +4035,15 @@ static void test_add_neg_y_diff_x(void) {
      * which this test is a regression test for.
      *
      * These points were generated in sage as
-     * # secp256k1 params
-     * F = FiniteField (0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F)
-     * C = EllipticCurve ([F (0), F (7)])
-     * G = C.lift_x(0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798)
-     * N = FiniteField(G.order())
      *
-     * # endomorphism values (lambda is 1^{1/3} in N, beta is 1^{1/3} in F)
-     * x = polygen(N)
-     * lam  = (1 - x^3).roots()[1][0]
+     * load("secp256k1_params.sage")
      *
      * # random "bad pair"
      * P = C.random_element()
-     * Q = -int(lam) * P
-     * print "    P: %x %x" % P.xy()
-     * print "    Q: %x %x" % Q.xy()
-     * print "P + Q: %x %x" % (P + Q).xy()
+     * Q = -int(LAMBDA) * P
+     * print("    P: %x %x" % P.xy())
+     * print("    Q: %x %x" % Q.xy())
+     * print("P + Q: %x %x" % (P + Q).xy())
      */
     secp256k1_gej aj = SECP256K1_GEJ_CONST(
         0x8d24cd95, 0x0a355af1, 0x3c543505, 0x44238d30,
