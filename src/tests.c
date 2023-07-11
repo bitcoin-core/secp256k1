@@ -7652,8 +7652,8 @@ static void scalar_cmov_test(void) {
     static const secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
     static const secp256k1_scalar one = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1);
     static const secp256k1_scalar max = SECP256K1_SCALAR_CONST(
-        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL,
-        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL
+        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL,
+        0xBAAEDCE6UL, 0xAF48A03BUL, 0xBFD25E8CUL, 0xD0364140UL
     );
     secp256k1_scalar r = max;
     secp256k1_scalar a = zero;
