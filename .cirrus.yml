@@ -386,7 +386,6 @@ task:
     cpu: 4
     memory: 3840MB
   env:
-    PATH: '%CIRRUS_WORKING_DIR%\build\src\RelWithDebInfo;%PATH%'
     x64_NATIVE_TOOLS: '"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"'
     # Ignore MSBuild warning MSB8029.
     # See: https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb8029?view=vs-2022
