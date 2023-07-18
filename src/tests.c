@@ -181,6 +181,35 @@ static void random_scalar_order_b32(unsigned char *b32) {
     secp256k1_scalar_get_b32(b32, &num);
 }
 
+static void run_xoshiro256pp_tests(void) {
+    {
+        size_t i;
+        /* Sanity check that we run before the actual seeding. */
+        for (i = 0; i < sizeof(secp256k1_test_state)/sizeof(secp256k1_test_state[0]); i++) {
+            CHECK(secp256k1_test_state[i] == 0);
+        }
+    }
+    {
+        int i;
+        unsigned char buf32[32];
+        unsigned char seed16[16] = {
+            'C', 'H', 'I', 'C', 'K', 'E', 'N', '!',
+            'C', 'H', 'I', 'C', 'K', 'E', 'N', '!',
+        };
+        unsigned char buf32_expected[32] = {
+            0xAF, 0xCC, 0xA9, 0x16, 0xB5, 0x6C, 0xE3, 0xF0,
+            0x44, 0x3F, 0x45, 0xE0, 0x47, 0xA5, 0x08, 0x36,
+            0x4C, 0xCC, 0xC1, 0x18, 0xB2, 0xD8, 0x8F, 0xEF,
+            0x43, 0x26, 0x15, 0x57, 0x37, 0x00, 0xEF, 0x30,
+        };
+        secp256k1_testrand_seed(seed16);
+        for (i = 0; i < 17; i++) {
+            secp256k1_testrand256(buf32);
+        }
+        CHECK(secp256k1_memcmp_var(buf32, buf32_expected, sizeof(buf32)) == 0);
+    }
+}
+
 static void run_selftest_tests(void) {
     /* Test public API */
     secp256k1_selftest();
@@ -822,78 +851,6 @@ static void run_tagged_sha256_tests(void) {
     memcpy(msg, "msg", 3);
     CHECK(secp256k1_tagged_sha256(CTX, hash32, tag, 3, msg, 3) == 1);
     CHECK(secp256k1_memcmp_var(hash32, hash_expected, sizeof(hash32)) == 0);
-}
-
-/***** RANDOM TESTS *****/
-
-static void test_rand_bits(int rand32, int bits) {
-    /* (1-1/2^B)^rounds[B] < 1/10^9, so rounds is the number of iterations to
-     * get a false negative chance below once in a billion */
-    static const unsigned int rounds[7] = {1, 30, 73, 156, 322, 653, 1316};
-    /* We try multiplying the results with various odd numbers, which shouldn't
-     * influence the uniform distribution modulo a power of 2. */
-    static const uint32_t mults[6] = {1, 3, 21, 289, 0x9999, 0x80402011};
-    /* We only select up to 6 bits from the output to analyse */
-    unsigned int usebits = bits > 6 ? 6 : bits;
-    unsigned int maxshift = bits - usebits;
-    /* For each of the maxshift+1 usebits-bit sequences inside a bits-bit
-       number, track all observed outcomes, one per bit in a uint64_t. */
-    uint64_t x[6][27] = {{0}};
-    unsigned int i, shift, m;
-    /* Multiply the output of all rand calls with the odd number m, which
-       should not change the uniformity of its distribution. */
-    for (i = 0; i < rounds[usebits]; i++) {
-        uint32_t r = (rand32 ? secp256k1_testrand32() : secp256k1_testrand_bits(bits));
-        CHECK((((uint64_t)r) >> bits) == 0);
-        for (m = 0; m < sizeof(mults) / sizeof(mults[0]); m++) {
-            uint32_t rm = r * mults[m];
-            for (shift = 0; shift <= maxshift; shift++) {
-                x[m][shift] |= (((uint64_t)1) << ((rm >> shift) & ((1 << usebits) - 1)));
-            }
-        }
-    }
-    for (m = 0; m < sizeof(mults) / sizeof(mults[0]); m++) {
-        for (shift = 0; shift <= maxshift; shift++) {
-            /* Test that the lower usebits bits of x[shift] are 1 */
-            CHECK(((~x[m][shift]) << (64 - (1 << usebits))) == 0);
-        }
-    }
-}
-
-/* Subrange must be a whole divisor of range, and at most 64 */
-static void test_rand_int(uint32_t range, uint32_t subrange) {
-    /* (1-1/subrange)^rounds < 1/10^9 */
-    int rounds = (subrange * 2073) / 100;
-    int i;
-    uint64_t x = 0;
-    CHECK((range % subrange) == 0);
-    for (i = 0; i < rounds; i++) {
-        uint32_t r = secp256k1_testrand_int(range);
-        CHECK(r < range);
-        r = r % subrange;
-        x |= (((uint64_t)1) << r);
-    }
-    /* Test that the lower subrange bits of x are 1. */
-    CHECK(((~x) << (64 - subrange)) == 0);
-}
-
-static void run_rand_bits(void) {
-    size_t b;
-    test_rand_bits(1, 32);
-    for (b = 1; b <= 32; b++) {
-        test_rand_bits(0, b);
-    }
-}
-
-static void run_rand_int(void) {
-    static const uint32_t ms[] = {1, 3, 17, 1000, 13771, 999999, 33554432};
-    static const uint32_t ss[] = {1, 3, 6, 9, 13, 31, 64};
-    unsigned int m, s;
-    for (m = 0; m < sizeof(ms) / sizeof(ms[0]); m++) {
-        for (s = 0; s < sizeof(ss) / sizeof(ss[0]); s++) {
-            test_rand_int(ms[m] * ss[s], ss[s]);
-        }
-    }
 }
 
 /***** MODINV TESTS *****/
@@ -7735,6 +7692,9 @@ int main(int argc, char **argv) {
     }
     printf("test count = %i\n", COUNT);
 
+    /* run test RNG tests (must run before we really initialize the test RNG) */
+    run_xoshiro256pp_tests();
+
     /* find random seed */
     secp256k1_testrand_init(argc > 2 ? argv[2] : NULL);
 
@@ -7771,10 +7731,6 @@ int main(int argc, char **argv) {
 
     /* scratch tests */
     run_scratch_tests();
-
-    /* randomness tests */
-    run_rand_bits();
-    run_rand_int();
 
     /* integer arithmetic tests */
 #ifdef SECP256K1_WIDEMUL_INT128
