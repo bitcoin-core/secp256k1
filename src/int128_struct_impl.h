@@ -71,6 +71,11 @@ static SECP256K1_INLINE void secp256k1_u128_accum_u64(secp256k1_uint128 *r, uint
    r->hi += r->lo < a;
 }
 
+static SECP256K1_INLINE void secp256k1_u128_accum(secp256k1_uint128 *r, secp256k1_uint128 *a){
+   r->lo += a->lo;
+   r->hi += (r->lo < a->lo) + a->hi;
+}
+
 /* Unsigned (logical) right shift.
  * Non-constant time in n.
  */

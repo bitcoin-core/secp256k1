@@ -28,6 +28,11 @@ static SECP256K1_INLINE void secp256k1_u128_accum_mul(secp256k1_uint128 *r, uint
  */
 static SECP256K1_INLINE void secp256k1_u128_accum_u64(secp256k1_uint128 *r, uint64_t a);
 
+/* Add an unsigned 128-bit value a to r.
+ * The final result is taken modulo 2^128.
+ */
+static SECP256K1_INLINE void secp256k1_u128_accum(secp256k1_uint128 *r, secp256k1_uint128 *a);
+
 /* Unsigned (logical) right shift.
  * Non-constant time in n.
  */

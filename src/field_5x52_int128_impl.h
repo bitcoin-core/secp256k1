@@ -57,26 +57,9 @@ static FIAT_SECP256K1_DETTMAN_FIAT_INLINE uint64_t u64_and_u128_u64(secp256k1_ui
 }
 
 static FIAT_SECP256K1_DETTMAN_FIAT_INLINE secp256k1_uint128 u128_add_u128_u128(secp256k1_uint128 a, secp256k1_uint128 b) {
-  uint64_t bl; 
-  uint64_t bh; 
-  uint64_t rh;
-  uint64_t rl;
   secp256k1_uint128 r = a;
 
-  bl = secp256k1_u128_to_u64(&b);
-
-  /* adding low b to r*/
-  secp256k1_u128_accum_u64(&r, bl);
-
-  rl = secp256k1_u128_to_u64(&r);
-  rh = secp256k1_u128_hi_u64(&r);
-
-  /* adding high b*/
-  bh = secp256k1_u128_hi_u64(&b);
-  rh += bh;
-
-  /* saving all in r*/
-  secp256k1_u128_load(&r, rh, rl);
+  secp256k1_u128_accum(&r, &b);
 
   return r;
 }
