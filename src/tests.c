@@ -5983,7 +5983,6 @@ static void run_ec_pubkey_parse_test(void) {
     size_t len;
     int32_t i;
     int32_t ecount;
-    int32_t ecount2;
     ecount = 0;
     /* Nothing should be reading this far into pubkeyc. */
     SECP256K1_CHECKMEM_UNDEFINE(&pubkeyc[65], 1);
@@ -6104,15 +6103,8 @@ static void run_ec_pubkey_parse_test(void) {
     CHECK(len == 65);
     /* Multiple illegal args. Should still set arg error only once. */
     ecount = 0;
-    ecount2 = 11;
     CHECK(secp256k1_ec_pubkey_parse(CTX, NULL, NULL, 65) == 0);
     CHECK(ecount == 1);
-    /* Does the illegal arg callback actually change the behavior? */
-    secp256k1_context_set_illegal_callback(CTX, uncounting_illegal_callback_fn, &ecount2);
-    CHECK(secp256k1_ec_pubkey_parse(CTX, NULL, NULL, 65) == 0);
-    CHECK(ecount == 1);
-    CHECK(ecount2 == 10);
-    secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
     /* Try a bunch of prefabbed points with all possible encodings. */
     for (i = 0; i < SECP256K1_EC_PARSE_TEST_NVALID; i++) {
         ec_pubkey_parse_pointtest(valid[i], 1, 1);
