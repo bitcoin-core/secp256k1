@@ -496,7 +496,6 @@ static void run_scratch_tests(void) {
     secp256k1_scratch_space *scratch;
     secp256k1_scratch_space local_scratch;
 
-    secp256k1_context_set_illegal_callback(CTX, counting_illegal_callback_fn, &ecount);
     secp256k1_context_set_error_callback(CTX, counting_illegal_callback_fn, &ecount);
 
     /* Test public API */
@@ -567,7 +566,6 @@ static void run_scratch_tests(void) {
     /* cleanup */
     secp256k1_scratch_space_destroy(CTX, NULL); /* no-op */
 
-    secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
     secp256k1_context_set_error_callback(CTX, NULL, NULL);
 }
 
