@@ -122,6 +122,15 @@ typedef int (*secp256k1_nonce_function_hardened)(
  */
 SECP256K1_API const secp256k1_nonce_function_hardened secp256k1_nonce_function_bip340;
 
+/** First version of the extraparams struct. See `secp256k1_schnorrsig_extraparams` for the
+    latest version and its documentation.
+ */
+typedef struct {
+    unsigned char magic[4];
+    secp256k1_nonce_function_hardened noncefp;
+    void *ndata;
+} secp256k1_schnorrsig_extraparams_v0;
+
 /** Data structure that contains additional arguments for schnorrsig_sign_custom.
  *
  *  A schnorrsig_extraparams structure object can be initialized correctly by
@@ -150,16 +159,28 @@ typedef struct {
     void *ndata;
     secp256k1_schnorrsig_s2c_opening* s2c_opening;
     const unsigned char* s2c_data32;
-} secp256k1_schnorrsig_extraparams;
+} secp256k1_schnorrsig_extraparams_v1;
 
-#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC { 0xda, 0x6f, 0xb3, 0x8c }
-#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT {\
-    SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC,\
+typedef secp256k1_schnorrsig_extraparams_v1 secp256k1_schnorrsig_extraparams;
+
+#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC_V0 { 0xda, 0x6f, 0xb3, 0x8c }
+#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC_V1 { 0x05, 0x96, 0x5b, 0x5c }
+#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC_V1
+
+#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT_V0 {\
+    SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC_V0,\
+    NULL,\
+    NULL\
+}
+
+#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT_V1 {\
+    SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC_V1,\
     NULL,\
     NULL,\
     NULL,\
     NULL\
 }
+#define SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT_V1
 
 /** Create a Schnorr signature.
  *

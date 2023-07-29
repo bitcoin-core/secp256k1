@@ -832,6 +832,7 @@ void test_schnorrsig_sign(void) {
     unsigned char sig[64];
     unsigned char sig2[64];
     unsigned char zeros64[64] = { 0 };
+    secp256k1_schnorrsig_extraparams_v0 extraparams_v0 = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT_V0;
     secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
     unsigned char aux_rand[32];
 
@@ -868,6 +869,11 @@ void test_schnorrsig_sign(void) {
     CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &keypair, &extraparams) == 1);
     CHECK(secp256k1_schnorrsig_sign32(CTX, sig2, msg, &keypair, extraparams.ndata) == 1);
     CHECK(secp256k1_memcmp_var(sig, sig2, sizeof(sig)) == 0);
+
+    /* Test extraparams v0 to simulate users using old headers linking against a new version of the library */
+    memset(sig, 1, sizeof(sig));
+    CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig, msg, sizeof(msg), &keypair, (secp256k1_schnorrsig_extraparams*)&extraparams_v0) == 1);
+    CHECK(secp256k1_schnorrsig_verify(CTX, sig, msg, sizeof(msg), &pk));
 }
 
 #define N_SIGS 3
