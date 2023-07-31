@@ -132,7 +132,7 @@ static void test_xonly_pubkey_comparison(void) {
     CHECK_ILLEGAL_VOID(CTX, CHECK(secp256k1_xonly_pubkey_cmp(CTX, &pk1, &pk2) < 0));
     {
         int32_t ecount = 0;
-        secp256k1_context_set_illegal_callback(CTX, counting_illegal_callback_fn, &ecount);
+        secp256k1_context_set_illegal_callback(CTX, counting_callback_fn, &ecount);
         CHECK(secp256k1_xonly_pubkey_cmp(CTX, &pk1, &pk1) == 0);
         CHECK(ecount == 2);
         secp256k1_context_set_illegal_callback(CTX, NULL, NULL);

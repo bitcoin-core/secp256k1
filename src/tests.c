@@ -52,25 +52,32 @@ static int all_bytes_equal(const void* s, unsigned char value, size_t n) {
     return 1;
 }
 
-/* CHECK that expr_or_stmt calls the illegal callback of ctx exactly once
- *
- * For checking functions that use ARG_CHECK_VOID */
-#define CHECK_ILLEGAL_VOID(ctx, expr_or_stmt) do { \
-    int32_t _calls_to_illegal_callback = 0; \
-    secp256k1_callback _saved_illegal_cb = ctx->illegal_callback; \
-    secp256k1_context_set_illegal_callback(ctx, \
-        counting_illegal_callback_fn, &_calls_to_illegal_callback); \
+#define CHECK_COUNTING_CALLBACK_VOID(ctx, expr_or_stmt, callback, callback_setter) do { \
+    int32_t _calls_to_callback = 0; \
+    secp256k1_callback _saved_callback = ctx->callback; \
+    callback_setter(ctx, counting_callback_fn, &_calls_to_callback); \
     { expr_or_stmt; } \
-    ctx->illegal_callback = _saved_illegal_cb; \
-    CHECK(_calls_to_illegal_callback == 1); \
+    ctx->callback = _saved_callback; \
+    CHECK(_calls_to_callback == 1); \
 } while(0);
 
-/* CHECK that expr calls the illegal callback of ctx exactly once and that expr == 0
+/* CHECK that expr_or_stmt calls the error or illegal callback of ctx exactly once
  *
- * For checking functions that use ARG_CHECK */
-#define CHECK_ILLEGAL(ctx, expr) CHECK_ILLEGAL_VOID(ctx, CHECK((expr) == 0))
+ * Useful for checking functions that return void (e.g., API functions that use ARG_CHECK_VOID) */
+#define CHECK_ERROR_VOID(ctx, expr_or_stmt) \
+    CHECK_COUNTING_CALLBACK_VOID(ctx, expr_or_stmt, error_callback, secp256k1_context_set_error_callback)
+#define CHECK_ILLEGAL_VOID(ctx, expr_or_stmt) \
+    CHECK_COUNTING_CALLBACK_VOID(ctx, expr_or_stmt, illegal_callback, secp256k1_context_set_illegal_callback)
 
-static void counting_illegal_callback_fn(const char* str, void* data) {
+/* CHECK that
+ *  - expr calls the illegal callback of ctx exactly once and,
+ *  - expr == 0 (or equivalently, expr == NULL)
+ *
+ * Useful for checking functions that return an integer or a pointer. */
+#define CHECK_ILLEGAL(ctx, expr) CHECK_ILLEGAL_VOID(ctx, CHECK((expr) == 0))
+#define CHECK_ERROR(ctx, expr) CHECK_ERROR_VOID(ctx, CHECK((expr) == 0))
+
+static void counting_callback_fn(const char* str, void* data) {
     /* Dummy callback function that just counts. */
     int32_t *p;
     (void)str;
@@ -334,8 +341,8 @@ static void run_static_context_tests(int use_prealloc) {
     {
         /* Verify that setting and resetting illegal callback works */
         int32_t dummy = 0;
-        secp256k1_context_set_illegal_callback(STATIC_CTX, counting_illegal_callback_fn, &dummy);
-        CHECK(STATIC_CTX->illegal_callback.fn == counting_illegal_callback_fn);
+        secp256k1_context_set_illegal_callback(STATIC_CTX, counting_callback_fn, &dummy);
+        CHECK(STATIC_CTX->illegal_callback.fn == counting_callback_fn);
         CHECK(STATIC_CTX->illegal_callback.data == &dummy);
         secp256k1_context_set_illegal_callback(STATIC_CTX, NULL, NULL);
         CHECK(STATIC_CTX->illegal_callback.fn == secp256k1_default_illegal_callback_fn);
@@ -426,8 +433,8 @@ static void run_proper_context_tests(int use_prealloc) {
     CHECK(context_eq(my_ctx, my_ctx_fresh));
 
     /* Verify that setting and resetting illegal callback works */
-    secp256k1_context_set_illegal_callback(my_ctx, counting_illegal_callback_fn, &dummy);
-    CHECK(my_ctx->illegal_callback.fn == counting_illegal_callback_fn);
+    secp256k1_context_set_illegal_callback(my_ctx, counting_callback_fn, &dummy);
+    CHECK(my_ctx->illegal_callback.fn == counting_callback_fn);
     CHECK(my_ctx->illegal_callback.data == &dummy);
     secp256k1_context_set_illegal_callback(my_ctx, NULL, NULL);
     CHECK(my_ctx->illegal_callback.fn == secp256k1_default_illegal_callback_fn);
@@ -468,18 +475,14 @@ static void run_proper_context_tests(int use_prealloc) {
 static void run_scratch_tests(void) {
     const size_t adj_alloc = ((500 + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT;
 
-    int32_t ecount = 0;
     size_t checkpoint;
     size_t checkpoint_2;
     secp256k1_scratch_space *scratch;
     secp256k1_scratch_space local_scratch;
 
-    secp256k1_context_set_error_callback(CTX, counting_illegal_callback_fn, &ecount);
-
     /* Test public API */
     scratch = secp256k1_scratch_space_create(CTX, 1000);
     CHECK(scratch != NULL);
-    CHECK(ecount == 0);
 
     /* Test internal API */
     CHECK(secp256k1_scratch_max_allocation(&CTX->error_callback, scratch, 0) == 1000);
@@ -512,22 +515,16 @@ static void run_scratch_tests(void) {
     /* try to apply a bad checkpoint */
     checkpoint_2 = secp256k1_scratch_checkpoint(&CTX->error_callback, scratch);
     secp256k1_scratch_apply_checkpoint(&CTX->error_callback, scratch, checkpoint);
-    CHECK(ecount == 0);
-    secp256k1_scratch_apply_checkpoint(&CTX->error_callback, scratch, checkpoint_2); /* checkpoint_2 is after checkpoint */
-    CHECK(ecount == 1);
-    secp256k1_scratch_apply_checkpoint(&CTX->error_callback, scratch, (size_t) -1); /* this is just wildly invalid */
-    CHECK(ecount == 2);
+    CHECK_ERROR_VOID(CTX, secp256k1_scratch_apply_checkpoint(&CTX->error_callback, scratch, checkpoint_2)); /* checkpoint_2 is after checkpoint */
+    CHECK_ERROR_VOID(CTX, secp256k1_scratch_apply_checkpoint(&CTX->error_callback, scratch, (size_t) -1)); /* this is just wildly invalid */
 
     /* try to use badly initialized scratch space */
     secp256k1_scratch_space_destroy(CTX, scratch);
     memset(&local_scratch, 0, sizeof(local_scratch));
     scratch = &local_scratch;
-    CHECK(!secp256k1_scratch_max_allocation(&CTX->error_callback, scratch, 0));
-    CHECK(ecount == 3);
-    CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, 500) == NULL);
-    CHECK(ecount == 4);
-    secp256k1_scratch_space_destroy(CTX, scratch);
-    CHECK(ecount == 5);
+    CHECK_ERROR(CTX, secp256k1_scratch_max_allocation(&CTX->error_callback, scratch, 0));
+    CHECK_ERROR(CTX, secp256k1_scratch_alloc(&CTX->error_callback, scratch, 500));
+    CHECK_ERROR_VOID(CTX, secp256k1_scratch_space_destroy(CTX, scratch));
 
     /* Test that large integers do not wrap around in a bad way */
     scratch = secp256k1_scratch_space_create(CTX, 1000);
@@ -543,8 +540,6 @@ static void run_scratch_tests(void) {
 
     /* cleanup */
     secp256k1_scratch_space_destroy(CTX, NULL); /* no-op */
-
-    secp256k1_context_set_error_callback(CTX, NULL, NULL);
 }
 
 static void run_ctz_tests(void) {
@@ -5759,7 +5754,6 @@ static void ec_pubkey_parse_pointtest(const unsigned char *input, int xvalid, in
             }
         }
     }
-    secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
 }
 
 static void run_ec_pubkey_parse_test(void) {
@@ -6267,7 +6261,6 @@ static void run_eckey_edge_case_test(void) {
     CHECK(secp256k1_ec_pubkey_combine(CTX, &pubkey, pubkeys, 2) == 1);
     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(secp256k1_pubkey));
     CHECK(secp256k1_memcmp_var(&pubkey, zeros, sizeof(secp256k1_pubkey)) > 0);
-    secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
 }
 
 static void run_eckey_negate_test(void) {
@@ -6632,7 +6625,7 @@ static void run_pubkey_comparison(void) {
         CHECK_ILLEGAL_VOID(CTX, CHECK(secp256k1_ec_pubkey_cmp(CTX, &pk_tmp, &pk2) < 0));
         {
             int32_t ecount = 0;
-            secp256k1_context_set_illegal_callback(CTX, counting_illegal_callback_fn, &ecount);
+            secp256k1_context_set_illegal_callback(CTX, counting_callback_fn, &ecount);
             CHECK(secp256k1_ec_pubkey_cmp(CTX, &pk_tmp, &pk_tmp) == 0);
             CHECK(ecount == 2);
             secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
