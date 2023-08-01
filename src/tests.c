@@ -4092,7 +4092,7 @@ static void run_gej(void) {
 }
 
 static void test_ec_combine(void) {
-    secp256k1_scalar sum = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
+    secp256k1_scalar sum = secp256k1_scalar_zero;
     secp256k1_pubkey data[6];
     const secp256k1_pubkey* d[6];
     secp256k1_pubkey sd;
@@ -4264,8 +4264,8 @@ static void run_ecmult_chain(void) {
     static const secp256k1_scalar xf = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0x1337);
     static const secp256k1_scalar gf = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0x7113);
     /* accumulators with the resulting coefficients to A and G */
-    secp256k1_scalar ae = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1);
-    secp256k1_scalar ge = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
+    secp256k1_scalar ae = secp256k1_scalar_one;
+    secp256k1_scalar ge = secp256k1_scalar_zero;
     /* actual points */
     secp256k1_gej x;
     secp256k1_gej x2;
@@ -4306,8 +4306,6 @@ static void test_point_times_order(const secp256k1_gej *point) {
     /* X * (point + G) + (order-X) * (pointer + G) = 0 */
     secp256k1_scalar x;
     secp256k1_scalar nx;
-    secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
-    secp256k1_scalar one = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1);
     secp256k1_gej res1, res2;
     secp256k1_ge res3;
     unsigned char pub[65];
@@ -4325,13 +4323,13 @@ static void test_point_times_order(const secp256k1_gej *point) {
     psize = 65;
     CHECK(secp256k1_eckey_pubkey_serialize(&res3, pub, &psize, 1) == 0);
     /* check zero/one edge cases */
-    secp256k1_ecmult(&res1, point, &zero, &zero);
+    secp256k1_ecmult(&res1, point, &secp256k1_scalar_zero, &secp256k1_scalar_zero);
     secp256k1_ge_set_gej(&res3, &res1);
     CHECK(secp256k1_ge_is_infinity(&res3));
-    secp256k1_ecmult(&res1, point, &one, &zero);
+    secp256k1_ecmult(&res1, point, &secp256k1_scalar_one, &secp256k1_scalar_zero);
     secp256k1_ge_set_gej(&res3, &res1);
     ge_equals_gej(&res3, point);
-    secp256k1_ecmult(&res1, point, &zero, &one);
+    secp256k1_ecmult(&res1, point, &secp256k1_scalar_zero, &secp256k1_scalar_one);
     secp256k1_ge_set_gej(&res3, &res1);
     ge_equals_ge(&res3, &secp256k1_ge_const_g);
 }
@@ -4371,7 +4369,6 @@ static void test_ecmult_target(const secp256k1_scalar* target, int mode) {
     secp256k1_scalar n1, n2;
     secp256k1_ge p;
     secp256k1_gej pj, p1j, p2j, ptj;
-    static const secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
 
     /* Generate random n1,n2 such that n1+n2 = -target. */
     random_scalar_order_test(&n1);
@@ -4390,9 +4387,9 @@ static void test_ecmult_target(const secp256k1_scalar* target, int mode) {
         secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &p2j, &n2);
         secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &ptj, target);
     } else if (mode == 1) {
-        secp256k1_ecmult(&p1j, &pj, &n1, &zero);
-        secp256k1_ecmult(&p2j, &pj, &n2, &zero);
-        secp256k1_ecmult(&ptj, &pj, target, &zero);
+        secp256k1_ecmult(&p1j, &pj, &n1, &secp256k1_scalar_zero);
+        secp256k1_ecmult(&p2j, &pj, &n2, &secp256k1_scalar_zero);
+        secp256k1_ecmult(&ptj, &pj, target, &secp256k1_scalar_zero);
     } else {
         secp256k1_ecmult_const(&p1j, &p, &n1);
         secp256k1_ecmult_const(&p2j, &p, &n2);
@@ -4487,19 +4484,17 @@ static void ecmult_const_commutativity(void) {
 }
 
 static void ecmult_const_mult_zero_one(void) {
-    secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
-    secp256k1_scalar one = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1);
     secp256k1_scalar negone;
     secp256k1_gej res1;
     secp256k1_ge res2;
     secp256k1_ge point;
-    secp256k1_scalar_negate(&negone, &one);
+    secp256k1_scalar_negate(&negone, &secp256k1_scalar_one);
 
     random_group_element_test(&point);
-    secp256k1_ecmult_const(&res1, &point, &zero);
+    secp256k1_ecmult_const(&res1, &point, &secp256k1_scalar_zero);
     secp256k1_ge_set_gej(&res2, &res1);
     CHECK(secp256k1_ge_is_infinity(&res2));
-    secp256k1_ecmult_const(&res1, &point, &one);
+    secp256k1_ecmult_const(&res1, &point, &secp256k1_scalar_one);
     secp256k1_ge_set_gej(&res2, &res1);
     ge_equals_ge(&res2, &point);
     secp256k1_ecmult_const(&res1, &point, &negone);
@@ -4854,7 +4849,7 @@ static int test_ecmult_multi_random(secp256k1_scratch *scratch) {
      * scalars[0..filled-1] and gejs[0..filled-1] are the scalars and points
      * which form its normal inputs. */
     int filled = 0;
-    secp256k1_scalar g_scalar = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
+    secp256k1_scalar g_scalar = secp256k1_scalar_zero;
     secp256k1_scalar scalars[128];
     secp256k1_gej gejs[128];
     /* The expected result, and the computed result. */
@@ -5465,16 +5460,15 @@ static void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar
     /* Compute x*G in 6 different ways, serialize it uncompressed, and feed it into acc. */
     secp256k1_gej rj1, rj2, rj3, rj4, rj5, rj6, gj, infj;
     secp256k1_ge r;
-    const secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
     unsigned char bytes[65];
     size_t size = 65;
     secp256k1_gej_set_ge(&gj, &secp256k1_ge_const_g);
     secp256k1_gej_set_infinity(&infj);
     secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &rj1, x);
-    secp256k1_ecmult(&rj2, &gj, x, &zero);
-    secp256k1_ecmult(&rj3, &infj, &zero, x);
+    secp256k1_ecmult(&rj2, &gj, x, &secp256k1_scalar_zero);
+    secp256k1_ecmult(&rj3, &infj, &secp256k1_scalar_zero, x);
     secp256k1_ecmult_multi_var(NULL, scratch, &rj4, x, NULL, NULL, 0);
-    secp256k1_ecmult_multi_var(NULL, scratch, &rj5, &zero, test_ecmult_accumulate_cb, (void*)x, 1);
+    secp256k1_ecmult_multi_var(NULL, scratch, &rj5, &secp256k1_scalar_zero, test_ecmult_accumulate_cb, (void*)x, 1);
     secp256k1_ecmult_const(&rj6, &secp256k1_ge_const_g, x);
     secp256k1_ge_set_gej_var(&r, &rj1);
     ge_equals_gej(&r, &rj2);
@@ -7599,33 +7593,31 @@ static void fe_storage_cmov_test(void) {
 }
 
 static void scalar_cmov_test(void) {
-    static const secp256k1_scalar zero = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 0);
-    static const secp256k1_scalar one = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1);
     static const secp256k1_scalar max = SECP256K1_SCALAR_CONST(
         0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL,
         0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL
     );
     secp256k1_scalar r = max;
-    secp256k1_scalar a = zero;
+    secp256k1_scalar a = secp256k1_scalar_zero;
 
     secp256k1_scalar_cmov(&r, &a, 0);
     CHECK(secp256k1_memcmp_var(&r, &max, sizeof(r)) == 0);
 
-    r = zero; a = max;
+    r = secp256k1_scalar_zero; a = max;
     secp256k1_scalar_cmov(&r, &a, 1);
     CHECK(secp256k1_memcmp_var(&r, &max, sizeof(r)) == 0);
 
-    a = zero;
+    a = secp256k1_scalar_zero;
     secp256k1_scalar_cmov(&r, &a, 1);
-    CHECK(secp256k1_memcmp_var(&r, &zero, sizeof(r)) == 0);
+    CHECK(secp256k1_memcmp_var(&r, &secp256k1_scalar_zero, sizeof(r)) == 0);
 
-    a = one;
+    a = secp256k1_scalar_one;
     secp256k1_scalar_cmov(&r, &a, 1);
-    CHECK(secp256k1_memcmp_var(&r, &one, sizeof(r)) == 0);
+    CHECK(secp256k1_memcmp_var(&r, &secp256k1_scalar_one, sizeof(r)) == 0);
 
-    r = one; a = zero;
+    r = secp256k1_scalar_one; a = secp256k1_scalar_zero;
     secp256k1_scalar_cmov(&r, &a, 0);
-    CHECK(secp256k1_memcmp_var(&r, &one, sizeof(r)) == 0);
+    CHECK(secp256k1_memcmp_var(&r, &secp256k1_scalar_one, sizeof(r)) == 0);
 }
 
 static void ge_storage_cmov_test(void) {
