@@ -179,9 +179,7 @@ static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int
     r->d[7] = t & 0xFFFFFFFFULL;
 
     secp256k1_scalar_verify(r);
-#ifdef VERIFY
     VERIFY_CHECK((t >> 32) == 0);
-#endif
 }
 
 static void secp256k1_scalar_set_b32(secp256k1_scalar *r, const unsigned char *b32, int *overflow) {
@@ -802,9 +800,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
     secp256k1_scalar_from_signed30(r, &s);
 
     secp256k1_scalar_verify(r);
-#ifdef VERIFY
     VERIFY_CHECK(secp256k1_scalar_is_zero(r) == zero_in);
-#endif
 }
 
 static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
@@ -819,9 +815,7 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     secp256k1_scalar_from_signed30(r, &s);
 
     secp256k1_scalar_verify(r);
-#ifdef VERIFY
     VERIFY_CHECK(secp256k1_scalar_is_zero(r) == zero_in);
-#endif
 }
 
 SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {

@@ -36,9 +36,7 @@ static int secp256k1_scalar_set_b32_seckey(secp256k1_scalar *r, const unsigned c
 }
 
 static void secp256k1_scalar_verify(const secp256k1_scalar *r) {
-#ifdef VERIFY
     VERIFY_CHECK(secp256k1_scalar_check_overflow(r) == 0);
-#endif
 
     (void)r;
 }

@@ -349,9 +349,7 @@ static int secp256k1_ecmult_const_xonly(secp256k1_fe* r, const secp256k1_fe *n, 
     secp256k1_fe_mul(&g, &g, n);
     if (d) {
         secp256k1_fe b;
-#ifdef VERIFY
         VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero(d));
-#endif
         secp256k1_fe_sqr(&b, d);
         VERIFY_CHECK(SECP256K1_B <= 8); /* magnitude of b will be <= 8 after the next call */
         secp256k1_fe_mul_int(&b, SECP256K1_B);
@@ -384,13 +382,9 @@ static int secp256k1_ecmult_const_xonly(secp256k1_fe* r, const secp256k1_fe *n, 
     p.infinity = 0;
 
     /* Perform x-only EC multiplication of P with q. */
-#ifdef VERIFY
     VERIFY_CHECK(!secp256k1_scalar_is_zero(q));
-#endif
     secp256k1_ecmult_const(&rj, &p, q);
-#ifdef VERIFY
     VERIFY_CHECK(!secp256k1_gej_is_infinity(&rj));
-#endif
 
     /* The resulting (X, Y, Z) point on the effective-affine isomorphic curve corresponds to
      * (X, Y, Z*v) on the secp256k1 curve. The affine version of that has X coordinate

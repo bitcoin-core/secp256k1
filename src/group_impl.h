@@ -362,9 +362,7 @@ static int secp256k1_gej_eq_x_var(const secp256k1_fe *x, const secp256k1_gej *a)
     secp256k1_fe r;
     secp256k1_fe_verify(x);
     secp256k1_gej_verify(a);
-#ifdef VERIFY
     VERIFY_CHECK(!a->infinity);
-#endif
 
     secp256k1_fe_sqr(&r, &a->z); secp256k1_fe_mul(&r, &r, x);
     return secp256k1_fe_equal(&r, &a->x);
@@ -809,9 +807,7 @@ static void secp256k1_gej_rescale(secp256k1_gej *r, const secp256k1_fe *s) {
     secp256k1_fe zz;
     secp256k1_gej_verify(r);
     secp256k1_fe_verify(s);
-#ifdef VERIFY
     VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero_var(s));
-#endif
 
     secp256k1_fe_sqr(&zz, s);
     secp256k1_fe_mul(&r->x, &r->x, &zz);                /* r->x *= s^2 */
@@ -907,9 +903,8 @@ static int secp256k1_ge_x_frac_on_curve_var(const secp256k1_fe *xn, const secp25
      * (xn/xd)^3 + 7 is square <=> xd*xn^3 + 7*xd^4 is square (multiplying by xd^4, a square).
      */
      secp256k1_fe r, t;
-#ifdef VERIFY
      VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero_var(xd));
-#endif
+
      secp256k1_fe_mul(&r, xd, xn); /* r = xd*xn */
      secp256k1_fe_sqr(&t, xn); /* t = xn^2 */
      secp256k1_fe_mul(&r, &r, &t); /* r = xd*xn^3 */
