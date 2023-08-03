@@ -272,7 +272,11 @@ static int secp256k1_ellswift_xswiftec_inv_var(secp256k1_fe *t, const secp256k1_
         secp256k1_fe_negate(&q, &q, 1);                 /* q = -s*(4*(u^3+7)+3*u^2*s) */
         if (!secp256k1_fe_is_square_var(&q)) return 0;
         ret = secp256k1_fe_sqrt(&r, &q);                /* r = sqrt(-s*(4*(u^3+7)+3*u^2*s)) */
+#ifdef VERIFY
         VERIFY_CHECK(ret);
+#else
+        (void)ret;
+#endif
 
         /* If (c & 1) = 1 and r = 0, fail. */
         if (EXPECT((c & 1) && secp256k1_fe_normalizes_to_zero_var(&r), 0)) return 0;
@@ -417,7 +421,11 @@ int secp256k1_ellswift_encode(const secp256k1_context *ctx, unsigned char *ell64
          * BIP340 tagged hash with tag "secp256k1_ellswift_encode". */
         secp256k1_ellswift_sha256_init_encode(&hash);
         ser_ret = secp256k1_eckey_pubkey_serialize(&p, p64, &ser_size, 1);
+#ifdef VERIFY
         VERIFY_CHECK(ser_ret && ser_size == 33);
+#else
+        (void)ser_ret;
+#endif
         secp256k1_sha256_write(&hash, p64, sizeof(p64));
         secp256k1_sha256_write(&hash, rnd32, 32);
 

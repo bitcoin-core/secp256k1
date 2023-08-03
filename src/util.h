@@ -132,15 +132,12 @@ static const secp256k1_callback default_error_callback = {
 } while(0)
 #endif
 
-/* Like assert(), but when VERIFY is defined, and side-effect safe. */
-#if defined(COVERAGE)
-#define VERIFY_CHECK(check)
-#define VERIFY_SETUP(stmt)
-#elif defined(VERIFY)
+/* Like assert(), but when VERIFY is defined. */
+#if defined(VERIFY)
 #define VERIFY_CHECK CHECK
 #define VERIFY_SETUP(stmt) do { stmt; } while(0)
 #else
-#define VERIFY_CHECK(cond) do { (void)(cond); } while(0)
+#define VERIFY_CHECK(cond)
 #define VERIFY_SETUP(stmt)
 #endif
 
