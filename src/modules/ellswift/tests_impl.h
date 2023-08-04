@@ -285,7 +285,7 @@ void run_ellswift_tests(void) {
         ret = secp256k1_ellswift_xdh(CTX, share32, ell64, ell64, sec32, i & 1, &ellswift_xdh_hash_x32, NULL);
         CHECK(ret);
         (void)secp256k1_fe_set_b32_limit(&share_x, share32); /* no overflow is possible */
-        secp256k1_fe_verify(&share_x);
+        SECP256K1_FE_VERIFY(&share_x);
         /* Compute seckey*pubkey directly. */
         secp256k1_ecmult(&resj, &decj, &sec, NULL);
         secp256k1_ge_set_gej(&res, &resj);
