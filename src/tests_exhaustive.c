@@ -70,16 +70,9 @@ static void random_fe(secp256k1_fe *x) {
 }
 
 static void random_fe_non_zero(secp256k1_fe *nz) {
-    int tries = 10;
-    while (--tries >= 0) {
+    do {
         random_fe(nz);
-        secp256k1_fe_normalize(nz);
-        if (!secp256k1_fe_is_zero(nz)) {
-            break;
-        }
-    }
-    /* Infinitesimal probability of spurious failure here */
-    CHECK(tries >= 0);
+    } while (secp256k1_fe_is_zero(nz));
 }
 /** END stolen from tests.c */
 
