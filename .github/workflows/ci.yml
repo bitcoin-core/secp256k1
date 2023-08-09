@@ -12,21 +12,21 @@ env:
 
 jobs:
   win64-native:
-    name: "x86_64: Windows (VS 2022)"
+    name: "x86_64: Windows, VS 2022"
     # See: https://github.com/actions/runner-images#available-images.
     runs-on: windows-2022
 
     strategy:
       fail-fast: false
       matrix:
-        build_shared_libs: ['ON', 'OFF']
+        lib_type: ['shared', 'static']
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Generate buildsystem
-        run: cmake -E env CFLAGS="/WX" cmake -B build -A x64 -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON -DBUILD_SHARED_LIBS=${{ matrix.build_shared_libs }}
+        run: cmake -E env CFLAGS="/WX" cmake -B build -A x64 -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON -DBUILD_SHARED_LIBS=${{ matrix.lib_type == 'shared' && 'ON' || 'OFF' }}
 
       - name: Build
         run: cmake --build build --config RelWithDebInfo -- /p:UseMultiToolTask=true /maxCpuCount
