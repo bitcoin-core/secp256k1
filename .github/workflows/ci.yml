@@ -1,0 +1,39 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+
+env:
+  SECP256K1_BENCH_ITERS: 2
+
+jobs:
+  win64-native:
+    name: "x86_64: Windows (VS 2022)"
+    # See: https://github.com/actions/runner-images#available-images.
+    runs-on: windows-2022
+
+    strategy:
+      fail-fast: false
+      matrix:
+        build_shared_libs: ['ON', 'OFF']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Generate buildsystem
+        run: cmake -E env CFLAGS="/WX" cmake -B build -A x64 -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON -DBUILD_SHARED_LIBS=${{ matrix.build_shared_libs }}
+
+      - name: Build
+        run: cmake --build build --config RelWithDebInfo -- /p:UseMultiToolTask=true /maxCpuCount
+
+      - name: Check
+        run: |
+          ctest -C RelWithDebInfo --test-dir build -j ([int]$env:NUMBER_OF_PROCESSORS + 1)
+          build\src\RelWithDebInfo\bench_ecmult.exe
+          build\src\RelWithDebInfo\bench_internal.exe
+          build\src\RelWithDebInfo\bench.exe
