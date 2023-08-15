@@ -104,6 +104,7 @@ task:
     ECDH: yes
     RECOVERY: yes
     SCHNORRSIG: yes
+    ELLSWIFT: yes
   matrix:
     - env:
         CC: i686-linux-gnu-gcc
@@ -224,6 +225,7 @@ task:
     ECDH: yes
     RECOVERY: yes
     SCHNORRSIG: yes
+    ELLSWIFT: yes
     CTIMETESTS: no
   matrix:
     - name: "x86_64 (mingw32-w64): Windows (Debian stable, Wine)"
@@ -330,6 +332,7 @@ task:
     ECDH: yes
     RECOVERY: yes
     SCHNORRSIG: yes
+    ELLSWIFT: yes
     CTIMETESTS: yes
     CC: clang
     SECP256K1_TEST_ITERS: 32
