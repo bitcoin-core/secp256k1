@@ -43,6 +43,13 @@ esac
 
 env >> test_env.log
 
+# If gcc is requested, assert that it's in fact gcc (and not some symlinked Apple clang).
+case "${CC:-undefined}" in
+    *gcc*)
+        $CC -v 2>&1 | grep -q "gcc version" || exit 1;
+        ;;
+esac
+
 if [ -n "${CC+x}" ]; then
     # The MSVC compiler "cl" doesn't understand "-v"
     $CC -v || true
