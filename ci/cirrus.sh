@@ -31,16 +31,6 @@ print_environment() {
 }
 print_environment
 
-# Start persistent wineserver if necessary.
-# This speeds up jobs with many invocations of wine (e.g., ./configure with MSVC) tremendously.
-case "$WRAPPER_CMD" in
-    *wine*)
-        # Make sure to shutdown wineserver whenever we exit.
-        trap "wineserver -k || true" EXIT INT HUP
-        wineserver -p
-        ;;
-esac
-
 env >> test_env.log
 
 # If gcc is requested, assert that it's in fact gcc (and not some symlinked Apple clang).
