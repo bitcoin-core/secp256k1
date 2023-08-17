@@ -41,7 +41,7 @@ jobs:
   macos-native:
     name: "x86_64: macOS Ventura"
     # See: https://github.com/actions/runner-images#available-images.
-    runs-on: macos-13
+    runs-on: macos-13 # Use M1 once available https://github.com/github/roadmap/issues/528
 
     env:
       ASM: 'no'

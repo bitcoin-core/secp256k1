@@ -115,37 +115,6 @@ task:
   << : *CAT_LOGS
 
 task:
-  name: "arm64: macOS Ventura"
-  macos_instance:
-    image: ghcr.io/cirruslabs/macos-ventura-base:latest
-  env:
-    HOMEBREW_NO_AUTO_UPDATE: 1
-    HOMEBREW_NO_INSTALL_CLEANUP: 1
-    # Cirrus gives us a fixed number of 4 virtual CPUs. Not that we even have that many jobs at the moment...
-    MAKEFLAGS: -j5
-  env:
-    ASM: no
-    WITH_VALGRIND: no
-    CTIMETESTS: no
-    CC: clang
-  matrix:
-    - env: {WIDEMUL:  int64,  RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes}
-    - env: {WIDEMUL:  int64,  RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes, CC: gcc}
-    - env: {WIDEMUL: int128_struct, ECMULTGENPRECISION: 2, ECMULTWINDOW: 4}
-    - env: {WIDEMUL: int128,                 ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes}
-    - env: {WIDEMUL: int128,  RECOVERY: yes,            SCHNORRSIG: yes}
-    - env: {WIDEMUL: int128,  RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes, CC: gcc}
-    - env: {WIDEMUL: int128,  RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes, CPPFLAGS: -DVERIFY}
-    - env: {BUILD: distcheck}
-  brew_script:
-    - brew install automake libtool gcc
-    - ln -s /opt/homebrew/bin/gcc-?? /opt/homebrew/bin/gcc
-  test_script:
-    - ./ci/cirrus.sh
-  << : *CAT_LOGS
-  << : *CREDITS
-
-task:
   name: "s390x (big-endian): Linux (Debian stable, QEMU)"
   << : *LINUX_CONTAINER
   env:
