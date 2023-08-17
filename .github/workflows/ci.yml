@@ -8,9 +8,94 @@ on:
       - '**'
 
 env:
+  ### compiler options
+  HOST:
+  WRAPPER_CMD:
+  # Specific warnings can be disabled with -Wno-error=foo.
+  # -pedantic-errors is not equivalent to -Werror=pedantic and thus not implied by -Werror according to the GCC manual.
+  WERROR_CFLAGS: '-Werror -pedantic-errors'
+  MAKEFLAGS: '-j4'
+  BUILD: 'check'
+  ### secp256k1 config
+  ECMULTWINDOW: 'auto'
+  ECMULTGENPRECISION: 'auto'
+  ASM: 'no'
+  WIDEMUL: 'auto'
+  WITH_VALGRIND: 'yes'
+  EXTRAFLAGS:
+  ### secp256k1 modules
+  EXPERIMENTAL: 'no'
+  ECDH: 'no'
+  RECOVERY: 'no'
+  SCHNORRSIG: 'no'
+  ELLSWIFT: 'no'
+  ### test options
+  SECP256K1_TEST_ITERS:
+  BENCH: 'yes'
   SECP256K1_BENCH_ITERS: 2
+  CTIMETESTS: 'yes'
+  # Compile and run the examples.
+  EXAMPLES: 'yes'
 
 jobs:
+  macos-native:
+    name: "x86_64: macOS Ventura"
+    # See: https://github.com/actions/runner-images#available-images.
+    runs-on: macos-13
+
+    env:
+      ASM: 'no'
+      WITH_VALGRIND: 'no'
+      CTIMETESTS: 'no'
+      CC: 'clang'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        env_vars:
+          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' }
+          - { WIDEMUL: 'int128_struct', ECMULTGENPRECISION: 2, ECMULTWINDOW: 4 }
+          - { WIDEMUL: 'int128',                  ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes',              SCHNORRSIG: 'yes' }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY' }
+          - BUILD: 'distcheck'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Homebrew packages
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          brew install automake libtool gcc
+          ln -s $(brew --prefix gcc)/bin/gcc-?? /usr/local/bin/gcc
+
+      - name: CI script
+        env: ${{ matrix.env_vars }}
+        run: ./ci/cirrus.sh
+
+      - run: cat tests.log || true
+        if: ${{ always() }}
+      - run: cat noverify_tests.log || true
+        if: ${{ always() }}
+      - run: cat exhaustive_tests.log || true
+        if: ${{ always() }}
+      - run: cat ctime_tests.log || true
+        if: ${{ always() }}
+      - run: cat bench.log || true
+        if: ${{ always() }}
+      - run: cat config.log || true
+        if: ${{ always() }}
+      - run: cat test_env.log || true
+        if: ${{ always() }}
+      - name: CI env
+        run: env
+        if: ${{ always() }}
+
   win64-native:
     name: "x86_64: Windows, VS 2022"
     # See: https://github.com/actions/runner-images#available-images.
