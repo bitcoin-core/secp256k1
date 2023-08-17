@@ -93,7 +93,7 @@ task:
     - env:
         CC: clang-snapshot
   test_script:
-    - ./ci/cirrus.sh
+    - ./ci/ci.sh
   << : *CAT_LOGS
 
 task:
@@ -111,7 +111,7 @@ task:
     - env:
         CC: clang --target=i686-pc-linux-gnu -isystem /usr/i686-linux-gnu/include
   test_script:
-    - ./ci/cirrus.sh
+    - ./ci/ci.sh
   << : *CAT_LOGS
 
 task:
@@ -130,7 +130,7 @@ task:
   test_script:
     # https://sourceware.org/bugzilla/show_bug.cgi?id=27008
     - rm /etc/ld.so.cache
-    - ./ci/cirrus.sh
+    - ./ci/ci.sh
   << : *CAT_LOGS
 
 task:
@@ -150,7 +150,7 @@ task:
     - env: {}
     - env: {EXPERIMENTAL: yes, ASM: arm32}
   test_script:
-    - ./ci/cirrus.sh
+    - ./ci/ci.sh
   << : *CAT_LOGS
 
 task:
@@ -167,7 +167,7 @@ task:
     ELLSWIFT: yes
     CTIMETESTS: no
   test_script:
-    - ./ci/cirrus.sh
+    - ./ci/ci.sh
   << : *CAT_LOGS
 
 task:
@@ -184,7 +184,7 @@ task:
     ELLSWIFT: yes
     CTIMETESTS: no
   test_script:
-    - ./ci/cirrus.sh
+    - ./ci/ci.sh
   << : *CAT_LOGS
 
 # Sanitizers
@@ -228,7 +228,7 @@ task:
         HOST: i686-linux-gnu
         CC: i686-linux-gnu-gcc
   test_script:
-    - ./ci/cirrus.sh
+    - ./ci/ci.sh
   << : *CAT_LOGS
 
 # Memory sanitizers
@@ -255,7 +255,7 @@ task:
         ECMULTWINDOW: 2
         CFLAGS: "-fsanitize=memory -g -O3"
   test_script:
-    - ./ci/cirrus.sh
+    - ./ci/ci.sh
   << : *CAT_LOGS
 
 task:
@@ -271,7 +271,7 @@ task:
     SCHNORRSIG: yes
     ELLSWIFT: yes
   test_script:
-    - ./ci/cirrus.sh
+    - ./ci/ci.sh
   << : *CAT_LOGS
 
 task:
