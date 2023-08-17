@@ -1,0 +1,37 @@
+name: 'Run in Docker with environment'
+description: 'Run a command in a Docker container, while passing explicitly set environment variables into the container.'
+inputs:
+  dockerfile:
+    description: 'A Dockerfile that defines an image'
+    required: true
+  tag:
+    description: 'A tag of an image'
+    required: true
+  command:
+    description: 'A command to run in a container'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: docker/setup-buildx-action@v2
+      with:
+        # See: https://github.com/moby/buildkit/issues/3969.
+        driver-opts: |
+          network=host
+
+    - uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ${{ inputs.dockerfile }}
+        tags: ${{ inputs.tag }}
+        load: true
+        cache-from: type=gha
+
+    - # Tell Docker to pass environment variables in `env` into the container.
+      run: >
+        docker run \
+          $(echo '${{ toJSON(env) }}' | jq -r 'keys[] | "--env \(.) "') \
+          --volume ${{ github.workspace }}:${{ github.workspace }} \
+          --workdir ${{ github.workspace }} \
+          ${{ inputs.tag }} bash -c "${{ inputs.command }}"
+      shell: bash
