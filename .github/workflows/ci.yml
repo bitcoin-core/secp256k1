@@ -12,24 +12,41 @@ env:
 
 jobs:
   win64-native:
-    name: "x86_64: Windows, VS 2022"
+    name: ${{ matrix.configuration.job_name }}
     # See: https://github.com/actions/runner-images#available-images.
     runs-on: windows-2022
 
     strategy:
       fail-fast: false
       matrix:
-        lib_type: ['shared', 'static']
+        configuration:
+          - job_name: 'x64 (MSVC): Windows (VS 2022, shared)'
+            cmake_options: '-A x64 -DBUILD_SHARED_LIBS=ON'
+          - job_name: 'x64 (MSVC): Windows (VS 2022, static)'
+            cmake_options: '-A x64 -DBUILD_SHARED_LIBS=OFF'
+          - job_name: 'x64 (MSVC): Windows (VS 2022, int128_struct)'
+            cmake_options: '-A x64 -DSECP256K1_TEST_OVERRIDE_WIDE_MULTIPLY=int128_struct'
+          - job_name: 'x64 (MSVC): Windows (VS 2022, int128_struct with __(u)mulh)'
+            cmake_options: '-A x64 -DSECP256K1_TEST_OVERRIDE_WIDE_MULTIPLY=int128_struct'
+            cpp_flags: '/DSECP256K1_MSVC_MULH_TEST_OVERRIDE'
+          - job_name: 'x86 (MSVC): Windows (VS 2022)'
+            cmake_options: '-A Win32'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Generate buildsystem
-        run: cmake -E env CFLAGS="/WX" cmake -B build -A x64 -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON -DBUILD_SHARED_LIBS=${{ matrix.lib_type == 'shared' && 'ON' || 'OFF' }}
+        run: cmake -E env CFLAGS="/WX ${{ matrix.configuration.cpp_flags }}" cmake -B build -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON ${{ matrix.configuration.cmake_options }}
 
       - name: Build
         run: cmake --build build --config RelWithDebInfo -- /p:UseMultiToolTask=true /maxCpuCount
+
+      - name: Binaries info
+        # Use the bash shell included with Git for Windows.
+        shell: bash
+        run: |
+          cd build/src/RelWithDebInfo && file *tests.exe bench*.exe libsecp256k1-*.dll || true
 
       - name: Check
         run: |
@@ -37,6 +54,22 @@ jobs:
           build\src\RelWithDebInfo\bench_ecmult.exe
           build\src\RelWithDebInfo\bench_internal.exe
           build\src\RelWithDebInfo\bench.exe
+
+  win64-native-headers:
+    name: "x64 (MSVC): C++ (public headers)"
+    # See: https://github.com/actions/runner-images#available-images.
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Add cl.exe to PATH
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: C++ (public headers)
+        run: |
+          cl.exe -c -WX -TP include/*.h
 
   sage:
     name: "SageMath prover"
