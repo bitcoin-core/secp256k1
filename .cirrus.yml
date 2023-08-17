@@ -187,27 +187,6 @@ task:
     - ./ci/cirrus.sh
   << : *CAT_LOGS
 
-task:
-  << : *LINUX_CONTAINER
-  env:
-    WRAPPER_CMD: wine
-    WITH_VALGRIND: no
-    ECDH: yes
-    RECOVERY: yes
-    SCHNORRSIG: yes
-    ELLSWIFT: yes
-    CTIMETESTS: no
-  matrix:
-    - name: "x86_64 (mingw32-w64): Windows (Debian stable, Wine)"
-      env:
-        HOST: x86_64-w64-mingw32
-    - name: "i686 (mingw32-w64): Windows (Debian stable, Wine)"
-      env:
-        HOST: i686-w64-mingw32
-  test_script:
-    - ./ci/cirrus.sh
-  << : *CAT_LOGS
-
 # Sanitizers
 task:
   << : *LINUX_CONTAINER
