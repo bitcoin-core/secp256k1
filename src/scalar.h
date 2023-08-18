@@ -100,5 +100,6 @@ static void secp256k1_scalar_cmov(secp256k1_scalar *r, const secp256k1_scalar *a
 
 /** Check invariants on a scalar (no-op unless VERIFY is enabled). */
 static void secp256k1_scalar_verify(const secp256k1_scalar *r);
+#define SECP256K1_SCALAR_VERIFY(r) secp256k1_scalar_verify(r)
 
 #endif /* SECP256K1_SCALAR_H */
