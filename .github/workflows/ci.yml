@@ -61,6 +61,71 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=min
 
+  linux_debian:
+    name: "x86_64: Linux (Debian stable)"
+    runs-on: ubuntu-latest
+    needs: docker_cache
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - env_vars: { WIDEMUL: 'int64',  RECOVERY: 'yes' }
+          - env_vars: { WIDEMUL: 'int64',                   ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - env_vars: { WIDEMUL: 'int128' }
+          - env_vars: { WIDEMUL: 'int128_struct',                                           ELLSWIFT: 'yes' }
+          - env_vars: { WIDEMUL: 'int128', RECOVERY: 'yes',              SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - env_vars: { WIDEMUL: 'int128',                  ECDH: 'yes', SCHNORRSIG: 'yes' }
+          - env_vars: { WIDEMUL: 'int128', ASM: 'x86_64',                                   ELLSWIFT: 'yes' }
+          - env_vars: {                    RECOVERY: 'yes',              SCHNORRSIG: 'yes' }
+          - env_vars: { CTIMETESTS: 'no',  RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', CPPFLAGS: '-DVERIFY' }
+          - env_vars: { BUILD: 'distcheck', WITH_VALGRIND: 'no', CTIMETESTS: 'no', BENCH: 'no' }
+          - env_vars: { CPPFLAGS: '-DDETERMINISTIC' }
+          - env_vars: { CFLAGS: '-O0', CTIMETESTS: 'no' }
+          - env_vars: { CFLAGS: '-O1',     RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - env_vars: { ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
+          - env_vars: { ECMULTGENPRECISION: 8, ECMULTWINDOW: 4 }
+        cc:
+          - 'gcc'
+          - 'clang'
+          - 'gcc-snapshot'
+          - 'clang-snapshot'
+
+    env:
+      CC: ${{ matrix.cc }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: CI script
+        env: ${{ matrix.configuration.env_vars }}
+        uses: ./.github/actions/run-in-docker-action
+        with:
+          dockerfile: ./ci/linux-debian.Dockerfile
+          tag: linux-debian-image
+          command: >
+            git config --global --add safe.directory ${{ github.workspace }} &&
+            ./ci/ci.sh
+
+      - run: cat tests.log || true
+        if: ${{ always() }}
+      - run: cat noverify_tests.log || true
+        if: ${{ always() }}
+      - run: cat exhaustive_tests.log || true
+        if: ${{ always() }}
+      - run: cat ctime_tests.log || true
+        if: ${{ always() }}
+      - run: cat bench.log || true
+        if: ${{ always() }}
+      - run: cat config.log || true
+        if: ${{ always() }}
+      - run: cat test_env.log || true
+        if: ${{ always() }}
+      - name: CI env
+        run: env
+        if: ${{ always() }}
+
   mingw_debian:
     name: ${{ matrix.configuration.job_name }}
     runs-on: ubuntu-latest
