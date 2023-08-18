@@ -20,6 +20,18 @@ runs:
           network=host
 
     - uses: docker/build-push-action@v4
+      id: main_builder
+      continue-on-error: true
+      with:
+        context: .
+        file: ${{ inputs.dockerfile }}
+        tags: ${{ inputs.tag }}
+        load: true
+        cache-from: type=gha
+
+    - uses: docker/build-push-action@v4
+      id: retry_builder
+      if: steps.main_builder.outcome == 'failure'
       with:
         context: .
         file: ${{ inputs.dockerfile }}
