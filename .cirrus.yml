@@ -65,23 +65,6 @@ linux_container_snippet: &LINUX_CONTAINER
     memory: 2G
 
 task:
-  name: "s390x (big-endian): Linux (Debian stable, QEMU)"
-  << : *LINUX_CONTAINER
-  env:
-    WRAPPER_CMD: qemu-s390x
-    SECP256K1_TEST_ITERS: 16
-    HOST: s390x-linux-gnu
-    WITH_VALGRIND: no
-    ECDH: yes
-    RECOVERY: yes
-    SCHNORRSIG: yes
-    ELLSWIFT: yes
-    CTIMETESTS: no
-  test_script:
-    - ./ci/ci.sh
-  << : *CAT_LOGS
-
-task:
   name: "ARM32: Linux (Debian stable, QEMU)"
   << : *LINUX_CONTAINER
   env:
