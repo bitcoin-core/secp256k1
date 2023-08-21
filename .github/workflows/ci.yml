@@ -1,3 +1,10 @@
+# This workflow requires the following actions to be allowed
+# in the repository's "Actions permissions":
+#   actions/checkout@*,
+#   docker/build-push-action@*,
+#   docker/setup-buildx-action@*,
+#   ilammy/msvc-dev-cmd@*,
+
 name: CI
 on:
   pull_request:
