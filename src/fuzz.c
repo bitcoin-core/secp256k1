@@ -238,12 +238,11 @@ static void fuzz_field_b32_and_fe(const uint8_t *data, size_t size) {
         secp256k1_fe a, b;
         unsigned char b32[32];     
         fuzz_field_construct(data, size, &a);  
-        if (!a.normalized) {
-            return;
+        if (a.normalized) {
+            secp256k1_fe_get_b32(b32, &a);
+            secp256k1_fe_set_b32_limit(&b, b32);
+            CHECK(secp256k1_fe_cmp_var(&a, &b) == 0);       
         }
-        secp256k1_fe_get_b32(b32, &a);
-        secp256k1_fe_set_b32_limit(&b, b32);
-        CHECK(secp256k1_fe_cmp_var(&a, &b) == 0);       
     }
 }
 
@@ -253,12 +252,11 @@ static void fuzz_field_fe_and_storage(const uint8_t *data, size_t size) {
         secp256k1_fe a, b;
         secp256k1_fe_storage fes; 
         fuzz_field_construct(data, size, &a);
-        if (!a.normalized) {
-            return;
+        if (a.normalized) {
+            secp256k1_fe_to_storage(&fes, &a);
+            secp256k1_fe_from_storage(&b, &fes);
+            CHECK(secp256k1_fe_cmp_var(&a, &b) == 0);
         }
-        secp256k1_fe_to_storage(&fes, &a);
-        secp256k1_fe_from_storage(&b, &fes);
-        CHECK(secp256k1_fe_cmp_var(&a, &b) == 0);
     }
 }
 
