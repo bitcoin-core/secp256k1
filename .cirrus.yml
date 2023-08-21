@@ -64,23 +64,6 @@ linux_container_snippet: &LINUX_CONTAINER
     # More than enough for our scripts.
     memory: 2G
 
-task:
-  name: "ppc64le: Linux (Debian stable, QEMU)"
-  << : *LINUX_CONTAINER
-  env:
-    WRAPPER_CMD: qemu-ppc64le
-    SECP256K1_TEST_ITERS: 16
-    HOST: powerpc64le-linux-gnu
-    WITH_VALGRIND: no
-    ECDH: yes
-    RECOVERY: yes
-    SCHNORRSIG: yes
-    ELLSWIFT: yes
-    CTIMETESTS: no
-  test_script:
-    - ./ci/ci.sh
-  << : *CAT_LOGS
-
 # Sanitizers
 task:
   << : *LINUX_CONTAINER
