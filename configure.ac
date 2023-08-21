@@ -401,7 +401,7 @@ if test x"$enable_module_schnorrsig" = x"yes"; then
 fi
 
 if test x"$enable_module_ellswift" = x"yes"; then
-  AC_DEFINE(ENABLE_MODULE_ELLSWIFT, 1, [Define this symbol to enable the ElligatorSwift module])
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_ELLSWIFT=1"
 fi
 
 # Test if extrakeys is set after the schnorrsig module to allow the schnorrsig
