@@ -128,8 +128,6 @@ task:
     ELLSWIFT: yes
     CTIMETESTS: no
   test_script:
-    # https://sourceware.org/bugzilla/show_bug.cgi?id=27008
-    - rm /etc/ld.so.cache
     - ./ci/ci.sh
   << : *CAT_LOGS
 
