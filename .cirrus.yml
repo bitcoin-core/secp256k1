@@ -65,38 +65,6 @@ linux_container_snippet: &LINUX_CONTAINER
     memory: 2G
 
 task:
-  name: "x86_64: Linux (Debian stable)"
-  << : *LINUX_CONTAINER
-  matrix:
-    - env: {WIDEMUL:  int64,  RECOVERY: yes}
-    - env: {WIDEMUL:  int64,                 ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes}
-    - env: {WIDEMUL: int128}
-    - env: {WIDEMUL: int128_struct,                                      ELLSWIFT: yes}
-    - env: {WIDEMUL: int128,  RECOVERY: yes,            SCHNORRSIG: yes, ELLSWIFT: yes}
-    - env: {WIDEMUL: int128,                 ECDH: yes, SCHNORRSIG: yes}
-    - env: {WIDEMUL: int128,  ASM: x86_64                              , ELLSWIFT: yes}
-    - env: {                  RECOVERY: yes,            SCHNORRSIG: yes}
-    - env: {CTIMETESTS: no,    RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, CPPFLAGS: -DVERIFY}
-    - env: {BUILD: distcheck, WITH_VALGRIND: no, CTIMETESTS: no, BENCH: no}
-    - env: {CPPFLAGS: -DDETERMINISTIC}
-    - env: {CFLAGS: -O0, CTIMETESTS: no}
-    - env: {CFLAGS: -O1, RECOVERY: yes, ECDH: yes, SCHNORRSIG: yes, ELLSWIFT: yes}
-    - env: { ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
-    - env: { ECMULTGENPRECISION: 8, ECMULTWINDOW: 4 }
-  matrix:
-    - env:
-        CC: gcc
-    - env:
-        CC: clang
-    - env:
-        CC: gcc-snapshot
-    - env:
-        CC: clang-snapshot
-  test_script:
-    - ./ci/ci.sh
-  << : *CAT_LOGS
-
-task:
   name: "i686: Linux (Debian stable)"
   << : *LINUX_CONTAINER
   env:

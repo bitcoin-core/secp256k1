@@ -1,4 +1,4 @@
-FROM debian:stable
+FROM debian:stable-slim
 
 SHELL ["/bin/bash", "-c"]
 
@@ -28,7 +28,8 @@ WORKDIR /root
 
 # Build and install gcc snapshot
 ARG GCC_SNAPSHOT_MAJOR=14
-RUN wget --progress=dot:giga --https-only --recursive --accept '*.tar.xz' --level 1 --no-directories "https://gcc.gnu.org/pub/gcc/snapshots/LATEST-${GCC_SNAPSHOT_MAJOR}" && \
+RUN mkdir gcc && cd gcc && \
+    wget --progress=dot:giga --https-only --recursive --accept '*.tar.xz' --level 1 --no-directories "https://gcc.gnu.org/pub/gcc/snapshots/LATEST-${GCC_SNAPSHOT_MAJOR}" && \
     wget "https://gcc.gnu.org/pub/gcc/snapshots/LATEST-${GCC_SNAPSHOT_MAJOR}/sha512.sum" && \
     sha512sum --check --ignore-missing sha512.sum && \
     # We should have downloaded exactly one tar.xz file
@@ -40,6 +41,9 @@ RUN wget --progress=dot:giga --https-only --recursive --accept '*.tar.xz' --leve
     ../*/configure --prefix=/opt/gcc-snapshot --enable-languages=c --disable-bootstrap --disable-multilib --without-isl && \
     make -j $(nproc) && \
     make install && \
+    apt-get autoremove -y libgmp-dev libmpfr-dev libmpc-dev flex && \
+    apt-get clean && \
+    cd ../.. && rm -rf gcc && \
     ln -s /opt/gcc-snapshot/bin/gcc /usr/bin/gcc-snapshot
 
 # Install clang snapshot
