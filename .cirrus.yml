@@ -64,33 +64,6 @@ linux_container_snippet: &LINUX_CONTAINER
     # More than enough for our scripts.
     memory: 2G
 
-# Memory sanitizers
-task:
-  << : *LINUX_CONTAINER
-  name: "MSan"
-  env:
-    ECDH: yes
-    RECOVERY: yes
-    SCHNORRSIG: yes
-    ELLSWIFT: yes
-    CTIMETESTS: yes
-    CC: clang
-    SECP256K1_TEST_ITERS: 32
-    ASM: no
-    WITH_VALGRIND: no
-  container:
-    memory: 2G
-  matrix:
-    - env:
-        CFLAGS: "-fsanitize=memory -g"
-    - env:
-        ECMULTGENPRECISION: 2
-        ECMULTWINDOW: 2
-        CFLAGS: "-fsanitize=memory -g -O3"
-  test_script:
-    - ./ci/ci.sh
-  << : *CAT_LOGS
-
 task:
   name: "C++ -fpermissive (entire project)"
   << : *LINUX_CONTAINER
