@@ -65,22 +65,6 @@ linux_container_snippet: &LINUX_CONTAINER
     memory: 2G
 
 task:
-  name: "C++ -fpermissive (entire project)"
-  << : *LINUX_CONTAINER
-  env:
-    CC: g++
-    CFLAGS: -fpermissive -g
-    CPPFLAGS: -DSECP256K1_CPLUSPLUS_TEST_OVERRIDE
-    WERROR_CFLAGS:
-    ECDH: yes
-    RECOVERY: yes
-    SCHNORRSIG: yes
-    ELLSWIFT: yes
-  test_script:
-    - ./ci/ci.sh
-  << : *CAT_LOGS
-
-task:
   name: "C++ (public headers)"
   << : *LINUX_CONTAINER
   test_script:

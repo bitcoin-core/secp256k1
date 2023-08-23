@@ -722,6 +722,52 @@ jobs:
         run: |
           cl.exe -c -WX -TP include/*.h
 
+  cxx_fpermissive_debian:
+    name: "C++ -fpermissive (entire project)"
+    runs-on: ubuntu-latest
+    needs: docker_cache
+
+    env:
+      CC: 'g++'
+      CFLAGS: '-fpermissive -g'
+      CPPFLAGS: '-DSECP256K1_CPLUSPLUS_TEST_OVERRIDE'
+      WERROR_CFLAGS:
+      ECDH: 'yes'
+      RECOVERY: 'yes'
+      SCHNORRSIG: 'yes'
+      ELLSWIFT: 'yes'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: CI script
+        uses: ./.github/actions/run-in-docker-action
+        with:
+          dockerfile: ./ci/linux-debian.Dockerfile
+          tag: linux-debian-image
+          command: >
+            git config --global --add safe.directory ${{ github.workspace }} &&
+            ./ci/ci.sh
+
+      - run: cat tests.log || true
+        if: ${{ always() }}
+      - run: cat noverify_tests.log || true
+        if: ${{ always() }}
+      - run: cat exhaustive_tests.log || true
+        if: ${{ always() }}
+      - run: cat ctime_tests.log || true
+        if: ${{ always() }}
+      - run: cat bench.log || true
+        if: ${{ always() }}
+      - run: cat config.log || true
+        if: ${{ always() }}
+      - run: cat test_env.log || true
+        if: ${{ always() }}
+      - name: CI env
+        run: env
+        if: ${{ always() }}
+
   sage:
     name: "SageMath prover"
     runs-on: ubuntu-latest
