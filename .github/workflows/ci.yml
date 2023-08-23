@@ -768,6 +768,24 @@ jobs:
         run: env
         if: ${{ always() }}
 
+  cxx_headers_debian:
+    name: "C++ (public headers)"
+    runs-on: ubuntu-latest
+    needs: docker_cache
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: CI script
+        uses: ./.github/actions/run-in-docker-action
+        with:
+          dockerfile: ./ci/linux-debian.Dockerfile
+          tag: linux-debian-image
+          command: |
+            g++ -Werror include/*.h
+            clang -Werror -x c++-header include/*.h
+
   sage:
     name: "SageMath prover"
     runs-on: ubuntu-latest
