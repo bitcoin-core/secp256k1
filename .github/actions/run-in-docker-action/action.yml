@@ -41,5 +41,8 @@ runs:
           $(echo '${{ toJSON(env) }}' | jq -r 'keys[] | "--env \(.) "') \
           --volume ${{ github.workspace }}:${{ github.workspace }} \
           --workdir ${{ github.workspace }} \
-          ${{ inputs.tag }} bash -c "${{ inputs.command }}"
+          ${{ inputs.tag }} bash -c "
+            git config --global --add safe.directory ${{ github.workspace }}
+            ${{ inputs.command }}
+          "
       shell: bash
