@@ -373,6 +373,121 @@ jobs:
         run: env
         if: ${{ always() }}
 
+  valgrind_debian:
+    name: "Valgrind (memcheck)"
+    runs-on: ubuntu-latest
+    needs: docker_cache
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - env_vars: { CC: 'clang',                                      ASM: 'auto' }
+          - env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'auto' }
+          - env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
+          - env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'no', ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
+
+    env:
+      # The `--error-exitcode` is required to make the test fail if valgrind found errors,
+      # otherwise it will return 0 (https://www.valgrind.org/docs/manual/manual-core.html).
+      WRAPPER_CMD: 'valgrind --error-exitcode=42'
+      ECDH: 'yes'
+      RECOVERY: 'yes'
+      SCHNORRSIG: 'yes'
+      ELLSWIFT: 'yes'
+      CTIMETESTS: 'no'
+      SECP256K1_TEST_ITERS: 2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: CI script
+        env: ${{ matrix.configuration.env_vars }}
+        uses: ./.github/actions/run-in-docker-action
+        with:
+          dockerfile: ./ci/linux-debian.Dockerfile
+          tag: linux-debian-image
+          command: >
+            git config --global --add safe.directory ${{ github.workspace }} &&
+            ./ci/ci.sh
+
+      - run: cat tests.log || true
+        if: ${{ always() }}
+      - run: cat noverify_tests.log || true
+        if: ${{ always() }}
+      - run: cat exhaustive_tests.log || true
+        if: ${{ always() }}
+      - run: cat ctime_tests.log || true
+        if: ${{ always() }}
+      - run: cat bench.log || true
+        if: ${{ always() }}
+      - run: cat config.log || true
+        if: ${{ always() }}
+      - run: cat test_env.log || true
+        if: ${{ always() }}
+      - name: CI env
+        run: env
+        if: ${{ always() }}
+
+  sanitizers_debian:
+    name: "UBSan, ASan, LSan"
+    runs-on: ubuntu-latest
+    needs: docker_cache
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - env_vars: { CC: 'clang',                                      ASM: 'auto' }
+          - env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'auto' }
+          - env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
+          - env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'no', ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
+
+    env:
+      ECDH: 'yes'
+      RECOVERY: 'yes'
+      SCHNORRSIG: 'yes'
+      ELLSWIFT: 'yes'
+      CTIMETESTS: 'no'
+      CFLAGS: '-fsanitize=undefined,address -g'
+      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+      ASAN_OPTIONS: 'strict_string_checks=1:detect_stack_use_after_return=1:detect_leaks=1'
+      LSAN_OPTIONS: 'use_unaligned=1'
+      SECP256K1_TEST_ITERS: 32
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: CI script
+        env: ${{ matrix.configuration.env_vars }}
+        uses: ./.github/actions/run-in-docker-action
+        with:
+          dockerfile: ./ci/linux-debian.Dockerfile
+          tag: linux-debian-image
+          command: >
+            git config --global --add safe.directory ${{ github.workspace }} &&
+            ./ci/ci.sh
+
+      - run: cat tests.log || true
+        if: ${{ always() }}
+      - run: cat noverify_tests.log || true
+        if: ${{ always() }}
+      - run: cat exhaustive_tests.log || true
+        if: ${{ always() }}
+      - run: cat ctime_tests.log || true
+        if: ${{ always() }}
+      - run: cat bench.log || true
+        if: ${{ always() }}
+      - run: cat config.log || true
+        if: ${{ always() }}
+      - run: cat test_env.log || true
+        if: ${{ always() }}
+      - name: CI env
+        run: env
+        if: ${{ always() }}
+
   mingw_debian:
     name: ${{ matrix.configuration.job_name }}
     runs-on: ubuntu-latest
