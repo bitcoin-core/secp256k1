@@ -9,7 +9,8 @@ inputs:
     required: true
   command:
     description: 'A command to run in a container'
-    required: true
+    required: false
+    default: ./ci/ci.sh
 runs:
   using: "composite"
   steps:
