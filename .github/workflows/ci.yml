@@ -104,9 +104,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -155,9 +152,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -202,9 +196,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -257,9 +248,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -304,9 +292,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -351,9 +336,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -408,9 +390,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -466,9 +445,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -525,9 +501,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -582,9 +555,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -746,9 +716,6 @@ jobs:
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
-          command: >
-            git config --global --add safe.directory ${{ github.workspace }} &&
-            ./ci/ci.sh
 
       - run: cat tests.log || true
         if: ${{ always() }}

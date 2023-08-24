@@ -9,7 +9,8 @@ inputs:
     required: true
   command:
     description: 'A command to run in a container'
-    required: true
+    required: false
+    default: ./ci/ci.sh
 runs:
   using: "composite"
   steps:
@@ -41,5 +42,8 @@ runs:
           $(echo '${{ toJSON(env) }}' | jq -r 'keys[] | "--env \(.) "') \
           --volume ${{ github.workspace }}:${{ github.workspace }} \
           --workdir ${{ github.workspace }} \
-          ${{ inputs.tag }} bash -c "${{ inputs.command }}"
+          ${{ inputs.tag }} bash -c "
+            git config --global --add safe.directory ${{ github.workspace }}
+            ${{ inputs.command }}
+          "
       shell: bash
