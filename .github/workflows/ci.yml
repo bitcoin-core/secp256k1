@@ -575,27 +575,28 @@ jobs:
         if: ${{ always() }}
 
   macos-native:
-    name: "x86_64: macOS Ventura"
+    name: "x86_64: macOS Monterey"
     # See: https://github.com/actions/runner-images#available-images.
-    runs-on: macos-13 # Use M1 once available https://github.com/github/roadmap/issues/528
+    runs-on: macos-12 # Use M1 once available https://github.com/github/roadmap/issues/528
 
     env:
-      ASM: 'no'
-      WITH_VALGRIND: 'no'
-      CTIMETESTS: 'no'
       CC: 'clang'
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
 
     strategy:
       fail-fast: false
       matrix:
         env_vars:
           - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' }
           - { WIDEMUL: 'int128_struct', ECMULTGENPRECISION: 2, ECMULTWINDOW: 4 }
           - { WIDEMUL: 'int128',                  ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes',              SCHNORRSIG: 'yes' }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes' }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
           - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY' }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes',            WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2 }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc', WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2 }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY', CTIMETESTS: 'no' }
           - BUILD: 'distcheck'
 
     steps:
@@ -603,12 +604,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Homebrew packages
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
-          HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: |
           brew install automake libtool gcc
           ln -s $(brew --prefix gcc)/bin/gcc-?? /usr/local/bin/gcc
+
+      - name: Install and cache Valgrind
+        uses: ./.github/actions/install-homebrew-valgrind
 
       - name: CI script
         env: ${{ matrix.env_vars }}
