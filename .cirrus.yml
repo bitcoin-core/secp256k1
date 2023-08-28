@@ -48,3 +48,54 @@ cat_logs_snippet: &CAT_LOGS
       - cat test_env.log || true
     cat_ci_env_script:
       - env
+
+linux_arm64_container_snippet: &LINUX_ARM64_CONTAINER
+  dockerfile: ci/linux-debian.Dockerfile
+  # Reduce number of CPUs to be able to do more builds in parallel.
+  cpu: 1
+  # Gives us more CPUs for free if they're available.
+  greedy: true
+  # More than enough for our scripts.
+  memory: 2G
+
+task:
+  name: "ARM64: Linux (Debian stable)"
+  arm_container:
+    << : *LINUX_ARM64_CONTAINER
+  persistent_worker:
+    labels:
+      type: arm64  
+  env:
+    ECDH: yes
+    RECOVERY: yes
+    SCHNORRSIG: yes
+    ELLSWIFT: yes
+  matrix:
+     # Currently only gcc-snapshot, the other compilers are tested on GHA with QEMU
+     - env: { CC: 'gcc-snapshot' }
+  test_script:
+    - ./ci/ci.sh
+  << : *CAT_LOGS
+
+task:
+  name: "ARM64: Linux (Debian stable), Valgrind"
+  arm_container:
+    << : *LINUX_ARM64_CONTAINER
+  persistent_worker:
+    labels:
+      type: arm64  
+  env:
+    ECDH: yes
+    RECOVERY: yes
+    SCHNORRSIG: yes
+    ELLSWIFT: yes
+    WRAPPER_CMD: 'valgrind --error-exitcode=42'
+    SECP256K1_TEST_ITERS: 2
+  matrix:
+     - env: { CC: 'gcc' }
+     - env: { CC: 'clang' }
+     - env: { CC: 'gcc-snapshot' }
+     - env: { CC: 'clang-snapshot' }
+  test_script:
+    - ./ci/ci.sh
+  << : *CAT_LOGS
