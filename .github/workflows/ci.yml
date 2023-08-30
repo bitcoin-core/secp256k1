@@ -283,11 +283,22 @@ jobs:
       ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
 
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - env_vars: { } # gcc
+          - env_vars: # clang
+              CC: 'clang --target=aarch64-linux-gnu'
+          - env_vars: # clang-snapshot
+              CC: 'clang-snapshot --target=aarch64-linux-gnu'
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: CI script
+        env: ${{ matrix.configuration.env_vars }}
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
