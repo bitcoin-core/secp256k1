@@ -2,6 +2,17 @@ FROM debian:stable-slim
 
 SHELL ["/bin/bash", "-c"]
 
+WORKDIR /root
+
+# A too high maximum number of file descriptors (with the default value
+# inherited from the docker host) can cause issues with some of our tools:
+#  - sanitizers hanging: https://github.com/google/sanitizers/issues/1662 
+#  - valgrind crashing: https://stackoverflow.com/a/75293014
+# This is not be a problem on our CI hosts, but developers who run the image
+# on their machines may run into this (e.g., on Arch Linux), so warn them.
+# (Note that .bashrc is only executed in interactive bash shells.)
+RUN echo 'if [[ $(ulimit -n) -gt 200000 ]]; then echo "WARNING: Very high value reported by \"ulimit -n\". Consider passing \"--ulimit nofile=32768\" to \"docker run\"."; fi' >> /root/.bashrc
+
 RUN dpkg --add-architecture i386 && \
     dpkg --add-architecture s390x && \
     dpkg --add-architecture armhf && \
@@ -23,8 +34,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
         gcc-mingw-w64-x86-64-win32 wine64 wine \
         gcc-mingw-w64-i686-win32 wine32 \
         python3
-
-WORKDIR /root
 
 # Build and install gcc snapshot
 ARG GCC_SNAPSHOT_MAJOR=14
