@@ -46,17 +46,21 @@ RUN mkdir gcc && cd gcc && \
     cd ../.. && rm -rf gcc && \
     ln -s /opt/gcc-snapshot/bin/gcc /usr/bin/gcc-snapshot
 
-# Install clang snapshot
-RUN wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
+# Install clang snapshot, see https://apt.llvm.org/
+RUN \
+    # Setup GPG keys of LLVM repository
+    apt-get update && apt-get install --no-install-recommends -y wget && \
+    wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
     # Add repository for this Debian release
     . /etc/os-release && echo "deb http://apt.llvm.org/${VERSION_CODENAME} llvm-toolchain-${VERSION_CODENAME} main" >> /etc/apt/sources.list && \
-    # Install clang snapshot
-    apt-get update && apt-get install --no-install-recommends -y clang && \
-    # Remove just the "clang" symlink again
-    apt-get remove -y clang && \
-    # We should have exactly two clang versions now
-    ls /usr/bin/clang* && \
-    [[    $(ls /usr/bin/clang-?? | sort | wc -l) -eq "2" ]] && \
-    # Create symlinks for them
-    ln -s $(ls /usr/bin/clang-?? | sort | tail -1) /usr/bin/clang-snapshot && \
-    ln -s $(ls /usr/bin/clang-?? | sort | head -1) /usr/bin/clang
+    apt-get update && \
+    # Determine the version number of the LLVM development branch
+    LLVM_VERSION=$(apt-cache search --names-only '^clang-[0-9]+$' | sort -V | tail -1 | cut -f1 -d" " | cut -f2 -d"-" ) && \
+    # Install
+    apt-get install --no-install-recommends -y "clang-${LLVM_VERSION}" && \
+    # Create symlink
+    ln -s "/usr/bin/clang-${LLVM_VERSION}" /usr/bin/clang-snapshot && \
+    # Clean up
+    apt-get autoremove -y wget && \
+    apt-get clean
+
