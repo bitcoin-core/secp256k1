@@ -22,7 +22,7 @@ RUN dpkg --add-architecture i386 && \
 # dkpg-dev: to make pkg-config work in cross-builds
 # llvm: for llvm-symbolizer, which is used by clang's UBSan for symbolized stack traces
 RUN apt-get update && apt-get install --no-install-recommends -y \
-        git ca-certificates wget \
+        git ca-certificates \
         make automake libtool pkg-config dpkg-dev valgrind qemu-user \
         gcc clang llvm libclang-rt-dev libc6-dbg \
         g++ \
@@ -37,7 +37,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 # Build and install gcc snapshot
 ARG GCC_SNAPSHOT_MAJOR=14
-RUN mkdir gcc && cd gcc && \
+RUN apt-get update && apt-get install --no-install-recommends -y wget libgmp-dev libmpfr-dev libmpc-dev flex && \
+    mkdir gcc && cd gcc && \
     wget --progress=dot:giga --https-only --recursive --accept '*.tar.xz' --level 1 --no-directories "https://gcc.gnu.org/pub/gcc/snapshots/LATEST-${GCC_SNAPSHOT_MAJOR}" && \
     wget "https://gcc.gnu.org/pub/gcc/snapshots/LATEST-${GCC_SNAPSHOT_MAJOR}/sha512.sum" && \
     sha512sum --check --ignore-missing sha512.sum && \
@@ -46,14 +47,13 @@ RUN mkdir gcc && cd gcc && \
     [[ $(ls *.tar.xz | wc -l) -eq "1" ]] && \
     tar xf *.tar.xz && \
     mkdir gcc-build && cd gcc-build && \
-    apt-get update && apt-get install --no-install-recommends -y libgmp-dev libmpfr-dev libmpc-dev flex && \
     ../*/configure --prefix=/opt/gcc-snapshot --enable-languages=c --disable-bootstrap --disable-multilib --without-isl && \
     make -j $(nproc) && \
     make install && \
-    apt-get autoremove -y libgmp-dev libmpfr-dev libmpc-dev flex && \
-    apt-get clean && \
     cd ../.. && rm -rf gcc && \
-    ln -s /opt/gcc-snapshot/bin/gcc /usr/bin/gcc-snapshot
+    ln -s /opt/gcc-snapshot/bin/gcc /usr/bin/gcc-snapshot && \
+    apt-get autoremove -y wget libgmp-dev libmpfr-dev libmpc-dev flex && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install clang snapshot, see https://apt.llvm.org/
 RUN \
@@ -71,5 +71,5 @@ RUN \
     ln -s "/usr/bin/clang-${LLVM_VERSION}" /usr/bin/clang-snapshot && \
     # Clean up
     apt-get autoremove -y wget && \
-    apt-get clean
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
