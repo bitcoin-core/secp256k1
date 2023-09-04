@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Header file `include/secp256k1_ellswift.h` which defines the new API.
    - Document `doc/ellswift.md` which explains the mathematical background of the scheme.
    - The [paper](https://eprint.iacr.org/2022/759) on which the scheme is based.
+ - We now test the library with unreleased development snapshots of GCC and Clang. This gives us an early chance to catch miscompilations and constant-time issues introduced by the compiler (such as those that led to the previous two releases).
+
+#### Fixed
+ - Fixed symbol visibility in Windows DLL builds, where three internal library symbols were wrongly exported.
 
 #### Changed
  - When consuming libsecp256k1 as a static library on Windows, the user must now define the `SECP256K1_STATIC` macro before including `secp256k1.h`.
