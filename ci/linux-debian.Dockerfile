@@ -2,6 +2,17 @@ FROM debian:stable-slim
 
 SHELL ["/bin/bash", "-c"]
 
+WORKDIR /root
+
+# A too high maximum number of file descriptors (with the default value
+# inherited from the docker host) can cause issues with some of our tools:
+#  - sanitizers hanging: https://github.com/google/sanitizers/issues/1662 
+#  - valgrind crashing: https://stackoverflow.com/a/75293014
+# This is not be a problem on our CI hosts, but developers who run the image
+# on their machines may run into this (e.g., on Arch Linux), so warn them.
+# (Note that .bashrc is only executed in interactive bash shells.)
+RUN echo 'if [[ $(ulimit -n) -gt 200000 ]]; then echo "WARNING: Very high value reported by \"ulimit -n\". Consider passing \"--ulimit nofile=32768\" to \"docker run\"."; fi' >> /root/.bashrc
+
 RUN dpkg --add-architecture i386 && \
     dpkg --add-architecture s390x && \
     dpkg --add-architecture armhf && \
@@ -11,7 +22,7 @@ RUN dpkg --add-architecture i386 && \
 # dkpg-dev: to make pkg-config work in cross-builds
 # llvm: for llvm-symbolizer, which is used by clang's UBSan for symbolized stack traces
 RUN apt-get update && apt-get install --no-install-recommends -y \
-        git ca-certificates wget \
+        git ca-certificates \
         make automake libtool pkg-config dpkg-dev valgrind qemu-user \
         gcc clang llvm libclang-rt-dev libc6-dbg \
         g++ \
@@ -24,11 +35,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
         gcc-mingw-w64-i686-win32 wine32 \
         python3
 
-WORKDIR /root
-
 # Build and install gcc snapshot
 ARG GCC_SNAPSHOT_MAJOR=14
-RUN mkdir gcc && cd gcc && \
+RUN apt-get update && apt-get install --no-install-recommends -y wget libgmp-dev libmpfr-dev libmpc-dev flex && \
+    mkdir gcc && cd gcc && \
     wget --progress=dot:giga --https-only --recursive --accept '*.tar.xz' --level 1 --no-directories "https://gcc.gnu.org/pub/gcc/snapshots/LATEST-${GCC_SNAPSHOT_MAJOR}" && \
     wget "https://gcc.gnu.org/pub/gcc/snapshots/LATEST-${GCC_SNAPSHOT_MAJOR}/sha512.sum" && \
     sha512sum --check --ignore-missing sha512.sum && \
@@ -37,26 +47,29 @@ RUN mkdir gcc && cd gcc && \
     [[ $(ls *.tar.xz | wc -l) -eq "1" ]] && \
     tar xf *.tar.xz && \
     mkdir gcc-build && cd gcc-build && \
-    apt-get update && apt-get install --no-install-recommends -y libgmp-dev libmpfr-dev libmpc-dev flex && \
     ../*/configure --prefix=/opt/gcc-snapshot --enable-languages=c --disable-bootstrap --disable-multilib --without-isl && \
     make -j $(nproc) && \
     make install && \
-    apt-get autoremove -y libgmp-dev libmpfr-dev libmpc-dev flex && \
-    apt-get clean && \
     cd ../.. && rm -rf gcc && \
-    ln -s /opt/gcc-snapshot/bin/gcc /usr/bin/gcc-snapshot
+    ln -s /opt/gcc-snapshot/bin/gcc /usr/bin/gcc-snapshot && \
+    apt-get autoremove -y wget libgmp-dev libmpfr-dev libmpc-dev flex && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install clang snapshot
-RUN wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
+# Install clang snapshot, see https://apt.llvm.org/
+RUN \
+    # Setup GPG keys of LLVM repository
+    apt-get update && apt-get install --no-install-recommends -y wget && \
+    wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
     # Add repository for this Debian release
     . /etc/os-release && echo "deb http://apt.llvm.org/${VERSION_CODENAME} llvm-toolchain-${VERSION_CODENAME} main" >> /etc/apt/sources.list && \
-    # Install clang snapshot
-    apt-get update && apt-get install --no-install-recommends -y clang && \
-    # Remove just the "clang" symlink again
-    apt-get remove -y clang && \
-    # We should have exactly two clang versions now
-    ls /usr/bin/clang* && \
-    [[    $(ls /usr/bin/clang-?? | sort | wc -l) -eq "2" ]] && \
-    # Create symlinks for them
-    ln -s $(ls /usr/bin/clang-?? | sort | tail -1) /usr/bin/clang-snapshot && \
-    ln -s $(ls /usr/bin/clang-?? | sort | head -1) /usr/bin/clang
+    apt-get update && \
+    # Determine the version number of the LLVM development branch
+    LLVM_VERSION=$(apt-cache search --names-only '^clang-[0-9]+$' | sort -V | tail -1 | cut -f1 -d" " | cut -f2 -d"-" ) && \
+    # Install
+    apt-get install --no-install-recommends -y "clang-${LLVM_VERSION}" && \
+    # Create symlink
+    ln -s "/usr/bin/clang-${LLVM_VERSION}" /usr/bin/clang-snapshot && \
+    # Clean up
+    apt-get autoremove -y wget && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
