@@ -24,14 +24,14 @@ Perform these checks before creating a release:
 2. Check installation with autotools:
 ```shell
 dir=$(mktemp -d)
-./autogen.sh && ./configure --prefix=$dir && make clean && make install && ls -l $dir/include $dir/lib
+./autogen.sh && ./configure --prefix=$dir && make clean && make install && ls -RlAh $dir
 gcc -o ecdsa examples/ecdsa.c $(PKG_CONFIG_PATH=$dir/lib/pkgconfig pkg-config --cflags --libs libsecp256k1) -Wl,-rpath,"$dir/lib" && ./ecdsa
 ```
 3. Check installation with CMake:
 ```shell
 dir=$(mktemp -d)
 build=$(mktemp -d)
-cmake -B $build -DCMAKE_INSTALL_PREFIX=$dir && cmake --build $build --target install && ls -l $dir/include $dir/lib*
+cmake -B $build -DCMAKE_INSTALL_PREFIX=$dir && cmake --build $build --target install && ls -RlAh $dir
 gcc -o ecdsa examples/ecdsa.c -I $dir/include -L $dir/lib*/ -l secp256k1 -Wl,-rpath,"$dir/lib",-rpath,"$dir/lib64" && ./ecdsa
 ```
 
