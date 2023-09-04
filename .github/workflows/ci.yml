@@ -780,3 +780,27 @@ jobs:
         run: |
           cd sage
           sage prove_group_implementations.sage
+
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - run: ./autogen.sh && ./configure --enable-dev-mode && make distcheck
+
+      - name: Check installation with Autotools
+        env:
+          CI_INSTALL: ${{ runner.temp }}/${{ github.run_id }}${{ github.action }}
+        run: |
+          ./autogen.sh && ./configure --prefix=${{ env.CI_INSTALL }} && make clean && make install && ls -RlAh ${{ env.CI_INSTALL }}
+          gcc -o ecdsa examples/ecdsa.c $(PKG_CONFIG_PATH=${{ env.CI_INSTALL }}/lib/pkgconfig pkg-config --cflags --libs libsecp256k1) -Wl,-rpath,"${{ env.CI_INSTALL }}/lib" && ./ecdsa
+
+      - name: Check installation with CMake
+        env:
+          CI_BUILD: ${{ runner.temp }}/${{ github.run_id }}${{ github.action }}/build
+          CI_INSTALL: ${{ runner.temp }}/${{ github.run_id }}${{ github.action }}/install
+        run: |
+          cmake -B ${{ env.CI_BUILD }} -DCMAKE_INSTALL_PREFIX=${{ env.CI_INSTALL }} && cmake --build ${{ env.CI_BUILD }} --target install && ls -RlAh ${{ env.CI_INSTALL }}
+          gcc -o ecdsa examples/ecdsa.c -I ${{ env.CI_INSTALL }}/include -L ${{ env.CI_INSTALL }}/lib*/ -l secp256k1 -Wl,-rpath,"${{ env.CI_INSTALL }}/lib",-rpath,"${{ env.CI_INSTALL }}/lib64" && ./ecdsa
