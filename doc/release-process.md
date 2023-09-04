@@ -41,7 +41,7 @@ gcc -o ecdsa examples/ecdsa.c -I $dir/include -L $dir/lib*/ -l secp256k1 -Wl,-rp
    * finalizes the release notes in [CHANGELOG.md](../CHANGELOG.md) by
        * adding a section for the release (make sure that the version number is a link to a diff between the previous and new version),
        * removing the `[Unreleased]` section header, and
-       * including an entry for `### ABI Compatibility` if it doesn't exist that mentions the library soname of the release,
+       * including an entry for `### ABI Compatibility` if it doesn't exist,
    * sets `_PKG_VERSION_IS_RELEASE` to `true` in `configure.ac`, and
    * if this is not a patch release
        * updates `_PKG_VERSION_*` and `_LIB_VERSION_*`  in `configure.ac` and
