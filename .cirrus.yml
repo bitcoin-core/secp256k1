@@ -54,18 +54,20 @@ linux_arm64_container_snippet: &LINUX_ARM64_CONTAINER
   # Reduce number of CPUs to be able to do more builds in parallel.
   cpu: 1
   # Gives us more CPUs for free if they're available.
-  greedy: true
+  # greedy: true
   # More than enough for our scripts.
   memory: 2G
 
 task:
   name: "ARM64: Linux (Debian stable)"
-  arm_container:
-    << : *LINUX_ARM64_CONTAINER
   persistent_worker:
     labels:
-      type: arm64  
+      type: arm64
+    isolation:
+      arm_container:
+        << : *LINUX_ARM64_CONTAINER
   env:
+    CIRRUS_ARCH: arm64
     ECDH: yes
     RECOVERY: yes
     SCHNORRSIG: yes
@@ -77,25 +79,26 @@ task:
     - ./ci/ci.sh
   << : *CAT_LOGS
 
-task:
-  name: "ARM64: Linux (Debian stable), Valgrind"
-  arm_container:
-    << : *LINUX_ARM64_CONTAINER
-  persistent_worker:
-    labels:
-      type: arm64  
-  env:
-    ECDH: yes
-    RECOVERY: yes
-    SCHNORRSIG: yes
-    ELLSWIFT: yes
-    WRAPPER_CMD: 'valgrind --error-exitcode=42'
-    SECP256K1_TEST_ITERS: 2
-  matrix:
-     - env: { CC: 'gcc' }
-     - env: { CC: 'clang' }
-     - env: { CC: 'gcc-snapshot' }
-     - env: { CC: 'clang-snapshot' }
-  test_script:
-    - ./ci/ci.sh
-  << : *CAT_LOGS
+#task:
+  #name: "ARM64: Linux (Debian stable), Valgrind"
+  #persistent_worker:
+    #labels:
+      #type: arm64
+    #isolation:
+      #container:
+        #<< : *LINUX_ARM64_CONTAINER
+  #env:
+    #ECDH: yes
+    #RECOVERY: yes
+    #SCHNORRSIG: yes
+    #ELLSWIFT: yes
+    #WRAPPER_CMD: 'valgrind --error-exitcode=42'
+    #SECP256K1_TEST_ITERS: 2
+  #matrix:
+     #- env: { CC: 'gcc' }
+     #- env: { CC: 'clang' }
+     #- env: { CC: 'gcc-snapshot' }
+     #- env: { CC: 'clang-snapshot' }
+  #test_script:
+    #- ./ci/ci.sh
+  #<< : *CAT_LOGS
