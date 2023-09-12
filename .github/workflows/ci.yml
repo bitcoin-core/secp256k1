@@ -792,7 +792,7 @@ jobs:
 
       - name: Check installation with Autotools
         env:
-          CI_INSTALL: ${{ runner.temp }}/${{ github.run_id }}${{ github.action }}
+          CI_INSTALL: ${{ runner.temp }}/${{ github.run_id }}${{ github.action }}/install
         run: |
           ./autogen.sh && ./configure --prefix=${{ env.CI_INSTALL }} && make clean && make install && ls -RlAh ${{ env.CI_INSTALL }}
           gcc -o ecdsa examples/ecdsa.c $(PKG_CONFIG_PATH=${{ env.CI_INSTALL }}/lib/pkgconfig pkg-config --cflags --libs libsecp256k1) -Wl,-rpath,"${{ env.CI_INSTALL }}/lib" && ./ecdsa
