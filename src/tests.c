@@ -23,6 +23,7 @@
 #include "../include/secp256k1_preallocated.h"
 #include "testrand_impl.h"
 #include "checkmem.h"
+#include "testutil.h"
 #include "util.h"
 
 #include "../contrib/lax_der_parsing.c"
@@ -2921,29 +2922,6 @@ static void run_scalar_tests(void) {
 
 /***** FIELD TESTS *****/
 
-static void random_fe(secp256k1_fe *x) {
-    unsigned char bin[32];
-    do {
-        secp256k1_testrand256(bin);
-        if (secp256k1_fe_set_b32_limit(x, bin)) {
-            return;
-        }
-    } while(1);
-}
-
-static void random_fe_non_zero(secp256k1_fe *nz) {
-    int tries = 10;
-    while (--tries >= 0) {
-        random_fe(nz);
-        secp256k1_fe_normalize(nz);
-        if (!secp256k1_fe_is_zero(nz)) {
-            break;
-        }
-    }
-    /* Infinitesimal probability of spurious failure here */
-    CHECK(tries >= 0);
-}
-
 static void random_fe_non_square(secp256k1_fe *ns) {
     secp256k1_fe r;
     random_fe_non_zero(ns);
@@ -3663,15 +3641,6 @@ static void run_inverse_tests(void)
 
 /***** GROUP TESTS *****/
 
-static void ge_equals_ge(const secp256k1_ge *a, const secp256k1_ge *b) {
-    CHECK(a->infinity == b->infinity);
-    if (a->infinity) {
-        return;
-    }
-    CHECK(secp256k1_fe_equal(&a->x, &b->x));
-    CHECK(secp256k1_fe_equal(&a->y, &b->y));
-}
-
 /* This compares jacobian points including their Z, not just their geometric meaning. */
 static int gej_xyz_equals_gej(const secp256k1_gej *a, const secp256k1_gej *b) {
     secp256k1_gej a2;
@@ -3692,23 +3661,6 @@ static int gej_xyz_equals_gej(const secp256k1_gej *a, const secp256k1_gej *b) {
         ret &= secp256k1_fe_cmp_var(&a2.z, &b2.z) == 0;
     }
     return ret;
-}
-
-static void ge_equals_gej(const secp256k1_ge *a, const secp256k1_gej *b) {
-    secp256k1_fe z2s;
-    secp256k1_fe u1, u2, s1, s2;
-    CHECK(a->infinity == b->infinity);
-    if (a->infinity) {
-        return;
-    }
-    /* Check a.x * b.z^2 == b.x && a.y * b.z^3 == b.y, to avoid inverses. */
-    secp256k1_fe_sqr(&z2s, &b->z);
-    secp256k1_fe_mul(&u1, &a->x, &z2s);
-    u2 = b->x;
-    secp256k1_fe_mul(&s1, &a->y, &z2s); secp256k1_fe_mul(&s1, &s1, &b->z);
-    s2 = b->y;
-    CHECK(secp256k1_fe_equal(&u1, &u2));
-    CHECK(secp256k1_fe_equal(&s1, &s2));
 }
 
 static void test_ge(void) {

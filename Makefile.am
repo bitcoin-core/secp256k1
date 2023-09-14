@@ -46,6 +46,7 @@ noinst_HEADERS += src/precomputed_ecmult.h
 noinst_HEADERS += src/precomputed_ecmult_gen.h
 noinst_HEADERS += src/assumptions.h
 noinst_HEADERS += src/checkmem.h
+noinst_HEADERS += src/testutil.h
 noinst_HEADERS += src/util.h
 noinst_HEADERS += src/int128.h
 noinst_HEADERS += src/int128_impl.h
