@@ -253,6 +253,10 @@ maintainer-clean-local: clean-precomp
 ### (see the comments in the previous section for detailed rationale)
 TESTVECTORS = src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
 
+if ENABLE_MODULE_SILENTPAYMENTS
+TESTVECTORS += src/modules/silentpayments/vectors.h
+endif
+
 if ENABLE_MODULE_ECDH
 TESTVECTORS += src/wycheproof/ecdh_secp256k1_test.h
 endif
@@ -313,4 +317,8 @@ endif
 
 if ENABLE_MODULE_ELLSWIFT
 include src/modules/ellswift/Makefile.am.include
+endif
+
+if ENABLE_MODULE_SILENTPAYMENTS
+include src/modules/silentpayments/Makefile.am.include
 endif
