@@ -314,3 +314,7 @@ endif
 if ENABLE_MODULE_ELLSWIFT
 include src/modules/ellswift/Makefile.am.include
 endif
+
+if ENABLE_MODULE_SILENTPAYMENTS
+include src/modules/silentpayments/Makefile.am.include
+endif
