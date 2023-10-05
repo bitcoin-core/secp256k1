@@ -7,6 +7,8 @@
 #define SECP256K1_MODULE_SILENTPAYMENTS_MAIN_H
 
 #include "../../../include/secp256k1.h"
+#include "../../../include/secp256k1_ecdh.h"
+#include "../../../include/secp256k1_extrakeys.h"
 #include "../../../include/secp256k1_silentpayments.h"
 
 /** Set hash state to the BIP340 tagged hash midstate for "BIP0352/Inputs". */
@@ -147,6 +149,56 @@ int secp256k1_silentpayments_create_tweaked_pubkey(const secp256k1_context *ctx,
     /* Calculate A_tweaked = input_hash * A_sum */
     *A_tweaked = *A_sum;
     if (!secp256k1_ec_pubkey_tweak_mul(ctx, A_tweaked, input_hash)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+/* secp256k1_ecdh expects a hash function to be passed in or uses its default
+ * hashing function. We don't want to hash the ECDH result, so we define a
+ * custom function which simply returns the pubkey without hashing.
+ */
+static int secp256k1_silentpayments_ecdh_return_pubkey(unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data) {
+    secp256k1_ge point;
+    secp256k1_fe x, y;
+    size_t ser_size;
+    int ser_ret;
+
+    (void)data;
+    /* Parse point as group element */
+    if (!secp256k1_fe_set_b32_limit(&x, x32) || !secp256k1_fe_set_b32_limit(&y, y32)) {
+        return 0;
+    }
+    secp256k1_ge_set_xy(&point, &x, &y);
+
+    /* Serialize as compressed pubkey */
+    ser_ret = secp256k1_eckey_pubkey_serialize(&point, output, &ser_size, 1);
+    VERIFY_CHECK(ser_ret && ser_size == 33);
+    (void)ser_ret;
+
+    return 1;
+}
+
+int secp256k1_silentpayments_create_shared_secret(const secp256k1_context *ctx, unsigned char *shared_secret33, const secp256k1_pubkey *public_component, const unsigned char *secret_component, const unsigned char *input_hash) {
+    unsigned char tweaked_secret_component[32];
+
+    /* Sanity check inputs */
+    ARG_CHECK(shared_secret33 != NULL);
+    memset(shared_secret33, 0, 33);
+    ARG_CHECK(public_component != NULL);
+    ARG_CHECK(secret_component != NULL);
+
+    /* Tweak secret component with input hash, if available */
+    memcpy(tweaked_secret_component, secret_component, 32);
+    if (input_hash != NULL) {
+        if (!secp256k1_ec_seckey_tweak_mul(ctx, tweaked_secret_component, input_hash)) {
+            return 0;
+        }
+    }
+
+    /* Compute shared_secret = tweaked_secret_component * Public_component */
+    if (!secp256k1_ecdh(ctx, shared_secret33, public_component, tweaked_secret_component, secp256k1_silentpayments_ecdh_return_pubkey, NULL)) {
         return 0;
     }
 
