@@ -155,3 +155,8 @@ Reporting a vulnerability
 ------------
 
 See [SECURITY.md](SECURITY.md)
+
+Contributing to libsecp256k1
+------------
+
+See [CONTRIBUTING.md](CONTRIBUTING.md)
