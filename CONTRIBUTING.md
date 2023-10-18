@@ -38,9 +38,45 @@ Chat history logs can be found at https://gnusha.org/secp256k1/.
 
 ## Contributor workflow & peer review
 
-The Contributor Workflow & Peer Review in libsecp256k1 are similar to Bitcoin Core's workflow and review processes described in Core's [CONTRIBUTING.md](https://github.com/bitcoin/bitcoin/blob/master/CONTRIBUTING.md).
+The Contributor Workflow & Peer Review in libsecp256k1 are similar to Bitcoin Core's workflow and review processes described in its [CONTRIBUTING.md](https://github.com/bitcoin/bitcoin/blob/master/CONTRIBUTING.md).
 
-### Test coverage
+### Coding conventions
+
+In addition, libsecp256k1 tries to maintain the following coding conventions:
+
+* No runtime heap allocation (e.g., no `malloc`) unless explicitly requested by the caller (via `secp256k1_context_create` or `secp256k1_scratch_space_create`, for example). Morever, it should be possible to use the library without any heap allocations.
+* The tests should cover all lines and branches of the library (see [Test coverage](#coverage)).
+* Operations involving secret data should be tested for being constant time with respect to the secrets (see [src/ctime_tests.c](src/ctime_tests.c)).
+* Local variables containing secret data should be cleared explicitly to try to delete secrets from memory.
+* Use `secp256k1_memcmp_var` instead of `memcmp` (see [#823](https://github.com/bitcoin-core/secp256k1/issues/823)).
+
+#### Style conventions
+
+* Commits should be atomic and diffs should be easy to read. For this reason, do not mix any formatting fixes or code moves with actual code changes. Make sure each individual commit is hygienic: that it builds successfully on its own without warnings, errors, regressions, or test failures.
+* New code should adhere to the style of existing, in particular surrounding, code. Other than that, we do not enforce strict rules for code formatting.
+* The code conforms to C89. Most notably, that means that only `/* ... */` comments are allowed (no `//` line comments). Moreover, any declarations in a `{ ... }` block (e.g., a function) must appear at the beginning of the block before any statements. When you would like to declare a variable in the middle of a block, you can open a new block:
+    ```C
+    void secp256k_foo(void) {
+        unsigned int x;              /* declaration */
+        int y = 2*x;                 /* declaration */
+        x = 17;                      /* statement */
+        {
+            int a, b;                /* declaration */
+            a = x + y;               /* statement */
+            secp256k_bar(x, &b);     /* statement */
+        }
+    }
+    ```
+* Use `unsigned int` instead of just `unsigned`.
+* Use `void *ptr` instead of `void* ptr`.
+* Arguments of the publicly-facing API must have a specific order defined in [include/secp256k1.h](include/secp256k1.h).
+* User-facing comment lines in headers should be limited to 80 chars if possible.
+* All identifiers in file scope should start with `secp256k1_`.
+* Avoid trailing whitespace.
+
+### Tests
+
+#### Coverage
 
 This library aims to have full coverage of reachable lines and branches.
 
@@ -60,3 +96,12 @@ To create a HTML report with coloured and annotated source code:
 
     $ mkdir -p coverage
     $ gcovr --exclude 'src/bench*' --html --html-details -o coverage/coverage.html
+
+#### Exhaustive tests
+
+There are tests of several functions in which a small group replaces secp256k1.
+These tests are *exhaustive* since they provide all elements and scalars of the small group as input arguments (see [src/tests_exhaustive.c](src/tests_exhaustive.c)).
+
+### Benchmarks
+
+See `src/bench*.c` for examples of benchmarks.
