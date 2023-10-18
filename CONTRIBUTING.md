@@ -39,3 +39,24 @@ Chat history logs can be found at https://gnusha.org/secp256k1/.
 ## Contributor workflow & peer review
 
 The Contributor Workflow & Peer Review in libsecp256k1 are similar to Bitcoin Core's workflow and review processes described in Core's [CONTRIBUTING.md](https://github.com/bitcoin/bitcoin/blob/master/CONTRIBUTING.md).
+
+### Test coverage
+
+This library aims to have full coverage of reachable lines and branches.
+
+To create a test coverage report, configure with `--enable-coverage` (use of GCC is necessary):
+
+    $ ./configure --enable-coverage
+
+Run the tests:
+
+    $ make check
+
+To create a report, `gcovr` is recommended, as it includes branch coverage reporting:
+
+    $ gcovr --exclude 'src/bench*' --print-summary
+
+To create a HTML report with coloured and annotated source code:
+
+    $ mkdir -p coverage
+    $ gcovr --exclude 'src/bench*' --html --html-details -o coverage/coverage.html

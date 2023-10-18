@@ -117,28 +117,6 @@ Usage examples can be found in the [examples](examples) directory. To compile th
 
 To compile the Schnorr signature and ECDH examples, you also need to configure with `--enable-module-schnorrsig` and `--enable-module-ecdh`.
 
-Test coverage
------------
-
-This library aims to have full coverage of the reachable lines and branches.
-
-To create a test coverage report, configure with `--enable-coverage` (use of GCC is necessary):
-
-    $ ./configure --enable-coverage
-
-Run the tests:
-
-    $ make check
-
-To create a report, `gcovr` is recommended, as it includes branch coverage reporting:
-
-    $ gcovr --exclude 'src/bench*' --print-summary
-
-To create a HTML report with coloured and annotated source code:
-
-    $ mkdir -p coverage
-    $ gcovr --exclude 'src/bench*' --html --html-details -o coverage/coverage.html
-
 Benchmark
 ------------
 If configured with `--enable-benchmark` (which is the default), binaries for benchmarking the libsecp256k1 functions will be present in the root directory after the build.
