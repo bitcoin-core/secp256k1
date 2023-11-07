@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Changed
+ - The point multiplication algorithm used for ECDH operations (module `ecdh`) was replaced with a slightly faster one.
+
 ## [0.4.0] - 2023-09-04
 
 #### Added

@@ -199,6 +199,47 @@ static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar 
     secp256k1_scalar_verify(r);
 }
 
+static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    /* Writing `/` for field division and `//` for integer division, we compute
+     *
+     *   a/2 = (a - (a&1))/2 + (a&1)/2
+     *       = (a >> 1) + (a&1 ?    1/2 : 0)
+     *       = (a >> 1) + (a&1 ? n//2+1 : 0),
+     *
+     * where n is the group order and in the last equality we have used 1/2 = n//2+1 (mod n).
+     * For n//2, we have the constants SECP256K1_N_H_0, ...
+     *
+     * This sum does not overflow. The most extreme case is a = -2, the largest odd scalar. Here:
+     * - the left summand is:  a >> 1 = (a - a&1)/2 = (n-2-1)//2           = (n-3)//2
+     * - the right summand is: a&1 ? n//2+1 : 0 = n//2+1 = (n-1)//2 + 2//2 = (n+1)//2
+     * Together they sum to (n-3)//2 + (n+1)//2 = (2n-2)//2 = n - 1, which is less than n.
+     */
+    uint64_t mask = -(uint64_t)(a->d[0] & 1U);
+    secp256k1_uint128 t;
+    secp256k1_scalar_verify(a);
+
+    secp256k1_u128_from_u64(&t, (a->d[0] >> 1) | (a->d[1] << 63));
+    secp256k1_u128_accum_u64(&t, (SECP256K1_N_H_0 + 1U) & mask);
+    r->d[0] = secp256k1_u128_to_u64(&t); secp256k1_u128_rshift(&t, 64);
+    secp256k1_u128_accum_u64(&t, (a->d[1] >> 1) | (a->d[2] << 63));
+    secp256k1_u128_accum_u64(&t, SECP256K1_N_H_1 & mask);
+    r->d[1] = secp256k1_u128_to_u64(&t); secp256k1_u128_rshift(&t, 64);
+    secp256k1_u128_accum_u64(&t, (a->d[2] >> 1) | (a->d[3] << 63));
+    secp256k1_u128_accum_u64(&t, SECP256K1_N_H_2 & mask);
+    r->d[2] = secp256k1_u128_to_u64(&t); secp256k1_u128_rshift(&t, 64);
+    r->d[3] = secp256k1_u128_to_u64(&t) + (a->d[3] >> 1) + (SECP256K1_N_H_3 & mask);
+#ifdef VERIFY
+    /* The line above only computed the bottom 64 bits of r->d[3]; redo the computation
+     * in full 128 bits to make sure the top 64 bits are indeed zero. */
+    secp256k1_u128_accum_u64(&t, a->d[3] >> 1);
+    secp256k1_u128_accum_u64(&t, SECP256K1_N_H_3 & mask);
+    secp256k1_u128_rshift(&t, 64);
+    VERIFY_CHECK(secp256k1_u128_to_u64(&t) == 0);
+
+    secp256k1_scalar_verify(r);
+#endif
+}
+
 SECP256K1_INLINE static int secp256k1_scalar_is_one(const secp256k1_scalar *a) {
     secp256k1_scalar_verify(a);
 
@@ -807,22 +848,6 @@ static void secp256k1_scalar_mul(secp256k1_scalar *r, const secp256k1_scalar *a,
     secp256k1_scalar_reduce_512(r, l);
 
     secp256k1_scalar_verify(r);
-}
-
-static int secp256k1_scalar_shr_int(secp256k1_scalar *r, int n) {
-    int ret;
-    secp256k1_scalar_verify(r);
-    VERIFY_CHECK(n > 0);
-    VERIFY_CHECK(n < 16);
-
-    ret = r->d[0] & ((1 << n) - 1);
-    r->d[0] = (r->d[0] >> n) + (r->d[1] << (64 - n));
-    r->d[1] = (r->d[1] >> n) + (r->d[2] << (64 - n));
-    r->d[2] = (r->d[2] >> n) + (r->d[3] << (64 - n));
-    r->d[3] = (r->d[3] >> n);
-
-    secp256k1_scalar_verify(r);
-    return ret;
 }
 
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k) {

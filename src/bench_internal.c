@@ -14,7 +14,6 @@
 #include "field_impl.h"
 #include "group_impl.h"
 #include "scalar_impl.h"
-#include "ecmult_const_impl.h"
 #include "ecmult_impl.h"
 #include "bench.h"
 
@@ -96,6 +95,18 @@ static void bench_scalar_negate(void* arg, int iters) {
     for (i = 0; i < iters; i++) {
         secp256k1_scalar_negate(&data->scalar[0], &data->scalar[0]);
     }
+}
+
+static void bench_scalar_half(void* arg, int iters) {
+    int i;
+    bench_inv *data = (bench_inv*)arg;
+    secp256k1_scalar s = data->scalar[0];
+
+    for (i = 0; i < iters; i++) {
+        secp256k1_scalar_half(&s, &s);
+    }
+
+    data->scalar[0] = s;
 }
 
 static void bench_scalar_mul(void* arg, int iters) {
@@ -309,18 +320,6 @@ static void bench_ecmult_wnaf(void* arg, int iters) {
     CHECK(bits <= 256*iters);
 }
 
-static void bench_wnaf_const(void* arg, int iters) {
-    int i, bits = 0, overflow = 0;
-    bench_inv *data = (bench_inv*)arg;
-
-    for (i = 0; i < iters; i++) {
-        bits += secp256k1_wnaf_const(data->wnaf, &data->scalar[0], WINDOW_A, 256);
-        overflow += secp256k1_scalar_add(&data->scalar[0], &data->scalar[0], &data->scalar[1]);
-    }
-    CHECK(overflow >= 0);
-    CHECK(bits <= 256*iters);
-}
-
 static void bench_sha256(void* arg, int iters) {
     int i;
     bench_inv *data = (bench_inv*)arg;
@@ -370,6 +369,7 @@ int main(int argc, char **argv) {
     int d = argc == 1; /* default */
     print_output_table_header_row();
 
+    if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "half")) run_benchmark("scalar_half", bench_scalar_half, bench_setup, NULL, &data, 10, iters*100);
     if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "add")) run_benchmark("scalar_add", bench_scalar_add, bench_setup, NULL, &data, 10, iters*100);
     if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "negate")) run_benchmark("scalar_negate", bench_scalar_negate, bench_setup, NULL, &data, 10, iters*100);
     if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "mul")) run_benchmark("scalar_mul", bench_scalar_mul, bench_setup, NULL, &data, 10, iters*10);
@@ -394,7 +394,6 @@ int main(int argc, char **argv) {
     if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "add")) run_benchmark("group_add_zinv_var", bench_group_add_zinv_var, bench_setup, NULL, &data, 10, iters*10);
     if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "to_affine")) run_benchmark("group_to_affine_var", bench_group_to_affine_var, bench_setup, NULL, &data, 10, iters);
 
-    if (d || have_flag(argc, argv, "ecmult") || have_flag(argc, argv, "wnaf")) run_benchmark("wnaf_const", bench_wnaf_const, bench_setup, NULL, &data, 10, iters);
     if (d || have_flag(argc, argv, "ecmult") || have_flag(argc, argv, "wnaf")) run_benchmark("ecmult_wnaf", bench_ecmult_wnaf, bench_setup, NULL, &data, 10, iters);
 
     if (d || have_flag(argc, argv, "hash") || have_flag(argc, argv, "sha256")) run_benchmark("hash_sha256", bench_sha256, bench_setup, NULL, &data, 10, iters);
