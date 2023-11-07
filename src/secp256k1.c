@@ -4,6 +4,8 @@
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
 
+// C89 haha
+
 /* This is a C project. It should not be compiled with a C++ compiler,
  * and we error out if we detect one.
  *
