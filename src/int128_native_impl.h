@@ -20,6 +20,10 @@ static SECP256K1_INLINE void secp256k1_u128_accum_u64(secp256k1_uint128 *r, uint
    *r += a;
 }
 
+static SECP256K1_INLINE void secp256k1_u128_accum(secp256k1_uint128 *r, secp256k1_uint128 *a){
+   *r += *a;
+}
+
 static SECP256K1_INLINE void secp256k1_u128_rshift(secp256k1_uint128 *r, unsigned int n) {
    VERIFY_CHECK(n < 128);
    *r >>= n;
