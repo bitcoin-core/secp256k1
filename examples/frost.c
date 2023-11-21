@@ -12,7 +12,7 @@
 #include <secp256k1.h>
 #include <secp256k1_frost.h>
 
-#include "random.h"
+#include "examples_util.h"
 
 #define EXAMPLE_MAX_PARTICIPANTS 3
 #define EXAMPLE_MIN_PARTICIPANTS 2

@@ -27,12 +27,25 @@ Run the tests:
 
     $ make check
 
+### Building with CMake (experimental) on POSIX systems
+
+To maintain a pristine source tree, CMake encourages to perform an out-of-source build by using a separate dedicated build tree.
+
+    $ mkdir build && cd build
+    $ cmake -DSECP256K1_ENABLE_MODULE_FROST=ON -DSECP256K1_EXPERIMENTAL=ON ..
+    $ make
+    $ make check  # run the test suite
+    $ sudo make install  # optional
+
+To compile the FROST module, you need to run `cmake` with the additional flags `-DSECP256K1_ENABLE_MODULE_FROST=ON -DSECP256K1_EXPERIMENTAL=ON`.
+Run `cmake .. -LH` to see the full list of available flags.
+
 ## Usage example
 
 A [FROST usage example](../../../examples/frost.c) can be found in the [examples](../../../examples) directory.
 
-To compile the examples, you need to configure with `--enable-examples`.
-Specifically, to compile the [FROST example](../../../examples/frost.c), you also need to configure with `--enable-module-frost`.
+To compile the examples, you need to configure with `--enable-examples` (or, the `cmake` flag `-DSECP256K1_BUILD_EXAMPLES=ON`).
+Specifically, to compile the [FROST example](../../../examples/frost.c), you also need to configure with `--enable-module-frost`. If `cmake` is used, you need to provide the `-DSECP256K1_ENABLE_MODULE_FROST=ON -DSECP256K1_EXPERIMENTAL=ON` flags.
 
 ## Compliance with the IETF Standardized version of FROST
 
