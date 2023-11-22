@@ -1,0 +1,46 @@
+name: Build using CMake
+
+on:
+  push:
+    branches:
+      - frost
+  pull_request:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build-with-cmake:
+    runs-on: ubuntu-22.04
+    # Use fedora:38 to compile using gcc-13
+    container:
+      image: fedora:38
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+              cmake \
+              gcc
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      - name: Build with CMake
+        run: |
+          mkdir build
+          cd build
+          cmake \
+              -DCMAKE_C_FLAGS="-Werror" \
+              -DCMAKE_BUILD_TYPE="Release" \
+              -DSECP256K1_BUILD_TESTS=ON \
+              -DSECP256K1_BUILD_EXHAUSTIVE_TESTS=OFF \
+              -DSECP256K1_BUILD_BENCHMARK=OFF \
+              -DSECP256K1_BUILD_EXAMPLES=ON \
+              -DSECP256K1_EXPERIMENTAL=ON \
+              -DSECP256K1_ENABLE_MODULE_FROST=ON \
+              ..
+          make -j
+      - name: Run FROST example
+        run: |
+          "${GITHUB_WORKSPACE}/build/examples/frost_example"
+      - name: Run functional tests
+        run: |
+          "${GITHUB_WORKSPACE}/build/src/tests"
