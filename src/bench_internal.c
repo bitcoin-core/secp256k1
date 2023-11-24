@@ -17,6 +17,25 @@
 #include "ecmult_impl.h"
 #include "bench.h"
 
+static void help(int default_iters) {
+    printf("Benchmarks various internal routines.\n");
+    printf("\n");
+    printf("The default number of iterations for each benchmark is %d. This can be\n", default_iters);
+    printf("customized using the SECP256K1_BENCH_ITERS environment variable.\n");
+    printf("\n");
+    printf("Usage: ./bench_internal [args]\n");
+    printf("By default, all benchmarks will be run.\n");
+    printf("args:\n");
+    printf("    help       : display this help and exit\n");
+    printf("    scalar     : all scalar operations (add, half, inverse, mul, negate, split)\n");
+    printf("    field      : all field operations (half, inverse, issquare, mul, normalize, sqr, sqrt)\n");
+    printf("    group      : all group operations (add, double, to_affine)\n");
+    printf("    ecmult     : all point multiplication operations (ecmult_wnaf) \n");
+    printf("    hash       : all hash algorithms (hmac, rng6979, sha256)\n");
+    printf("    context    : all context object operations (context_create)\n");
+    printf("\n");
+}
+
 typedef struct {
     secp256k1_scalar scalar[2];
     secp256k1_fe fe[4];
@@ -365,8 +384,19 @@ static void bench_context(void* arg, int iters) {
 
 int main(int argc, char **argv) {
     bench_inv data;
-    int iters = get_iters(20000);
+    int default_iters = 20000;
+    int iters = get_iters(default_iters);
     int d = argc == 1; /* default */
+
+    if (argc > 1) {
+        if (have_flag(argc, argv, "-h")
+           || have_flag(argc, argv, "--help")
+           || have_flag(argc, argv, "help")) {
+            help(default_iters);
+            return 0;
+        }
+    }
+
     print_output_table_header_row();
 
     if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "half")) run_benchmark("scalar_half", bench_scalar_half, bench_setup, NULL, &data, 10, iters*100);
