@@ -129,7 +129,9 @@ static SECP256K1_WARN_UNUSED_RESULT int deserialize_frost_signature(secp256k1_fr
                                                                     const unsigned char *serialized_signature) {
     secp256k1_fe x;
     secp256k1_ge deserialized_point;
-    secp256k1_fe_set_b32(&x, serialized_signature);
+    if (secp256k1_fe_set_b32(&x, serialized_signature) == 0) {
+        return 0;
+    }
     if (secp256k1_ge_set_xo_var(&deserialized_point, &x, 0) == 0) {
         return 0;
     }
