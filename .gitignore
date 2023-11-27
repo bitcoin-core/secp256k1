@@ -60,5 +60,7 @@ build-aux/compile
 build-aux/test-driver
 libsecp256k1.pc
 
+### CMake
+/CMakeUserPresets.json
 # Default CMake build directory.
 /build

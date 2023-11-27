@@ -20,7 +20,6 @@ static const unsigned char hash_context_prefix_h5[29] = "FROST-secp256k1-SHA256-
 #define SHA256_SIZE (32U)
 #define SERIALIZED_PUBKEY_X_ONLY_SIZE (32U)
 #define SERIALIZED_PUBKEY_XY_SIZE (64U)
-#define ECMULT_CONST_256_BIT_SIZE 256
 
 typedef struct {
     uint32_t index;
@@ -62,7 +61,7 @@ static void secp256k1_gej_mul_scalar(secp256k1_gej *result, const secp256k1_gej 
         return;
     }
     secp256k1_ge_set_gej_safe(&pt_ge, pt);
-    secp256k1_ecmult_const(result, &pt_ge, sc, ECMULT_CONST_256_BIT_SIZE);
+    secp256k1_ecmult_const(result, &pt_ge, sc);
 }
 
 static SECP256K1_WARN_UNUSED_RESULT int secp256k1_gej_eq(const secp256k1_gej *a, const secp256k1_gej *b) {
@@ -100,8 +99,8 @@ static void serialize_point(const secp256k1_gej *point, unsigned char *output64)
 
 static void deserialize_point(secp256k1_gej *output, const unsigned char *point64) {
     secp256k1_ge normalized_point;
-    secp256k1_fe_set_b32(&normalized_point.x, point64);
-    secp256k1_fe_set_b32(&normalized_point.y, point64 + SERIALIZED_PUBKEY_X_ONLY_SIZE);
+    secp256k1_fe_set_b32_mod(&normalized_point.x, point64);
+    secp256k1_fe_set_b32_mod(&normalized_point.y, point64 + SERIALIZED_PUBKEY_X_ONLY_SIZE);
     normalized_point.infinity = 0;
     secp256k1_gej_set_ge(output, &normalized_point);
 }
@@ -129,7 +128,7 @@ static SECP256K1_WARN_UNUSED_RESULT int deserialize_frost_signature(secp256k1_fr
                                                                     const unsigned char *serialized_signature) {
     secp256k1_fe x;
     secp256k1_ge deserialized_point;
-    if (secp256k1_fe_set_b32(&x, serialized_signature) == 0) {
+    if (secp256k1_fe_set_b32_limit(&x, serialized_signature) == 0) {
         return 0;
     }
     if (secp256k1_ge_set_xo_var(&deserialized_point, &x, 0) == 0) {
@@ -276,10 +275,10 @@ SECP256K1_API int secp256k1_frost_pubkey_save(unsigned char *pubkey33,
     }
     compressed = 1;
 
-    if (secp256k1_fe_set_b32(&pk.x, pubkey->public_key) == 0) {
+    if (secp256k1_fe_set_b32_limit(&pk.x, pubkey->public_key) == 0) {
         return 0;
     }
-    if (secp256k1_fe_set_b32(&pk.y, pubkey->public_key + SERIALIZED_PUBKEY_X_ONLY_SIZE) == 0) {
+    if (secp256k1_fe_set_b32_limit(&pk.y, pubkey->public_key + SERIALIZED_PUBKEY_X_ONLY_SIZE) == 0) {
         return 0;
     }
 
@@ -297,10 +296,10 @@ SECP256K1_API int secp256k1_frost_pubkey_save(unsigned char *pubkey33,
     }
     secp256k1_ge_clear(&pk);
 
-    if (secp256k1_fe_set_b32(&gpk.x, pubkey->group_public_key) == 0) {
+    if (secp256k1_fe_set_b32_limit(&gpk.x, pubkey->group_public_key) == 0) {
         return 0;
     }
-    if (secp256k1_fe_set_b32(&gpk.y, pubkey->group_public_key + SERIALIZED_PUBKEY_X_ONLY_SIZE) == 0) {
+    if (secp256k1_fe_set_b32_limit(&gpk.y, pubkey->group_public_key + SERIALIZED_PUBKEY_X_ONLY_SIZE) == 0) {
         return 0;
     }
 

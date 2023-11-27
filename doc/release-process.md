@@ -16,8 +16,10 @@ This process also assumes that there will be no minor releases for old major rel
 
 1. Open a PR to the master branch with a commit (using message `"release: prepare for $MAJOR.$MINOR.$PATCH"`, for example) that
    * finalizes the release notes in [CHANGELOG.md](../CHANGELOG.md) (make sure to include an entry for `### ABI Compatibility`),
-   * updates `_PKG_VERSION_*` and `_LIB_VERSION_*` and sets `_PKG_VERSION_IS_RELEASE` to `true` in `configure.ac`, and
-   * updates `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_*` in `CMakeLists.txt`.
+   * sets `_PKG_VERSION_IS_RELEASE` to `true` in `configure.ac`, and
+   * if this is not a patch release
+       * updates `_PKG_VERSION_*` and `_LIB_VERSION_*`  in `configure.ac` and
+       * updates `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_*` in `CMakeLists.txt`.
 2. After the PR is merged, tag the commit and push it:
    ```
    RELEASE_COMMIT=<merge commit of step 1>

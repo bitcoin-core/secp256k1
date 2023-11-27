@@ -108,7 +108,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     memset(keydata, 0, sizeof(keydata));
     /* Accept unobservably small non-uniformity. */
     secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
-    overflow = !secp256k1_fe_set_b32(&s, nonce32);
+    overflow = !secp256k1_fe_set_b32_limit(&s, nonce32);
     overflow |= secp256k1_fe_is_zero(&s);
     secp256k1_fe_cmov(&s, &secp256k1_fe_one, overflow);
     /* Randomize the projection to defend against multiplier sidechannels.

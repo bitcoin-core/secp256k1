@@ -1,5 +1,3 @@
-.PHONY: clean-precomp precomp
-
 ACLOCAL_AMFLAGS = -I build-aux/m4
 
 # AM_CFLAGS will be automatically prepended to CFLAGS by Automake when compiling some foo
@@ -65,6 +63,7 @@ noinst_HEADERS += src/hash_impl.h
 noinst_HEADERS += src/field.h
 noinst_HEADERS += src/field_impl.h
 noinst_HEADERS += src/bench.h
+noinst_HEADERS += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
 noinst_HEADERS += contrib/lax_der_parsing.h
 noinst_HEADERS += contrib/lax_der_parsing.c
 noinst_HEADERS += contrib/lax_der_privatekey_parsing.h
@@ -217,7 +216,7 @@ precompute_ecmult_gen_LDADD = $(COMMON_LIB)
 # otherwise make's decision whether to rebuild them (even in the first
 # build by a normal user) depends on mtimes, and thus is very fragile.
 # This means that rebuilds of the prebuilt files always need to be
-# forced by deleting them, e.g., by invoking `make clean-precomp`.
+# forced by deleting them.
 src/precomputed_ecmult.c:
 	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult$(EXEEXT)
 	./precompute_ecmult$(EXEEXT)
@@ -232,11 +231,29 @@ precomp: $(PRECOMP)
 # e.g., after `make maintainer-clean`).
 BUILT_SOURCES = $(PRECOMP)
 
-maintainer-clean-local: clean-precomp
-
+.PHONY: clean-precomp
 clean-precomp:
 	rm -f $(PRECOMP)
+maintainer-clean-local: clean-precomp
 
+### Pregenerated test vectors
+### (see the comments in the previous section for detailed rationale)
+TESTVECTORS = src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
+
+src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
+	mkdir -p $(@D)
+	python3 $(top_srcdir)/tools/tests_wycheproof_generate.py $(top_srcdir)/src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json > $@
+
+testvectors: $(TESTVECTORS)
+
+BUILT_SOURCES += $(TESTVECTORS)
+
+.PHONY: clean-testvectors
+clean-testvectors:
+	rm -f $(TESTVECTORS)
+maintainer-clean-local: clean-testvectors
+
+### Additional files to distribute
 EXTRA_DIST = autogen.sh CHANGELOG.md SECURITY.md
 EXTRA_DIST += doc/release-process.md doc/safegcd_implementation.md
 EXTRA_DIST += examples/EXAMPLES_COPYING
@@ -246,6 +263,9 @@ EXTRA_DIST += sage/group_prover.sage
 EXTRA_DIST += sage/prove_group_implementations.sage
 EXTRA_DIST += sage/secp256k1_params.sage
 EXTRA_DIST += sage/weierstrass_prover.sage
+EXTRA_DIST += src/wycheproof/WYCHEPROOF_COPYING
+EXTRA_DIST += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json
+EXTRA_DIST += tools/tests_wycheproof_generate.py
 
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include
@@ -268,20 +288,3 @@ if ENABLE_MODULE_FROST
 include src/modules/frost/Makefile.am.include
 endif
 # FROST_SPECIFIC - END
-
-EXTRA_DIST += src/wycheproof/WYCHEPROOF_COPYING
-EXTRA_DIST += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
-EXTRA_DIST += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json
-EXTRA_DIST += tools/tests_wycheproof_generate.py
-
-TESTVECTORS = src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
-
-src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
-	python3 tools/tests_wycheproof_generate.py src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json > $@
-
-testvectors: $(TESTVECTORS)
-
-maintainer-clean-testvectors: clean-testvectors
-
-clean-testvectors:
-	rm -f $(TESTVECTORS)

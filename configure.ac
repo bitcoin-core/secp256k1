@@ -7,7 +7,7 @@ define(_PKG_VERSION_MAJOR, 0)
 define(_PKG_VERSION_MINOR, 3)
 define(_PKG_VERSION_PATCH, 2)
 define(_PKG_VERSION_FROST_BUILD, 1) # FROST_SPECIFIC: this field controls the final digit in the version identifier "MAJOR.MINOR.BUILD-frost-FROST_BUILD". WARNING: this number should be equal to the fourth digit of project(... VERSION ...) in CMakeLists.txt
-define(_PKG_VERSION_IS_RELEASE, false)
+define(_PKG_VERSION_IS_RELEASE, true)
 
 # The library version is based on libtool versioning of the ABI. The set of
 # rules for updating the version can be found here:
@@ -123,7 +123,6 @@ AC_DEFUN([SECP_TRY_APPEND_DEFAULT_CFLAGS], [
     # Note that "/opt" and "-opt" are equivalent for MSVC; we use "-opt" because "/opt" looks like a path.
     if test x"$GCC" != x"yes" && test x"$build_windows" = x"yes"; then
       SECP_TRY_APPEND_CFLAGS([-W2 -wd4146], $1) # Moderate warning level, disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned"
-      SECP_TRY_APPEND_CFLAGS([-external:anglebrackets -external:W0], $1) # Suppress warnings from #include <...> files
       # We pass -ignore:4217 to the MSVC linker to suppress warning 4217 when
       # importing variables from a statically linked secp256k1.
       # (See the libtool manual, section "Windows DLLs" for background.)
@@ -205,8 +204,8 @@ AC_ARG_ENABLE(external_default_callbacks,
 #  *  and auto (the default).
 AC_ARG_WITH([test-override-wide-multiply], [] ,[set_widemul=$withval], [set_widemul=auto])
 
-AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm|no|auto],
-[assembly optimizations to use (experimental: arm) [default=auto]])],[req_asm=$withval], [req_asm=auto])
+AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm32|no|auto],
+[assembly optimizations to use (experimental: arm32) [default=auto]])],[req_asm=$withval], [req_asm=auto])
 
 AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
 [window size for ecmult precomputation for verification, specified as integer in range [2..24].]
@@ -271,8 +270,8 @@ else
 fi
 
 if test x"$req_asm" = x"auto"; then
-  SECP_64BIT_ASM_CHECK
-  if test x"$has_64bit_asm" = x"yes"; then
+  SECP_X86_64_ASM_CHECK
+  if test x"$has_x86_64_asm" = x"yes"; then
     set_asm=x86_64
   fi
   if test x"$set_asm" = x; then
@@ -282,12 +281,16 @@ else
   set_asm=$req_asm
   case $set_asm in
   x86_64)
-    SECP_64BIT_ASM_CHECK
-    if test x"$has_64bit_asm" != x"yes"; then
+    SECP_X86_64_ASM_CHECK
+    if test x"$has_x86_64_asm" != x"yes"; then
       AC_MSG_ERROR([x86_64 assembly optimization requested but not available])
     fi
     ;;
-  arm)
+  arm32)
+    SECP_ARM32_ASM_CHECK
+    if test x"$has_arm32_asm" != x"yes"; then
+      AC_MSG_ERROR([ARM32 assembly optimization requested but not available])
+    fi
     ;;
   no)
     ;;
@@ -304,7 +307,7 @@ case $set_asm in
 x86_64)
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_ASM_X86_64=1"
   ;;
-arm)
+arm32)
   enable_external_asm=yes
   ;;
 no)
@@ -434,8 +437,8 @@ else
     AC_MSG_ERROR([frost module is experimental. Use --enable-experimental to allow.])
   fi
   # FROST_SPECIFIC - END
-  if test x"$set_asm" = x"arm"; then
-    AC_MSG_ERROR([ARM assembly optimization is experimental. Use --enable-experimental to allow.])
+  if test x"$set_asm" = x"arm32"; then
+    AC_MSG_ERROR([ARM32 assembly optimization is experimental. Use --enable-experimental to allow.])
   fi
 fi
 
@@ -458,7 +461,7 @@ AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_FROST], [test x"$enable_module_frost" != x"no"]) # FROST_SPECIFIC
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$enable_external_asm" = x"yes"])
-AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm"])
+AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm32"])
 AM_CONDITIONAL([BUILD_WINDOWS], [test "$build_windows" = "yes"])
 AC_SUBST(LIB_VERSION_CURRENT, _LIB_VERSION_CURRENT)
 AC_SUBST(LIB_VERSION_REVISION, _LIB_VERSION_REVISION)
