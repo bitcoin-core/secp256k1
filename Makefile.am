@@ -276,8 +276,8 @@ EXTRA_DIST += tools/tests_wycheproof_generate.py
 
 TESTVECTORS = src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
 
-src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h: src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json
-	python3 tools/tests_wycheproof_generate.py $< > $@
+src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
+	python3 tools/tests_wycheproof_generate.py src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json > $@
 
 testvectors: $(TESTVECTORS)
 
