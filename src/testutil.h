@@ -7,7 +7,6 @@
 #define SECP256K1_TESTUTIL_H
 
 #include "field.h"
-#include "group.h"
 #include "testrand.h"
 #include "util.h"
 
@@ -25,14 +24,6 @@ static void random_fe_non_zero(secp256k1_fe *nz) {
     do {
         random_fe(nz);
     } while (secp256k1_fe_is_zero(nz));
-}
-
-static void ge_equals_ge(const secp256k1_ge *a, const secp256k1_ge *b) {
-    CHECK(secp256k1_ge_eq_var(a, b));
-}
-
-static void ge_equals_gej(const secp256k1_ge *a, const secp256k1_gej *b) {
-    CHECK(secp256k1_gej_eq_ge_var(b, a));
 }
 
 #endif /* SECP256K1_TESTUTIL_H */
