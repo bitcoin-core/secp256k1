@@ -12,13 +12,8 @@
 #include "int128.h"
 #include "util.h"
 
-#ifdef VERIFY
 #define VERIFY_BITS(x, n) VERIFY_CHECK(((x) >> (n)) == 0)
 #define VERIFY_BITS_128(x, n) VERIFY_CHECK(secp256k1_u128_check_bits((x), (n)))
-#else
-#define VERIFY_BITS(x, n) do { } while(0)
-#define VERIFY_BITS_128(x, n) do { } while(0)
-#endif
 
 SECP256K1_INLINE static void secp256k1_fe_mul_inner(uint64_t *r, const uint64_t *a, const uint64_t * SECP256K1_RESTRICT b) {
     secp256k1_uint128 c, d;

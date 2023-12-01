@@ -181,8 +181,10 @@ static int secp256k1_ge_is_in_correct_subgroup(const secp256k1_ge* ge);
 
 /** Check invariants on an affine group element (no-op unless VERIFY is enabled). */
 static void secp256k1_ge_verify(const secp256k1_ge *a);
+#define SECP256K1_GE_VERIFY(a) secp256k1_ge_verify(a)
 
 /** Check invariants on a Jacobian group element (no-op unless VERIFY is enabled). */
 static void secp256k1_gej_verify(const secp256k1_gej *a);
+#define SECP256K1_GEJ_VERIFY(a) secp256k1_gej_verify(a)
 
 #endif /* SECP256K1_GROUP_H */
