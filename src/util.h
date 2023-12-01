@@ -135,10 +135,8 @@ static const secp256k1_callback default_error_callback = {
 /* Like assert(), but when VERIFY is defined. */
 #if defined(VERIFY)
 #define VERIFY_CHECK CHECK
-#define VERIFY_SETUP(stmt) do { stmt; } while(0)
 #else
 #define VERIFY_CHECK(cond)
-#define VERIFY_SETUP(stmt)
 #endif
 
 static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_t size) {
