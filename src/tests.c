@@ -3706,11 +3706,12 @@ static void test_ge(void) {
     secp256k1_ge_clear(&ge[0]);
     secp256k1_ge_set_gej_var(&ge[0], &gej[0]);
     for (i = 0; i < runs; i++) {
-        int j;
+        int j, k;
         secp256k1_ge g;
         random_group_element_test(&g);
         if (i >= runs - 2) {
             secp256k1_ge_mul_lambda(&g, &ge[1]);
+            CHECK(!secp256k1_ge_eq_var(&g, &ge[1]));
         }
         if (i >= runs - 1) {
             secp256k1_ge_mul_lambda(&g, &g);
@@ -3729,6 +3730,16 @@ static void test_ge(void) {
             random_gej_x_magnitude(&gej[1 + j + 4 * i]);
             random_gej_y_magnitude(&gej[1 + j + 4 * i]);
             random_gej_z_magnitude(&gej[1 + j + 4 * i]);
+        }
+
+        for (j = 0; j < 4; ++j) {
+            for (k = 0; k < 4; ++k) {
+                int expect_equal = (j >> 1) == (k >> 1);
+                CHECK(secp256k1_ge_eq_var(&ge[1 + j + 4 * i], &ge[1 + k + 4 * i]) == expect_equal);
+                CHECK(secp256k1_gej_eq_var(&gej[1 + j + 4 * i], &gej[1 + k + 4 * i]) == expect_equal);
+                CHECK(secp256k1_gej_eq_ge_var(&gej[1 + j + 4 * i], &ge[1 + k + 4 * i]) == expect_equal);
+                CHECK(secp256k1_gej_eq_ge_var(&gej[1 + k + 4 * i], &ge[1 + j + 4 * i]) == expect_equal);
+            }
         }
     }
 
