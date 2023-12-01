@@ -354,6 +354,35 @@ static int secp256k1_gej_eq_var(const secp256k1_gej *a, const secp256k1_gej *b) 
     return secp256k1_gej_is_infinity(&tmp);
 }
 
+static int secp256k1_gej_eq_ge_var(const secp256k1_gej *a, const secp256k1_ge *b) {
+    secp256k1_gej tmp;
+    SECP256K1_GEJ_VERIFY(a);
+    SECP256K1_GE_VERIFY(b);
+
+    secp256k1_gej_neg(&tmp, a);
+    secp256k1_gej_add_ge_var(&tmp, &tmp, b, NULL);
+    return secp256k1_gej_is_infinity(&tmp);
+}
+
+static int secp256k1_ge_eq_var(const secp256k1_ge *a, const secp256k1_ge *b) {
+    secp256k1_fe tmp;
+    SECP256K1_GE_VERIFY(a);
+    SECP256K1_GE_VERIFY(b);
+
+    if (a->infinity != b->infinity) return 0;
+    if (a->infinity) return 1;
+
+    tmp = a->x;
+    secp256k1_fe_normalize_weak(&tmp);
+    if (!secp256k1_fe_equal(&tmp, &b->x)) return 0;
+
+    tmp = a->y;
+    secp256k1_fe_normalize_weak(&tmp);
+    if (!secp256k1_fe_equal(&tmp, &b->y)) return 0;
+
+    return 1;
+}
+
 static int secp256k1_gej_eq_x_var(const secp256k1_fe *x, const secp256k1_gej *a) {
     secp256k1_fe r;
     SECP256K1_FE_VERIFY(x);

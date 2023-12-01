@@ -7,6 +7,7 @@
 #define SECP256K1_TESTUTIL_H
 
 #include "field.h"
+#include "group.h"
 #include "testrand.h"
 #include "util.h"
 
@@ -27,29 +28,11 @@ static void random_fe_non_zero(secp256k1_fe *nz) {
 }
 
 static void ge_equals_ge(const secp256k1_ge *a, const secp256k1_ge *b) {
-    CHECK(a->infinity == b->infinity);
-    if (a->infinity) {
-        return;
-    }
-    CHECK(secp256k1_fe_equal(&a->x, &b->x));
-    CHECK(secp256k1_fe_equal(&a->y, &b->y));
+    CHECK(secp256k1_ge_eq_var(a, b));
 }
 
 static void ge_equals_gej(const secp256k1_ge *a, const secp256k1_gej *b) {
-    secp256k1_fe z2s;
-    secp256k1_fe u1, u2, s1, s2;
-    CHECK(a->infinity == b->infinity);
-    if (a->infinity) {
-        return;
-    }
-    /* Check a.x * b.z^2 == b.x && a.y * b.z^3 == b.y, to avoid inverses. */
-    secp256k1_fe_sqr(&z2s, &b->z);
-    secp256k1_fe_mul(&u1, &a->x, &z2s);
-    u2 = b->x;
-    secp256k1_fe_mul(&s1, &a->y, &z2s); secp256k1_fe_mul(&s1, &s1, &b->z);
-    s2 = b->y;
-    CHECK(secp256k1_fe_equal(&u1, &u2));
-    CHECK(secp256k1_fe_equal(&s1, &s2));
+    CHECK(secp256k1_gej_eq_ge_var(b, a));
 }
 
 #endif /* SECP256K1_TESTUTIL_H */
