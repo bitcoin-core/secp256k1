@@ -87,8 +87,6 @@ static void secp256k1_ecmult_const_odd_multiples_table_globalz(secp256k1_ge *pre
     secp256k1_fe neg_y; \
     VERIFY_CHECK((n) < (1U << ECMULT_CONST_GROUP_SIZE)); \
     VERIFY_CHECK(index < (1U << (ECMULT_CONST_GROUP_SIZE - 1))); \
-    VERIFY_SETUP(secp256k1_fe_clear(&(r)->x)); \
-    VERIFY_SETUP(secp256k1_fe_clear(&(r)->y)); \
     /* Unconditionally set r->x = (pre)[m].x. r->y = (pre)[m].y. because it's either the correct one
      * or will get replaced in the later iterations, this is needed to make sure `r` is initialized. */ \
     (r)->x = (pre)[m].x; \
