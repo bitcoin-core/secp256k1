@@ -14,9 +14,9 @@ on:
 jobs:
   functional-tests:
     runs-on: ubuntu-22.04
-    # Use fedora:38 to compile using gcc-13
+    # Use fedora:39 to compile using gcc-13.2
     container:
-      image: fedora:38
+      image: fedora:39
     steps:
       - name: Install build dependencies
         run: |
