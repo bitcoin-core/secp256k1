@@ -122,6 +122,34 @@ typedef int (*secp256k1_nonce_function)(
 #  endif
 # endif
 
+/* SECP_HAVE_X is 1 iff standard library header X is available.
+ *
+ * We guess the values of HAVE_X here for various X. You can always override our
+ * guess by providing a definition of the respective macro.
+ *
+ * Note to developers of the library: All SECP256K1_HAVE_X macros will always be
+ * defined after this section, so use #if instead #ifdef to check them. */
+#if !defined(SECP256K1_HAVE_STDIO_H)
+#  if defined(__has_include)
+#    define SECP256K1_HAVE_STDIO_H (__has_include(<stdio.h>))
+#  elif defined(__STDC_HOSTED__)
+#    define SECP256K1_HAVE_STDIO_H __STDC_HOSTED__
+#  else
+     /* Unreachable with a confirming compiler. Guess "yes" as a last resort. */
+#    define SECP256K1_HAVE_STDIO_H 1
+#  endif
+#endif
+#if !defined(SECP256K1_HAVE_STDLIB_H)
+#  if defined(__has_include)
+#    define SECP256K1_HAVE_STDLIB_H (__has_include(<stdlib.h>))
+#  elif defined(__STDC_HOSTED__)
+#    define SECP256K1_HAVE_STDLIB_H __STDC_HOSTED__
+#  else
+     /* Unreachable with a confirming compiler. Guess "yes" as a last resort. */
+#    define SECP256K1_HAVE_STDLIB_H 1
+#  endif
+#endif
+
 /*  When this header is used at build-time the SECP256K1_BUILD define needs to be set
  *  to correctly setup export attributes and nullness checks.  This is normally done
  *  by secp256k1.c but to guard against this header being included before secp256k1.c
