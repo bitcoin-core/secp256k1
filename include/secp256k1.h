@@ -138,6 +138,12 @@ typedef int (*secp256k1_nonce_function)(
      /* Unreachable with a confirming compiler. Guess "yes" as a last resort. */
 #    define SECP256K1_HAVE_STDIO_H 1
 #  endif
+#  if !SECP256K1_HAVE_STDIO_H && defined(SECP256K1_BUILD) && !defined(USE_EXTERNAL_DEFAULT_CALLBACKS)
+#    pragma message( \
+       "<stdio.h> appears unavailable, " \
+       "disabling debugging output for fatal errors in libsecp256k1. " \
+       "(#define SECP256K1_HAVE_STDIO_H 0 to suppress this message.)")
+#  endif
 #endif
 #if !defined(SECP256K1_HAVE_STDLIB_H)
 #  if defined(__has_include)
@@ -147,6 +153,12 @@ typedef int (*secp256k1_nonce_function)(
 #  else
      /* Unreachable with a confirming compiler. Guess "yes" as a last resort. */
 #    define SECP256K1_HAVE_STDLIB_H 1
+#  endif
+#  if !SECP256K1_HAVE_STDLIB_H && defined(SECP256K1_BUILD)
+#    pragma message( \
+       "<stdlib.h> appears unavailable, " \
+       "disabling dynamic memory allocation in libsecp256k1. " \
+       "(#define SECP256K1_HAVE_STDLIB_H 0 to suppress this message.)")
 #  endif
 #endif
 
