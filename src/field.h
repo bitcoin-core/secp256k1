@@ -184,7 +184,8 @@ static int secp256k1_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b);
  */
 static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
 
-/** Set a field element equal to a provided 32-byte big endian value, reducing it.
+/** Set a field element equal to the element represented by a provided 32-byte big endian value
+ * interpreted modulo p.
  *
  * On input, r does not need to be initialized. a must be a pointer to an initialized 32-byte array.
  * On output, r = a (mod p). It will have magnitude 1, and not be normalized.
