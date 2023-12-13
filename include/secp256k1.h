@@ -230,6 +230,17 @@ typedef int (*secp256k1_nonce_function)(
 # define SECP256K1_DEPRECATED(_msg)
 #endif
 
+/* Attribute for marking functions, types, and variables as unavailable */
+#if !defined(SECP256K1_BUILD) && defined(__has_attribute)
+# if __has_attribute(__unavailable__)
+#  define SECP256K1_UNAVAILABLE(_msg) __attribute__ ((__unavailable__(_msg)))
+# else
+#  define SECP256K1_UNAVAILABLE(_msg)
+# endif
+#else
+# define SECP256K1_UNAVAILABLE(_msg)
+#endif
+
 /* All flags' lower 8 bits indicate what they're for. Do not use directly. */
 #define SECP256K1_FLAGS_TYPE_MASK ((1 << 8) - 1)
 #define SECP256K1_FLAGS_TYPE_CONTEXT (1 << 0)
@@ -325,7 +336,15 @@ SECP256K1_API void secp256k1_selftest(void);
  */
 SECP256K1_API secp256k1_context *secp256k1_context_create(
     unsigned int flags
-) SECP256K1_WARN_UNUSED_RESULT;
+) SECP256K1_WARN_UNUSED_RESULT
+#if !SECP256K1_HAVE_STDLIB_H
+SECP256K1_UNAVAILABLE(
+    "Needs malloc/free but <stdlib.h> seems unavailable on this platform, "
+    "see secp256k1_prealloc.h for alternatives. "
+    "(#define SECP256K1_HAVE_STDLIB_H 1 to override.)"
+)
+#endif
+;
 
 /** Copy a secp256k1 context object (into dynamically allocated memory).
  *
@@ -341,7 +360,15 @@ SECP256K1_API secp256k1_context *secp256k1_context_create(
  */
 SECP256K1_API secp256k1_context *secp256k1_context_clone(
     const secp256k1_context *ctx
-) SECP256K1_ARG_NONNULL(1) SECP256K1_WARN_UNUSED_RESULT;
+) SECP256K1_ARG_NONNULL(1) SECP256K1_WARN_UNUSED_RESULT
+#if !SECP256K1_HAVE_STDLIB_H
+SECP256K1_UNAVAILABLE(
+    "Needs malloc/free but <stdlib.h> seems unavailable on this platform, "
+    "see secp256k1_prealloc.h for alternatives. "
+    "(#define SECP256K1_HAVE_STDLIB_H 1 to override.)"
+)
+#endif
+;
 
 /** Destroy a secp256k1 context object (created in dynamically allocated memory).
  *
@@ -359,7 +386,15 @@ SECP256K1_API secp256k1_context *secp256k1_context_clone(
  */
 SECP256K1_API void secp256k1_context_destroy(
     secp256k1_context *ctx
-) SECP256K1_ARG_NONNULL(1);
+) SECP256K1_ARG_NONNULL(1)
+#if !SECP256K1_HAVE_STDLIB_H
+SECP256K1_UNAVAILABLE(
+    "Needs malloc/free but <stdlib.h> seems unavailable on this platform, "
+    "see secp256k1_prealloc.h for alternatives. "
+    "(#define SECP256K1_HAVE_STDLIB_H 1 to override.)"
+)
+#endif
+;
 
 /** Set a callback function to be called when an illegal argument is passed to
  *  an API call. It will only trigger for violations that are mentioned
@@ -442,7 +477,14 @@ SECP256K1_API void secp256k1_context_set_error_callback(
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT secp256k1_scratch_space *secp256k1_scratch_space_create(
     const secp256k1_context *ctx,
     size_t size
-) SECP256K1_ARG_NONNULL(1);
+) SECP256K1_ARG_NONNULL(1)
+#if !SECP256K1_HAVE_STDLIB_H
+SECP256K1_UNAVAILABLE(
+    "Needs malloc/free but <stdlib.h> seems unavailable on this platform. "
+    "(#define SECP256K1_HAVE_STDLIB_H 1 to override.)"
+)
+#endif
+;
 
 /** Destroy a secp256k1 scratch space.
  *
@@ -453,7 +495,14 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT secp256k1_scratch_space *secp256k1_sc
 SECP256K1_API void secp256k1_scratch_space_destroy(
     const secp256k1_context *ctx,
     secp256k1_scratch_space *scratch
-) SECP256K1_ARG_NONNULL(1);
+) SECP256K1_ARG_NONNULL(1)
+#if !SECP256K1_HAVE_STDLIB_H
+SECP256K1_UNAVAILABLE(
+    "Needs malloc/free but <stdlib.h> seems unavailable on this platform. "
+    "(#define SECP256K1_HAVE_STDLIB_H 1 to override.)"
+)
+#endif
+;
 
 /** Parse a variable-length public key into the pubkey object.
  *
