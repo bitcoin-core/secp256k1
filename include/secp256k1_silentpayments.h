@@ -67,7 +67,42 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_create_p
     const unsigned char *outpoint_smallest36
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(8);
 
-/* TODO: add function API for receiver side. */
+/** Create Silent Payment tweak data from input public keys.
+ *
+ * Given a list of n public keys A_1...A_n (one for each silent payment
+ * eligible input to spend) and a serialized outpoint_smallest, compute
+ * the corresponding input public keys tweak data:
+ *
+ * A_sum = A_1 + A_2 + ... + A_n
+ * input_hash = hash(outpoint_lowest || A_sum)
+ *
+ * The public keys have to be passed in via two different parameter pairs,
+ * one for regular and one for x-only public keys, in order to avoid the need
+ * of users converting to a common pubkey format before calling this function.
+ * The resulting data is needed to create a shared secret for the receiver's side.
+ *
+ *  Returns: 1 if tweak data creation was successful. 0 if an error occured.
+ *  Args:                  ctx: pointer to a context object
+ *  Out:                 A_sum: pointer to the resulting public keys sum
+ *                  input_hash: pointer to the resulting 32-byte input hash
+ *  In:          plain_pubkeys: pointer to an array of pointers to non-taproot
+ *                              public keys (can be NULL if no non-taproot inputs are used)
+ *             n_plain_pubkeys: the number of non-taproot input public keys
+ *               xonly_pubkeys: pointer to an array of pointers to taproot x-only
+ *                              public keys (can be NULL if no taproot inputs are used)
+ *             n_xonly_pubkeys: the number of taproot input public keys
+ *         outpoint_smallest36: serialized smallest outpoint
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_create_public_tweak_data(
+    const secp256k1_context *ctx,
+    secp256k1_pubkey *A_sum,
+    unsigned char *input_hash,
+    const secp256k1_pubkey * const *plain_pubkeys,
+    size_t n_plain_pubkeys,
+    const secp256k1_xonly_pubkey * const *xonly_pubkeys,
+    size_t n_xonly_pubkeys,
+    const unsigned char *outpoint_smallest36
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(8);
 
 #ifdef __cplusplus
 }
