@@ -289,6 +289,30 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_receiver
     const secp256k1_xonly_pubkey *tx_output
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6) SECP256K1_ARG_NONNULL(8);
 
+/** Create Silent Payment output private key (for spending receiver's funds).
+ *
+ *  Given a recipient's spend private key b_spend, a tweak t_k and an
+ *  optional label_tweak, calculate the corresponding output private key d:
+ *
+ *  d = b_spend + t_k + label_tweak
+ *  (if no label tweak is used, then label_tweak = 0)
+ *
+ *  Returns: 1 if private key creation was successful. 0 if an error occured.
+ *  Args:                  ctx: pointer to a context object
+ *  Out:         output_seckey: pointer to the resulting spending private key
+ *  In:  receiver_spend_seckey: pointer to the receiver's spend private key
+ *                         t_k: pointer to the 32-byte output tweak
+ *                 label_tweak: pointer to an optional 32-byte label tweak
+ *                              (can be NULL if no label is used)
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_create_output_seckey(
+    const secp256k1_context *ctx,
+    unsigned char *output_seckey,
+    const unsigned char *receiver_spend_seckey,
+    const unsigned char *t_k,
+    const unsigned char *label_tweak
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
 #ifdef __cplusplus
 }
 #endif
