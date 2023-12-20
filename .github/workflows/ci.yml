@@ -80,10 +80,10 @@ jobs:
           - env_vars: {                    RECOVERY: 'yes',              SCHNORRSIG: 'yes' }
           - env_vars: { CTIMETESTS: 'no',  RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', CPPFLAGS: '-DVERIFY' }
           - env_vars: { BUILD: 'distcheck', WITH_VALGRIND: 'no', CTIMETESTS: 'no', BENCH: 'no' }
-          - env_vars: { CPPFLAGS: '-DDETERMINISTIC' }
+          - env_vars: {                    RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DDETERMINISTIC -DSECP256K1_HAVE_STDIO_H=0' }
           - env_vars: { CFLAGS: '-O0', CTIMETESTS: 'no' }
-          - env_vars: { CFLAGS: '-O1',     RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
-          - env_vars: { ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
+          - env_vars: { CFLAGS: '-O1',     RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes'}
+          - env_vars: { ECMULTGENPRECISION: 2, ECMULTWINDOW: 2, CPPFLAGS: '-DSECP256K1_HAVE_STDLIB_H=0', EXTRAFLAGS='--enable-external-default-callbacks'}
           - env_vars: { ECMULTGENPRECISION: 8, ECMULTWINDOW: 4 }
         cc:
           - 'gcc'
