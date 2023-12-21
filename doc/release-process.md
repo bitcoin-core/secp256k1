@@ -65,6 +65,7 @@ tools/check-abi.sh
 
    If other maintainers are not present to approve the PR, it can be merged without ACKs.
 5. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
+6. Send an announcement email to the bitcoin-dev mailing list.
 
 ## Maintenance release
 
@@ -92,4 +93,5 @@ Note that bugfixes only need to be backported to releases for which no compatibl
    git push git@github.com:bitcoin-core/secp256k1.git v$MAJOR.$MINOR.$PATCH
    ```
 6. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
-7. Open PR to the master branch that includes a commit (with commit message `"release notes: add $MAJOR.$MINOR.$PATCH"`, for example) that adds release notes to [CHANGELOG.md](../CHANGELOG.md).
+7. Send an announcement email to the bitcoin-dev mailing list.
+8. Open PR to the master branch that includes a commit (with commit message `"release notes: add $MAJOR.$MINOR.$PATCH"`, for example) that adds release notes to [CHANGELOG.md](../CHANGELOG.md).
