@@ -15,7 +15,7 @@ This process also assumes that there will be no minor releases for old major rel
 We aim to cut a regular release every 3-4 months, approximately twice as frequent as major Bitcoin Core releases. Every second release should be published one month before the feature freeze of the next major Bitcoin Core release, allowing sufficient time to update the library in Core.
 
 ## Sanity Checks
-Perform these checks before creating a release:
+Perform these checks when reviewing the release PR (see below):
 
 1. Ensure `make distcheck` doesn't fail.
 ```shell
@@ -51,19 +51,20 @@ tools/check-abi.sh
    * if this is not a patch release
        * updates `_PKG_VERSION_*` and `_LIB_VERSION_*`  in `configure.ac` and
        * updates `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_*` in `CMakeLists.txt`.
-2. After the PR is merged, tag the commit and push it:
+2. Perform the [sanity checks](#sanity-checks) on the PR branch.
+3. After the PR is merged, tag the commit and push it:
    ```
    RELEASE_COMMIT=<merge commit of step 1>
    git tag -s v$MAJOR.$MINOR.$PATCH -m "libsecp256k1 $MAJOR.$MINOR.$PATCH" $RELEASE_COMMIT
    git push git@github.com:bitcoin-core/secp256k1.git v$MAJOR.$MINOR.$PATCH
    ```
-3. Open a PR to the master branch with a commit (using message `"release cleanup: bump version after $MAJOR.$MINOR.$PATCH"`, for example) that
+4. Open a PR to the master branch with a commit (using message `"release cleanup: bump version after $MAJOR.$MINOR.$PATCH"`, for example) that
    * sets `_PKG_VERSION_IS_RELEASE` to `false` and increments `_PKG_VERSION_PATCH` and `_LIB_VERSION_REVISION` in `configure.ac`,
    * increments the `$PATCH` component of `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_REVISION` in `CMakeLists.txt`, and
    * adds an `[Unreleased]` section header to the [CHANGELOG.md](../CHANGELOG.md).
 
    If other maintainers are not present to approve the PR, it can be merged without ACKs.
-4. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
+5. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
 
 ## Maintenance release
 
@@ -80,14 +81,15 @@ Note that bugfixes only need to be backported to releases for which no compatibl
    * increments `_PKG_VERSION_PATCH` and `_LIB_VERSION_REVISION` in `configure.ac`
      and the `$PATCH` component of `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_REVISION` in `CMakeLists.txt`
      (with commit message `"release: bump versions for $MAJOR.$MINOR.$PATCH"`, for example).
-3. After the PRs are merged, update the release branch and tag the commit:
+3. Perform the [sanity checks](#sanity-checks) on the PR branch.
+4. After the PRs are merged, update the release branch and tag the commit:
    ```
    git checkout $MAJOR.$MINOR && git pull
    git tag -s v$MAJOR.$MINOR.$PATCH -m "libsecp256k1 $MAJOR.$MINOR.$PATCH"
    ```
-4. Push tag:
+5. Push tag:
    ```
    git push git@github.com:bitcoin-core/secp256k1.git v$MAJOR.$MINOR.$PATCH
    ```
-5. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
-6. Open PR to the master branch that includes a commit (with commit message `"release notes: add $MAJOR.$MINOR.$PATCH"`, for example) that adds release notes to [CHANGELOG.md](../CHANGELOG.md).
+6. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
+7. Open PR to the master branch that includes a commit (with commit message `"release notes: add $MAJOR.$MINOR.$PATCH"`, for example) that adds release notes to [CHANGELOG.md](../CHANGELOG.md).
