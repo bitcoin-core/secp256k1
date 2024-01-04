@@ -169,7 +169,7 @@ SECP256K1_API int secp256k1_schnorrsig_sign_custom(
  *
  *  Returns: 1: correct signature
  *           0: incorrect signature
- *  Args:    ctx: a secp256k1 context object.
+ *  Args:    ctx: pointer to a context object.
  *  In:    sig64: pointer to the 64-byte signature to verify.
  *           msg: the message being verified. Can only be NULL if msglen is 0.
  *        msglen: length of the message
