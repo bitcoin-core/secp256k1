@@ -55,8 +55,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_parse(
  *  Returns: 1 always.
  *
  *  Args:     ctx: pointer to a context object.
- *  Out: output32: a pointer to a 32-byte array to place the serialized key in.
- *  In:    pubkey: a pointer to a secp256k1_xonly_pubkey containing an initialized public key.
+ *  Out: output32: pointer to a 32-byte array to place the serialized key in.
+ *  In:    pubkey: pointer to a secp256k1_xonly_pubkey containing an initialized public key.
  */
 SECP256K1_API int secp256k1_xonly_pubkey_serialize(
     const secp256k1_context *ctx,

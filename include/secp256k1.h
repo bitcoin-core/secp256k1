@@ -351,7 +351,7 @@ SECP256K1_API void secp256k1_context_destroy(
  *  the data pointer argument set to NULL.
  *
  *  Args: ctx:  pointer to a context object.
- *  In:   fun:  a pointer to a function to call when an illegal argument is
+ *  In:   fun:  pointer to a function to call when an illegal argument is
  *              passed to the API, taking a message and an opaque pointer.
  *              (NULL restores the default handler.)
  *        data: the opaque pointer to pass to fun above, must be NULL for the default handler.
@@ -378,7 +378,7 @@ SECP256K1_API void secp256k1_context_set_illegal_callback(
  *  crashing.
  *
  *  Args: ctx:  pointer to a context object.
- *  In:   fun:  a pointer to a function to call when an internal error occurs,
+ *  In:   fun:  pointer to a function to call when an internal error occurs,
  *              taking a message and an opaque pointer (NULL restores the
  *              default handler, see secp256k1_context_set_illegal_callback
  *              for details).
@@ -407,7 +407,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT secp256k1_scratch_space *secp256k1_sc
 /** Destroy a secp256k1 scratch space.
  *
  *  The pointer may not be used afterwards.
- *  Args:       ctx: a pointer to a context object.
+ *  Args:       ctx: pointer to a context object.
  *          scratch: space to destroy
  */
 SECP256K1_API void secp256k1_scratch_space_destroy(
@@ -440,13 +440,13 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_parse(
  *
  *  Returns: 1 always.
  *  Args:   ctx:        pointer to a context object.
- *  Out:    output:     a pointer to a 65-byte (if compressed==0) or 33-byte (if
+ *  Out:    output:     pointer to a 65-byte (if compressed==0) or 33-byte (if
  *                      compressed==1) byte array to place the serialized key
  *                      in.
- *  In/Out: outputlen:  a pointer to an integer which is initially set to the
+ *  In/Out: outputlen:  pointer to an integer which is initially set to the
  *                      size of output, and is overwritten with the written
  *                      size.
- *  In:     pubkey:     a pointer to a secp256k1_pubkey containing an
+ *  In:     pubkey:     pointer to a secp256k1_pubkey containing an
  *                      initialized public key.
  *          flags:      SECP256K1_EC_COMPRESSED if serialization should be in
  *                      compressed format, otherwise SECP256K1_EC_UNCOMPRESSED.
@@ -499,8 +499,8 @@ SECP256K1_API int secp256k1_ecdsa_signature_parse_compact(
  *
  *  Returns: 1 when the signature could be parsed, 0 otherwise.
  *  Args: ctx:      pointer to a context object
- *  Out:  sig:      a pointer to a signature object
- *  In:   input:    a pointer to the signature to be parsed
+ *  Out:  sig:      pointer to a signature object
+ *  In:   input:    pointer to the signature to be parsed
  *        inputlen: the length of the array pointed to be input
  *
  *  This function will accept any valid DER encoded signature, even if the
@@ -521,12 +521,12 @@ SECP256K1_API int secp256k1_ecdsa_signature_parse_der(
  *
  *  Returns: 1 if enough space was available to serialize, 0 otherwise
  *  Args:   ctx:       pointer to a context object
- *  Out:    output:    a pointer to an array to store the DER serialization
- *  In/Out: outputlen: a pointer to a length integer. Initially, this integer
+ *  Out:    output:    pointer to an array to store the DER serialization
+ *  In/Out: outputlen: pointer to a length integer. Initially, this integer
  *                     should be set to the length of output. After the call
  *                     it will be set to the length of the serialization (even
  *                     if 0 was returned).
- *  In:     sig:       a pointer to an initialized signature object
+ *  In:     sig:       pointer to an initialized signature object
  */
 SECP256K1_API int secp256k1_ecdsa_signature_serialize_der(
     const secp256k1_context *ctx,
@@ -586,11 +586,11 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdsa_verify(
  *
  *  Returns: 1 if sigin was not normalized, 0 if it already was.
  *  Args: ctx:    pointer to a context object
- *  Out:  sigout: a pointer to a signature to fill with the normalized form,
+ *  Out:  sigout: pointer to a signature to fill with the normalized form,
  *                or copy if the input was already normalized. (can be NULL if
  *                you're only interested in whether the input was already
  *                normalized).
- *  In:   sigin:  a pointer to a signature to check/normalize (can be identical to sigout)
+ *  In:   sigin:  pointer to a signature to check/normalize (can be identical to sigout)
  *
  *  With ECDSA a third-party can forge a second distinct signature of the same
  *  message, given a single initial signature, but without knowing the key. This

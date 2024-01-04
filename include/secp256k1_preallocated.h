@@ -53,7 +53,7 @@ SECP256K1_API size_t secp256k1_context_preallocated_size(
  *  from it) should not be used during the lifetime of the context object.
  *
  *  Returns: pointer to newly created context object.
- *  In:      prealloc: a pointer to a rewritable contiguous block of memory of
+ *  In:      prealloc: pointer to a rewritable contiguous block of memory of
  *                     size at least secp256k1_context_preallocated_size(flags)
  *                     bytes, as detailed above.
  *           flags:    which parts of the context to initialize.
@@ -93,7 +93,7 @@ SECP256K1_API size_t secp256k1_context_preallocated_clone_size(
  *
  *  Returns: pointer to a newly created context object.
  *  Args:    ctx:      pointer to a context to copy (not secp256k1_context_static).
- *  In:      prealloc: a pointer to a rewritable contiguous block of memory of
+ *  In:      prealloc: pointer to a rewritable contiguous block of memory of
  *                     size at least secp256k1_context_preallocated_size(flags)
  *                     bytes, as detailed above.
  */
