@@ -2941,6 +2941,8 @@ static void run_scalar_tests(void) {
                 CHECK(!secp256k1_scalar_check_overflow(&zz));
                 CHECK(secp256k1_scalar_eq(&secp256k1_scalar_one, &zz));
             }
+            secp256k1_scalar_mul(&z, &x, &x);
+            CHECK(secp256k1_scalar_eq(&r2, &z));
         }
     }
 }
