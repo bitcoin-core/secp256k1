@@ -818,6 +818,10 @@ int secp256k1_tagged_sha256(const secp256k1_context* ctx, unsigned char *hash32,
 # include "modules/schnorrsig/main_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_MUSIG
+# include "modules/musig/main_impl.h"
+#endif
+
 #ifdef ENABLE_MODULE_ELLSWIFT
 # include "modules/ellswift/main_impl.h"
 #endif
