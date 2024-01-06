@@ -4016,6 +4016,20 @@ static void test_add_neg_y_diff_x(void) {
     CHECK(secp256k1_gej_eq_ge_var(&sumj, &res));
 }
 
+static void test_ge_bytes(void) {
+    int i;
+
+    for (i = 0; i < COUNT; i++) {
+        unsigned char buf[64];
+        secp256k1_ge p, q;
+
+        random_group_element_test(&p);
+        secp256k1_ge_to_bytes(buf, &p);
+        secp256k1_ge_from_bytes(&q, buf);
+        CHECK(secp256k1_ge_eq_var(&p, &q));
+    }
+}
+
 static void run_ge(void) {
     int i;
     for (i = 0; i < COUNT * 32; i++) {
@@ -4023,6 +4037,7 @@ static void run_ge(void) {
     }
     test_add_neg_y_diff_x();
     test_intialized_inf();
+    test_ge_bytes();
 }
 
 static void test_gej_cmov(const secp256k1_gej *a, const secp256k1_gej *b) {

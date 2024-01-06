@@ -174,6 +174,14 @@ static void secp256k1_ge_storage_cmov(secp256k1_ge_storage *r, const secp256k1_g
 /** Rescale a jacobian point by b which must be non-zero. Constant-time. */
 static void secp256k1_gej_rescale(secp256k1_gej *r, const secp256k1_fe *b);
 
+/** Convert a group element that is not infinity to a 64-byte array. The output
+ *  array is platform-dependent. */
+static void secp256k1_ge_to_bytes(unsigned char *buf, secp256k1_ge *a);
+
+/** Convert a 64-byte array into group element. This function assumes that the
+ *  provided buffer correctly encodes a group element. */
+static void secp256k1_ge_from_bytes(secp256k1_ge *r, const unsigned char *buf);
+
 /** Determine if a point (which is assumed to be on the curve) is in the correct (sub)group of the curve.
  *
  * In normal mode, the used group is secp256k1, which has cofactor=1 meaning that every point on the curve is in the

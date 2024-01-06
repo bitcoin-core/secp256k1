@@ -7,6 +7,8 @@
 #ifndef SECP256K1_GROUP_IMPL_H
 #define SECP256K1_GROUP_IMPL_H
 
+#include <string.h>
+
 #include "field.h"
 #include "group.h"
 #include "util.h"
@@ -939,6 +941,26 @@ static int secp256k1_ge_x_frac_on_curve_var(const secp256k1_fe *xn, const secp25
      secp256k1_fe_mul_int(&t, SECP256K1_B); /* t = 7*xd^4 */
      secp256k1_fe_add(&r, &t); /* r = xd*xn^3 + 7*xd^4 */
      return secp256k1_fe_is_square_var(&r);
+}
+
+static void secp256k1_ge_to_bytes(unsigned char *buf, secp256k1_ge *a) {
+    secp256k1_ge_storage s;
+
+    /* We require that the secp256k1_ge_storage type is exactly 64 bytes.
+     * This is formally not guaranteed by the C standard, but should hold on any
+     * sane compiler in the real world. */
+    STATIC_ASSERT(sizeof(secp256k1_ge_storage) == 64);
+    VERIFY_CHECK(!secp256k1_ge_is_infinity(a));
+    secp256k1_ge_to_storage(&s, a);
+    memcpy(buf, &s, 64);
+}
+
+static void secp256k1_ge_from_bytes(secp256k1_ge *r, const unsigned char *buf) {
+    secp256k1_ge_storage s;
+
+    STATIC_ASSERT(sizeof(secp256k1_ge_storage) == 64);
+    memcpy(&s, buf, 64);
+    secp256k1_ge_from_storage(r, &s);
 }
 
 #endif /* SECP256K1_GROUP_IMPL_H */
