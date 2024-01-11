@@ -30,14 +30,14 @@ static void test_ecdh_api(void) {
     unsigned char s_one[32] = { 0 };
     s_one[31] = 1;
 
-    CHECK(secp256k1_ec_pubkey_create(CTX, &point, s_one) == 1);
+    CHECK(secp256k1_ec_pubkey_create(CTX, &point, s_one));
 
     /* Check all NULLs are detected */
-    CHECK(secp256k1_ecdh(CTX, res, &point, s_one, NULL, NULL) == 1);
+    CHECK(secp256k1_ecdh(CTX, res, &point, s_one, NULL, NULL));
     CHECK_ILLEGAL(CTX, secp256k1_ecdh(CTX, NULL, &point, s_one, NULL, NULL));
     CHECK_ILLEGAL(CTX, secp256k1_ecdh(CTX, res, NULL, s_one, NULL, NULL));
     CHECK_ILLEGAL(CTX, secp256k1_ecdh(CTX, res, &point, NULL, NULL, NULL));
-    CHECK(secp256k1_ecdh(CTX, res, &point, s_one, NULL, NULL) == 1);
+    CHECK(secp256k1_ecdh(CTX, res, &point, s_one, NULL, NULL));
 }
 
 static void test_ecdh_generator_basepoint(void) {
@@ -59,20 +59,20 @@ static void test_ecdh_generator_basepoint(void) {
         random_scalar_order(&s);
         secp256k1_scalar_get_b32(s_b32, &s);
 
-        CHECK(secp256k1_ec_pubkey_create(CTX, &point[0], s_one) == 1);
-        CHECK(secp256k1_ec_pubkey_create(CTX, &point[1], s_b32) == 1);
+        CHECK(secp256k1_ec_pubkey_create(CTX, &point[0], s_one));
+        CHECK(secp256k1_ec_pubkey_create(CTX, &point[1], s_b32));
 
         /* compute using ECDH function with custom hash function */
-        CHECK(secp256k1_ecdh(CTX, output_ecdh, &point[0], s_b32, ecdh_hash_function_custom, NULL) == 1);
+        CHECK(secp256k1_ecdh(CTX, output_ecdh, &point[0], s_b32, ecdh_hash_function_custom, NULL));
         /* compute "explicitly" */
-        CHECK(secp256k1_ec_pubkey_serialize(CTX, point_ser, &point_ser_len, &point[1], SECP256K1_EC_UNCOMPRESSED) == 1);
+        CHECK(secp256k1_ec_pubkey_serialize(CTX, point_ser, &point_ser_len, &point[1], SECP256K1_EC_UNCOMPRESSED));
         /* compare */
         CHECK(secp256k1_memcmp_var(output_ecdh, point_ser, 65) == 0);
 
         /* compute using ECDH function with default hash function */
-        CHECK(secp256k1_ecdh(CTX, output_ecdh, &point[0], s_b32, NULL, NULL) == 1);
+        CHECK(secp256k1_ecdh(CTX, output_ecdh, &point[0], s_b32, NULL, NULL));
         /* compute "explicitly" */
-        CHECK(secp256k1_ec_pubkey_serialize(CTX, point_ser, &point_ser_len, &point[1], SECP256K1_EC_COMPRESSED) == 1);
+        CHECK(secp256k1_ec_pubkey_serialize(CTX, point_ser, &point_ser_len, &point[1], SECP256K1_EC_COMPRESSED));
         secp256k1_sha256_initialize(&sha);
         secp256k1_sha256_write(&sha, point_ser, point_ser_len);
         secp256k1_sha256_finalize(&sha, output_ser);
@@ -97,14 +97,14 @@ static void test_bad_scalar(void) {
     /* Create random point */
     random_scalar_order(&rand);
     secp256k1_scalar_get_b32(s_rand, &rand);
-    CHECK(secp256k1_ec_pubkey_create(CTX, &point, s_rand) == 1);
+    CHECK(secp256k1_ec_pubkey_create(CTX, &point, s_rand));
 
     /* Try to multiply it by bad values */
     CHECK(secp256k1_ecdh(CTX, output, &point, s_zero, NULL, NULL) == 0);
     CHECK(secp256k1_ecdh(CTX, output, &point, s_overflow, NULL, NULL) == 0);
     /* ...and a good one */
     s_overflow[31] -= 1;
-    CHECK(secp256k1_ecdh(CTX, output, &point, s_overflow, NULL, NULL) == 1);
+    CHECK(secp256k1_ecdh(CTX, output, &point, s_overflow, NULL, NULL));
 
     /* Hash function failure results in ecdh failure */
     CHECK(secp256k1_ecdh(CTX, output, &point, s_overflow, ecdh_hash_function_test_fail, NULL) == 0);
@@ -123,8 +123,8 @@ static void test_result_basepoint(void) {
 
     unsigned char s_one[32] = { 0 };
     s_one[31] = 1;
-    CHECK(secp256k1_ec_pubkey_create(CTX, &point, s_one) == 1);
-    CHECK(secp256k1_ecdh(CTX, out_base, &point, s_one, NULL, NULL) == 1);
+    CHECK(secp256k1_ec_pubkey_create(CTX, &point, s_one));
+    CHECK(secp256k1_ecdh(CTX, out_base, &point, s_one, NULL, NULL));
 
     for (i = 0; i < 2 * COUNT; i++) {
         random_scalar_order(&rand);
@@ -132,12 +132,12 @@ static void test_result_basepoint(void) {
         secp256k1_scalar_inverse(&rand, &rand);
         secp256k1_scalar_get_b32(s_inv, &rand);
 
-        CHECK(secp256k1_ec_pubkey_create(CTX, &point, s) == 1);
-        CHECK(secp256k1_ecdh(CTX, out, &point, s_inv, NULL, NULL) == 1);
+        CHECK(secp256k1_ec_pubkey_create(CTX, &point, s));
+        CHECK(secp256k1_ecdh(CTX, out, &point, s_inv, NULL, NULL));
         CHECK(secp256k1_memcmp_var(out, out_base, 32) == 0);
 
-        CHECK(secp256k1_ec_pubkey_create(CTX, &point, s_inv) == 1);
-        CHECK(secp256k1_ecdh(CTX, out_inv, &point, s, NULL, NULL) == 1);
+        CHECK(secp256k1_ec_pubkey_create(CTX, &point, s_inv));
+        CHECK(secp256k1_ecdh(CTX, out_inv, &point, s, NULL, NULL));
         CHECK(secp256k1_memcmp_var(out_inv, out_base, 32) == 0);
     }
 }

@@ -65,7 +65,7 @@ static void bench_ellswift_decode(void *arg, int iters) {
     bench_ellswift_data *data = (bench_ellswift_data*)arg;
 
     for (i = 0; i < iters; i++) {
-        CHECK(secp256k1_ellswift_decode(data->ctx, &out, data->rnd64) == 1);
+        CHECK(secp256k1_ellswift_decode(data->ctx, &out, data->rnd64));
         len = 33;
         CHECK(secp256k1_ec_pubkey_serialize(data->ctx, data->rnd64 + (i % 32), &len, &out, SECP256K1_EC_COMPRESSED));
     }
@@ -84,7 +84,7 @@ static void bench_ellswift_xdh(void *arg, int iters) {
                                      data->rnd64 + ((i + 16) % 33),
                                      party,
                                      secp256k1_ellswift_xdh_hash_function_bip324,
-                                     NULL) == 1);
+                                     NULL));
     }
 }
 
