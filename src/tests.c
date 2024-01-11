@@ -5090,10 +5090,10 @@ static void test_ecmult_multi_pippenger_max_points(void) {
         /* allocate `total_alloc` bytes over `PIPPENGER_SCRATCH_OBJECTS` many allocations */
         total_alloc = secp256k1_pippenger_scratch_size(n_points_supported, bucket_window);
         for (i = 0; i < PIPPENGER_SCRATCH_OBJECTS - 1; i++) {
-            CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, 1));
+            CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, 1) != NULL);
             total_alloc--;
         }
-        CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, total_alloc));
+        CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, total_alloc) != NULL);
         secp256k1_scratch_apply_checkpoint(&CTX->error_callback, scratch, checkpoint);
         secp256k1_scratch_destroy(&CTX->error_callback, scratch);
     }
