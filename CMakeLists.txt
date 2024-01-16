@@ -51,29 +51,37 @@ endif()
 
 option(SECP256K1_INSTALL "Enable installation." ${PROJECT_IS_TOP_LEVEL})
 
+## Modules
+
+# We declare all options before processing them, to make sure we can express
+# dependendencies while processing.
 option(SECP256K1_ENABLE_MODULE_ECDH "Enable ECDH module." ON)
-if(SECP256K1_ENABLE_MODULE_ECDH)
-  add_compile_definitions(ENABLE_MODULE_ECDH=1)
-endif()
-
 option(SECP256K1_ENABLE_MODULE_RECOVERY "Enable ECDSA pubkey recovery module." OFF)
-if(SECP256K1_ENABLE_MODULE_RECOVERY)
-  add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
-endif()
-
 option(SECP256K1_ENABLE_MODULE_EXTRAKEYS "Enable extrakeys module." ON)
 option(SECP256K1_ENABLE_MODULE_SCHNORRSIG "Enable schnorrsig module." ON)
+option(SECP256K1_ENABLE_MODULE_ELLSWIFT "Enable ElligatorSwift module." ON)
+
+# Processing must be done in a topological sorting of the dependency graph
+# (dependent module first).
+if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
+  add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
+endif()
+
 if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
   set(SECP256K1_ENABLE_MODULE_EXTRAKEYS ON)
   add_compile_definitions(ENABLE_MODULE_SCHNORRSIG=1)
 endif()
+
 if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
   add_compile_definitions(ENABLE_MODULE_EXTRAKEYS=1)
 endif()
 
-option(SECP256K1_ENABLE_MODULE_ELLSWIFT "Enable ElligatorSwift module." ON)
-if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
-  add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
+if(SECP256K1_ENABLE_MODULE_RECOVERY)
+  add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
+endif()
+
+if(SECP256K1_ENABLE_MODULE_ECDH)
+  add_compile_definitions(ENABLE_MODULE_ECDH=1)
 endif()
 
 option(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS "Enable external default callback functions." OFF)
