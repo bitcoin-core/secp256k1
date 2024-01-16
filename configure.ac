@@ -145,7 +145,7 @@ AC_ARG_ENABLE(benchmark,
     [SECP_SET_DEFAULT([enable_benchmark], [yes], [yes])])
 
 AC_ARG_ENABLE(coverage,
-    AS_HELP_STRING([--enable-coverage],[enable compiler flags to support kcov coverage analysis [default=no]]), [],
+    AS_HELP_STRING([--enable-coverage],[enable coverage analysis support [default=no]]), [],
     [SECP_SET_DEFAULT([enable_coverage], [no], [no])])
 
 AC_ARG_ENABLE(tests,
