@@ -394,6 +394,9 @@ if test x"$enable_module_ellswift" = x"yes"; then
 fi
 
 if test x"$enable_module_schnorrsig" = x"yes"; then
+  if test x"$enable_module_extrakeys" = x"no"; then
+    AC_MSG_ERROR([Module dependency error: You have disabled the extrakeys module explicitly, but it is required by the schnorrsig module.])
+  fi
   enable_module_extrakeys=yes
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_SCHNORRSIG=1"
 fi
