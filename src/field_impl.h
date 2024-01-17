@@ -132,10 +132,13 @@ static int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k
     ret = secp256k1_fe_equal(&t1, a);
 
 #ifdef VERIFY
-    if (!ret) {
-        secp256k1_fe_negate(&t1, &t1, 1);
-        secp256k1_fe_normalize_var(&t1);
-        VERIFY_CHECK(secp256k1_fe_equal(&t1, a));
+    {
+        secp256k1_fe t1_ver;
+        if (!ret) {
+            secp256k1_fe_negate(&t1_ver, &t1, 1);
+            secp256k1_fe_normalize_var(&t1_ver);
+            VERIFY_CHECK(secp256k1_fe_equal(&t1_ver, a));
+        }
     }
 #endif
     return ret;

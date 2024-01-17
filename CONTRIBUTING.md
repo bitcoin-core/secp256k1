@@ -49,6 +49,10 @@ In addition, libsecp256k1 tries to maintain the following coding conventions:
 * Operations involving secret data should be tested for being constant time with respect to the secrets (see [src/ctime_tests.c](src/ctime_tests.c)).
 * Local variables containing secret data should be cleared explicitly to try to delete secrets from memory.
 * Use `secp256k1_memcmp_var` instead of `memcmp` (see [#823](https://github.com/bitcoin-core/secp256k1/issues/823)).
+* Use `VERIFY_CHECK(cond)` for test-only assertions.
+  * These are active only when the `VERIFY` macro is defined. The build system defines this macro when building test targets such as the `tests` and `exhaustive_tests` executables, but not when building the actual library.
+  * If you need additional code lines to prepare the call to `VERIFY_CHECK`, then wrap them and the call into `#ifdef VERIFY ... #endif`. Start a new block (see style conventions below) inside the `#ifdef VERIFY` if appropriate, and suffix `VERIFY`-only variables with `_ver`.
+  * In any `VERIFY` code, avoid side effects to variables used in non-`VERIFY` code. Note that `VERIFY_CHECK(cond)` is a no-op if `VERIFY` is not defined, so avoid also side effects in `cond`.
 
 #### Style conventions
 
