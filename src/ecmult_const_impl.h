@@ -212,10 +212,13 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
     secp256k1_scalar_add(&v2, &v2, &S_OFFSET);
 
 #ifdef VERIFY
-    /* Verify that v1 and v2 are in range [0, 2^129-1]. */
-    for (i = 129; i < 256; ++i) {
-        VERIFY_CHECK(secp256k1_scalar_get_bits(&v1, i, 1) == 0);
-        VERIFY_CHECK(secp256k1_scalar_get_bits(&v2, i, 1) == 0);
+    {
+        int i_ver;
+        /* Verify that v1 and v2 are in range [0, 2^129-1]. */
+        for (i_ver = 129; i_ver < 256; ++i_ver) {
+            VERIFY_CHECK(secp256k1_scalar_get_bits(&v1, i_ver, 1) == 0);
+            VERIFY_CHECK(secp256k1_scalar_get_bits(&v2, i_ver, 1) == 0);
+        }
     }
 #endif
 

@@ -789,32 +789,26 @@ static const secp256k1_modinv32_modinfo secp256k1_const_modinfo_scalar = {
 
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *x) {
     secp256k1_modinv32_signed30 s;
-#ifdef VERIFY
-    int zero_in = secp256k1_scalar_is_zero(x);
-#endif
     SECP256K1_SCALAR_VERIFY(x);
 
     secp256k1_scalar_to_signed30(&s, x);
     secp256k1_modinv32(&s, &secp256k1_const_modinfo_scalar);
     secp256k1_scalar_from_signed30(r, &s);
 
+    VERIFY_CHECK(secp256k1_scalar_is_zero(r) == secp256k1_scalar_is_zero(x));
     SECP256K1_SCALAR_VERIFY(r);
-    VERIFY_CHECK(secp256k1_scalar_is_zero(r) == zero_in);
 }
 
 static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
     secp256k1_modinv32_signed30 s;
-#ifdef VERIFY
-    int zero_in = secp256k1_scalar_is_zero(x);
-#endif
     SECP256K1_SCALAR_VERIFY(x);
 
     secp256k1_scalar_to_signed30(&s, x);
     secp256k1_modinv32_var(&s, &secp256k1_const_modinfo_scalar);
     secp256k1_scalar_from_signed30(r, &s);
 
+    VERIFY_CHECK(secp256k1_scalar_is_zero(r) == secp256k1_scalar_is_zero(x));
     SECP256K1_SCALAR_VERIFY(r);
-    VERIFY_CHECK(secp256k1_scalar_is_zero(r) == zero_in);
 }
 
 SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
