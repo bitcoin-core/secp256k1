@@ -126,6 +126,106 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_sender_c
     size_t n_plain_seckeys
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5);
 
+/** Opaque data structure that holds a Silent Payments label.
+ *
+ *  Guaranteed to be 68 bytes in size. Serialized and parsed with
+ *  `secp256k1_silentpayments_recipient_label_serialize` and
+ *  `secp256k1_silentpayments_recipient_label_parse`.
+ */
+typedef struct secp256k1_silentpayments_label {
+    unsigned char data[68];
+} secp256k1_silentpayments_label;
+
+/** Parse a Silent Payments label.
+ *
+ *  Returns: 1 when the label could be parsed, 0 otherwise.
+ *  Args:    ctx: pointer to a context object
+ *  Out:   label: pointer to a label object
+ *  In:     in33: pointer to the 33-byte label to be parsed
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipient_label_parse(
+    const secp256k1_context *ctx,
+    secp256k1_silentpayments_label *label,
+    const unsigned char *in33
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
+/** Serialize a Silent Payments label
+ *
+ *  Returns: 1 always
+ *  Args:    ctx: pointer to a context object
+ *  Out:   out33: pointer to a 33-byte array to store the serialized label
+ *  In:    label: pointer to the label
+ */
+SECP256K1_API int secp256k1_silentpayments_recipient_label_serialize(
+    const secp256k1_context *ctx,
+    unsigned char *out33,
+    const secp256k1_silentpayments_label *label
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
+/** Create Silent Payments label tweak and label.
+ *
+ *  Given a recipient's 32 byte scan key and a label integer m, calculate the
+ *  corresponding label tweak and label:
+ *
+ *      label_tweak = hash(scan_key || m)
+ *            label = label_tweak * G
+ *
+ *  Returns: 1 if label tweak and label creation was successful.
+ *           0 if hash output label_tweak32 is not valid scalar (negligible
+ *             probability per hash evaluation).
+ *
+ * WARNING: Creating a large number of labels may significantly degrade
+ * scanning performance in certain Silent Payments wallet implementations,
+ * such as light clients. The scanning function provided in this module,
+ * which is designed for full nodes, performs consistently even with hundreds
+ * of thousands of labels. Other implementations may not share this property
+ * or may be unable to use it due to lacking full transaction data.
+ *
+ * To maximize wallet interoperability, it is recommended to create only
+ * the change label (m = 0) and avoid distributing labeled addresses.
+ *
+ *  Args:                ctx: pointer to a context object
+ *                            (not secp256k1_context_static)
+ *  Out:               label: pointer to the resulting label
+ *             label_tweak32: pointer to the 32 byte label tweak
+ *  In:           scan_key32: pointer to the recipient's 32 byte scan key
+ *                         m: integer for the m-th label (0 is used for change outputs)
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipient_label_create(
+    const secp256k1_context *ctx,
+    secp256k1_silentpayments_label *label,
+    unsigned char *label_tweak32,
+    const unsigned char *scan_key32,
+    uint32_t m
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
+/** Create Silent Payments labeled spend public key.
+ *
+ *  Given a recipient's spend public key and a label, calculate the
+ *  corresponding labeled spend public key:
+ *
+ *      labeled_spend_pubkey = unlabeled_spend_pubkey + label
+ *
+ *  The result is used by the recipient to create a Silent Payments address,
+ *  consisting of the serialized and concatenated scan public key and
+ *  (labeled) spend public key.
+ *
+ *  Returns: 1 if labeled spend public key creation was successful.
+ *           0 if spend pubkey and label sum to zero (negligible probability for
+ *             labels created according to BIP352).
+ *
+ *  Args:                    ctx: pointer to a context object
+ *  Out:    labeled_spend_pubkey: pointer to the resulting labeled spend public key
+ *  In:   unlabeled_spend_pubkey: pointer to the recipient's unlabeled spend public key
+ *                         label: pointer to the recipient's label
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(
+    const secp256k1_context *ctx,
+    secp256k1_pubkey *labeled_spend_pubkey,
+    const secp256k1_pubkey *unlabeled_spend_pubkey,
+    const secp256k1_silentpayments_label *label
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
 #ifdef __cplusplus
 }
 #endif
