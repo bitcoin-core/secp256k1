@@ -264,10 +264,60 @@ static void test_send_api(void) {
     }
 }
 
+static void test_label_api(void) {
+    secp256k1_pubkey l, s, ls, e; /* label pk, spend pk, labeled spend pk, expected labeled spend pk */
+    unsigned char lt[32];         /* label tweak */
+    const unsigned char expected[33] = {
+        0x03, 0xdc, 0x7f, 0x09, 0x9a, 0xbe, 0x95, 0x7a,
+        0x58, 0x43, 0xd2, 0xb6, 0xbb, 0x35, 0x79, 0x61,
+        0x5c, 0x60, 0x36, 0xa4, 0x9b, 0x86, 0xf4, 0xbe,
+        0x46, 0x38, 0x60, 0x28, 0xa8, 0x1a, 0x77, 0xd4,
+        0x91
+    };
+
+    /* Create a label and labeled spend public key, verify we get the expected result */
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &s, BOB_ADDRESS[1], 33));
+    CHECK(secp256k1_silentpayments_recipient_create_label(CTX, &l, lt, ALICE_SECKEY, 1));
+    CHECK(secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(CTX, &ls, &s, &l));
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &e, expected, 33));
+    CHECK(secp256k1_ec_pubkey_cmp(CTX, &ls, &e) == 0);
+
+    /* Check null values are handled */
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_label(CTX, NULL, lt, ALICE_SECKEY, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_label(CTX, &l, NULL, ALICE_SECKEY, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_label(CTX, &l, lt, NULL, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(CTX, NULL, &s, &l));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(CTX, &ls, NULL, &l));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(CTX, &ls, &s, NULL));
+    /* Check that creating a label with an invalid scan key fails */
+    CHECK(secp256k1_silentpayments_recipient_create_label(CTX, &l, lt, MALFORMED_SECKEY, 1) == 0);
+    CHECK(secp256k1_silentpayments_recipient_create_label(CTX, &l, lt, secp256k1_group_order_bytes, 1) == 0);
+    /* Check for malformed spend and label public keys, i.e., any single pubkey is malformed or the public
+     * keys are valid but sum up to zero.
+     */
+    {
+        secp256k1_pubkey neg_spend_pubkey = s;
+        CHECK(secp256k1_ec_pubkey_negate(CTX, &neg_spend_pubkey));
+        CHECK(secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(CTX, &ls, &s, &neg_spend_pubkey) == 0);
+        /* Also test with a malformed spend public key. */
+        memset(&s, 0, sizeof(s));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(CTX, &ls, &s, &neg_spend_pubkey));
+        /* Reset s back to a valid public key for the next test. */
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &s, BOB_ADDRESS[1], 33));
+        memset(&l, 0, sizeof(l));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(CTX, &ls, &s, &l));
+        /* Reset l back to a valid public key for the next test */
+        CHECK(secp256k1_silentpayments_recipient_create_label(CTX, &l, lt, ALICE_SECKEY, 1));
+        memset(&s, 0, sizeof(s));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(CTX, &ls, &s, &l));
+    }
+}
+
 /* --- Test registry --- */
 static const struct tf_test_entry tests_silentpayments[] = {
     CASE1(test_recipient_sort),
     CASE1(test_send_api),
+    CASE1(test_label_api),
 };
 
 #endif
