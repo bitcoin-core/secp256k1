@@ -107,6 +107,57 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_sender_c
     size_t n_plain_seckeys
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5);
 
+/** Create Silent Payment label tweak and label.
+ *
+ *  Given a recipient's scan key b_scan and a label integer m, calculate the
+ *  corresponding label tweak and label:
+ *
+ *  label_tweak = hash(b_scan || m)
+ *        label = label_tweak * G
+ *
+ *  Returns: 1 if label tweak and label creation was successful.
+ *           0 if an error occured.
+ *  Args:                ctx: pointer to a context object
+ *  Out:               label: pointer to the resulting label public key
+ *             label_tweak32: pointer to the 32 byte label tweak
+ *  In:   recipient_scan_key: pointer to the recipient's scan key
+ *                         m: label integer (0 is used for change outputs)
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipient_create_label_tweak(
+    const secp256k1_context *ctx,
+    secp256k1_pubkey *label,
+    unsigned char *label_tweak32,
+    const unsigned char *recipient_scan_key,
+    unsigned int m
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
+/** Create Silent Payment labelled spend public key.
+ *
+ *  Given a recipient's spend public key B_spend and a label, calculate the
+ *  corresponding serialized labelled spend public key:
+ *
+ *  B_m = B_spend + label
+ *
+ *  The result is used by the recipient to create a Silent Payment address,
+ *  consisting of the serialized and concatenated scan public key and
+ *  (labelled) spend public key each.
+ *
+ *  Returns: 1 if labelled spend public key creation was successful.
+ *           0 if an error occured.
+ *  Args:                    ctx: pointer to a context object
+ *  Out:   labelled_spend_pubkey: pointer to the resulting labelled spend
+ *                                public key
+ *  In:   recipient_spend_pubkey: pointer to the recipient's spend pubkey
+ *                         label: pointer to the the recipient's label public
+ *                                key
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipient_create_labelled_spend_pubkey(
+    const secp256k1_context *ctx,
+    secp256k1_pubkey *labelled_spend_pubkey,
+    const secp256k1_pubkey *recipient_spend_pubkey,
+    const secp256k1_pubkey *label
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
 #ifdef __cplusplus
 }
 #endif
