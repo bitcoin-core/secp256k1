@@ -326,6 +326,131 @@ int secp256k1_silentpayments_sender_create_outputs(
     return 1;
 }
 
-/* TODO: implement functions for receiver side. */
+/** Set hash state to the BIP340 tagged hash midstate for "BIP0352/Label". */
+static void secp256k1_silentpayments_sha256_init_label(secp256k1_sha256* hash) {
+    secp256k1_sha256_initialize(hash);
+    hash->s[0] = 0x26b95d63ul;
+    hash->s[1] = 0x8bf1b740ul;
+    hash->s[2] = 0x10a5986ful;
+    hash->s[3] = 0x06a387a5ul;
+    hash->s[4] = 0x2d1c1c30ul;
+    hash->s[5] = 0xd035951aul;
+    hash->s[6] = 0x2d7f0f96ul;
+    hash->s[7] = 0x29e3e0dbul;
+
+    hash->bytes = 64;
+}
+
+static const unsigned char secp256k1_silentpayments_label_magic[4] = { 0x27, 0x9d, 0x44, 0xba };
+
+/* Saves a group element into a label. Requires that the provided group element is not infinity. */
+static void secp256k1_silentpayments_label_save(secp256k1_silentpayments_label* label, const secp256k1_ge* ge) {
+    memcpy(&label->data[0], secp256k1_silentpayments_label_magic, 4);
+    secp256k1_ge_to_bytes(label->data + 4, ge);
+}
+
+/* Loads a group element from a label. Returns 1 unless the label wasn't properly initialized. */
+static int secp256k1_silentpayments_label_load(const secp256k1_context* ctx, secp256k1_ge* ge, const secp256k1_silentpayments_label* label) {
+    ARG_CHECK(secp256k1_memcmp_var(&label->data[0], secp256k1_silentpayments_label_magic, 4) == 0);
+    secp256k1_ge_from_bytes(ge, label->data + 4);
+    return 1;
+}
+
+int secp256k1_silentpayments_recipient_label_parse(const secp256k1_context* ctx, secp256k1_silentpayments_label* label, const unsigned char *in33) {
+    secp256k1_ge ge;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(label != NULL);
+    ARG_CHECK(in33 != NULL);
+
+    if (!secp256k1_eckey_pubkey_parse(&ge, in33, 33)) {
+        return 0;
+    }
+
+    secp256k1_silentpayments_label_save(label, &ge);
+    return 1;
+}
+
+int secp256k1_silentpayments_recipient_label_serialize(const secp256k1_context* ctx, unsigned char *out33, const secp256k1_silentpayments_label* label) {
+    secp256k1_ge ge;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(out33 != NULL);
+    memset(out33, 0, 33);
+    ARG_CHECK(label != NULL);
+
+    if (!secp256k1_silentpayments_label_load(ctx, &ge, label)) {
+        return 0;
+    }
+    secp256k1_eckey_pubkey_serialize33(&ge, out33);
+    return 1;
+}
+
+int secp256k1_silentpayments_recipient_label_create(const secp256k1_context *ctx, secp256k1_silentpayments_label *label, unsigned char *label_tweak32, const unsigned char *scan_key32, uint32_t m) {
+    secp256k1_sha256 hash;
+    unsigned char m_serialized[4];
+    secp256k1_ge label_ge;
+    secp256k1_scalar label_tweak_scalar;
+    int ret;
+
+    /* Sanity check inputs. */
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(label != NULL);
+    memset(label, 0, sizeof(*label));
+    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    ARG_CHECK(label_tweak32 != NULL);
+    ARG_CHECK(scan_key32 != NULL);
+
+    /* ensure that the passed scan key is valid, in order to avoid creating unspendable labels */
+    ret = secp256k1_ec_seckey_verify(ctx, scan_key32);
+
+    /* Compute hash(ser_256(b_scan) || ser_32(m))  [sha256 with tag "BIP0352/Label"] */
+    secp256k1_silentpayments_sha256_init_label(&hash);
+    secp256k1_sha256_write(&hash, scan_key32, 32);
+    secp256k1_write_be32(m_serialized, m);
+    secp256k1_sha256_write(&hash, m_serialized, sizeof(m_serialized));
+    secp256k1_sha256_finalize(&hash, label_tweak32);
+
+    ret &= secp256k1_ec_pubkey_create_helper(&ctx->ecmult_gen_ctx, &label_tweak_scalar, &label_ge, label_tweak32);
+    secp256k1_silentpayments_label_save(label, &label_ge);
+
+    secp256k1_scalar_clear(&label_tweak_scalar);
+    secp256k1_memclear_explicit(m_serialized, sizeof(m_serialized));
+    secp256k1_sha256_clear(&hash);
+
+    return ret;
+}
+
+int secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(const secp256k1_context *ctx, secp256k1_pubkey *labeled_spend_pubkey, const secp256k1_pubkey *unlabeled_spend_pubkey, const secp256k1_silentpayments_label *label) {
+    secp256k1_ge labeled_spend_pubkey_ge, label_addend;
+    secp256k1_gej result_gej;
+    secp256k1_ge result_ge;
+    int ret;
+
+    /* Sanity check inputs. */
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(labeled_spend_pubkey != NULL);
+    ARG_CHECK(unlabeled_spend_pubkey != NULL);
+    ARG_CHECK(label != NULL);
+
+    /* Calculate labeled_spend_pubkey = unlabeled_spend_pubkey + label.
+     * If either the label or spend public key is invalid, return early.
+     */
+    ret = secp256k1_pubkey_load(ctx, &labeled_spend_pubkey_ge, unlabeled_spend_pubkey);
+    ret &= secp256k1_silentpayments_label_load(ctx, &label_addend, label);
+    if (!ret) {
+        return 0;
+    }
+    secp256k1_gej_set_ge(&result_gej, &labeled_spend_pubkey_ge);
+    secp256k1_gej_add_ge_var(&result_gej, &result_gej, &label_addend, NULL);
+    if (secp256k1_gej_is_infinity(&result_gej)) {
+        return 0;
+    }
+
+    secp256k1_ge_set_gej_var(&result_ge, &result_gej);
+    secp256k1_pubkey_save(labeled_spend_pubkey, &result_ge);
+
+    return 1;
+}
 
 #endif
