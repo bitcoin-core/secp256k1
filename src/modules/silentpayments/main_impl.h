@@ -316,4 +316,74 @@ int secp256k1_silentpayments_sender_create_outputs(
     return 1;
 }
 
+/** Set hash state to the BIP340 tagged hash midstate for "BIP0352/Label". */
+static void secp256k1_silentpayments_sha256_init_label(secp256k1_sha256* hash) {
+    secp256k1_sha256_initialize(hash);
+    hash->s[0] = 0x26b95d63ul;
+    hash->s[1] = 0x8bf1b740ul;
+    hash->s[2] = 0x10a5986ful;
+    hash->s[3] = 0x06a387a5ul;
+    hash->s[4] = 0x2d1c1c30ul;
+    hash->s[5] = 0xd035951aul;
+    hash->s[6] = 0x2d7f0f96ul;
+    hash->s[7] = 0x29e3e0dbul;
+
+    hash->bytes = 64;
+}
+
+int secp256k1_silentpayments_recipient_create_label(const secp256k1_context *ctx, secp256k1_pubkey *label, unsigned char *label_tweak32, const unsigned char *scan_key32, const uint32_t m) {
+    secp256k1_sha256 hash;
+    unsigned char m_serialized[4];
+
+    /* Sanity check inputs. */
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(label != NULL);
+    ARG_CHECK(label_tweak32 != NULL);
+    ARG_CHECK(scan_key32 != NULL);
+
+    /* Compute hash(ser_256(b_scan) || ser_32(m))  [sha256 with tag "BIP0352/Label"] */
+    secp256k1_silentpayments_sha256_init_label(&hash);
+    secp256k1_sha256_write(&hash, scan_key32, 32);
+    secp256k1_write_be32(m_serialized, m);
+    secp256k1_sha256_write(&hash, m_serialized, sizeof(m_serialized));
+    secp256k1_sha256_finalize(&hash, label_tweak32);
+
+    secp256k1_memclear_explicit(m_serialized, sizeof(m_serialized));
+    secp256k1_sha256_clear(&hash);
+    return secp256k1_ec_pubkey_create(ctx, label, label_tweak32);
+}
+
+int secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(const secp256k1_context *ctx, secp256k1_pubkey *labeled_spend_pubkey, const secp256k1_pubkey *unlabeled_spend_pubkey, const secp256k1_pubkey *label) {
+    secp256k1_ge labeled_spend_pubkey_ge, label_addend;
+    secp256k1_gej result_gej;
+    secp256k1_ge result_ge;
+    int ret;
+
+    /* Sanity check inputs. */
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(labeled_spend_pubkey != NULL);
+    ARG_CHECK(unlabeled_spend_pubkey != NULL);
+    ARG_CHECK(label != NULL);
+
+    /* Calculate labeled_spend_pubkey = spend_pubkey + label.
+     * If either the label or spend public key is an invalid public key,
+     * return early
+     */
+    ret = secp256k1_pubkey_load(ctx, &labeled_spend_pubkey_ge, unlabeled_spend_pubkey);
+    ret &= secp256k1_pubkey_load(ctx, &label_addend, label);
+    if (!ret) {
+        return 0;
+    }
+    secp256k1_gej_set_ge(&result_gej, &labeled_spend_pubkey_ge);
+    secp256k1_gej_add_ge_var(&result_gej, &result_gej, &label_addend, NULL);
+    if (secp256k1_gej_is_infinity(&result_gej)) {
+        return 0;
+    }
+
+    secp256k1_ge_set_gej_var(&result_ge, &result_gej);
+    secp256k1_pubkey_save(labeled_spend_pubkey, &result_ge);
+
+    return 1;
+}
+
 #endif
