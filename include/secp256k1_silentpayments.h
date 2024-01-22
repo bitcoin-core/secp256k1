@@ -171,6 +171,28 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_create_s
     const unsigned char *input_hash
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
+/** Create Silent Payment label tweak and label.
+ *
+ *  Given a recipient's scan private key b_scan and a label integer m, calculate
+ *  the corresponding label tweak and label:
+ *
+ *  label_tweak = hash(b_scan || m)
+ *  label = label_tweak * G
+ *
+ *  Returns: 1 if label tweak and label creation was successful. 0 if an error occured.
+ *  Args:                  ctx: pointer to a context object
+ *  Out:           label_tweak: pointer to the resulting label tweak
+ *   In:  receiver_scan_seckey: pointer to the receiver's scan private key
+ *                           m: label integer (0 is used for change outputs)
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_create_label_tweak(
+    const secp256k1_context *ctx,
+    secp256k1_pubkey *label,
+    unsigned char *label_tweak32,
+    const unsigned char *receiver_scan_seckey,
+    unsigned int m
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
 #ifdef __cplusplus
 }
 #endif
