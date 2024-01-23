@@ -246,4 +246,32 @@ int secp256k1_silentpayments_create_label_tweak(const secp256k1_context *ctx, se
     return 1;
 }
 
+int secp256k1_silentpayments_create_address_spend_pubkey(const secp256k1_context *ctx, unsigned char *l_addr_spend_pubkey33, const secp256k1_pubkey *receiver_spend_pubkey, const secp256k1_pubkey *label) {
+    secp256k1_ge B_m, label_addend;
+    secp256k1_gej result_gej;
+    secp256k1_ge result_ge;
+    size_t ser_size;
+    int ser_ret;
+
+    /* Sanity check inputs. */
+    VERIFY_CHECK(ctx != NULL);
+    VERIFY_CHECK(l_addr_spend_pubkey33 != NULL);
+    VERIFY_CHECK(receiver_spend_pubkey != NULL);
+    VERIFY_CHECK(label != NULL);
+
+    /* Calculate B_m = B_spend + label */
+    secp256k1_pubkey_load(ctx, &B_m, receiver_spend_pubkey);
+    secp256k1_pubkey_load(ctx, &label_addend, label);
+    secp256k1_gej_set_ge(&result_gej, &B_m);
+    secp256k1_gej_add_ge_var(&result_gej, &result_gej, &label_addend, NULL);
+
+    /* Serialize B_m */
+    secp256k1_ge_set_gej(&result_ge, &result_gej);
+    ser_ret = secp256k1_eckey_pubkey_serialize(&result_ge, l_addr_spend_pubkey33, &ser_size, 1);
+    VERIFY_CHECK(ser_ret && ser_size == 33);
+    (void)ser_ret;
+
+    return 1;
+}
+
 #endif
