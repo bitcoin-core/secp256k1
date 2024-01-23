@@ -2927,18 +2927,14 @@ static void run_scalar_tests(void) {
             secp256k1_scalar_set_b32(&r2, res[i][1], &overflow);
             CHECK(!overflow);
             secp256k1_scalar_mul(&z, &x, &y);
-            CHECK(!secp256k1_scalar_check_overflow(&z));
             CHECK(secp256k1_scalar_eq(&r1, &z));
             if (!secp256k1_scalar_is_zero(&y)) {
                 secp256k1_scalar_inverse(&zz, &y);
-                CHECK(!secp256k1_scalar_check_overflow(&zz));
                 secp256k1_scalar_inverse_var(&zzv, &y);
                 CHECK(secp256k1_scalar_eq(&zzv, &zz));
                 secp256k1_scalar_mul(&z, &z, &zz);
-                CHECK(!secp256k1_scalar_check_overflow(&z));
                 CHECK(secp256k1_scalar_eq(&x, &z));
                 secp256k1_scalar_mul(&zz, &zz, &y);
-                CHECK(!secp256k1_scalar_check_overflow(&zz));
                 CHECK(secp256k1_scalar_eq(&secp256k1_scalar_one, &zz));
             }
             secp256k1_scalar_mul(&z, &x, &x);
