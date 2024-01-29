@@ -78,10 +78,10 @@ To maintain a pristine source tree, CMake encourages to perform an out-of-source
 ### Building on POSIX systems
 
     $ mkdir build && cd build
-    $ cmake ..
-    $ cmake --build .
-    $ ctest  # run the test suite
-    $ sudo cmake --build . --target install  # optional
+    $ cmake .. -DSGX=true
+    $ make
+    $ make check  # run the test suite
+    $ sudo make install
 
 To compile optional modules (such as Schnorr signatures), you need to run `cmake` with additional flags (such as `-DSECP256K1_ENABLE_MODULE_SCHNORRSIG=ON`). Run `cmake .. -LH` to see the full list of available flags.
 

@@ -90,12 +90,16 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
 #ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
 static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
     (void)data;
+#ifndef SGX
     fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
+#endif
     abort();
 }
 static void secp256k1_default_error_callback_fn(const char* str, void* data) {
     (void)data;
-    fprintf(stderr, "[libsecp256k1] internal consistency check failed: %s\n", str);
+#ifndef SGX
+    fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str); */
+#endif
     abort();
 }
 #else

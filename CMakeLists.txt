@@ -41,11 +41,17 @@ set(${PROJECT_NAME}_LIB_VERSION_AGE 1)
 set(CMAKE_C_STANDARD 90)
 set(CMAKE_C_EXTENSIONS OFF)
 
+if(SGX)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+  set(CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR}/install)
+  add_definitions(-DSGX)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 option(BUILD_SHARED_LIBS "Build shared libraries." ON)
 option(SECP256K1_DISABLE_SHARED "Disable shared library. Overrides BUILD_SHARED_LIBS." OFF)
-if(SECP256K1_DISABLE_SHARED)
+if(SECP256K1_DISABLE_SHARED OR SGX)
   set(BUILD_SHARED_LIBS OFF)
 endif()
 
@@ -57,16 +63,19 @@ option(SECP256K1_INSTALL "Enable installation." ${PROJECT_IS_TOP_LEVEL})
 # dependendencies while processing.
 option(SECP256K1_ENABLE_MODULE_ECDH "Enable ECDH module." ON)
 option(SECP256K1_ENABLE_MODULE_RECOVERY "Enable ECDSA pubkey recovery module." OFF)
-option(SECP256K1_ENABLE_MODULE_EXTRAKEYS "Enable extrakeys module." ON)
-option(SECP256K1_ENABLE_MODULE_SCHNORRSIG "Enable schnorrsig module." ON)
-option(SECP256K1_ENABLE_MODULE_ELLSWIFT "Enable ElligatorSwift module." ON)
-
-# Processing must be done in a topological sorting of the dependency graph
-# (dependent module first).
-if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
-  add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
+if(SGX)
+  set(SECP256K1_ENABLE_MODULE_RECOVERY ON)
+endif()
+if(SECP256K1_ENABLE_MODULE_RECOVERY)
+  add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
 endif()
 
+option(SECP256K1_ENABLE_MODULE_EXTRAKEYS "Enable extrakeys module." ON)
+option(SECP256K1_ENABLE_MODULE_SCHNORRSIG "Enable schnorrsig module." ON)
+if(SGX)
+  set(SECP256K1_ENABLE_MODULE_EXTRAKEYS OFF)
+  set(SECP256K1_ENABLE_MODULE_SCHNORRSIG OFF)
+endif()
 if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
   if(DEFINED SECP256K1_ENABLE_MODULE_EXTRAKEYS AND NOT SECP256K1_ENABLE_MODULE_EXTRAKEYS)
     message(FATAL_ERROR "Module dependency error: You have disabled the extrakeys module explicitly, but it is required by the schnorrsig module.")
@@ -79,12 +88,12 @@ if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
   add_compile_definitions(ENABLE_MODULE_EXTRAKEYS=1)
 endif()
 
-if(SECP256K1_ENABLE_MODULE_RECOVERY)
-  add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
+option(SECP256K1_ENABLE_MODULE_ELLSWIFT "Enable ElligatorSwift module." ON)
+if(SGX)
+  set(SECP256K1_ENABLE_MODULE_ELLSWIFT OFF)
 endif()
-
-if(SECP256K1_ENABLE_MODULE_ECDH)
-  add_compile_definitions(ENABLE_MODULE_ECDH=1)
+if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
+  add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
 endif()
 
 option(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS "Enable external default callback functions." OFF)
@@ -172,6 +181,14 @@ option(SECP256K1_BUILD_EXHAUSTIVE_TESTS "Build exhaustive tests." ON)
 option(SECP256K1_BUILD_CTIME_TESTS "Build constant-time tests." ${SECP256K1_VALGRIND})
 option(SECP256K1_BUILD_EXAMPLES "Build examples." OFF)
 
+if(SGX)
+  SET(SECP256K1_BUILD_BENCHMARK OFF)
+  SET(SECP256K1_BUILD_TESTS OFF)
+  SET(SECP256K1_BUILD_EXHAUSTIVE_TESTS OFF)
+  SET(SECP256K1_BUILD_CTIME_TESTS OFF)
+  SET(SECP256K1_BUILD_EXAMPLES OFF)
+endif()
+
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
 if(MSVC)
@@ -226,6 +243,10 @@ else()
 endif()
 
 include(TryAppendCFlags)
+if(SGX)
+  try_append_c_flags(-fPIE)
+endif()
+
 if(MSVC)
   # Keep the following commands ordered lexicographically.
   try_append_c_flags(/W3) # Production quality warning level.
