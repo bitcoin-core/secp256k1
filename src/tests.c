@@ -2953,7 +2953,7 @@ static void random_fe_non_square(secp256k1_fe *ns) {
     }
 }
 
-static int check_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
+static int fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
     secp256k1_fe an = *a;
     secp256k1_fe bn = *b;
     secp256k1_fe_normalize_weak(&an);
@@ -3090,7 +3090,7 @@ static void run_field_half(void) {
 #endif
         secp256k1_fe_normalize_weak(&u);
         secp256k1_fe_add(&u, &u);
-        CHECK(check_fe_equal(&t, &u));
+        CHECK(fe_equal(&t, &u));
 
         /* Check worst-case input: ensure the LSB is 1 so that P will be added,
          * which will also cause all carries to be 1, since all limbs that can
@@ -3109,7 +3109,7 @@ static void run_field_half(void) {
 #endif
         secp256k1_fe_normalize_weak(&u);
         secp256k1_fe_add(&u, &u);
-        CHECK(check_fe_equal(&t, &u));
+        CHECK(fe_equal(&t, &u));
     }
 }
 
@@ -3136,7 +3136,7 @@ static void run_field_misc(void) {
         secp256k1_fe_add(&z, &q); /* z = x+v */
         q = x; /* q = x */
         secp256k1_fe_add_int(&q, v); /* q = x+v */
-        CHECK(check_fe_equal(&q, &z));
+        CHECK(fe_equal(&q, &z));
         /* Test the fe equality and comparison operations. */
         CHECK(secp256k1_fe_cmp_var(&x, &x) == 0);
         CHECK(secp256k1_fe_equal(&x, &x));
@@ -3196,27 +3196,27 @@ static void run_field_misc(void) {
         secp256k1_fe_add(&y, &x);
         z = x;
         secp256k1_fe_mul_int(&z, 3);
-        CHECK(check_fe_equal(&y, &z));
+        CHECK(fe_equal(&y, &z));
         secp256k1_fe_add(&y, &x);
         secp256k1_fe_add(&z, &x);
-        CHECK(check_fe_equal(&z, &y));
+        CHECK(fe_equal(&z, &y));
         z = x;
         secp256k1_fe_mul_int(&z, 5);
         secp256k1_fe_mul(&q, &x, &fe5);
-        CHECK(check_fe_equal(&z, &q));
+        CHECK(fe_equal(&z, &q));
         secp256k1_fe_negate(&x, &x, 1);
         secp256k1_fe_add(&z, &x);
         secp256k1_fe_add(&q, &x);
-        CHECK(check_fe_equal(&y, &z));
-        CHECK(check_fe_equal(&q, &y));
+        CHECK(fe_equal(&y, &z));
+        CHECK(fe_equal(&q, &y));
         /* Check secp256k1_fe_half. */
         z = x;
         secp256k1_fe_half(&z);
         secp256k1_fe_add(&z, &z);
-        CHECK(check_fe_equal(&x, &z));
+        CHECK(fe_equal(&x, &z));
         secp256k1_fe_add(&z, &z);
         secp256k1_fe_half(&z);
-        CHECK(check_fe_equal(&x, &z));
+        CHECK(fe_equal(&x, &z));
     }
 }
 
@@ -3618,9 +3618,9 @@ static void run_inverse_tests(void)
     for (i = 0; (size_t)i < sizeof(fe_cases)/sizeof(fe_cases[0]); ++i) {
         for (var = 0; var <= 1; ++var) {
             test_inverse_field(&x_fe, &fe_cases[i][0], var);
-            CHECK(check_fe_equal(&x_fe, &fe_cases[i][1]));
+            CHECK(fe_equal(&x_fe, &fe_cases[i][1]));
             test_inverse_field(&x_fe, &fe_cases[i][1], var);
-            CHECK(check_fe_equal(&x_fe, &fe_cases[i][0]));
+            CHECK(fe_equal(&x_fe, &fe_cases[i][0]));
         }
     }
     for (i = 0; (size_t)i < sizeof(scalar_cases)/sizeof(scalar_cases[0]); ++i) {
@@ -4556,7 +4556,7 @@ static void ecmult_const_mult_xonly(void) {
         /* Check that resj's X coordinate corresponds with resx. */
         secp256k1_fe_sqr(&v, &resj.z);
         secp256k1_fe_mul(&v, &v, &resx);
-        CHECK(check_fe_equal(&v, &resj.x));
+        CHECK(fe_equal(&v, &resj.x));
     }
 
     /* Test that secp256k1_ecmult_const_xonly correctly rejects X coordinates not on curve. */
