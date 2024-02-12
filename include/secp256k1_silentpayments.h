@@ -240,6 +240,55 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_sender_c
     unsigned int k
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
+typedef struct {
+    secp256k1_pubkey label;
+    secp256k1_pubkey label_negated;
+} secp256k1_silentpayments_label_data;
+
+/** Scan for Silent Payment transaction output (for receiver).
+ *
+ *  Given a shared_secret, a recipient's spend public key B_spend,
+ *  an output counter k, and a scanned tx's output x-only public key tx_output,
+ *  calculate the corresponding scanning data:
+ *
+ *  t_k = hash(shared_secret || ser_32(k))
+ *  P_output = B_spend + t_k * G  [not returned]
+ *  if P_output == tx_output
+ *      direct_match = 1
+ *  else
+ *      label1 =  tx_output - P_output
+ *      label2 = -tx_output - P_output
+ *      direct_match = 0
+ *
+ *  The resulting data is needed for the receiver to efficiently scan for labels
+ *  in silent payments eligible outputs.
+ *
+ *  Returns: 1 if output scanning was successful. 0 if an error occured.
+ *  Args:             ctx: pointer to a context object
+ *  Out:     direct_match: pointer to the resulting boolean indicating whether
+ *                         the calculated output pubkey matches the scanned one
+ *                    t_k: pointer to the resulting tweak t_k
+ *             label_data: pointer to the resulting label structure, containing the
+ *                         two label candidates, only set if direct_match == 0
+ *                         (can be NULL if the data is not needed)
+ *  In:   shared_secret33: shared secret, derived from either sender's
+ *                         or receiver's perspective with routines from above
+ *  receiver_spend_pubkey: pointer to the receiver's spend pubkey
+ *                      k: output counter (usually set to 0, should be increased for
+ *                         every additional output to the same recipient)
+ *              tx_output: pointer to the scanned tx's output x-only public key
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_receiver_scan_output(
+    const secp256k1_context *ctx,
+    int *direct_match,
+    unsigned char *t_k,
+    secp256k1_silentpayments_label_data *label_data,
+    const unsigned char *shared_secret33,
+    const secp256k1_pubkey *receiver_spend_pubkey,
+    unsigned int k,
+    const secp256k1_xonly_pubkey *tx_output
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6) SECP256K1_ARG_NONNULL(8);
+
 #ifdef __cplusplus
 }
 #endif

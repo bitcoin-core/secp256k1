@@ -325,4 +325,63 @@ int secp256k1_silentpayments_sender_create_output_pubkey(const secp256k1_context
     return 1;
 }
 
+int secp256k1_silentpayments_receiver_scan_output(const secp256k1_context *ctx, int *direct_match, unsigned char *t_k, secp256k1_silentpayments_label_data *label_data, const unsigned char *shared_secret33, const secp256k1_pubkey *receiver_spend_pubkey, unsigned int k, const secp256k1_xonly_pubkey *tx_output) {
+    secp256k1_scalar t_k_scalar;
+    secp256k1_ge P_output_ge;
+    secp256k1_xonly_pubkey P_output_xonly;
+
+    /* Sanity check inputs */
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(direct_match != NULL);
+    ARG_CHECK(t_k != NULL);
+    ARG_CHECK(shared_secret33 != NULL);
+    ARG_CHECK(receiver_spend_pubkey != NULL);
+    ARG_CHECK(tx_output != NULL);
+
+    /* Calculate t_k = hash(shared_secret || ser_32(k)) */
+    secp256k1_silentpayments_create_t_k(&t_k_scalar, shared_secret33, k);
+    secp256k1_scalar_get_b32(t_k, &t_k_scalar);
+
+    /* Calculate P_output = B_spend + t_k * G */
+    secp256k1_pubkey_load(ctx, &P_output_ge, receiver_spend_pubkey);
+    if (!secp256k1_eckey_pubkey_tweak_add(&P_output_ge, &t_k_scalar)) {
+        return 0;
+    }
+
+    /* If the calculated output matches the one from the tx, we have a direct match and can
+     * return without labels calculation (one of the two would result in point of infinity) */
+    secp256k1_xonly_pubkey_save(&P_output_xonly, &P_output_ge);
+    if (secp256k1_xonly_pubkey_cmp(ctx, &P_output_xonly, tx_output) == 0) {
+        *direct_match = 1;
+        return 1;
+    }
+    *direct_match = 0;
+
+    /* If desired, also calculate label candidates */
+    if (label_data != NULL) {
+        secp256k1_ge P_output_negated_ge, tx_output_ge;
+        secp256k1_ge label_ge;
+        secp256k1_gej label_gej;
+
+        /* Calculate negated P_output (common addend) first */
+        secp256k1_ge_neg(&P_output_negated_ge, &P_output_ge);
+
+        /* Calculate first scan label candidate: label1 = tx_output - P_output */
+        secp256k1_xonly_pubkey_load(ctx, &tx_output_ge, tx_output);
+        secp256k1_gej_set_ge(&label_gej, &tx_output_ge);
+        secp256k1_gej_add_ge_var(&label_gej, &label_gej, &P_output_negated_ge, NULL);
+        secp256k1_ge_set_gej(&label_ge, &label_gej);
+        secp256k1_pubkey_save(&label_data->label, &label_ge);
+
+        /* Calculate second scan label candidate: label2 = -tx_output - P_output */
+        secp256k1_gej_set_ge(&label_gej, &tx_output_ge);
+        secp256k1_gej_neg(&label_gej, &label_gej);
+        secp256k1_gej_add_ge_var(&label_gej, &label_gej, &P_output_negated_ge, NULL);
+        secp256k1_ge_set_gej(&label_ge, &label_gej);
+        secp256k1_pubkey_save(&label_data->label_negated, &label_ge);
+    }
+
+    return 1;
+}
+
 #endif
