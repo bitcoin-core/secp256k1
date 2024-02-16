@@ -104,6 +104,28 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_create_p
     const unsigned char *outpoint_smallest36
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(8);
 
+/** Create Silent Payment tweaked public key from public tweak data.
+ *
+ * Given public tweak data (public keys sum and input hash), calculate the
+ * corresponding tweaked public key:
+ *
+ * A_tweaked = input_hash * A_sum
+ *
+ * The resulting data is useful for light clients and silent payment indexes.
+ *
+ *  Returns: 1 if tweaked public key creation was successful. 0 if an error occured.
+ *  Args:              ctx: pointer to a context object
+ *  Out:         A_tweaked: pointer to the resulting tweaked public key
+ *  In:              A_sum: pointer to the public keys sum
+ *              input_hash: pointer to the 32-byte input hash
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_create_tweaked_pubkey(
+    const secp256k1_context *ctx,
+    secp256k1_pubkey *A_tweaked,
+    const secp256k1_pubkey *A_sum,
+    const unsigned char *input_hash
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
 #ifdef __cplusplus
 }
 #endif

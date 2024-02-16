@@ -137,4 +137,20 @@ int secp256k1_silentpayments_create_public_tweak_data(const secp256k1_context *c
     return 1;
 }
 
+int secp256k1_silentpayments_create_tweaked_pubkey(const secp256k1_context *ctx, secp256k1_pubkey *A_tweaked, const secp256k1_pubkey *A_sum, const unsigned char *input_hash) {
+    /* Sanity check inputs */
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(A_tweaked != NULL);
+    ARG_CHECK(A_sum != NULL);
+    ARG_CHECK(input_hash != NULL);
+
+    /* Calculate A_tweaked = input_hash * A_sum */
+    *A_tweaked = *A_sum;
+    if (!secp256k1_ec_pubkey_tweak_mul(ctx, A_tweaked, input_hash)) {
+        return 0;
+    }
+
+    return 1;
+}
+
 #endif
