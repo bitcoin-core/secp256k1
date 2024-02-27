@@ -3285,18 +3285,31 @@ static void run_fe_mul(void) {
 }
 
 static void run_sqr(void) {
-    secp256k1_fe x, s;
+    int i;
+    secp256k1_fe x, y, lhs, rhs, tmp;
 
-    {
-        int i;
-        secp256k1_fe_set_int(&x, 1);
-        secp256k1_fe_negate(&x, &x, 1);
+    secp256k1_fe_set_int(&x, 1);
+    secp256k1_fe_negate(&x, &x, 1);
 
-        for (i = 1; i <= 512; ++i) {
-            secp256k1_fe_mul_int(&x, 2);
-            secp256k1_fe_normalize(&x);
-            secp256k1_fe_sqr(&s, &x);
-        }
+    for (i = 1; i <= 512; ++i) {
+        secp256k1_fe_mul_int(&x, 2);
+        secp256k1_fe_normalize(&x);
+
+        /* Check that (x+y)*(x-y) = x^2 - y*2 for some random values y */
+        random_fe_test(&y);
+
+        lhs = x;
+        secp256k1_fe_add(&lhs, &y);         /* lhs = x+y */
+        secp256k1_fe_negate(&tmp, &y, 1);   /* tmp = -y */
+        secp256k1_fe_add(&tmp, &x);         /* tmp = x-y */
+        secp256k1_fe_mul(&lhs, &lhs, &tmp); /* lhs = (x+y)*(x-y) */
+
+        secp256k1_fe_sqr(&rhs, &x);         /* rhs = x^2 */
+        secp256k1_fe_sqr(&tmp, &y);         /* tmp = y^2 */
+        secp256k1_fe_negate(&tmp, &tmp, 1); /* tmp = -y^2 */
+        secp256k1_fe_add(&rhs, &tmp);       /* rhs = x^2 - y^2 */
+
+        CHECK(fe_equal(&lhs, &rhs));
     }
 }
 
