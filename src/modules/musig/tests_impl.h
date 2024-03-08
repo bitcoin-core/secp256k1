@@ -23,6 +23,7 @@
 #include "../../util.h"
 
 #include "vectors.h"
+#include <inttypes.h>
 
 static int create_keypair_and_pk(secp256k1_keypair *keypair, secp256k1_pubkey *pk, const unsigned char *sk) {
     int ret;
@@ -490,45 +491,38 @@ static void musig_nonce_test(void) {
 
 static void sha256_tag_test_internal(secp256k1_sha256 *sha_tagged, unsigned char *tag, size_t taglen) {
     secp256k1_sha256 sha;
-    unsigned char buf[32];
-    unsigned char buf2[32];
-    size_t i;
-
-    secp256k1_sha256_initialize(&sha);
-    secp256k1_sha256_write(&sha, tag, taglen);
-    secp256k1_sha256_finalize(&sha, buf);
-    /* buf = SHA256(tag) */
-
-    secp256k1_sha256_initialize(&sha);
-    secp256k1_sha256_write(&sha, buf, 32);
-    secp256k1_sha256_write(&sha, buf, 32);
-    /* Is buffer fully consumed? */
-    CHECK((sha.bytes & 0x3F) == 0);
-
-    /* Compare with tagged SHA */
-    for (i = 0; i < 8; i++) {
-        CHECK(sha_tagged->s[i] == sha.s[i]);
-    }
-    secp256k1_sha256_write(&sha, buf, 32);
-    secp256k1_sha256_write(sha_tagged, buf, 32);
-    secp256k1_sha256_finalize(&sha, buf);
-    secp256k1_sha256_finalize(sha_tagged, buf2);
-    CHECK(secp256k1_memcmp_var(buf, buf2, 32) == 0);
+    secp256k1_sha256_initialize_tagged(&sha, tag, taglen);
+    test_sha256_eq(&sha, sha_tagged);
 }
 
 /* Checks that the initialized tagged hashes initialized have the expected
  * state. */
 static void sha256_tag_test(void) {
-    secp256k1_sha256 sha_tagged;
+    secp256k1_sha256 sha;
     {
         char tag[11] = "KeyAgg list";
-        secp256k1_musig_keyagglist_sha256(&sha_tagged);
-        sha256_tag_test_internal(&sha_tagged, (unsigned char*)tag, sizeof(tag));
+        secp256k1_musig_keyagglist_sha256(&sha);
+        sha256_tag_test_internal(&sha, (unsigned char*)tag, sizeof(tag));
     }
     {
         char tag[18] = "KeyAgg coefficient";
-        secp256k1_musig_keyaggcoef_sha256(&sha_tagged);
-        sha256_tag_test_internal(&sha_tagged, (unsigned char*)tag, sizeof(tag));
+        secp256k1_musig_keyaggcoef_sha256(&sha);
+        sha256_tag_test_internal(&sha, (unsigned char*)tag, sizeof(tag));
+    }
+    {
+        unsigned char tag[9] = "MuSig/aux";
+        secp256k1_nonce_function_musig_sha256_tagged_aux(&sha);
+        sha256_tag_test_internal(&sha, (unsigned char*)tag, sizeof(tag));
+    }
+    {
+        unsigned char tag[11] = "MuSig/nonce";
+        secp256k1_nonce_function_musig_sha256_tagged(&sha);
+        sha256_tag_test_internal(&sha, (unsigned char*)tag, sizeof(tag));
+    }
+    {
+        unsigned char tag[15] = "MuSig/noncecoef";
+        secp256k1_musig_compute_noncehash_sha256_tagged(&sha);
+        sha256_tag_test_internal(&sha, (unsigned char*)tag, sizeof(tag));
     }
 }
 
