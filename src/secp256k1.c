@@ -36,6 +36,7 @@
 #include "int128_impl.h"
 #include "scratch_impl.h"
 #include "selftest.h"
+#include "hsort_impl.h"
 
 #ifdef SECP256K1_NO_BUILD
 # error "secp256k1.h processed without SECP256K1_BUILD defined while building secp256k1.c"
@@ -311,6 +312,40 @@ int secp256k1_ec_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_pubkey
         }
     }
     return secp256k1_memcmp_var(out[0], out[1], sizeof(out[0]));
+}
+
+/* This struct wraps a const context pointer to satisfy the secp256k1_hsort api
+ * which expects a non-const cmp_data pointer. */
+typedef struct {
+    const secp256k1_context *ctx;
+} secp256k1_pubkey_sort_cmp_data;
+
+static int secp256k1_pubkey_sort_cmp(const void* pk1, const void* pk2, void *cmp_data) {
+    return secp256k1_ec_pubkey_cmp(((secp256k1_pubkey_sort_cmp_data*)cmp_data)->ctx,
+                                     *(secp256k1_pubkey **)pk1,
+                                     *(secp256k1_pubkey **)pk2);
+}
+
+int secp256k1_pubkey_sort(const secp256k1_context* ctx, const secp256k1_pubkey **pubkeys, size_t n_pubkeys) {
+    secp256k1_pubkey_sort_cmp_data cmp_data;
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(pubkeys != NULL);
+
+    cmp_data.ctx = ctx;
+
+    /* Suppress wrong warning (fixed in MSVC 19.33) */
+    #if defined(_MSC_VER) && (_MSC_VER < 1933)
+    #pragma warning(push)
+    #pragma warning(disable: 4090)
+    #endif
+
+    secp256k1_hsort(pubkeys, n_pubkeys, sizeof(*pubkeys), secp256k1_pubkey_sort_cmp, &cmp_data);
+
+    #if defined(_MSC_VER) && (_MSC_VER < 1933)
+    #pragma warning(pop)
+    #endif
+
+    return 1;
 }
 
 static void secp256k1_ecdsa_signature_load(const secp256k1_context* ctx, secp256k1_scalar* r, secp256k1_scalar* s, const secp256k1_ecdsa_signature* sig) {

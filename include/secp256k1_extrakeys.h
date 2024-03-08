@@ -240,21 +240,6 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_keypair_xonly_tweak_add
     const unsigned char *tweak32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
-/** Sort public keys using lexicographic order of their compressed
- *  serialization.
- *
- *  Returns: 0 if the arguments are invalid. 1 otherwise.
- *
- *  Args:     ctx: pointer to a context object
- *  In:   pubkeys: array of pointers to pubkeys to sort
- *      n_pubkeys: number of elements in the pubkeys array
- */
-SECP256K1_API int secp256k1_pubkey_sort(
-    const secp256k1_context *ctx,
-    const secp256k1_pubkey **pubkeys,
-    size_t n_pubkeys
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
-
 #ifdef __cplusplus
 }
 #endif
