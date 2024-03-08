@@ -17,23 +17,6 @@
 #include "../../hash.h"
 #include "../../util.h"
 
-static void secp256k1_musig_ge_to_bytes_ext(unsigned char *data, secp256k1_ge *ge) {
-    if (secp256k1_ge_is_infinity(ge)) {
-        memset(data, 0, 64);
-    } else {
-        secp256k1_ge_to_bytes(data, ge);
-    }
-}
-
-static void secp256k1_musig_ge_from_bytes_ext(secp256k1_ge *ge, const unsigned char *data) {
-    unsigned char zeros[64] = { 0 };
-    if (secp256k1_memcmp_var(data, zeros, sizeof(zeros)) == 0) {
-        secp256k1_ge_set_infinity(ge);
-    } else {
-        secp256k1_ge_from_bytes(ge, data);
-    }
-}
-
 static const unsigned char secp256k1_musig_keyagg_cache_magic[4] = { 0xf4, 0xad, 0xbb, 0xdf };
 
 /* A keyagg cache consists of
@@ -52,7 +35,7 @@ static void secp256k1_keyagg_cache_save(secp256k1_musig_keyagg_cache *cache, sec
     ptr += 4;
     secp256k1_ge_to_bytes(ptr, &cache_i->pk);
     ptr += 64;
-    secp256k1_musig_ge_to_bytes_ext(ptr, &cache_i->second_pk);
+    secp256k1_ge_to_bytes_ext(ptr, &cache_i->second_pk);
     ptr += 64;
     memcpy(ptr, cache_i->pk_hash, 32);
     ptr += 32;
@@ -67,7 +50,7 @@ static int secp256k1_keyagg_cache_load(const secp256k1_context* ctx, secp256k1_k
     ptr += 4;
     secp256k1_ge_from_bytes(&cache_i->pk, ptr);
     ptr += 64;
-    secp256k1_musig_ge_from_bytes_ext(&cache_i->second_pk, ptr);
+    secp256k1_ge_from_bytes_ext(&cache_i->second_pk, ptr);
     ptr += 64;
     memcpy(cache_i->pk_hash, ptr, 32);
     ptr += 32;

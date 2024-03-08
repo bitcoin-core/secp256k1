@@ -963,4 +963,21 @@ static void secp256k1_ge_from_bytes(secp256k1_ge *r, const unsigned char *buf) {
     secp256k1_ge_from_storage(r, &s);
 }
 
+static void secp256k1_ge_to_bytes_ext(unsigned char *data, secp256k1_ge *ge) {
+    if (secp256k1_ge_is_infinity(ge)) {
+        memset(data, 0, 64);
+    } else {
+        secp256k1_ge_to_bytes(data, ge);
+    }
+}
+
+static void secp256k1_ge_from_bytes_ext(secp256k1_ge *ge, const unsigned char *data) {
+    unsigned char zeros[64] = { 0 };
+    if (secp256k1_memcmp_var(data, zeros, sizeof(zeros)) == 0) {
+        secp256k1_ge_set_infinity(ge);
+    } else {
+        secp256k1_ge_from_bytes(ge, data);
+    }
+}
+
 #endif /* SECP256K1_GROUP_IMPL_H */

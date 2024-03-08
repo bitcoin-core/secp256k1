@@ -114,7 +114,7 @@ static void secp256k1_musig_aggnonce_save(secp256k1_musig_aggnonce* nonce, secp2
     int i;
     memcpy(&nonce->data[0], secp256k1_musig_aggnonce_magic, 4);
     for (i = 0; i < 2; i++) {
-        secp256k1_musig_ge_to_bytes_ext(&nonce->data[4 + 64*i], &ge[i]);
+        secp256k1_ge_to_bytes_ext(&nonce->data[4 + 64*i], &ge[i]);
     }
 }
 
@@ -123,7 +123,7 @@ static int secp256k1_musig_aggnonce_load(const secp256k1_context* ctx, secp256k1
 
     ARG_CHECK(secp256k1_memcmp_var(&nonce->data[0], secp256k1_musig_aggnonce_magic, 4) == 0);
     for (i = 0; i < 2; i++) {
-        secp256k1_musig_ge_from_bytes_ext(&ge[i], &nonce->data[4 + 64*i]);
+        secp256k1_ge_from_bytes_ext(&ge[i], &nonce->data[4 + 64*i]);
     }
     return 1;
 }
