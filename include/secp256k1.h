@@ -482,7 +482,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_cmp(
  *  In:   pubkeys: array of pointers to pubkeys to sort
  *      n_pubkeys: number of elements in the pubkeys array
  */
-SECP256K1_API int secp256k1_pubkey_sort(
+SECP256K1_API int secp256k1_ec_pubkey_sort(
     const secp256k1_context *ctx,
     const secp256k1_pubkey **pubkeys,
     size_t n_pubkeys

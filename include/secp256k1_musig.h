@@ -184,7 +184,7 @@ SECP256K1_API int secp256k1_musig_partial_sig_parse(
  *
  *  Different orders of `pubkeys` result in different `agg_pk`s.
  *
- *  Before aggregating, the pubkeys can be sorted with `secp256k1_pubkey_sort`
+ *  Before aggregating, the pubkeys can be sorted with `secp256k1_ec_pubkey_sort`
  *  which ensures the same `agg_pk` result for the same multiset of pubkeys.
  *  This is useful to do before `pubkey_agg`, such that the order of pubkeys
  *  does not affect the aggregate public key.

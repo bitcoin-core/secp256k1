@@ -318,16 +318,16 @@ int secp256k1_ec_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_pubkey
  * which expects a non-const cmp_data pointer. */
 typedef struct {
     const secp256k1_context *ctx;
-} secp256k1_pubkey_sort_cmp_data;
+} secp256k1_ec_pubkey_sort_cmp_data;
 
-static int secp256k1_pubkey_sort_cmp(const void* pk1, const void* pk2, void *cmp_data) {
-    return secp256k1_ec_pubkey_cmp(((secp256k1_pubkey_sort_cmp_data*)cmp_data)->ctx,
+static int secp256k1_ec_pubkey_sort_cmp(const void* pk1, const void* pk2, void *cmp_data) {
+    return secp256k1_ec_pubkey_cmp(((secp256k1_ec_pubkey_sort_cmp_data*)cmp_data)->ctx,
                                      *(secp256k1_pubkey **)pk1,
                                      *(secp256k1_pubkey **)pk2);
 }
 
-int secp256k1_pubkey_sort(const secp256k1_context* ctx, const secp256k1_pubkey **pubkeys, size_t n_pubkeys) {
-    secp256k1_pubkey_sort_cmp_data cmp_data;
+int secp256k1_ec_pubkey_sort(const secp256k1_context* ctx, const secp256k1_pubkey **pubkeys, size_t n_pubkeys) {
+    secp256k1_ec_pubkey_sort_cmp_data cmp_data;
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(pubkeys != NULL);
 
@@ -339,7 +339,7 @@ int secp256k1_pubkey_sort(const secp256k1_context* ctx, const secp256k1_pubkey *
     #pragma warning(disable: 4090)
     #endif
 
-    secp256k1_hsort(pubkeys, n_pubkeys, sizeof(*pubkeys), secp256k1_pubkey_sort_cmp, &cmp_data);
+    secp256k1_hsort(pubkeys, n_pubkeys, sizeof(*pubkeys), secp256k1_ec_pubkey_sort_cmp, &cmp_data);
 
     #if defined(_MSC_VER) && (_MSC_VER < 1933)
     #pragma warning(pop)

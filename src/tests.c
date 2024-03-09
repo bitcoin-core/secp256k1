@@ -6661,7 +6661,7 @@ static void test_sort_helper(secp256k1_pubkey *pk, size_t *pk_order, size_t n_pk
     for (i = 0; i < n_pk; i++) {
         pk_test[i] = &pk[pk_order[i]];
     }
-    secp256k1_pubkey_sort(CTX, pk_test, n_pk);
+    secp256k1_ec_pubkey_sort(CTX, pk_test, n_pk);
     for (i = 0; i < n_pk; i++) {
         CHECK(secp256k1_memcmp_var(pk_test[i], &pk[i], sizeof(*pk_test[i])) == 0);
     }
@@ -6696,17 +6696,17 @@ static void test_sort_api(void) {
     rand_pk(&pks[0]);
     rand_pk(&pks[1]);
 
-    CHECK(secp256k1_pubkey_sort(CTX, pks_ptr, 2) == 1);
-    CHECK_ILLEGAL(CTX, secp256k1_pubkey_sort(CTX, NULL, 2));
-    CHECK(secp256k1_pubkey_sort(CTX, pks_ptr, 0) == 1);
+    CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, 2) == 1);
+    CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_sort(CTX, NULL, 2));
+    CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, 0) == 1);
     /* Test illegal public keys */
     memset(&pks[0], 0, sizeof(pks[0]));
-    CHECK_ILLEGAL_VOID(CTX, CHECK(secp256k1_pubkey_sort(CTX, pks_ptr, 2) == 1));
+    CHECK_ILLEGAL_VOID(CTX, CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, 2) == 1));
     memset(&pks[1], 0, sizeof(pks[1]));
     {
         int32_t ecount = 0;
         secp256k1_context_set_illegal_callback(CTX, counting_callback_fn, &ecount);
-        CHECK(secp256k1_pubkey_sort(CTX, pks_ptr, 2) == 1);
+        CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, 2) == 1);
         CHECK(ecount == 2);
         secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
     }
@@ -6750,9 +6750,9 @@ static void test_sort(void) {
             rand_pk(&pk[j]);
             pk_ptr[j] = &pk[j];
         }
-        secp256k1_pubkey_sort(CTX, pk_ptr, 5);
+        secp256k1_ec_pubkey_sort(CTX, pk_ptr, 5);
         for (j = 1; j < 5; j++) {
-            CHECK(secp256k1_pubkey_sort_cmp(&pk_ptr[j - 1], &pk_ptr[j], CTX) <= 0);
+            CHECK(secp256k1_ec_pubkey_sort_cmp(&pk_ptr[j - 1], &pk_ptr[j], CTX) <= 0);
         }
     }
 }
@@ -6796,7 +6796,7 @@ static void test_sort_vectors(void) {
         CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkeys[i], pk_ser[i], sizeof(pk_ser[i])));
         pks_ptr[i] = &pubkeys[i];
     }
-    CHECK(secp256k1_pubkey_sort(CTX, pks_ptr, N_PUBKEYS) == 1);
+    CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, N_PUBKEYS) == 1);
     for (i = 0; i < N_PUBKEYS; i++) {
         CHECK(secp256k1_memcmp_var(pks_ptr[i], sorted[i], sizeof(secp256k1_pubkey)) == 0);
     }
