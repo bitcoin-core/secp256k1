@@ -102,11 +102,11 @@ static int sign(const secp256k1_context* ctx, struct signer_secrets *signer_secr
 
     for (i = 0; i < N_SIGNERS; i++) {
         unsigned char seckey[32];
-        unsigned char session_id[32];
+        unsigned char session_secrand[32];
         /* Create random session ID. It is absolutely necessary that the session ID
          * is unique for every call of secp256k1_musig_nonce_gen. Otherwise
          * it's trivial for an attacker to extract the secret key! */
-        if (!fill_random(session_id, sizeof(session_id))) {
+        if (!fill_random(session_secrand, sizeof(session_secrand))) {
             return 0;
         }
         if (!secp256k1_keypair_sec(ctx, seckey, &signer_secrets[i].keypair)) {
@@ -114,7 +114,7 @@ static int sign(const secp256k1_context* ctx, struct signer_secrets *signer_secr
         }
         /* Initialize session and create secret nonce for signing and public
          * nonce to send to the other signers. */
-        if (!secp256k1_musig_nonce_gen(ctx, &signer_secrets[i].secnonce, &signer[i].pubnonce, session_id, seckey, &signer[i].pubkey, msg32, NULL, NULL)) {
+        if (!secp256k1_musig_nonce_gen(ctx, &signer_secrets[i].secnonce, &signer[i].pubnonce, session_secrand, seckey, &signer[i].pubkey, msg32, NULL, NULL)) {
             return 0;
         }
         pubnonces[i] = &signer[i].pubnonce;
@@ -132,7 +132,7 @@ static int sign(const secp256k1_context* ctx, struct signer_secrets *signer_secr
             return 0;
         }
         /* partial_sign will clear the secnonce by setting it to 0. That's because
-         * you must _never_ reuse the secnonce (or use the same session_id to
+         * you must _never_ reuse the secnonce (or use the same session_secrand to
          * create a secnonce). If you do, you effectively reuse the nonce and
          * leak the secret key. */
         if (!secp256k1_musig_partial_sign(ctx, &signer[i].partial_sig, &signer_secrets[i].secnonce, &signer_secrets[i].keypair, cache, &session)) {

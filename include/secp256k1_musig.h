@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 
 /** This module implements BIP 327 "MuSig2 for BIP340-compatible
  * Multi-Signatures"
@@ -317,12 +318,10 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_pubkey_xonly_twea
  *  MuSig differs from regular Schnorr signing in that implementers _must_ take
  *  special care to not reuse a nonce. This can be ensured by following these rules:
  *
- *  1. Each call to this function must have a UNIQUE session_id32 that must NOT BE
+ *  1. Each call to this function must have a UNIQUE session_secrand32 that must NOT BE
  *     REUSED in subsequent calls to this function.
- *     If you do not provide a seckey, session_id32 _must_ be UNIFORMLY RANDOM
- *     AND KEPT SECRET (even from other signers). If you do provide a seckey,
- *     session_id32 can instead be a counter (that must never repeat!). However,
- *     it is recommended to always choose session_id32 uniformly at random.
+ *     If you do not provide a seckey, session_secrand32 _must_ be UNIFORMLY RANDOM
+ *     AND KEPT SECRET (even from other signers).
  *  2. If you already know the seckey, message or aggregate public key
  *     cache, they can be optionally provided to derive the nonce and increase
  *     misuse-resistance. The extra_input32 argument can be used to provide
@@ -338,9 +337,9 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_pubkey_xonly_twea
  *  Args:         ctx: pointer to a context object (not secp256k1_context_static)
  *  Out:     secnonce: pointer to a structure to store the secret nonce
  *           pubnonce: pointer to a structure to store the public nonce
- *  In:  session_id32: a 32-byte session_id32 as explained above. Must be unique to this
- *                     call to secp256k1_musig_nonce_gen and must be uniformly random
- *                     unless you really know what you are doing.
+ *  In:
+ *  session_secrand32: a 32-byte session_secrand32 as explained above. Must be unique to this
+ *                     call to secp256k1_musig_nonce_gen and must be uniformly random.
  *             seckey: the 32-byte secret key that will later be used for signing, if
  *                     already known (can be NULL)
  *             pubkey: public key of the signer creating the nonce. The secnonce
@@ -358,13 +357,71 @@ SECP256K1_API int secp256k1_musig_nonce_gen(
     const secp256k1_context *ctx,
     secp256k1_musig_secnonce *secnonce,
     secp256k1_musig_pubnonce *pubnonce,
-    const unsigned char *session_id32,
+    const unsigned char *session_secrand32,
     const unsigned char *seckey,
     const secp256k1_pubkey *pubkey,
     const unsigned char *msg32,
     const secp256k1_musig_keyagg_cache *keyagg_cache,
     const unsigned char *extra_input32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(6);
+
+
+/** Alternative way to generate a nonce and start a signing session
+ *
+ *  This function outputs a secret nonce that will be required for signing and a
+ *  corresponding public nonce that is intended to be sent to other signers.
+ *
+ *  This function differs from `secp256k1_musig_nonce_gen` by accepting a
+ *  non-repeating counter value instead of a secret random value. This requires
+ *  the seckey argument to be mandatory.
+ *
+ *  MuSig differs from regular Schnorr signing in that implementers _must_ take
+ *  special care to not reuse a nonce. This can be ensured by following these rules:
+ *
+ *  1. The nonrepeating_cnt argument must be a counter value that never
+ *     repeats, i.e., you must never call `secp256k1_musig_nonce_gen_counter`
+ *     twice with the same seckey and nonrepeating_cnt value.
+ *  2. If you already know the seckey, message or aggregate public key
+ *     cache, they can be optionally provided to derive the nonce and increase
+ *     misuse-resistance. The extra_input32 argument can be used to provide
+ *     additional data that does not repeat in normal scenarios, such as the
+ *     current time.
+ *  3. Avoid copying (or serializing) the secnonce. This reduces the possibility
+ *     that it is used more than once for signing.
+ *
+ *  Remember that nonce reuse will leak the secret key!
+ *  Note that using the same seckey for multiple MuSig sessions is fine.
+ *
+ *  Returns: 0 if the arguments are invalid and 1 otherwise
+ *  Args:         ctx: pointer to a context object (not secp256k1_context_static)
+ *  Out:     secnonce: pointer to a structure to store the secret nonce
+ *           pubnonce: pointer to a structure to store the public nonce
+ *  In:
+ *   nonrepeating_cnt: the value of a counter as explained above. Must be
+ *                     unique to this call to secp256k1_musig_nonce_gen.
+ *             seckey: the 32-byte secret key that will later be used for signing
+ *             pubkey: public key of the signer creating the nonce. The secnonce
+ *                     output of this function cannot be used to sign for any
+ *                     other public key.
+ *              msg32: the 32-byte message that will later be signed, if already known
+ *                     (can be NULL)
+ *       keyagg_cache: pointer to the keyagg_cache that was used to create the aggregate
+ *                     (and potentially tweaked) public key if already known
+ *                     (can be NULL)
+ *      extra_input32: an optional 32-byte array that is input to the nonce
+ *                     derivation function (can be NULL)
+ */
+SECP256K1_API int secp256k1_musig_nonce_gen_counter(
+    const secp256k1_context *ctx,
+    secp256k1_musig_secnonce *secnonce,
+    secp256k1_musig_pubnonce *pubnonce,
+    uint64_t nonrepeating_cnt,
+    const unsigned char *seckey,
+    const secp256k1_pubkey *pubkey,
+    const unsigned char *msg32,
+    const secp256k1_musig_keyagg_cache *keyagg_cache,
+    const unsigned char *extra_input32
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
 
 /** Aggregates the nonces of all signers into a single nonce
  *

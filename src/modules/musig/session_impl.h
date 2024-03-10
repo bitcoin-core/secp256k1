@@ -341,7 +341,7 @@ static void secp256k1_nonce_function_musig_sha256_tagged(secp256k1_sha256 *sha) 
     sha->bytes = 64;
 }
 
-static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned char *session_id, const unsigned char *msg32, const unsigned char *seckey32, const unsigned char *pk33, const unsigned char *agg_pk32, const unsigned char *extra_input32) {
+static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned char *session_secrand, const unsigned char *msg32, const unsigned char *seckey32, const unsigned char *pk33, const unsigned char *agg_pk32, const unsigned char *extra_input32) {
     secp256k1_sha256 sha;
     unsigned char rand[32];
     unsigned char i;
@@ -349,13 +349,13 @@ static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned c
 
     if (seckey32 != NULL) {
         secp256k1_nonce_function_musig_sha256_tagged_aux(&sha);
-        secp256k1_sha256_write(&sha, session_id, 32);
+        secp256k1_sha256_write(&sha, session_secrand, 32);
         secp256k1_sha256_finalize(&sha, rand);
         for (i = 0; i < 32; i++) {
             rand[i] ^= seckey32[i];
         }
     } else {
-        memcpy(rand, session_id, sizeof(rand));
+        memcpy(rand, session_secrand, sizeof(rand));
     }
 
     /* Subtract one from `sizeof` to avoid hashing the implicit null byte */
@@ -379,7 +379,7 @@ static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned c
     }
 }
 
-int secp256k1_musig_nonce_gen(const secp256k1_context* ctx, secp256k1_musig_secnonce *secnonce, secp256k1_musig_pubnonce *pubnonce, const unsigned char *session_id32, const unsigned char *seckey, const secp256k1_pubkey *pubkey, const unsigned char *msg32, const secp256k1_musig_keyagg_cache *keyagg_cache, const unsigned char *extra_input32) {
+int secp256k1_musig_nonce_gen_internal(const secp256k1_context* ctx, secp256k1_musig_secnonce *secnonce, secp256k1_musig_pubnonce *pubnonce, const unsigned char *input_nonce, const unsigned char *seckey, const secp256k1_pubkey *pubkey, const unsigned char *msg32, const secp256k1_musig_keyagg_cache *keyagg_cache, const unsigned char *extra_input32) {
     secp256k1_keyagg_cache_internal cache_i;
     secp256k1_scalar k[2];
     secp256k1_ge nonce_pt[2];
@@ -392,24 +392,12 @@ int secp256k1_musig_nonce_gen(const secp256k1_context* ctx, secp256k1_musig_secn
     int pk_serialize_success;
     int ret = 1;
 
-    VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(secnonce != NULL);
     memset(secnonce, 0, sizeof(*secnonce));
     ARG_CHECK(pubnonce != NULL);
     memset(pubnonce, 0, sizeof(*pubnonce));
-    ARG_CHECK(session_id32 != NULL);
     ARG_CHECK(pubkey != NULL);
     ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
-    if (seckey == NULL) {
-        /* Check in constant time that the session_id is not 0 as a
-         * defense-in-depth measure that may protect against a faulty RNG. */
-        unsigned char acc = 0;
-        for (i = 0; i < 32; i++) {
-            acc |= session_id32[i];
-        }
-        ret &= !!acc;
-        memset(&acc, 0, sizeof(acc));
-    }
 
     /* Check that the seckey is valid to be able to sign for it later. */
     if (seckey != NULL) {
@@ -439,7 +427,7 @@ int secp256k1_musig_nonce_gen(const secp256k1_context* ctx, secp256k1_musig_secn
     (void) pk_serialize_success;
 #endif
 
-    secp256k1_nonce_function_musig(k, session_id32, msg32, seckey, pk_ser, aggpk_ser_ptr, extra_input32);
+    secp256k1_nonce_function_musig(k, input_nonce, msg32, seckey, pk_ser, aggpk_ser_ptr, extra_input32);
     VERIFY_CHECK(!secp256k1_scalar_is_zero(&k[0]));
     VERIFY_CHECK(!secp256k1_scalar_is_zero(&k[1]));
     VERIFY_CHECK(!secp256k1_scalar_eq(&k[0], &k[1]));
@@ -456,6 +444,47 @@ int secp256k1_musig_nonce_gen(const secp256k1_context* ctx, secp256k1_musig_secn
     /* nonce_pt won't be infinity because k != 0 with overwhelming probability */
     secp256k1_musig_pubnonce_save(pubnonce, nonce_pt);
     return ret;
+}
+
+int secp256k1_musig_nonce_gen(const secp256k1_context* ctx, secp256k1_musig_secnonce *secnonce, secp256k1_musig_pubnonce *pubnonce, const unsigned char *session_secrand32, const unsigned char *seckey, const secp256k1_pubkey *pubkey, const unsigned char *msg32, const secp256k1_musig_keyagg_cache *keyagg_cache, const unsigned char *extra_input32) {
+    int ret = 1;
+    unsigned char acc = 0;
+    int i;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(session_secrand32 != NULL);
+
+    /* Check in constant time that the session_secrand32 is not 0 as a
+     * defense-in-depth measure that may protect against a faulty RNG. */
+    for (i = 0; i < 32; i++) {
+        acc |= session_secrand32[i];
+    }
+    ret &= !!acc;
+    memset(&acc, 0, sizeof(acc));
+
+    /* We can declassify because branching on ret is only relevant when this
+     * function called with an invalid session_secrand32 argument */
+    secp256k1_declassify(ctx, &ret, sizeof(ret));
+    if (ret == 0) {
+        secp256k1_musig_secnonce_invalidate(ctx, secnonce, 1);
+        return 0;
+    }
+
+    return secp256k1_musig_nonce_gen_internal(ctx, secnonce, pubnonce, session_secrand32, seckey, pubkey, msg32, keyagg_cache, extra_input32);
+}
+
+int secp256k1_musig_nonce_gen_counter(const secp256k1_context* ctx, secp256k1_musig_secnonce *secnonce, secp256k1_musig_pubnonce *pubnonce, uint64_t nonrepeating_cnt, const unsigned char *seckey, const secp256k1_pubkey *pubkey, const unsigned char *msg32, const secp256k1_musig_keyagg_cache *keyagg_cache, const unsigned char *extra_input32) {
+    unsigned char buf[32] = { 0 };
+    int i;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK((seckey != NULL));
+
+    for (i = 0; i < 8; ++i) {
+        buf[7 - i] = (nonrepeating_cnt >> (i * 8)) & 0xFF;
+    }
+
+    return secp256k1_musig_nonce_gen_internal(ctx, secnonce, pubnonce, buf, seckey, pubkey, msg32, keyagg_cache, extra_input32);
 }
 
 static int secp256k1_musig_sum_nonces(const secp256k1_context* ctx, secp256k1_gej *summed_nonces, const secp256k1_musig_pubnonce * const* pubnonces, size_t n_pubnonces) {
