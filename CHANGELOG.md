@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Added
+ - Added `secp256k1_ec_pubkey_sort` which sorts an array of public keys (see `include/secp256k1.h`).
+
 ## [0.4.1] - 2023-12-21
 
 #### Changed
