@@ -318,10 +318,9 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_pubkey_xonly_twea
  *  MuSig differs from regular Schnorr signing in that implementers _must_ take
  *  special care to not reuse a nonce. This can be ensured by following these rules:
  *
- *  1. Each call to this function must have a UNIQUE session_secrand32 that must NOT BE
- *     REUSED in subsequent calls to this function.
- *     If you do not provide a seckey, session_secrand32 _must_ be UNIFORMLY RANDOM
- *     AND KEPT SECRET (even from other signers).
+ *  1. Each call to this function must have a UNIQUE session_secrand32 that must
+ *     NOT BE REUSED in subsequent calls to this function and must be KEPT
+ *     SECRET (even from other signers).
  *  2. If you already know the seckey, message or aggregate public key
  *     cache, they can be optionally provided to derive the nonce and increase
  *     misuse-resistance. The extra_input32 argument can be used to provide
@@ -329,6 +328,10 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_pubkey_xonly_twea
  *     current time.
  *  3. Avoid copying (or serializing) the secnonce. This reduces the possibility
  *     that it is used more than once for signing.
+ *
+ *  If you don't have access to good randomness for session_secrand32, but you
+ *  have access to a non-repeating counter, then see
+ *  secp256k1_musig_nonce_gen_counter.
  *
  *  Remember that nonce reuse will leak the secret key!
  *  Note that using the same seckey for multiple MuSig sessions is fine.
@@ -378,10 +381,13 @@ SECP256K1_API int secp256k1_musig_nonce_gen(
  *  MuSig differs from regular Schnorr signing in that implementers _must_ take
  *  special care to not reuse a nonce. This can be ensured by following these rules:
  *
- *  1. The nonrepeating_cnt argument must be a counter value that never
- *     repeats, i.e., you must never call `secp256k1_musig_nonce_gen_counter`
- *     twice with the same seckey and nonrepeating_cnt value.
- *  2. If you already know the seckey, message or aggregate public key
+ *  1. The nonrepeating_cnt argument must be a counter value that never repeats,
+ *     i.e., you must never call `secp256k1_musig_nonce_gen_counter` twice with
+ *     the same seckey and nonrepeating_cnt value. For example, this implies
+ *     that if the same seckey is used with `secp256k1_musig_nonce_gen_counter`
+ *     on multiple devices, none of the devices should have the same counter
+ *     value as any other device.
+ *  2. If you already know the message or aggregate public key
  *     cache, they can be optionally provided to derive the nonce and increase
  *     misuse-resistance. The extra_input32 argument can be used to provide
  *     additional data that does not repeat in normal scenarios, such as the
