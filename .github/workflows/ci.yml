@@ -429,9 +429,9 @@ jobs:
       fail-fast: false
       matrix:
         configuration:
-          - env_vars: { CC: 'clang',                                      ASM: 'auto' }
+          - env_vars: { CC: 'clang-snapshot',                             ASM: 'auto' }
           - env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'auto' }
-          - env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
+          - env_vars: { CC: 'clang-snapshot',                             ASM: 'no', ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
           - env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'no', ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
 
     env:
@@ -497,7 +497,7 @@ jobs:
       SCHNORRSIG: 'yes'
       ELLSWIFT: 'yes'
       CTIMETESTS: 'yes'
-      CC: 'clang'
+      CC: 'clang-snapshot'
       SECP256K1_TEST_ITERS: 32
       ASM: 'no'
       WITH_VALGRIND: 'no'
