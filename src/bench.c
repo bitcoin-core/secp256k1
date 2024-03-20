@@ -86,8 +86,8 @@ static void bench_verify(void* arg, int iters) {
         data->sig[data->siglen - 1] ^= (i & 0xFF);
         data->sig[data->siglen - 2] ^= ((i >> 8) & 0xFF);
         data->sig[data->siglen - 3] ^= ((i >> 16) & 0xFF);
-        CHECK(secp256k1_ec_pubkey_parse(data->ctx, &pubkey, data->pubkey, data->pubkeylen) == 1);
-        CHECK(secp256k1_ecdsa_signature_parse_der(data->ctx, &sig, data->sig, data->siglen) == 1);
+        CHECK(secp256k1_ec_pubkey_parse(data->ctx, &pubkey, data->pubkey, data->pubkeylen));
+        CHECK(secp256k1_ecdsa_signature_parse_der(data->ctx, &sig, data->sig, data->siglen));
         CHECK(secp256k1_ecdsa_verify(data->ctx, &sig, data->msg, &pubkey) == (i == 0));
         data->sig[data->siglen - 1] ^= (i & 0xFF);
         data->sig[data->siglen - 2] ^= ((i >> 8) & 0xFF);
@@ -245,7 +245,7 @@ int main(int argc, char** argv) {
     CHECK(secp256k1_ecdsa_signature_serialize_der(data.ctx, data.sig, &data.siglen, &sig));
     CHECK(secp256k1_ec_pubkey_create(data.ctx, &pubkey, data.key));
     data.pubkeylen = 33;
-    CHECK(secp256k1_ec_pubkey_serialize(data.ctx, data.pubkey, &data.pubkeylen, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
+    CHECK(secp256k1_ec_pubkey_serialize(data.ctx, data.pubkey, &data.pubkeylen, &pubkey, SECP256K1_EC_COMPRESSED));
 
     print_output_table_header_row();
     if (d || have_flag(argc, argv, "ecdsa") || have_flag(argc, argv, "verify") || have_flag(argc, argv, "ecdsa_verify")) run_benchmark("ecdsa_verify", bench_verify, NULL, NULL, &data, 10, iters);

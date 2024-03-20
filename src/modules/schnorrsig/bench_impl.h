@@ -40,7 +40,7 @@ static void bench_schnorrsig_verify(void* arg, int iters) {
 
     for (i = 0; i < iters; i++) {
         secp256k1_xonly_pubkey pk;
-        CHECK(secp256k1_xonly_pubkey_parse(data->ctx, &pk, data->pk[i]) == 1);
+        CHECK(secp256k1_xonly_pubkey_parse(data->ctx, &pk, data->pk[i]));
         CHECK(secp256k1_schnorrsig_verify(data->ctx, data->sigs[i], data->msgs[i], MSGLEN, &pk));
     }
 }
@@ -79,7 +79,7 @@ static void run_schnorrsig_bench(int iters, int argc, char** argv) {
         CHECK(secp256k1_keypair_create(data.ctx, keypair, sk));
         CHECK(secp256k1_schnorrsig_sign_custom(data.ctx, sig, msg, MSGLEN, keypair, NULL));
         CHECK(secp256k1_keypair_xonly_pub(data.ctx, &pk, NULL, keypair));
-        CHECK(secp256k1_xonly_pubkey_serialize(data.ctx, pk_char, &pk) == 1);
+        CHECK(secp256k1_xonly_pubkey_serialize(data.ctx, pk_char, &pk));
     }
 
     if (d || have_flag(argc, argv, "schnorrsig") || have_flag(argc, argv, "sign") || have_flag(argc, argv, "schnorrsig_sign")) run_benchmark("schnorrsig_sign", bench_schnorrsig_sign, NULL, NULL, (void *) &data, 10, iters);

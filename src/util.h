@@ -134,14 +134,14 @@ static const secp256k1_callback default_error_callback = {
 
 #ifdef DETERMINISTIC
 #define CHECK(cond) do { \
-    if (EXPECT(!(cond), 0)) { \
-        TEST_FAILURE("test condition failed"); \
+    if (EXPECT((cond) != 1, 0)) { \
+        TEST_FAILURE("test condition failed:"); \
     } \
 } while(0)
 #else
 #define CHECK(cond) do { \
-    if (EXPECT(!(cond), 0)) { \
-        TEST_FAILURE("test condition failed: " #cond); \
+    if (EXPECT((cond) != 1, 0)) { \
+        TEST_FAILURE("test condition failed: ( " #cond " ) == 1"); \
     } \
 } while(0)
 #endif
