@@ -248,8 +248,9 @@ static void run_selftest_tests(void) {
 
 static int ecmult_gen_context_eq(const secp256k1_ecmult_gen_context *a, const secp256k1_ecmult_gen_context *b) {
     return a->built == b->built
-            && secp256k1_scalar_eq(&a->blind, &b->blind)
-            && secp256k1_gej_eq_var(&a->initial, &b->initial);
+            && secp256k1_scalar_eq(&a->scalar_offset, &b->scalar_offset)
+            && secp256k1_ge_eq_var(&a->final_point_add, &b->final_point_add)
+            && secp256k1_fe_equal(&a->proj_blind, &b->proj_blind);
 }
 
 static int context_eq(const secp256k1_context *a, const secp256k1_context *b) {
@@ -5570,18 +5571,18 @@ static void test_ecmult_gen_blind(void) {
     unsigned char seed32[32];
     secp256k1_gej pgej;
     secp256k1_gej pgej2;
-    secp256k1_gej i;
+    secp256k1_ge f;
     secp256k1_ge pge;
     random_scalar_order_test(&key);
     secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej, &key);
     secp256k1_testrand256(seed32);
-    b = CTX->ecmult_gen_ctx.blind;
-    i = CTX->ecmult_gen_ctx.initial;
+    b = CTX->ecmult_gen_ctx.scalar_offset;
+    f = CTX->ecmult_gen_ctx.final_point_add;
     secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, seed32);
-    CHECK(!secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.blind));
+    CHECK(!secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.scalar_offset));
     secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej2, &key);
     CHECK(!gej_xyz_equals_gej(&pgej, &pgej2));
-    CHECK(!gej_xyz_equals_gej(&i, &CTX->ecmult_gen_ctx.initial));
+    CHECK(!secp256k1_ge_eq_var(&f, &CTX->ecmult_gen_ctx.final_point_add));
     secp256k1_ge_set_gej(&pge, &pgej);
     CHECK(secp256k1_gej_eq_ge_var(&pgej2, &pge));
 }
@@ -5589,18 +5590,41 @@ static void test_ecmult_gen_blind(void) {
 static void test_ecmult_gen_blind_reset(void) {
     /* Test ecmult_gen() blinding reset and confirm that the blinding is consistent. */
     secp256k1_scalar b;
-    secp256k1_gej initial;
+    secp256k1_ge final1, final2;
     secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, 0);
-    b = CTX->ecmult_gen_ctx.blind;
-    initial = CTX->ecmult_gen_ctx.initial;
+    b = CTX->ecmult_gen_ctx.scalar_offset;
+    final1 = CTX->ecmult_gen_ctx.final_point_add;
+    secp256k1_fe_normalize_var(&final1.y);
     secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, 0);
-    CHECK(secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.blind));
-    CHECK(gej_xyz_equals_gej(&initial, &CTX->ecmult_gen_ctx.initial));
+    CHECK(secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.scalar_offset));
+    final2 = CTX->ecmult_gen_ctx.final_point_add;
+    secp256k1_fe_normalize_var(&final2.y);
+    CHECK(secp256k1_ge_eq_var(&final1, &final2));
+}
+
+/* Verify that ecmult_gen for scalars gn for which gn + scalar_offset = {-1,0,1}. */
+static void test_ecmult_gen_edge_cases(void) {
+    int i;
+    secp256k1_gej res1, res2;
+    secp256k1_scalar gn = secp256k1_scalar_one; /* gn = 1 */
+    secp256k1_scalar_add(&gn, &gn, &CTX->ecmult_gen_ctx.scalar_offset); /* gn = 1 + scalar_offset */
+    secp256k1_scalar_negate(&gn, &gn); /* gn = -1 - scalar_offset */
+
+    for (i = -1; i < 2; ++i) {
+        /* Run test with gn = i - scalar_offset (so that the ecmult_gen recoded value represents i). */
+        secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &res1, &gn);
+        secp256k1_ecmult(&res2, NULL, &secp256k1_scalar_zero, &gn);
+        secp256k1_gej_neg(&res2, &res2);
+        secp256k1_gej_add_var(&res1, &res1, &res2, NULL);
+        CHECK(secp256k1_gej_is_infinity(&res1));
+        secp256k1_scalar_add(&gn, &gn, &secp256k1_scalar_one);
+    }
 }
 
 static void run_ecmult_gen_blind(void) {
     int i;
     test_ecmult_gen_blind_reset();
+    test_ecmult_gen_edge_cases();
     for (i = 0; i < 10; i++) {
         test_ecmult_gen_blind();
     }

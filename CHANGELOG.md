@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Added
+ - A new configure option `--ecmult-gen-kb` selects the size of the compile-time table used for signing and public key generation.
+
+#### Changed
+ - The implementation of the point multiplication algorithm used for signing and public key generation was changed, resulting in improved performance for those operations.
+
+#### Removed
+ - The configure option `--ecmult-gen-precision` was removed as it was specific to an algorithm that is no longer in use.
+
 ## [0.4.1] - 2023-12-21
 
 #### Changed
