@@ -252,8 +252,6 @@ else()
   try_append_c_flags(-Wundef)
 endif()
 
-set(CMAKE_C_VISIBILITY_PRESET hidden)
-
 # Ask CTest to create a "check" target (e.g., make check) as alias for the "test" target.
 # CTEST_TEST_TARGET_ALIAS is not documented but supposed to be user-facing.
 # See: https://gitlab.kitware.com/cmake/cmake/-/commit/816c9d1aa1f2b42d40c81a991b68c96eb12b6d2
