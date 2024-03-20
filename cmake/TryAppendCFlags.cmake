@@ -10,7 +10,13 @@ function(secp256k1_check_c_flags_internal flags output)
 
   # This avoids running a linker.
   set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-  check_c_compiler_flag("${flags}" ${result})
+
+  # Some compilers (GCC) produce no diagnostic for -Wno-unknown-warning
+  # unless other diagnostics are being produced. Therefore, test the
+  # -Wsome-warning case instead of the -Wno-some-warning one.
+  string(REPLACE "-Wno-" "-W" non_negated_flags "${flags}")
+
+  check_c_compiler_flag("${non_negated_flags}" ${result})
 
   set(${output} ${${result}} PARENT_SCOPE)
 endfunction()
