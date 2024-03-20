@@ -187,7 +187,7 @@ static int secp256k1_ellswift_xswiftec_inv_var(secp256k1_fe *t, const secp256k1_
      * - If (c & 5) = 5: return -w*(c4*u + v).
      */
     secp256k1_fe x = *x_in, u = *u_in, g, v, s, m, r, q;
-    int ret;
+    int ret_ver;
 
     secp256k1_fe_normalize_weak(&x);
     secp256k1_fe_normalize_weak(&u);
@@ -266,11 +266,11 @@ static int secp256k1_ellswift_xswiftec_inv_var(secp256k1_fe *t, const secp256k1_
         secp256k1_fe_mul(&q, &q, &s);                   /* q = s*(4*(u^3+7)+3*u^2*s) */
         secp256k1_fe_negate(&q, &q, 1);                 /* q = -s*(4*(u^3+7)+3*u^2*s) */
         if (!secp256k1_fe_is_square_var(&q)) return 0;
-        ret = secp256k1_fe_sqrt(&r, &q);                /* r = sqrt(-s*(4*(u^3+7)+3*u^2*s)) */
+        ret_ver = secp256k1_fe_sqrt(&r, &q);                /* r = sqrt(-s*(4*(u^3+7)+3*u^2*s)) */
 #ifdef VERIFY
-        VERIFY_CHECK(ret);
+        VERIFY_CHECK(ret_ver);
 #else
-        (void)ret;
+        (void)ret_ver;
 #endif
 
         /* If (c & 1) = 1 and r = 0, fail. */
@@ -287,8 +287,8 @@ static int secp256k1_ellswift_xswiftec_inv_var(secp256k1_fe *t, const secp256k1_
     }
 
     /* Let w = sqrt(s). */
-    ret = secp256k1_fe_sqrt(&m, &s);                    /* m = sqrt(s) = w */
-    VERIFY_CHECK(ret);
+    ret_ver = secp256k1_fe_sqrt(&m, &s);                    /* m = sqrt(s) = w */
+    VERIFY_CHECK(ret_ver);
 
     /* Return logic. */
     if ((c & 5) == 0 || (c & 5) == 5) {
@@ -311,7 +311,7 @@ static void secp256k1_ellswift_prng(unsigned char* out32, const secp256k1_sha256
     secp256k1_sha256 hash = *hasher;
     unsigned char buf4[4];
 #ifdef VERIFY
-    size_t blocks = hash.bytes >> 6;
+    size_t blocks_ver = hash.bytes >> 6;
 #endif
     buf4[0] = cnt;
     buf4[1] = cnt >> 8;
@@ -321,7 +321,7 @@ static void secp256k1_ellswift_prng(unsigned char* out32, const secp256k1_sha256
     secp256k1_sha256_finalize(&hash, out32);
 
     /* Writing and finalizing together should trigger exactly one SHA256 compression. */
-    VERIFY_CHECK(((hash.bytes) >> 6) == (blocks + 1));
+    VERIFY_CHECK(((hash.bytes) >> 6) == (blocks_ver + 1));
 }
 
 /** Find an ElligatorSwift encoding (u, t) for X coordinate x, and random Y coordinate.
@@ -407,17 +407,17 @@ int secp256k1_ellswift_encode(const secp256k1_context *ctx, unsigned char *ell64
         secp256k1_fe t;
         unsigned char p64[64] = {0};
         size_t ser_size;
-        int ser_ret;
+        int ser_ret_ver;
         secp256k1_sha256 hash;
 
         /* Set up hasher state; the used RNG is H(pubkey || "\x00"*31 || rnd32 || cnt++), using
          * BIP340 tagged hash with tag "secp256k1_ellswift_encode". */
         secp256k1_ellswift_sha256_init_encode(&hash);
-        ser_ret = secp256k1_eckey_pubkey_serialize(&p, p64, &ser_size, 1);
+        ser_ret_ver = secp256k1_eckey_pubkey_serialize(&p, p64, &ser_size, 1);
 #ifdef VERIFY
-        VERIFY_CHECK(ser_ret && ser_size == 33);
+        VERIFY_CHECK(ser_ret_ver && ser_size == 33);
 #else
-        (void)ser_ret;
+        (void)ser_ret_ver;
 #endif
         secp256k1_sha256_write(&hash, p64, sizeof(p64));
         secp256k1_sha256_write(&hash, rnd32, 32);

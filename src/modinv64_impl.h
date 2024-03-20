@@ -91,14 +91,16 @@ static void secp256k1_modinv64_normalize_62(secp256k1_modinv64_signed62 *r, int6
     volatile int64_t cond_add, cond_negate;
 
 #ifdef VERIFY
-    /* Verify that all limbs are in range (-2^62,2^62). */
-    int i;
-    for (i = 0; i < 5; ++i) {
-        VERIFY_CHECK(r->v[i] >= -M62);
-        VERIFY_CHECK(r->v[i] <= M62);
+    {
+        /* Verify that all limbs are in range (-2^62,2^62). */
+        int i_ver;
+        for (i_ver = 0; i_ver < 5; ++i_ver) {
+            VERIFY_CHECK(r->v[i_ver] >= -M62);
+            VERIFY_CHECK(r->v[i_ver] <= M62);
+        }
+        VERIFY_CHECK(secp256k1_modinv64_mul_cmp_62(r, 5, &modinfo->modulus, -2) > 0); /* r > -2*modulus */
+        VERIFY_CHECK(secp256k1_modinv64_mul_cmp_62(r, 5, &modinfo->modulus, 1) < 0); /* r < modulus */
     }
-    VERIFY_CHECK(secp256k1_modinv64_mul_cmp_62(r, 5, &modinfo->modulus, -2) > 0); /* r > -2*modulus */
-    VERIFY_CHECK(secp256k1_modinv64_mul_cmp_62(r, 5, &modinfo->modulus, 1) < 0); /* r < modulus */
 #endif
 
     /* In a first step, add the modulus if the input is negative, and then negate if requested.
@@ -642,7 +644,7 @@ static void secp256k1_modinv64_var(secp256k1_modinv64_signed62 *x, const secp256
     secp256k1_modinv64_signed62 f = modinfo->modulus;
     secp256k1_modinv64_signed62 g = *x;
 #ifdef VERIFY
-    int i = 0;
+    int i_ver = 0;
 #endif
     int j, len = 5;
     int64_t eta = -1; /* eta = -delta; delta is initially 1 */
@@ -686,7 +688,7 @@ static void secp256k1_modinv64_var(secp256k1_modinv64_signed62 *x, const secp256
             --len;
         }
 
-        VERIFY_CHECK(++i < 12); /* We should never need more than 12*62 = 744 divsteps */
+        VERIFY_CHECK(++i_ver < 12); /* We should never need more than 12*62 = 744 divsteps */
         VERIFY_CHECK(secp256k1_modinv64_mul_cmp_62(&f, len, &modinfo->modulus, -1) > 0); /* f > -modulus */
         VERIFY_CHECK(secp256k1_modinv64_mul_cmp_62(&f, len, &modinfo->modulus, 1) <= 0); /* f <= modulus */
         VERIFY_CHECK(secp256k1_modinv64_mul_cmp_62(&g, len, &modinfo->modulus, -1) > 0); /* g > -modulus */
