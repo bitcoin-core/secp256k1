@@ -8,10 +8,7 @@
 #define SECP256K1_MODINV32_IMPL_H
 
 #include "modinv32.h"
-
 #include "util.h"
-
-#include <stdlib.h>
 
 /* This file implements modular inversion based on the paper "Fast constant-time gcd computation and
  * modular inversion" by Daniel J. Bernstein and Bo-Yin Yang.
@@ -21,6 +18,14 @@
  */
 
 #ifdef VERIFY
+/* Helper function to compute the absolute value of an int32_t.
+ * (We don't use abs/labs/llabs as they depend on the int sizes and require stdlib.h.) */
+static int64_t secp256k1_modinv32_abs(int32_t v) {
+    VERIFY_CHECK(v > INT32_MIN);
+    if (v < 0) return -v;
+    return v;
+}
+
 static const secp256k1_modinv32_signed30 SECP256K1_SIGNED30_ONE = {{1}};
 
 /* Compute a*factor and put it in r. All but the top limb in r will be in range [0,2^30). */
@@ -415,8 +420,8 @@ static void secp256k1_modinv32_update_de_30(secp256k1_modinv32_signed30 *d, secp
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(d, 9, &modinfo->modulus, 1) < 0);  /* d <    modulus */
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(e, 9, &modinfo->modulus, -2) > 0); /* e > -2*modulus */
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(e, 9, &modinfo->modulus, 1) < 0);  /* e <    modulus */
-    VERIFY_CHECK(labs(u) <= (M30 + 1 - labs(v))); /* |u|+|v| <= 2^30 */
-    VERIFY_CHECK(labs(q) <= (M30 + 1 - labs(r))); /* |q|+|r| <= 2^30 */
+    VERIFY_CHECK(secp256k1_modinv32_abs(u) <= (M30 + 1 - secp256k1_modinv32_abs(v))); /* |u|+|v| <= 2^30 */
+    VERIFY_CHECK(secp256k1_modinv32_abs(q) <= (M30 + 1 - secp256k1_modinv32_abs(r))); /* |q|+|r| <= 2^30 */
 
     /* [md,me] start as zero; plus [u,q] if d is negative; plus [v,r] if e is negative. */
     sd = d->v[8] >> 31;

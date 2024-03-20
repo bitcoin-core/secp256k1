@@ -137,6 +137,7 @@ secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigne
     return ret;
 }
 
+#if SECP256K1_HAVE_STDLIB_H
 secp256k1_context* secp256k1_context_create(unsigned int flags) {
     size_t const prealloc_size = secp256k1_context_preallocated_size(flags);
     secp256k1_context* ctx = (secp256k1_context*)checked_malloc(&default_error_callback, prealloc_size);
@@ -147,6 +148,7 @@ secp256k1_context* secp256k1_context_create(unsigned int flags) {
 
     return ctx;
 }
+#endif
 
 secp256k1_context* secp256k1_context_preallocated_clone(const secp256k1_context* ctx, void* prealloc) {
     secp256k1_context* ret;
@@ -159,6 +161,7 @@ secp256k1_context* secp256k1_context_preallocated_clone(const secp256k1_context*
     return ret;
 }
 
+#if SECP256K1_HAVE_STDLIB_H
 secp256k1_context* secp256k1_context_clone(const secp256k1_context* ctx) {
     secp256k1_context* ret;
     size_t prealloc_size;
@@ -171,6 +174,7 @@ secp256k1_context* secp256k1_context_clone(const secp256k1_context* ctx) {
     ret = secp256k1_context_preallocated_clone(ctx, ret);
     return ret;
 }
+#endif
 
 void secp256k1_context_preallocated_destroy(secp256k1_context* ctx) {
     ARG_CHECK_VOID(ctx == NULL || secp256k1_context_is_proper(ctx));
@@ -183,6 +187,7 @@ void secp256k1_context_preallocated_destroy(secp256k1_context* ctx) {
     secp256k1_ecmult_gen_context_clear(&ctx->ecmult_gen_ctx);
 }
 
+#if SECP256K1_HAVE_STDLIB_H
 void secp256k1_context_destroy(secp256k1_context* ctx) {
     ARG_CHECK_VOID(ctx == NULL || secp256k1_context_is_proper(ctx));
 
@@ -194,6 +199,7 @@ void secp256k1_context_destroy(secp256k1_context* ctx) {
     secp256k1_context_preallocated_destroy(ctx);
     free(ctx);
 }
+#endif
 
 void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
     /* We compare pointers instead of checking secp256k1_context_is_proper() here
@@ -219,6 +225,7 @@ void secp256k1_context_set_error_callback(secp256k1_context* ctx, void (*fun)(co
     ctx->error_callback.data = data;
 }
 
+#if SECP256K1_HAVE_STDLIB_H
 secp256k1_scratch_space* secp256k1_scratch_space_create(const secp256k1_context* ctx, size_t max_size) {
     VERIFY_CHECK(ctx != NULL);
     return secp256k1_scratch_create(&ctx->error_callback, max_size);
@@ -228,6 +235,7 @@ void secp256k1_scratch_space_destroy(const secp256k1_context *ctx, secp256k1_scr
     VERIFY_CHECK(ctx != NULL);
     secp256k1_scratch_destroy(&ctx->error_callback, scratch);
 }
+#endif
 
 /* Mark memory as no-longer-secret for the purpose of analysing constant-time behaviour
  *  of the software.

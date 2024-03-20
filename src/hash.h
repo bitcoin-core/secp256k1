@@ -7,7 +7,7 @@
 #ifndef SECP256K1_HASH_H
 #define SECP256K1_HASH_H
 
-#include <stdlib.h>
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct {

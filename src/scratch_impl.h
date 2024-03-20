@@ -7,9 +7,12 @@
 #ifndef SECP256K1_SCRATCH_IMPL_H
 #define SECP256K1_SCRATCH_IMPL_H
 
+#include <string.h>
+
 #include "util.h"
 #include "scratch.h"
 
+#if SECP256K1_HAVE_STDLIB_H
 static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* error_callback, size_t size) {
     const size_t base_alloc = ROUND_TO_ALIGN(sizeof(secp256k1_scratch));
     void *alloc = checked_malloc(error_callback, base_alloc + size);
@@ -34,6 +37,7 @@ static void secp256k1_scratch_destroy(const secp256k1_callback* error_callback, 
         free(scratch);
     }
 }
+#endif
 
 static size_t secp256k1_scratch_checkpoint(const secp256k1_callback* error_callback, const secp256k1_scratch* scratch) {
     if (secp256k1_memcmp_var(scratch->magic, "scratch", 8) != 0) {

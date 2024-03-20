@@ -28,7 +28,7 @@ typedef struct {
 
 #ifdef VERIFY
 /* Helper function to compute the absolute value of an int64_t.
- * (we don't use abs/labs/llabs as it depends on the int sizes). */
+ * (We don't use abs/labs/llabs as they depend on the int sizes and require stdlib.h.) */
 static int64_t secp256k1_modinv64_abs(int64_t v) {
     VERIFY_CHECK(v > INT64_MIN);
     if (v < 0) return -v;
