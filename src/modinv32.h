@@ -7,6 +7,8 @@
 #ifndef SECP256K1_MODINV32_H
 #define SECP256K1_MODINV32_H
 
+#include <stdint.h>
+
 #include "util.h"
 
 /* A signed 30-bit limb representation of integers.

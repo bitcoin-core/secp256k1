@@ -9,16 +9,22 @@
 
 #include "../include/secp256k1.h"
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <limits.h>
+#include <stddef.h>
+#include <stdint.h>
+#if SECP256K1_HAVE_STDIO_H
+#  include <stdio.h>
+#endif
+#if SECP256K1_HAVE_STDLIB_H
+#  include <stdlib.h>
+#endif
 
 #define STR_(x) #x
 #define STR(x) STR_(x)
 #define DEBUG_CONFIG_MSG(x) "DEBUG_CONFIG: " x
 #define DEBUG_CONFIG_DEF(x) DEBUG_CONFIG_MSG(#x "=" STR(x))
 
+#if SECP256K1_HAVE_STDIO_H
 /* Debug helper for printing arrays of unsigned char. */
 #define PRINT_BUF(buf, len) do { \
     printf("%s[%lu] = ", #buf, (unsigned long)len); \
@@ -38,6 +44,7 @@ static void print_buf_plain(const unsigned char *buf, size_t len) {
     }
     printf("\n}\n");
 }
+#endif
 
 # if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
 #  if SECP256K1_GNUC_PREREQ(2,7)
@@ -87,15 +94,27 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
     cb->fn(text, (void*)cb->data);
 }
 
-#ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
+#if !SECP256K1_HAVE_STDLIB_H && !defined(USE_EXTERNAL_DEFAULT_CALLBACKS)
+#  error "<stdlib.h> is not available. You need to use external default callbacks, see the documentation of secp256k1_context_set_illegal_callback."
+#endif
+
+#if SECP256K1_HAVE_STDLIB_H
 static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
     (void)data;
+#if SECP256K1_HAVE_STDIO_H
     fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
+#else
+    (void)str;
+#endif
     abort();
 }
 static void secp256k1_default_error_callback_fn(const char* str, void* data) {
     (void)data;
+#if SECP256K1_HAVE_STDIO_H
     fprintf(stderr, "[libsecp256k1] internal consistency check failed: %s\n", str);
+#else
+    (void)str;
+#endif
     abort();
 }
 #else
@@ -153,6 +172,7 @@ static const secp256k1_callback default_error_callback = {
 #define VERIFY_CHECK(cond)
 #endif
 
+#if SECP256K1_HAVE_STDLIB_H
 static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_t size) {
     void *ret = malloc(size);
     if (ret == NULL) {
@@ -160,6 +180,7 @@ static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_
     }
     return ret;
 }
+#endif
 
 #if defined(__BIGGEST_ALIGNMENT__)
 #define ALIGNMENT __BIGGEST_ALIGNMENT__
