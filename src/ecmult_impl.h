@@ -174,7 +174,7 @@ static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, 
     memset(wnaf, 0, len * sizeof(wnaf[0]));
 
     s = *a;
-    if (secp256k1_scalar_get_bits(&s, 255, 1)) {
+    if (secp256k1_scalar_get_bits_limb32(&s, 255, 1)) {
         secp256k1_scalar_negate(&s, &s);
         sign = -1;
     }
@@ -182,7 +182,7 @@ static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, 
     while (bit < len) {
         int now;
         int word;
-        if (secp256k1_scalar_get_bits(&s, bit, 1) == (unsigned int)carry) {
+        if (secp256k1_scalar_get_bits_limb32(&s, bit, 1) == (unsigned int)carry) {
             bit++;
             continue;
         }
@@ -209,7 +209,7 @@ static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, 
         VERIFY_CHECK(carry == 0);
 
         while (verify_bit < 256) {
-            VERIFY_CHECK(secp256k1_scalar_get_bits(&s, verify_bit, 1) == 0);
+            VERIFY_CHECK(secp256k1_scalar_get_bits_limb32(&s, verify_bit, 1) == 0);
             verify_bit++;
         }
     }

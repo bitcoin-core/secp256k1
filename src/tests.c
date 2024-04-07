@@ -2149,7 +2149,7 @@ static void scalar_test(void) {
         for (i = 0; i < 256; i += 4) {
             secp256k1_scalar t;
             int j;
-            secp256k1_scalar_set_int(&t, secp256k1_scalar_get_bits(&s, 256 - 4 - i, 4));
+            secp256k1_scalar_set_int(&t, secp256k1_scalar_get_bits_limb32(&s, 256 - 4 - i, 4));
             for (j = 0; j < 4; j++) {
                 secp256k1_scalar_add(&n, &n, &n);
             }

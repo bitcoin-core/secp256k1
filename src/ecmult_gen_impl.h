@@ -189,7 +189,7 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
              * bits[tooth] = d[(block*COMB_TEETH + tooth)*COMB_SPACING + comb_off]. */
             uint32_t bits = 0, sign, abs, index, tooth;
             for (tooth = 0; tooth < COMB_TEETH && bit_pos < 256; ++tooth) {
-                uint32_t bit = secp256k1_scalar_get_bits(&d, bit_pos, 1);
+                uint32_t bit = secp256k1_scalar_get_bits_limb32(&d, bit_pos, 1);
                 bits |= bit << tooth;
                 bit_pos += COMB_SPACING;
             }

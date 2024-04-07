@@ -34,7 +34,7 @@ static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, cons
     for (i = 255; i >= 0; --i) {
         /* Use a very simple multiplication ladder to avoid dependency on ecmult. */
         secp256k1_gej_double_var(&u, &u, NULL);
-        if (secp256k1_scalar_get_bits(&half, i, 1)) {
+        if (secp256k1_scalar_get_bits_limb32(&half, i, 1)) {
             secp256k1_gej_add_ge_var(&u, &u, gen, NULL);
         }
     }
