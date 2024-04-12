@@ -170,7 +170,10 @@ static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_
 #define ALIGNMENT 16
 #endif
 
-#define ROUND_TO_ALIGN(size) ((((size) + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT)
+/* ceil(x/y) for integers x > 0 and y > 0. Here, / denotes rational division. */
+#define CEIL_DIV(x, y) (1 + ((x) - 1) / (y))
+
+#define ROUND_TO_ALIGN(size) (CEIL_DIV(size, ALIGNMENT) * ALIGNMENT)
 
 /* Macro for restrict, when available and not in a VERIFY build. */
 #if defined(SECP256K1_BUILD) && defined(VERIFY)

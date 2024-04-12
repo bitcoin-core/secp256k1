@@ -42,7 +42,7 @@
 #endif
 
 #define WNAF_BITS 128
-#define WNAF_SIZE_BITS(bits, w) (((bits) + (w) - 1) / (w))
+#define WNAF_SIZE_BITS(bits, w) CEIL_DIV(bits, w)
 #define WNAF_SIZE(w) WNAF_SIZE_BITS(WNAF_BITS, w)
 
 /* The number of objects allocated on the scratch space for ecmult_multi algorithms */
@@ -808,8 +808,8 @@ static int secp256k1_ecmult_multi_batch_size_helper(size_t *n_batches, size_t *n
         return 1;
     }
     /* Compute ceil(n/max_n_batch_points) and ceil(n/n_batches) */
-    *n_batches = 1 + (n - 1) / max_n_batch_points;
-    *n_batch_points = 1 + (n - 1) / *n_batches;
+    *n_batches = CEIL_DIV(n, max_n_batch_points);
+    *n_batch_points = CEIL_DIV(n, *n_batches);
     return 1;
 }
 
