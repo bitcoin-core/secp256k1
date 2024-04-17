@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Added
+ - New function `secp256k1_ec_pubkey_sort` that sorts public keys using lexicographic (of compressed serialization) order.
+
 #### Changed
  - The implementation of the point multiplication algorithm used for signing and public key generation was changed, resulting in improved performance for those operations.
    - The related configure option `--ecmult-gen-precision` was replaced with `--ecmult-gen-kb` (`ECMULT_GEN_KB` for CMake).
