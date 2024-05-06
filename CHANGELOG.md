@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.5.0] - 2025-05-06
+## [0.5.0] - 2024-05-06
 
 #### Added
  - New function `secp256k1_ec_pubkey_sort` that sorts public keys using lexicographic (of compressed serialization) order.
