@@ -19,15 +19,13 @@ project(libsecp256k1
 
 if(CMAKE_VERSION VERSION_LESS 3.21)
   # Emulates CMake 3.21+ behavior.
-  get_directory_property(parent_directory PARENT_DIRECTORY)
-  if(parent_directory)
-    set(PROJECT_IS_TOP_LEVEL OFF)
-    set(${PROJECT_NAME}_IS_TOP_LEVEL OFF)
-  else()
+  if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     set(PROJECT_IS_TOP_LEVEL ON)
     set(${PROJECT_NAME}_IS_TOP_LEVEL ON)
+  else()
+    set(PROJECT_IS_TOP_LEVEL OFF)
+    set(${PROJECT_NAME}_IS_TOP_LEVEL OFF)
   endif()
-  unset(parent_directory)
 endif()
 
 # The library version is based on libtool versioning of the ABI. The set of
