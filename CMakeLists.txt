@@ -18,13 +18,14 @@ project(libsecp256k1
 )
 
 if(CMAKE_VERSION VERSION_LESS 3.21)
+  # Emulates CMake 3.21+ behavior.
   get_directory_property(parent_directory PARENT_DIRECTORY)
   if(parent_directory)
-    set(PROJECT_IS_TOP_LEVEL OFF CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
-    set(${PROJECT_NAME}_IS_TOP_LEVEL OFF CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+    set(PROJECT_IS_TOP_LEVEL OFF)
+    set(${PROJECT_NAME}_IS_TOP_LEVEL OFF)
   else()
-    set(PROJECT_IS_TOP_LEVEL ON CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
-    set(${PROJECT_NAME}_IS_TOP_LEVEL ON CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+    set(PROJECT_IS_TOP_LEVEL ON)
+    set(${PROJECT_NAME}_IS_TOP_LEVEL ON)
   endif()
   unset(parent_directory)
 endif()
