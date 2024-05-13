@@ -5494,8 +5494,8 @@ static void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar
     secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &rj1, x);
     secp256k1_ecmult(&rj2, &gj, x, &secp256k1_scalar_zero);
     secp256k1_ecmult(&rj3, &infj, &secp256k1_scalar_zero, x);
-    secp256k1_ecmult_multi_var(NULL, scratch, &rj4, x, NULL, NULL, 0);
-    secp256k1_ecmult_multi_var(NULL, scratch, &rj5, &secp256k1_scalar_zero, test_ecmult_accumulate_cb, (void*)x, 1);
+    CHECK(secp256k1_ecmult_multi_var(&CTX->error_callback, scratch, &rj4, x, NULL, NULL, 0));
+    CHECK(secp256k1_ecmult_multi_var(&CTX->error_callback, scratch, &rj5, &secp256k1_scalar_zero, test_ecmult_accumulate_cb, (void*)x, 1));
     secp256k1_ecmult_const(&rj6, &secp256k1_ge_const_g, x);
     secp256k1_ge_set_gej_var(&r, &rj1);
     CHECK(secp256k1_gej_eq_ge_var(&rj2, &r));
