@@ -375,7 +375,7 @@ int main(int argc, char** argv) {
     printf("test count = %i\n", count);
 
     /* find random seed */
-    secp256k1_testrand_init(argc > 2 ? argv[2] : NULL);
+    testrand_init(argc > 2 ? argv[2] : NULL);
 
     /* set up split processing */
     if (argc > 4) {
@@ -395,7 +395,7 @@ int main(int argc, char** argv) {
     while (count--) {
         /* Build context */
         ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-        secp256k1_testrand256(rand32);
+        testrand256(rand32);
         CHECK(secp256k1_context_randomize(ctx, rand32));
 
         /* Generate the entire group */
@@ -459,7 +459,7 @@ int main(int argc, char** argv) {
         secp256k1_context_destroy(ctx);
     }
 
-    secp256k1_testrand_finish();
+    testrand_finish();
 
     printf("no problems found\n");
     return 0;
