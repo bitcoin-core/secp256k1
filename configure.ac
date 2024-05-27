@@ -213,12 +213,12 @@ AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE],
 )],
 [set_ecmult_window=$withval], [set_ecmult_window=15])
 
-AC_ARG_WITH([ecmult-gen-kb], [AS_HELP_STRING([--with-ecmult-gen-kb=2|22|86|auto],
+AC_ARG_WITH([ecmult-gen-kb], [AS_HELP_STRING([--with-ecmult-gen-kb=2|22|86],
 [The size of the precomputed table for signing in multiples of 1024 bytes (on typical platforms).]
 [Larger values result in possibly better signing/keygeneration performance at the cost of a larger table.]
-["auto" is a reasonable setting for desktop machines (currently 22). [default=auto]]
+[The default value is a reasonable setting for desktop machines (currently 22). [default=22]]
 )],
-[req_ecmult_gen_kb=$withval], [req_ecmult_gen_kb=auto])
+[set_ecmult_gen_kb=$withval], [set_ecmult_gen_kb=22])
 
 AC_ARG_WITH([valgrind], [AS_HELP_STRING([--with-valgrind=yes|no|auto],
 [Build with extra checks for running inside Valgrind [default=auto]]
@@ -350,13 +350,6 @@ case $set_ecmult_window in
   ;;
 esac
 
-# Set ecmult gen kb
-if test x"$req_ecmult_gen_kb" = x"auto"; then
-  set_ecmult_gen_kb=22
-else
-  set_ecmult_gen_kb=$req_ecmult_gen_kb
-fi
-
 case $set_ecmult_gen_kb in
 2)
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOMB_BLOCKS=2 -DCOMB_TEETH=5"
@@ -368,7 +361,7 @@ case $set_ecmult_gen_kb in
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOMB_BLOCKS=43 -DCOMB_TEETH=6"
   ;;
 *)
-  AC_MSG_ERROR(['ecmult gen table size not 2, 22, 86 or "auto"'])
+  AC_MSG_ERROR(['ecmult gen table size not 2, 22 or 86'])
   ;;
 esac
 
