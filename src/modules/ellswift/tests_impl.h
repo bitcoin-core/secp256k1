@@ -229,7 +229,7 @@ void run_ellswift_tests(void) {
         secp256k1_ge g, g2;
         secp256k1_pubkey pubkey, pubkey2;
         /* Generate random public key and random randomizer. */
-        random_group_element_test(&g);
+        random_ge_test(&g);
         secp256k1_pubkey_save(&pubkey, &g);
         secp256k1_testrand256(rnd32);
         /* Convert the public key to ElligatorSwift and back. */
