@@ -229,7 +229,7 @@ void run_ellswift_tests(void) {
         secp256k1_ge g, g2;
         secp256k1_pubkey pubkey, pubkey2;
         /* Generate random public key and random randomizer. */
-        random_ge_test(&g);
+        testutil_random_ge_test(&g);
         secp256k1_pubkey_save(&pubkey, &g);
         secp256k1_testrand256(rnd32);
         /* Convert the public key to ElligatorSwift and back. */
@@ -250,7 +250,7 @@ void run_ellswift_tests(void) {
         int ret;
         /* Generate random secret key and random randomizer. */
         if (i & 1) secp256k1_testrand256_test(auxrnd32);
-        random_scalar_order_test(&sec);
+        testutil_random_scalar_order_test(&sec);
         secp256k1_scalar_get_b32(sec32, &sec);
         /* Construct ElligatorSwift-encoded public keys for that key. */
         ret = secp256k1_ellswift_create(CTX, ell64, sec32, (i & 1) ? auxrnd32 : NULL);
@@ -271,7 +271,7 @@ void run_ellswift_tests(void) {
         secp256k1_pubkey pub;
         int ret;
         /* Generate random secret key. */
-        random_scalar_order_test(&sec);
+        testutil_random_scalar_order_test(&sec);
         secp256k1_scalar_get_b32(sec32, &sec);
         /* Generate random ElligatorSwift encoding for the remote key and decode it. */
         secp256k1_testrand256_test(ell64);
@@ -321,10 +321,10 @@ void run_ellswift_tests(void) {
         /* Generate random secret keys and random randomizers. */
         secp256k1_testrand256_test(auxrnd32a);
         secp256k1_testrand256_test(auxrnd32b);
-        random_scalar_order_test(&seca);
+        testutil_random_scalar_order_test(&seca);
         /* Draw secb uniformly at random to make sure that the secret keys
          * differ */
-        random_scalar_order(&secb);
+        testutil_random_scalar_order(&secb);
         secp256k1_scalar_get_b32(sec32a, &seca);
         secp256k1_scalar_get_b32(sec32b, &secb);
 

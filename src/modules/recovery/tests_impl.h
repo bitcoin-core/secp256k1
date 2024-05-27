@@ -106,8 +106,8 @@ static void test_ecdsa_recovery_end_to_end(void) {
     /* Generate a random key and message. */
     {
         secp256k1_scalar msg, key;
-        random_scalar_order_test(&msg);
-        random_scalar_order_test(&key);
+        testutil_random_scalar_order_test(&msg);
+        testutil_random_scalar_order_test(&key);
         secp256k1_scalar_get_b32(privkey, &key);
         secp256k1_scalar_get_b32(message, &msg);
     }

@@ -171,7 +171,7 @@ static void test_exhaustive_ecmult(const secp256k1_ge *group, const secp256k1_ge
                 CHECK(secp256k1_fe_equal(&tmpf, &group[(i * j) % EXHAUSTIVE_TEST_ORDER].x));
 
                 /* Test secp256k1_ecmult_const_xonly with all curve X coordinates, with random xd. */
-                random_fe_non_zero(&xd);
+                testutil_random_fe_non_zero(&xd);
                 secp256k1_fe_mul(&xn, &xd, &group[i].x);
                 ret = secp256k1_ecmult_const_xonly(&tmpf, &xn, &xd, &ng, 0);
                 CHECK(ret);
@@ -408,7 +408,7 @@ int main(int argc, char** argv) {
                 /* Set a different random z-value for each Jacobian point, except z=1
                    is used in the last iteration. */
                 secp256k1_fe z;
-                random_fe(&z);
+                testutil_random_fe(&z);
                 secp256k1_gej_rescale(&groupj[i], &z);
             }
 
