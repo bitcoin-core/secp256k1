@@ -248,7 +248,7 @@ if test x"$enable_ctime_tests" = x"auto"; then
 fi
 
 print_msan_notice=no
-if test x"$enable_ctime_tests" = x"yes" && test x"$GCC" = x"yes"; then
+if test x"$enable_ctime_tests" = x"yes"; then
   SECP_MSAN_CHECK
   # MSan on Clang >=16 reports unitialized memory in function parameters and return values, even if
   # the uninitalized variable is never actually "used". This is called "eager" checking, and it's
