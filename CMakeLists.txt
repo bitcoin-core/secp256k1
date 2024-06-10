@@ -263,6 +263,17 @@ endif()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 
+set(print_msan_notice)
+if(SECP256K1_BUILD_CTIME_TESTS)
+  include(CheckMemorySanitizer)
+  check_memory_sanitizer(msan_enabled)
+  if(msan_enabled)
+    try_append_c_flags(-fno-sanitize-memory-param-retval)
+    set(print_msan_notice YES)
+  endif()
+  unset(msan_enabled)
+endif()
+
 # Ask CTest to create a "check" target (e.g., make check) as alias for the "test" target.
 # CTEST_TEST_TARGET_ALIAS is not documented but supposed to be user-facing.
 # See: https://gitlab.kitware.com/cmake/cmake/-/commit/816c9d1aa1f2b42d40c81a991b68c96eb12b6d2
@@ -332,7 +343,7 @@ message("Valgrind .............................. ${SECP256K1_VALGRIND}")
 get_directory_property(definitions COMPILE_DEFINITIONS)
 string(REPLACE ";" " " definitions "${definitions}")
 message("Preprocessor defined macros ........... ${definitions}")
-message("C compiler ............................ ${CMAKE_C_COMPILER}")
+message("C compiler ............................ ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}, ${CMAKE_C_COMPILER}")
 message("CFLAGS ................................ ${CMAKE_C_FLAGS}")
 get_directory_property(compile_options COMPILE_OPTIONS)
 string(REPLACE ";" " " compile_options "${compile_options}")
@@ -358,7 +369,14 @@ endif()
 if(SECP256K1_LATE_CFLAGS)
   message("SECP256K1_LATE_CFLAGS ................. ${SECP256K1_LATE_CFLAGS}")
 endif()
-message("\n")
+message("")
+if(print_msan_notice)
+  message(
+    "Note:\n"
+    "  MemorySanitizer detected, tried to add -fno-sanitize-memory-param-retval to compile options\n"
+    "  to avoid false positives in ctime_tests. Pass -DSECP256K1_BUILD_CTIME_TESTS=OFF to avoid this.\n"
+  )
+endif()
 if(SECP256K1_EXPERIMENTAL)
   message(
     "  ******\n"
