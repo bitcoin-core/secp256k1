@@ -29,7 +29,7 @@ static void bench_ecdh_setup(void* arg) {
     for (i = 0; i < 32; i++) {
         data->scalar[i] = i + 1;
     }
-    CHECK(secp256k1_ec_pubkey_parse(data->ctx, &data->point, point, sizeof(point)) == 1);
+    CHECK(secp256k1_ec_pubkey_parse(data->ctx, &data->point, point, sizeof(point)));
 }
 
 static void bench_ecdh(void* arg, int iters) {
@@ -38,7 +38,7 @@ static void bench_ecdh(void* arg, int iters) {
     bench_ecdh_data *data = (bench_ecdh_data*)arg;
 
     for (i = 0; i < iters; i++) {
-        CHECK(secp256k1_ecdh(data->ctx, res, &data->point, data->scalar, NULL, NULL) == 1);
+        CHECK(secp256k1_ecdh(data->ctx, res, &data->point, data->scalar, NULL, NULL));
     }
 }
 

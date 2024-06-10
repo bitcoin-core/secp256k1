@@ -293,22 +293,22 @@ static void run_ec_illegal_argument_tests(void) {
     /* Verify context-type checking illegal-argument errors. */
     CHECK_ILLEGAL(STATIC_CTX, secp256k1_ec_pubkey_create(STATIC_CTX, &pubkey, ctmp));
     SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
-    CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, ctmp) == 1);
+    CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, ctmp));
     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(pubkey));
     CHECK_ILLEGAL(STATIC_CTX, secp256k1_ecdsa_sign(STATIC_CTX, &sig, ctmp, ctmp, NULL, NULL));
     SECP256K1_CHECKMEM_UNDEFINE(&sig, sizeof(sig));
-    CHECK(secp256k1_ecdsa_sign(CTX, &sig, ctmp, ctmp, NULL, NULL) == 1);
+    CHECK(secp256k1_ecdsa_sign(CTX, &sig, ctmp, ctmp, NULL, NULL));
     SECP256K1_CHECKMEM_CHECK(&sig, sizeof(sig));
-    CHECK(secp256k1_ecdsa_verify(CTX, &sig, ctmp, &pubkey) == 1);
-    CHECK(secp256k1_ecdsa_verify(STATIC_CTX, &sig, ctmp, &pubkey) == 1);
-    CHECK(secp256k1_ec_pubkey_tweak_add(CTX, &pubkey, ctmp) == 1);
-    CHECK(secp256k1_ec_pubkey_tweak_add(STATIC_CTX, &pubkey, ctmp) == 1);
-    CHECK(secp256k1_ec_pubkey_tweak_mul(CTX, &pubkey, ctmp) == 1);
-    CHECK(secp256k1_ec_pubkey_negate(STATIC_CTX, &pubkey) == 1);
-    CHECK(secp256k1_ec_pubkey_negate(CTX, &pubkey) == 1);
+    CHECK(secp256k1_ecdsa_verify(CTX, &sig, ctmp, &pubkey));
+    CHECK(secp256k1_ecdsa_verify(STATIC_CTX, &sig, ctmp, &pubkey));
+    CHECK(secp256k1_ec_pubkey_tweak_add(CTX, &pubkey, ctmp));
+    CHECK(secp256k1_ec_pubkey_tweak_add(STATIC_CTX, &pubkey, ctmp));
+    CHECK(secp256k1_ec_pubkey_tweak_mul(CTX, &pubkey, ctmp));
+    CHECK(secp256k1_ec_pubkey_negate(STATIC_CTX, &pubkey));
+    CHECK(secp256k1_ec_pubkey_negate(CTX, &pubkey));
     CHECK_ILLEGAL(STATIC_CTX, secp256k1_ec_pubkey_negate(STATIC_CTX, &zero_pubkey));
     CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_negate(CTX, NULL));
-    CHECK(secp256k1_ec_pubkey_tweak_mul(STATIC_CTX, &pubkey, ctmp) == 1);
+    CHECK(secp256k1_ec_pubkey_tweak_mul(STATIC_CTX, &pubkey, ctmp));
 }
 
 static void run_static_context_tests(int use_prealloc) {
@@ -376,9 +376,9 @@ static void run_proper_context_tests(int use_prealloc) {
 
     /* Randomize and reset randomization */
     CHECK(context_eq(my_ctx, my_ctx_fresh));
-    CHECK(secp256k1_context_randomize(my_ctx, seed) == 1);
+    CHECK(secp256k1_context_randomize(my_ctx, seed));
     CHECK(!context_eq(my_ctx, my_ctx_fresh));
-    CHECK(secp256k1_context_randomize(my_ctx, NULL) == 1);
+    CHECK(secp256k1_context_randomize(my_ctx, NULL));
     CHECK(context_eq(my_ctx, my_ctx_fresh));
 
     /* set error callback (to a function that still aborts in case malloc() fails in secp256k1_context_clone() below) */
@@ -832,7 +832,7 @@ static void run_tagged_sha256_tests(void) {
     };
 
     /* API test */
-    CHECK(secp256k1_tagged_sha256(CTX, hash32, tag, sizeof(tag), msg, sizeof(msg)) == 1);
+    CHECK(secp256k1_tagged_sha256(CTX, hash32, tag, sizeof(tag), msg, sizeof(msg)));
     CHECK_ILLEGAL(CTX, secp256k1_tagged_sha256(CTX, NULL, tag, sizeof(tag), msg, sizeof(msg)));
     CHECK_ILLEGAL(CTX, secp256k1_tagged_sha256(CTX, hash32, NULL, 0, msg, sizeof(msg)));
     CHECK_ILLEGAL(CTX, secp256k1_tagged_sha256(CTX, hash32, tag, sizeof(tag), NULL, 0));
@@ -840,7 +840,7 @@ static void run_tagged_sha256_tests(void) {
     /* Static test vector */
     memcpy(tag, "tag", 3);
     memcpy(msg, "msg", 3);
-    CHECK(secp256k1_tagged_sha256(CTX, hash32, tag, 3, msg, 3) == 1);
+    CHECK(secp256k1_tagged_sha256(CTX, hash32, tag, 3, msg, 3));
     CHECK(secp256k1_memcmp_var(hash32, hash_expected, sizeof(hash32)) == 0);
 }
 
@@ -2289,8 +2289,8 @@ static void run_scalar_set_b32_seckey_tests(void) {
     /* Usually set_b32 and set_b32_seckey give the same result */
     random_scalar_order_b32(b32);
     secp256k1_scalar_set_b32(&s1, b32, NULL);
-    CHECK(secp256k1_scalar_set_b32_seckey(&s2, b32) == 1);
-    CHECK(secp256k1_scalar_eq(&s1, &s2) == 1);
+    CHECK(secp256k1_scalar_set_b32_seckey(&s2, b32));
+    CHECK(secp256k1_scalar_eq(&s1, &s2));
 
     memset(b32, 0, sizeof(b32));
     CHECK(secp256k1_scalar_set_b32_seckey(&s2, b32) == 0);
@@ -3004,9 +3004,9 @@ static void run_field_be32_overflow(void) {
         secp256k1_fe fe;
         CHECK(secp256k1_fe_set_b32_limit(&fe, zero_overflow) == 0);
         secp256k1_fe_set_b32_mod(&fe, zero_overflow);
-        CHECK(secp256k1_fe_normalizes_to_zero(&fe) == 1);
+        CHECK(secp256k1_fe_normalizes_to_zero(&fe));
         secp256k1_fe_normalize(&fe);
-        CHECK(secp256k1_fe_is_zero(&fe) == 1);
+        CHECK(secp256k1_fe_is_zero(&fe));
         secp256k1_fe_get_b32(out, &fe);
         CHECK(secp256k1_memcmp_var(out, zero, 32) == 0);
     }
@@ -4171,7 +4171,7 @@ static void test_ec_combine(void) {
         secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &Qj, &sum);
         secp256k1_ge_set_gej(&Q, &Qj);
         secp256k1_pubkey_save(&sd, &Q);
-        CHECK(secp256k1_ec_pubkey_combine(CTX, &sd2, d, i) == 1);
+        CHECK(secp256k1_ec_pubkey_combine(CTX, &sd2, d, i));
         CHECK(secp256k1_memcmp_var(&sd, &sd2, sizeof(sd)) == 0);
     }
 }
@@ -5172,10 +5172,10 @@ static void test_ecmult_multi_pippenger_max_points(void) {
         /* allocate `total_alloc` bytes over `PIPPENGER_SCRATCH_OBJECTS` many allocations */
         total_alloc = secp256k1_pippenger_scratch_size(n_points_supported, bucket_window);
         for (i = 0; i < PIPPENGER_SCRATCH_OBJECTS - 1; i++) {
-            CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, 1));
+            CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, 1) != NULL);
             total_alloc--;
         }
-        CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, total_alloc));
+        CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, total_alloc) != NULL);
         secp256k1_scratch_apply_checkpoint(&CTX->error_callback, scratch, checkpoint);
         secp256k1_scratch_destroy(&CTX->error_callback, scratch);
     }
@@ -5191,37 +5191,37 @@ static void test_ecmult_multi_batch_size_helper(void) {
 
     max_n_batch_points = 1;
     n = 0;
-    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n));
     CHECK(n_batches == 0);
     CHECK(n_batch_points == 0);
 
     max_n_batch_points = 2;
     n = 5;
-    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n));
     CHECK(n_batches == 3);
     CHECK(n_batch_points == 2);
 
     max_n_batch_points = ECMULT_MAX_POINTS_PER_BATCH;
     n = ECMULT_MAX_POINTS_PER_BATCH;
-    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
-    CHECK(n_batches == 1);
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n));
+    CHECK(n_batches);
     CHECK(n_batch_points == ECMULT_MAX_POINTS_PER_BATCH);
 
     max_n_batch_points = ECMULT_MAX_POINTS_PER_BATCH + 1;
     n = ECMULT_MAX_POINTS_PER_BATCH + 1;
-    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n));
     CHECK(n_batches == 2);
     CHECK(n_batch_points == ECMULT_MAX_POINTS_PER_BATCH/2 + 1);
 
     max_n_batch_points = 1;
     n = SIZE_MAX;
-    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n));
     CHECK(n_batches == SIZE_MAX);
     CHECK(n_batch_points == 1);
 
     max_n_batch_points = 2;
     n = SIZE_MAX;
-    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n) == 1);
+    CHECK(secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, max_n_batch_points, n));
     CHECK(n_batches == SIZE_MAX/2 + 1);
     CHECK(n_batch_points == 2);
 }
@@ -5779,11 +5779,11 @@ static void ec_pubkey_parse_pointtest(const unsigned char *input, int xvalid, in
                 size_t outl;
                 memset(&pubkey, 0, sizeof(pubkey));
                 SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
-                CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pubkeyc, pubkeyclen) == 1);
+                CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pubkeyc, pubkeyclen));
                 SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(pubkey));
                 outl = 65;
                 SECP256K1_CHECKMEM_UNDEFINE(pubkeyo, 65);
-                CHECK(secp256k1_ec_pubkey_serialize(CTX, pubkeyo, &outl, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
+                CHECK(secp256k1_ec_pubkey_serialize(CTX, pubkeyo, &outl, &pubkey, SECP256K1_EC_COMPRESSED));
                 SECP256K1_CHECKMEM_CHECK(pubkeyo, outl);
                 CHECK(outl == 33);
                 CHECK(secp256k1_memcmp_var(&pubkeyo[1], &pubkeyc[1], 32) == 0);
@@ -5791,14 +5791,14 @@ static void ec_pubkey_parse_pointtest(const unsigned char *input, int xvalid, in
                 if (ypass) {
                     /* This test isn't always done because we decode with alternative signs, so the y won't match. */
                     CHECK(pubkeyo[0] == ysign);
-                    CHECK(secp256k1_pubkey_load(CTX, &ge, &pubkey) == 1);
+                    CHECK(secp256k1_pubkey_load(CTX, &ge, &pubkey));
                     memset(&pubkey, 0, sizeof(pubkey));
                     SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
                     secp256k1_pubkey_save(&pubkey, &ge);
                     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(pubkey));
                     outl = 65;
                     SECP256K1_CHECKMEM_UNDEFINE(pubkeyo, 65);
-                    CHECK(secp256k1_ec_pubkey_serialize(CTX, pubkeyo, &outl, &pubkey, SECP256K1_EC_UNCOMPRESSED) == 1);
+                    CHECK(secp256k1_ec_pubkey_serialize(CTX, pubkeyo, &outl, &pubkey, SECP256K1_EC_UNCOMPRESSED));
                     SECP256K1_CHECKMEM_CHECK(pubkeyo, outl);
                     CHECK(outl == 65);
                     CHECK(pubkeyo[0] == 4);
@@ -6060,11 +6060,11 @@ static void run_ec_pubkey_parse_test(void) {
     /* Valid parse. */
     memset(&pubkey, 0, sizeof(pubkey));
     SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
-    CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pubkeyc, 65) == 1);
-    CHECK(secp256k1_ec_pubkey_parse(secp256k1_context_static, &pubkey, pubkeyc, 65) == 1);
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pubkeyc, 65));
+    CHECK(secp256k1_ec_pubkey_parse(secp256k1_context_static, &pubkey, pubkeyc, 65));
     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(pubkey));
     SECP256K1_CHECKMEM_UNDEFINE(&ge, sizeof(ge));
-    CHECK(secp256k1_pubkey_load(CTX, &ge, &pubkey) == 1);
+    CHECK(secp256k1_pubkey_load(CTX, &ge, &pubkey));
     SECP256K1_CHECKMEM_CHECK(&ge.x, sizeof(ge.x));
     SECP256K1_CHECKMEM_CHECK(&ge.y, sizeof(ge.y));
     SECP256K1_CHECKMEM_CHECK(&ge.infinity, sizeof(ge.infinity));
@@ -6084,7 +6084,7 @@ static void run_ec_pubkey_parse_test(void) {
     CHECK(len == 0);
     len = 65;
     SECP256K1_CHECKMEM_UNDEFINE(sout, 65);
-    CHECK(secp256k1_ec_pubkey_serialize(CTX, sout, &len, &pubkey, SECP256K1_EC_UNCOMPRESSED) == 1);
+    CHECK(secp256k1_ec_pubkey_serialize(CTX, sout, &len, &pubkey, SECP256K1_EC_UNCOMPRESSED));
     SECP256K1_CHECKMEM_CHECK(sout, 65);
     CHECK(len == 65);
     /* Multiple illegal args. Should still set arg error only once. */
@@ -6141,10 +6141,10 @@ static void run_eckey_edge_case_test(void) {
     CHECK(secp256k1_memcmp_var(&pubkey, zeros, sizeof(secp256k1_pubkey)) == 0);
     /* One must be accepted. */
     ctmp[31] = 0x01;
-    CHECK(secp256k1_ec_seckey_verify(CTX, ctmp) == 1);
+    CHECK(secp256k1_ec_seckey_verify(CTX, ctmp));
     memset(&pubkey, 0, sizeof(pubkey));
     SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
-    CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, ctmp) == 1);
+    CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, ctmp));
     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(pubkey));
     CHECK(secp256k1_memcmp_var(&pubkey, zeros, sizeof(secp256k1_pubkey)) > 0);
     pubkey_one = pubkey;
@@ -6159,19 +6159,19 @@ static void run_eckey_edge_case_test(void) {
     CHECK(secp256k1_memcmp_var(&pubkey, zeros, sizeof(secp256k1_pubkey)) == 0);
     /* -1 must be accepted. */
     ctmp[31] = 0x40;
-    CHECK(secp256k1_ec_seckey_verify(CTX, ctmp) == 1);
+    CHECK(secp256k1_ec_seckey_verify(CTX, ctmp));
     memset(&pubkey, 0, sizeof(pubkey));
     SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
-    CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, ctmp) == 1);
+    CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, ctmp));
     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(pubkey));
     CHECK(secp256k1_memcmp_var(&pubkey, zeros, sizeof(secp256k1_pubkey)) > 0);
     pubkey_negone = pubkey;
     /* Tweak of zero leaves the value unchanged. */
     memset(ctmp2, 0, 32);
-    CHECK(secp256k1_ec_seckey_tweak_add(CTX, ctmp, ctmp2) == 1);
+    CHECK(secp256k1_ec_seckey_tweak_add(CTX, ctmp, ctmp2));
     CHECK(secp256k1_memcmp_var(orderc, ctmp, 31) == 0 && ctmp[31] == 0x40);
     memcpy(&pubkey2, &pubkey, sizeof(pubkey));
-    CHECK(secp256k1_ec_pubkey_tweak_add(CTX, &pubkey, ctmp2) == 1);
+    CHECK(secp256k1_ec_pubkey_tweak_add(CTX, &pubkey, ctmp2));
     CHECK(secp256k1_memcmp_var(&pubkey, &pubkey2, sizeof(pubkey)) == 0);
     /* Multiply tweak of zero zeroizes the output. */
     CHECK(secp256k1_ec_seckey_tweak_mul(CTX, ctmp, ctmp2) == 0);
@@ -6184,7 +6184,7 @@ static void run_eckey_edge_case_test(void) {
     memcpy(ctmp, orderc, 32);
     memset(ctmp2, 0, 32);
     ctmp2[31] = 0x01;
-    CHECK(secp256k1_ec_seckey_verify(CTX, ctmp2) == 1);
+    CHECK(secp256k1_ec_seckey_verify(CTX, ctmp2));
     CHECK(secp256k1_ec_seckey_verify(CTX, ctmp) == 0);
     CHECK(secp256k1_ec_seckey_tweak_add(CTX, ctmp, ctmp2) == 0);
     CHECK(secp256k1_memcmp_var(zeros, ctmp, 32) == 0);
@@ -6226,17 +6226,17 @@ static void run_eckey_edge_case_test(void) {
     memcpy(&pubkey, &pubkey2, sizeof(pubkey));
     /* Tweak computation wraps and results in a key of 1. */
     ctmp2[31] = 2;
-    CHECK(secp256k1_ec_seckey_tweak_add(CTX, ctmp2, ctmp) == 1);
+    CHECK(secp256k1_ec_seckey_tweak_add(CTX, ctmp2, ctmp));
     CHECK(secp256k1_memcmp_var(ctmp2, zeros, 31) == 0 && ctmp2[31] == 1);
     ctmp2[31] = 2;
-    CHECK(secp256k1_ec_pubkey_tweak_add(CTX, &pubkey, ctmp2) == 1);
+    CHECK(secp256k1_ec_pubkey_tweak_add(CTX, &pubkey, ctmp2));
     ctmp2[31] = 1;
-    CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey2, ctmp2) == 1);
+    CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey2, ctmp2));
     CHECK(secp256k1_memcmp_var(&pubkey, &pubkey2, sizeof(pubkey)) == 0);
     /* Tweak mul * 2 = 1+1. */
-    CHECK(secp256k1_ec_pubkey_tweak_add(CTX, &pubkey, ctmp2) == 1);
+    CHECK(secp256k1_ec_pubkey_tweak_add(CTX, &pubkey, ctmp2));
     ctmp2[31] = 2;
-    CHECK(secp256k1_ec_pubkey_tweak_mul(CTX, &pubkey2, ctmp2) == 1);
+    CHECK(secp256k1_ec_pubkey_tweak_mul(CTX, &pubkey2, ctmp2));
     CHECK(secp256k1_memcmp_var(&pubkey, &pubkey2, sizeof(pubkey)) == 0);
     /* Zeroize pubkey on parse error. */
     memset(&pubkey, 0, 32);
@@ -6247,7 +6247,7 @@ static void run_eckey_edge_case_test(void) {
     CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_tweak_mul(CTX, &pubkey2, ctmp2));
     CHECK(secp256k1_memcmp_var(&pubkey2, zeros, sizeof(pubkey2)) == 0);
     /* Plain argument errors. */
-    CHECK(secp256k1_ec_seckey_verify(CTX, ctmp) == 1);
+    CHECK(secp256k1_ec_seckey_verify(CTX, ctmp));
     CHECK_ILLEGAL(CTX, secp256k1_ec_seckey_verify(CTX, NULL));
     memset(ctmp2, 0, 32);
     ctmp2[31] = 4;
@@ -6288,12 +6288,12 @@ static void run_eckey_edge_case_test(void) {
     pubkeys[0] = &pubkey_negone;
     memset(&pubkey, 255, sizeof(secp256k1_pubkey));
     SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(secp256k1_pubkey));
-    CHECK(secp256k1_ec_pubkey_combine(CTX, &pubkey, pubkeys, 1) == 1);
+    CHECK(secp256k1_ec_pubkey_combine(CTX, &pubkey, pubkeys, 1));
     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(secp256k1_pubkey));
     CHECK(secp256k1_memcmp_var(&pubkey, zeros, sizeof(secp256k1_pubkey)) > 0);
     len = 33;
-    CHECK(secp256k1_ec_pubkey_serialize(CTX, ctmp, &len, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
-    CHECK(secp256k1_ec_pubkey_serialize(CTX, ctmp2, &len, &pubkey_negone, SECP256K1_EC_COMPRESSED) == 1);
+    CHECK(secp256k1_ec_pubkey_serialize(CTX, ctmp, &len, &pubkey, SECP256K1_EC_COMPRESSED));
+    CHECK(secp256k1_ec_pubkey_serialize(CTX, ctmp2, &len, &pubkey_negone, SECP256K1_EC_COMPRESSED));
     CHECK(secp256k1_memcmp_var(ctmp, ctmp2, 33) == 0);
     /* Result is infinity. */
     pubkeys[0] = &pubkey_one;
@@ -6307,18 +6307,18 @@ static void run_eckey_edge_case_test(void) {
     pubkeys[2] = &pubkey_one;
     memset(&pubkey, 255, sizeof(secp256k1_pubkey));
     SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(secp256k1_pubkey));
-    CHECK(secp256k1_ec_pubkey_combine(CTX, &pubkey, pubkeys, 3) == 1);
+    CHECK(secp256k1_ec_pubkey_combine(CTX, &pubkey, pubkeys, 3));
     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(secp256k1_pubkey));
     CHECK(secp256k1_memcmp_var(&pubkey, zeros, sizeof(secp256k1_pubkey)) > 0);
     len = 33;
-    CHECK(secp256k1_ec_pubkey_serialize(CTX, ctmp, &len, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
-    CHECK(secp256k1_ec_pubkey_serialize(CTX, ctmp2, &len, &pubkey_one, SECP256K1_EC_COMPRESSED) == 1);
+    CHECK(secp256k1_ec_pubkey_serialize(CTX, ctmp, &len, &pubkey, SECP256K1_EC_COMPRESSED));
+    CHECK(secp256k1_ec_pubkey_serialize(CTX, ctmp2, &len, &pubkey_one, SECP256K1_EC_COMPRESSED));
     CHECK(secp256k1_memcmp_var(ctmp, ctmp2, 33) == 0);
     /* Adds to two. */
     pubkeys[1] = &pubkey_one;
     memset(&pubkey, 255, sizeof(secp256k1_pubkey));
     SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(secp256k1_pubkey));
-    CHECK(secp256k1_ec_pubkey_combine(CTX, &pubkey, pubkeys, 2) == 1);
+    CHECK(secp256k1_ec_pubkey_combine(CTX, &pubkey, pubkeys, 2));
     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(secp256k1_pubkey));
     CHECK(secp256k1_memcmp_var(&pubkey, zeros, sizeof(secp256k1_pubkey)) > 0);
 }
@@ -6331,14 +6331,14 @@ static void run_eckey_negate_test(void) {
     memcpy(seckey_tmp, seckey, 32);
 
     /* Verify negation changes the key and changes it back */
-    CHECK(secp256k1_ec_seckey_negate(CTX, seckey) == 1);
+    CHECK(secp256k1_ec_seckey_negate(CTX, seckey));
     CHECK(secp256k1_memcmp_var(seckey, seckey_tmp, 32) != 0);
-    CHECK(secp256k1_ec_seckey_negate(CTX, seckey) == 1);
+    CHECK(secp256k1_ec_seckey_negate(CTX, seckey));
     CHECK(secp256k1_memcmp_var(seckey, seckey_tmp, 32) == 0);
 
     /* Check that privkey alias gives same result */
-    CHECK(secp256k1_ec_seckey_negate(CTX, seckey) == 1);
-    CHECK(secp256k1_ec_privkey_negate(CTX, seckey_tmp) == 1);
+    CHECK(secp256k1_ec_seckey_negate(CTX, seckey));
+    CHECK(secp256k1_ec_privkey_negate(CTX, seckey_tmp));
     CHECK(secp256k1_memcmp_var(seckey, seckey_tmp, 32) == 0);
 
     /* Negating all 0s fails */
@@ -6477,24 +6477,24 @@ static void test_ecdsa_end_to_end(void) {
     }
 
     /* Construct and verify corresponding public key. */
-    CHECK(secp256k1_ec_seckey_verify(CTX, privkey) == 1);
-    CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, privkey) == 1);
+    CHECK(secp256k1_ec_seckey_verify(CTX, privkey));
+    CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, privkey));
 
     /* Verify exporting and importing public key. */
     CHECK(secp256k1_ec_pubkey_serialize(CTX, pubkeyc, &pubkeyclen, &pubkey, secp256k1_testrand_bits(1) == 1 ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED));
     memset(&pubkey, 0, sizeof(pubkey));
-    CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pubkeyc, pubkeyclen) == 1);
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pubkeyc, pubkeyclen));
 
     /* Verify negation changes the key and changes it back */
     memcpy(&pubkey_tmp, &pubkey, sizeof(pubkey));
-    CHECK(secp256k1_ec_pubkey_negate(CTX, &pubkey_tmp) == 1);
+    CHECK(secp256k1_ec_pubkey_negate(CTX, &pubkey_tmp));
     CHECK(secp256k1_memcmp_var(&pubkey_tmp, &pubkey, sizeof(pubkey)) != 0);
-    CHECK(secp256k1_ec_pubkey_negate(CTX, &pubkey_tmp) == 1);
+    CHECK(secp256k1_ec_pubkey_negate(CTX, &pubkey_tmp));
     CHECK(secp256k1_memcmp_var(&pubkey_tmp, &pubkey, sizeof(pubkey)) == 0);
 
     /* Verify private key import and export. */
     CHECK(ec_privkey_export_der(CTX, seckey, &seckeylen, privkey, secp256k1_testrand_bits(1) == 1));
-    CHECK(ec_privkey_import_der(CTX, privkey2, seckey, seckeylen) == 1);
+    CHECK(ec_privkey_import_der(CTX, privkey2, seckey, seckeylen));
     CHECK(secp256k1_memcmp_var(privkey, privkey2, 32) == 0);
 
     /* Optionally tweak the keys using addition. */
@@ -6517,7 +6517,7 @@ static void test_ecdsa_end_to_end(void) {
             return;
         }
         CHECK(secp256k1_memcmp_var(privkey, privkey_tmp, 32) == 0);
-        CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey2, privkey) == 1);
+        CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey2, privkey));
         CHECK(secp256k1_memcmp_var(&pubkey, &pubkey2, sizeof(pubkey)) == 0);
     }
 
@@ -6541,19 +6541,19 @@ static void test_ecdsa_end_to_end(void) {
             return;
         }
         CHECK(secp256k1_memcmp_var(privkey, privkey_tmp, 32) == 0);
-        CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey2, privkey) == 1);
+        CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey2, privkey));
         CHECK(secp256k1_memcmp_var(&pubkey, &pubkey2, sizeof(pubkey)) == 0);
     }
 
     /* Sign. */
-    CHECK(secp256k1_ecdsa_sign(CTX, &signature[0], message, privkey, NULL, NULL) == 1);
-    CHECK(secp256k1_ecdsa_sign(CTX, &signature[4], message, privkey, NULL, NULL) == 1);
-    CHECK(secp256k1_ecdsa_sign(CTX, &signature[1], message, privkey, NULL, extra) == 1);
+    CHECK(secp256k1_ecdsa_sign(CTX, &signature[0], message, privkey, NULL, NULL));
+    CHECK(secp256k1_ecdsa_sign(CTX, &signature[4], message, privkey, NULL, NULL));
+    CHECK(secp256k1_ecdsa_sign(CTX, &signature[1], message, privkey, NULL, extra));
     extra[31] = 1;
-    CHECK(secp256k1_ecdsa_sign(CTX, &signature[2], message, privkey, NULL, extra) == 1);
+    CHECK(secp256k1_ecdsa_sign(CTX, &signature[2], message, privkey, NULL, extra));
     extra[31] = 0;
     extra[0] = 1;
-    CHECK(secp256k1_ecdsa_sign(CTX, &signature[3], message, privkey, NULL, extra) == 1);
+    CHECK(secp256k1_ecdsa_sign(CTX, &signature[3], message, privkey, NULL, extra));
     CHECK(secp256k1_memcmp_var(&signature[0], &signature[4], sizeof(signature[0])) == 0);
     CHECK(secp256k1_memcmp_var(&signature[0], &signature[1], sizeof(signature[0])) != 0);
     CHECK(secp256k1_memcmp_var(&signature[0], &signature[2], sizeof(signature[0])) != 0);
@@ -6562,10 +6562,10 @@ static void test_ecdsa_end_to_end(void) {
     CHECK(secp256k1_memcmp_var(&signature[1], &signature[3], sizeof(signature[0])) != 0);
     CHECK(secp256k1_memcmp_var(&signature[2], &signature[3], sizeof(signature[0])) != 0);
     /* Verify. */
-    CHECK(secp256k1_ecdsa_verify(CTX, &signature[0], message, &pubkey) == 1);
-    CHECK(secp256k1_ecdsa_verify(CTX, &signature[1], message, &pubkey) == 1);
-    CHECK(secp256k1_ecdsa_verify(CTX, &signature[2], message, &pubkey) == 1);
-    CHECK(secp256k1_ecdsa_verify(CTX, &signature[3], message, &pubkey) == 1);
+    CHECK(secp256k1_ecdsa_verify(CTX, &signature[0], message, &pubkey));
+    CHECK(secp256k1_ecdsa_verify(CTX, &signature[1], message, &pubkey));
+    CHECK(secp256k1_ecdsa_verify(CTX, &signature[2], message, &pubkey));
+    CHECK(secp256k1_ecdsa_verify(CTX, &signature[3], message, &pubkey));
     /* Test lower-S form, malleate, verify and fail, test again, malleate again */
     CHECK(!secp256k1_ecdsa_signature_normalize(CTX, NULL, &signature[0]));
     secp256k1_ecdsa_signature_load(CTX, &r, &s, &signature[0]);
@@ -6576,21 +6576,21 @@ static void test_ecdsa_end_to_end(void) {
     CHECK(secp256k1_ecdsa_signature_normalize(CTX, &signature[5], &signature[5]));
     CHECK(!secp256k1_ecdsa_signature_normalize(CTX, NULL, &signature[5]));
     CHECK(!secp256k1_ecdsa_signature_normalize(CTX, &signature[5], &signature[5]));
-    CHECK(secp256k1_ecdsa_verify(CTX, &signature[5], message, &pubkey) == 1);
+    CHECK(secp256k1_ecdsa_verify(CTX, &signature[5], message, &pubkey));
     secp256k1_scalar_negate(&s, &s);
     secp256k1_ecdsa_signature_save(&signature[5], &r, &s);
     CHECK(!secp256k1_ecdsa_signature_normalize(CTX, NULL, &signature[5]));
-    CHECK(secp256k1_ecdsa_verify(CTX, &signature[5], message, &pubkey) == 1);
+    CHECK(secp256k1_ecdsa_verify(CTX, &signature[5], message, &pubkey));
     CHECK(secp256k1_memcmp_var(&signature[5], &signature[0], 64) == 0);
 
     /* Serialize/parse DER and verify again */
-    CHECK(secp256k1_ecdsa_signature_serialize_der(CTX, sig, &siglen, &signature[0]) == 1);
+    CHECK(secp256k1_ecdsa_signature_serialize_der(CTX, sig, &siglen, &signature[0]));
     memset(&signature[0], 0, sizeof(signature[0]));
-    CHECK(secp256k1_ecdsa_signature_parse_der(CTX, &signature[0], sig, siglen) == 1);
-    CHECK(secp256k1_ecdsa_verify(CTX, &signature[0], message, &pubkey) == 1);
+    CHECK(secp256k1_ecdsa_signature_parse_der(CTX, &signature[0], sig, siglen));
+    CHECK(secp256k1_ecdsa_verify(CTX, &signature[0], message, &pubkey));
     /* Serialize/destroy/parse DER and verify again. */
     siglen = 74;
-    CHECK(secp256k1_ecdsa_signature_serialize_der(CTX, sig, &siglen, &signature[0]) == 1);
+    CHECK(secp256k1_ecdsa_signature_serialize_der(CTX, sig, &siglen, &signature[0]));
     sig[secp256k1_testrand_int(siglen)] += 1 + secp256k1_testrand_int(255);
     CHECK(secp256k1_ecdsa_signature_parse_der(CTX, &signature[0], sig, siglen) == 0 ||
           secp256k1_ecdsa_verify(CTX, &signature[0], message, &pubkey) == 0);
@@ -6670,8 +6670,8 @@ static void run_pubkey_comparison(void) {
     secp256k1_pubkey pk1;
     secp256k1_pubkey pk2;
 
-    CHECK(secp256k1_ec_pubkey_parse(CTX, &pk1, pk1_ser, sizeof(pk1_ser)) == 1);
-    CHECK(secp256k1_ec_pubkey_parse(CTX, &pk2, pk2_ser, sizeof(pk2_ser)) == 1);
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &pk1, pk1_ser, sizeof(pk1_ser)));
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &pk2, pk2_ser, sizeof(pk2_ser)));
 
     CHECK_ILLEGAL_VOID(CTX, CHECK(secp256k1_ec_pubkey_cmp(CTX, NULL, &pk2) < 0));
     CHECK_ILLEGAL_VOID(CTX, CHECK(secp256k1_ec_pubkey_cmp(CTX, &pk1, NULL) > 0));
@@ -6696,7 +6696,7 @@ static void run_pubkey_comparison(void) {
     /* Make pk2 the same as pk1 but with 3 rather than 2. Note that in
      * an uncompressed encoding, these would have the opposite ordering */
     pk1_ser[0] = 3;
-    CHECK(secp256k1_ec_pubkey_parse(CTX, &pk2, pk1_ser, sizeof(pk1_ser)) == 1);
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &pk2, pk1_ser, sizeof(pk1_ser)));
     CHECK(secp256k1_ec_pubkey_cmp(CTX, &pk1, &pk2) < 0);
     CHECK(secp256k1_ec_pubkey_cmp(CTX, &pk2, &pk1) > 0);
 }
@@ -7230,11 +7230,11 @@ static void test_ecdsa_edge_cases(void) {
         secp256k1_scalar_set_int(&sr, 2);
         CHECK(secp256k1_eckey_pubkey_parse(&key, pubkey, 33));
         CHECK(secp256k1_eckey_pubkey_parse(&key2, pubkey2, 33));
-        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 1);
-        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg) == 1);
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg));
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg));
         secp256k1_scalar_negate(&ss, &ss);
-        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 1);
-        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg) == 1);
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg));
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg));
         secp256k1_scalar_set_int(&ss, 1);
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 0);
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg) == 0);
@@ -7271,11 +7271,11 @@ static void test_ecdsa_edge_cases(void) {
         secp256k1_scalar_set_b32(&sr, csr, NULL);
         CHECK(secp256k1_eckey_pubkey_parse(&key, pubkey, 33));
         CHECK(secp256k1_eckey_pubkey_parse(&key2, pubkey2, 33));
-        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 1);
-        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg) == 1);
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg));
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg));
         secp256k1_scalar_negate(&ss, &ss);
-        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 1);
-        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg) == 1);
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg));
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg));
         secp256k1_scalar_set_int(&ss, 2);
         secp256k1_scalar_inverse_var(&ss, &ss);
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 0);
@@ -7305,9 +7305,9 @@ static void test_ecdsa_edge_cases(void) {
         secp256k1_scalar_negate(&msg, &msg);
         secp256k1_scalar_set_b32(&sr, csr, NULL);
         CHECK(secp256k1_eckey_pubkey_parse(&key, pubkey, 33));
-        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 1);
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg));
         secp256k1_scalar_negate(&ss, &ss);
-        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 1);
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg));
         secp256k1_scalar_set_int(&ss, 3);
         secp256k1_scalar_inverse_var(&ss, &ss);
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 0);
@@ -7345,16 +7345,16 @@ static void test_ecdsa_edge_cases(void) {
         CHECK(secp256k1_ecdsa_sign(CTX, &sig, msg, key, precomputed_nonce_function, nonce) == 0);
         CHECK(secp256k1_ecdsa_sign(CTX, &sig, msg, key, precomputed_nonce_function, nonce2) == 0);
         msg[31] = 0xaa;
-        CHECK(secp256k1_ecdsa_sign(CTX, &sig, msg, key, precomputed_nonce_function, nonce) == 1);
+        CHECK(secp256k1_ecdsa_sign(CTX, &sig, msg, key, precomputed_nonce_function, nonce));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_sign(CTX, NULL, msg, key, precomputed_nonce_function, nonce2));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_sign(CTX, &sig, NULL, key, precomputed_nonce_function, nonce2));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_sign(CTX, &sig, msg, NULL, precomputed_nonce_function, nonce2));
-        CHECK(secp256k1_ecdsa_sign(CTX, &sig, msg, key, precomputed_nonce_function, nonce2) == 1);
-        CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, key) == 1);
+        CHECK(secp256k1_ecdsa_sign(CTX, &sig, msg, key, precomputed_nonce_function, nonce2));
+        CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey, key));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_verify(CTX, NULL, msg, &pubkey));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_verify(CTX, &sig, NULL, &pubkey));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_verify(CTX, &sig, msg, NULL));
-        CHECK(secp256k1_ecdsa_verify(CTX, &sig, msg, &pubkey) == 1);
+        CHECK(secp256k1_ecdsa_verify(CTX, &sig, msg, &pubkey));
         CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_create(CTX, &pubkey, NULL));
         /* That pubkeyload fails via an ARGCHECK is a little odd but makes sense because pubkeys are an opaque data type. */
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_verify(CTX, &sig, msg, &pubkey));
@@ -7362,20 +7362,20 @@ static void test_ecdsa_edge_cases(void) {
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_signature_serialize_der(CTX, NULL, &siglen, &sig));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_signature_serialize_der(CTX, signature, NULL, &sig));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_signature_serialize_der(CTX, signature, &siglen, NULL));
-        CHECK(secp256k1_ecdsa_signature_serialize_der(CTX, signature, &siglen, &sig) == 1);
+        CHECK(secp256k1_ecdsa_signature_serialize_der(CTX, signature, &siglen, &sig));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_signature_parse_der(CTX, NULL, signature, siglen));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_signature_parse_der(CTX, &sig, NULL, siglen));
-        CHECK(secp256k1_ecdsa_signature_parse_der(CTX, &sig, signature, siglen) == 1);
+        CHECK(secp256k1_ecdsa_signature_parse_der(CTX, &sig, signature, siglen));
         siglen = 10;
         /* Too little room for a signature does not fail via ARGCHECK. */
         CHECK(secp256k1_ecdsa_signature_serialize_der(CTX, signature, &siglen, &sig) == 0);
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_signature_normalize(CTX, NULL, NULL));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_signature_serialize_compact(CTX, NULL, &sig));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_signature_serialize_compact(CTX, signature, NULL));
-        CHECK(secp256k1_ecdsa_signature_serialize_compact(CTX, signature, &sig) == 1);
+        CHECK(secp256k1_ecdsa_signature_serialize_compact(CTX, signature, &sig));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_signature_parse_compact(CTX, NULL, signature));
         CHECK_ILLEGAL(CTX, secp256k1_ecdsa_signature_parse_compact(CTX, &sig, NULL));
-        CHECK(secp256k1_ecdsa_signature_parse_compact(CTX, &sig, signature) == 1);
+        CHECK(secp256k1_ecdsa_signature_parse_compact(CTX, &sig, signature));
         memset(signature, 255, 64);
         CHECK(secp256k1_ecdsa_signature_parse_compact(CTX, &sig, signature) == 0);
     }
@@ -7405,20 +7405,20 @@ static void test_ecdsa_edge_cases(void) {
         CHECK(secp256k1_ecdsa_sign(CTX, &sig, msg, key, nonce_function_test_fail, extra) == 0);
         CHECK(is_empty_signature(&sig));
         /* The retry loop successfully makes its way to the first good value. */
-        CHECK(secp256k1_ecdsa_sign(CTX, &sig, msg, key, nonce_function_test_retry, extra) == 1);
+        CHECK(secp256k1_ecdsa_sign(CTX, &sig, msg, key, nonce_function_test_retry, extra));
         CHECK(!is_empty_signature(&sig));
-        CHECK(secp256k1_ecdsa_sign(CTX, &sig2, msg, key, nonce_function_rfc6979, extra) == 1);
+        CHECK(secp256k1_ecdsa_sign(CTX, &sig2, msg, key, nonce_function_rfc6979, extra));
         CHECK(!is_empty_signature(&sig2));
         CHECK(secp256k1_memcmp_var(&sig, &sig2, sizeof(sig)) == 0);
         /* The default nonce function is deterministic. */
-        CHECK(secp256k1_ecdsa_sign(CTX, &sig2, msg, key, NULL, extra) == 1);
+        CHECK(secp256k1_ecdsa_sign(CTX, &sig2, msg, key, NULL, extra));
         CHECK(!is_empty_signature(&sig2));
         CHECK(secp256k1_memcmp_var(&sig, &sig2, sizeof(sig)) == 0);
         /* The default nonce function changes output with different messages. */
         for(i = 0; i < 256; i++) {
             int j;
             msg[0] = i;
-            CHECK(secp256k1_ecdsa_sign(CTX, &sig2, msg, key, NULL, extra) == 1);
+            CHECK(secp256k1_ecdsa_sign(CTX, &sig2, msg, key, NULL, extra));
             CHECK(!is_empty_signature(&sig2));
             secp256k1_ecdsa_signature_load(CTX, &sr[i], &ss, &sig2);
             for (j = 0; j < i; j++) {
@@ -7431,7 +7431,7 @@ static void test_ecdsa_edge_cases(void) {
         for(i = 256; i < 512; i++) {
             int j;
             key[0] = i - 256;
-            CHECK(secp256k1_ecdsa_sign(CTX, &sig2, msg, key, NULL, extra) == 1);
+            CHECK(secp256k1_ecdsa_sign(CTX, &sig2, msg, key, NULL, extra));
             CHECK(!is_empty_signature(&sig2));
             secp256k1_ecdsa_signature_load(CTX, &sr[i], &ss, &sig2);
             for (j = 0; j < i; j++) {
@@ -7452,13 +7452,13 @@ static void test_ecdsa_edge_cases(void) {
         SECP256K1_CHECKMEM_UNDEFINE(nonce2,32);
         SECP256K1_CHECKMEM_UNDEFINE(nonce3,32);
         SECP256K1_CHECKMEM_UNDEFINE(nonce4,32);
-        CHECK(nonce_function_rfc6979(nonce, zeros, zeros, NULL, NULL, 0) == 1);
+        CHECK(nonce_function_rfc6979(nonce, zeros, zeros, NULL, NULL, 0));
         SECP256K1_CHECKMEM_CHECK(nonce,32);
-        CHECK(nonce_function_rfc6979(nonce2, zeros, zeros, zeros, NULL, 0) == 1);
+        CHECK(nonce_function_rfc6979(nonce2, zeros, zeros, zeros, NULL, 0));
         SECP256K1_CHECKMEM_CHECK(nonce2,32);
-        CHECK(nonce_function_rfc6979(nonce3, zeros, zeros, NULL, (void *)zeros, 0) == 1);
+        CHECK(nonce_function_rfc6979(nonce3, zeros, zeros, NULL, (void *)zeros, 0));
         SECP256K1_CHECKMEM_CHECK(nonce3,32);
-        CHECK(nonce_function_rfc6979(nonce4, zeros, zeros, zeros, (void *)zeros, 0) == 1);
+        CHECK(nonce_function_rfc6979(nonce4, zeros, zeros, zeros, (void *)zeros, 0));
         SECP256K1_CHECKMEM_CHECK(nonce4,32);
         CHECK(secp256k1_memcmp_var(nonce, nonce2, 32) != 0);
         CHECK(secp256k1_memcmp_var(nonce, nonce3, 32) != 0);
@@ -7507,7 +7507,7 @@ static void test_ecdsa_wycheproof(void) {
 
         memset(&pubkey, 0, sizeof(pubkey));
         pk = &wycheproof_ecdsa_public_keys[testvectors[t].pk_offset];
-        CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pk, 65) == 1);
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pk, 65));
 
         secp256k1_sha256_initialize(&hasher);
         msg = &wycheproof_ecdsa_messages[testvectors[t].msg_offset];

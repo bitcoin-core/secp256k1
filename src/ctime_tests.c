@@ -99,7 +99,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     SECP256K1_CHECKMEM_DEFINE(&pubkey, sizeof(secp256k1_pubkey));
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
     CHECK(ret);
-    CHECK(secp256k1_ec_pubkey_serialize(ctx, spubkey, &outputlen, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
+    CHECK(secp256k1_ec_pubkey_serialize(ctx, spubkey, &outputlen, &pubkey, SECP256K1_EC_COMPRESSED));
 
     /* Test signing. */
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
@@ -114,7 +114,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_ecdh(ctx, msg, &pubkey, key, NULL, NULL);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 #endif
 
 #ifdef ENABLE_MODULE_RECOVERY
@@ -131,78 +131,78 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_ec_seckey_verify(ctx, key);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_ec_seckey_negate(ctx, key);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     SECP256K1_CHECKMEM_UNDEFINE(msg, 32);
     ret = secp256k1_ec_seckey_tweak_add(ctx, key, msg);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     SECP256K1_CHECKMEM_UNDEFINE(msg, 32);
     ret = secp256k1_ec_seckey_tweak_mul(ctx, key, msg);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 
     /* Test keypair_create and keypair_xonly_tweak_add. */
 #ifdef ENABLE_MODULE_EXTRAKEYS
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_keypair_create(ctx, &keypair, key);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 
     /* The tweak is not treated as a secret in keypair_tweak_add */
     SECP256K1_CHECKMEM_DEFINE(msg, 32);
     ret = secp256k1_keypair_xonly_tweak_add(ctx, &keypair, msg);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     SECP256K1_CHECKMEM_UNDEFINE(&keypair, sizeof(keypair));
     ret = secp256k1_keypair_sec(ctx, key, &keypair);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 #endif
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_keypair_create(ctx, &keypair, key);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
     ret = secp256k1_schnorrsig_sign32(ctx, sig, msg, &keypair, NULL);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 #endif
 
 #ifdef ENABLE_MODULE_ELLSWIFT
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_ellswift_create(ctx, ellswift, key, NULL);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_ellswift_create(ctx, ellswift, key, ellswift);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-    CHECK(ret == 1);
+    CHECK(ret);
 
     for (i = 0; i < 2; i++) {
         SECP256K1_CHECKMEM_UNDEFINE(key, 32);
         SECP256K1_CHECKMEM_DEFINE(&ellswift, sizeof(ellswift));
         ret = secp256k1_ellswift_xdh(ctx, msg, ellswift, ellswift, key, i, secp256k1_ellswift_xdh_hash_function_bip324, NULL);
         SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-        CHECK(ret == 1);
+        CHECK(ret);
 
         SECP256K1_CHECKMEM_UNDEFINE(key, 32);
         SECP256K1_CHECKMEM_DEFINE(&ellswift, sizeof(ellswift));
         ret = secp256k1_ellswift_xdh(ctx, msg, ellswift, ellswift, key, i, secp256k1_ellswift_xdh_hash_function_prefix, (void *)prefix);
         SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
-        CHECK(ret == 1);
+        CHECK(ret);
     }
 
 #endif
