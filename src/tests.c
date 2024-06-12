@@ -3982,6 +3982,34 @@ static void test_add_neg_y_diff_x(void) {
     CHECK(secp256k1_gej_eq_ge_var(&sumj, &res));
 }
 
+static void test_ge_bytes(void) {
+    int i;
+
+    for (i = 0; i < COUNT + 1; i++) {
+        unsigned char buf[64];
+        secp256k1_ge p, q;
+
+        if (i == 0) {
+            secp256k1_ge_set_infinity(&p);
+        } else {
+            random_group_element_test(&p);
+        }
+
+        if (!secp256k1_ge_is_infinity(&p)) {
+            secp256k1_ge_to_bytes(buf, &p);
+
+            secp256k1_ge_from_bytes(&q, buf);
+            CHECK(secp256k1_ge_eq_var(&p, &q));
+
+            secp256k1_ge_from_bytes_ext(&q, buf);
+            CHECK(secp256k1_ge_eq_var(&p, &q));
+        }
+        secp256k1_ge_to_bytes_ext(buf, &p);
+        secp256k1_ge_from_bytes_ext(&q, buf);
+        CHECK(secp256k1_ge_eq_var(&p, &q));
+    }
+}
+
 static void run_ge(void) {
     int i;
     for (i = 0; i < COUNT * 32; i++) {
@@ -3989,6 +4017,7 @@ static void run_ge(void) {
     }
     test_add_neg_y_diff_x();
     test_intialized_inf();
+    test_ge_bytes();
 }
 
 static void test_gej_cmov(const secp256k1_gej *a, const secp256k1_gej *b) {
@@ -7427,6 +7456,10 @@ static void run_ecdsa_wycheproof(void) {
 # include "modules/schnorrsig/tests_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_MUSIG
+# include "modules/musig/tests_impl.h"
+#endif
+
 #ifdef ENABLE_MODULE_ELLSWIFT
 # include "modules/ellswift/tests_impl.h"
 #endif
@@ -7777,6 +7810,10 @@ int main(int argc, char **argv) {
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
     run_schnorrsig_tests();
+#endif
+
+#ifdef ENABLE_MODULE_MUSIG
+    run_musig_tests();
 #endif
 
 #ifdef ENABLE_MODULE_ELLSWIFT

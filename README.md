@@ -20,6 +20,7 @@ Features:
 * Optional module for public key recovery.
 * Optional module for ECDH key exchange.
 * Optional module for Schnorr signatures according to [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki).
+* Optional module for the MuSig2 multi-signature scheme according to [BIP-327](https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki).
 
 Implementation details
 ----------------------
