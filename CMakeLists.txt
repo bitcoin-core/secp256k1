@@ -213,23 +213,25 @@ mark_as_advanced(
   CMAKE_SHARED_LINKER_FLAGS_COVERAGE
 )
 
-get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-set(default_build_type "RelWithDebInfo")
-if(is_multi_config)
-  set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
-    "Supported configuration types."
-    FORCE
-  )
-else()
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
-    STRINGS "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage"
-  )
-  if(NOT CMAKE_BUILD_TYPE)
-    message(STATUS "Setting build type to \"${default_build_type}\" as none was specified")
-    set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
-      "Choose the type of build."
+if(PROJECT_IS_TOP_LEVEL)
+  get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  set(default_build_type "RelWithDebInfo")
+  if(is_multi_config)
+    set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
+      "Supported configuration types."
       FORCE
     )
+  else()
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
+      STRINGS "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage"
+    )
+    if(NOT CMAKE_BUILD_TYPE)
+      message(STATUS "Setting build type to \"${default_build_type}\" as none was specified")
+      set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
+        "Choose the type of build."
+        FORCE
+      )
+    endif()
   endif()
 endif()
 
