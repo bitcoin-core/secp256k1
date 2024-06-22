@@ -735,20 +735,20 @@ jobs:
         run: cmake -E env CFLAGS="/WX ${{ matrix.configuration.cpp_flags }}" cmake -B build -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON ${{ matrix.configuration.cmake_options }}
 
       - name: Build
-        run: cmake --build build --config RelWithDebInfo -- /p:UseMultiToolTask=true /maxCpuCount
+        run: cmake --build build --config Release -- /p:UseMultiToolTask=true /maxCpuCount
 
       - name: Binaries info
         # Use the bash shell included with Git for Windows.
         shell: bash
         run: |
-          cd build/src/RelWithDebInfo && file *tests.exe bench*.exe libsecp256k1-*.dll || true
+          cd build/src/Release && file *tests.exe bench*.exe libsecp256k1-*.dll || true
 
       - name: Check
         run: |
-          ctest -C RelWithDebInfo --test-dir build -j ([int]$env:NUMBER_OF_PROCESSORS + 1)
-          build\src\RelWithDebInfo\bench_ecmult.exe
-          build\src\RelWithDebInfo\bench_internal.exe
-          build\src\RelWithDebInfo\bench.exe
+          ctest -C Release --test-dir build -j ([int]$env:NUMBER_OF_PROCESSORS + 1)
+          build\src\Release\bench_ecmult.exe
+          build\src\Release\bench_internal.exe
+          build\src\Release\bench.exe
 
   win64-native-headers:
     name: "x64 (MSVC): C++ (public headers)"
