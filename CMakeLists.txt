@@ -273,10 +273,6 @@ if(SECP256K1_BUILD_CTIME_TESTS)
   unset(msan_enabled)
 endif()
 
-# Ask CTest to create a "check" target (e.g., make check) as alias for the "test" target.
-# CTEST_TEST_TARGET_ALIAS is not documented but supposed to be user-facing.
-# See: https://gitlab.kitware.com/cmake/cmake/-/commit/816c9d1aa1f2b42d40c81a991b68c96eb12b6d2
-set(CTEST_TEST_TARGET_ALIAS check)
 include(CTest)
 # We do not use CTest's BUILD_TESTING because a single toggle for all tests is too coarse for our needs.
 mark_as_advanced(BUILD_TESTING)
