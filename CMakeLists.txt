@@ -41,6 +41,18 @@ set(CMAKE_C_STANDARD 90)
 set(CMAKE_C_EXTENSIONS OFF)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+include(FetchContent)
+FetchContent_Declare(BitcoinCoreCmakeUtils
+  GIT_REPOSITORY https://github.com/hebasto/bitcoin-core-cmake-utils.git
+  GIT_TAG e7b3bbb31da6675b0c9cd5f4e46cedee9c225233
+)
+FetchContent_GetProperties(BitcoinCoreCmakeUtils)
+if(NOT bitcoincorecmakeutils_POPULATED)
+  FetchContent_Populate(BitcoinCoreCmakeUtils)
+endif()
+if(NOT "${bitcoincorecmakeutils_SOURCE_DIR}" STREQUAL "")
+  list(APPEND CMAKE_MODULE_PATH ${bitcoincorecmakeutils_SOURCE_DIR}/cmake)
+endif()
 
 option(BUILD_SHARED_LIBS "Build shared libraries." ON)
 option(SECP256K1_DISABLE_SHARED "Disable shared library. Overrides BUILD_SHARED_LIBS." OFF)
@@ -198,17 +210,10 @@ endif()
 
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
-if(MSVC)
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
-else()
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
-  # Prefer -O2 optimization level. (-O3 is CMake's default for Release for many compilers.)
-  string(REGEX REPLACE "-O3[ \t\r\n]*" "-O2" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-endif()
+include(DeleteNDebugFromAllConfig)
+bitcoincore_delete_ndebug_from_all_configs(C)
+# Prefer -O2 optimization level. (-O3 is CMake's default for Release for many compilers.)
+string(REGEX REPLACE "-O3[ \t\r\n]*" "-O2" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 
 # Define custom "Coverage" build type.
 set(CMAKE_C_FLAGS_COVERAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O0 -DCOVERAGE=1 --coverage" CACHE STRING
