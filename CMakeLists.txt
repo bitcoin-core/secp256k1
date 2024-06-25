@@ -280,14 +280,16 @@ if(SECP256K1_BUILD_BENCHMARK OR SECP256K1_BUILD_TESTS OR SECP256K1_BUILD_EXHAUST
   enable_testing()
 endif()
 
-set(SECP256K1_LATE_CFLAGS "" CACHE STRING "Compiler flags that are added to the command line after all other flags added by the build system.")
-include(AllTargetsCompileOptions)
+set(SECP256K1_APPEND_CFLAGS "" CACHE STRING "Compiler flags that are appended to the command line after all other flags added by the build system. This variable is intended for debugging and special builds.")
+if(SECP256K1_APPEND_CFLAGS)
+  # Appending to this low-level rule variable is the only way to
+  # guarantee that the flags appear at the end of the command line.
+  string(APPEND CMAKE_C_COMPILE_OBJECT " ${SECP256K1_APPEND_CFLAGS}")
+endif()
 
 add_subdirectory(src)
-all_targets_compile_options(src "${SECP256K1_LATE_CFLAGS}")
 if(SECP256K1_BUILD_EXAMPLES)
   add_subdirectory(examples)
-  all_targets_compile_options(examples "${SECP256K1_LATE_CFLAGS}")
 endif()
 
 message("\n")
@@ -361,8 +363,8 @@ else()
   message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
   message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_DEBUG}")
 endif()
-if(SECP256K1_LATE_CFLAGS)
-  message("SECP256K1_LATE_CFLAGS ................. ${SECP256K1_LATE_CFLAGS}")
+if(SECP256K1_APPEND_CFLAGS)
+  message("SECP256K1_APPEND_CFLAGS ............... ${SECP256K1_APPEND_CFLAGS}")
 endif()
 message("")
 if(print_msan_notice)
