@@ -203,22 +203,22 @@ AC_ARG_WITH([test-override-wide-multiply], [] ,[set_widemul=$withval], [set_wide
 AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm32|no|auto],
 [assembly to use (experimental: arm32) [default=auto]])],[req_asm=$withval], [req_asm=auto])
 
-AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
+AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE],
 [window size for ecmult precomputation for verification, specified as integer in range [2..24].]
 [Larger values result in possibly better performance at the cost of an exponentially larger precomputed table.]
 [The table will store 2^(SIZE-1) * 64 bytes of data but can be larger in memory due to platform-specific padding and alignment.]
 [A window size larger than 15 will require you delete the prebuilt precomputed_ecmult.c file so that it can be rebuilt.]
 [For very large window sizes, use "make -j 1" to reduce memory use during compilation.]
-["auto" is a reasonable setting for desktop machines (currently 15). [default=auto]]
+[The default value is a reasonable setting for desktop machines (currently 15). [default=15]]
 )],
-[req_ecmult_window=$withval], [req_ecmult_window=auto])
+[set_ecmult_window=$withval], [set_ecmult_window=15])
 
-AC_ARG_WITH([ecmult-gen-kb], [AS_HELP_STRING([--with-ecmult-gen-kb=2|22|86|auto],
+AC_ARG_WITH([ecmult-gen-kb], [AS_HELP_STRING([--with-ecmult-gen-kb=2|22|86],
 [The size of the precomputed table for signing in multiples of 1024 bytes (on typical platforms).]
 [Larger values result in possibly better signing/keygeneration performance at the cost of a larger table.]
-["auto" is a reasonable setting for desktop machines (currently 22). [default=auto]]
+[The default value is a reasonable setting for desktop machines (currently 22). [default=22]]
 )],
-[req_ecmult_gen_kb=$withval], [req_ecmult_gen_kb=auto])
+[set_ecmult_gen_kb=$withval], [set_ecmult_gen_kb=22])
 
 AC_ARG_WITH([valgrind], [AS_HELP_STRING([--with-valgrind=yes|no|auto],
 [Build with extra checks for running inside Valgrind [default=auto]]
@@ -349,14 +349,7 @@ auto)
   ;;
 esac
 
-# Set ecmult window size
-if test x"$req_ecmult_window" = x"auto"; then
-  set_ecmult_window=15
-else
-  set_ecmult_window=$req_ecmult_window
-fi
-
-error_window_size=['window size for ecmult precomputation not an integer in range [2..24] or "auto"']
+error_window_size=['window size for ecmult precomputation not an integer in range [2..24]']
 case $set_ecmult_window in
 ''|*[[!0-9]]*)
   # no valid integer
@@ -371,13 +364,6 @@ case $set_ecmult_window in
   ;;
 esac
 
-# Set ecmult gen kb
-if test x"$req_ecmult_gen_kb" = x"auto"; then
-  set_ecmult_gen_kb=22
-else
-  set_ecmult_gen_kb=$req_ecmult_gen_kb
-fi
-
 case $set_ecmult_gen_kb in
 2)
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOMB_BLOCKS=2 -DCOMB_TEETH=5"
@@ -389,7 +375,7 @@ case $set_ecmult_gen_kb in
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOMB_BLOCKS=43 -DCOMB_TEETH=6"
   ;;
 *)
-  AC_MSG_ERROR(['ecmult gen table size not 2, 22, 86 or "auto"'])
+  AC_MSG_ERROR(['ecmult gen table size not 2, 22 or 86'])
   ;;
 esac
 
