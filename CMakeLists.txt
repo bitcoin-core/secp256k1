@@ -7,6 +7,9 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.15)
   cmake_policy(SET CMP0092 NEW)
 endif()
 
+#=============================
+# Project / Package metadata
+#=============================
 project(libsecp256k1
   # The package (a.k.a. release) version is based on semantic versioning 2.0.0 of
   # the API. All changes in experimental modules are treated as
@@ -16,6 +19,8 @@ project(libsecp256k1
   HOMEPAGE_URL "https://github.com/bitcoin-core/secp256k1"
   LANGUAGES C
 )
+enable_testing()
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 if(CMAKE_VERSION VERSION_LESS 3.21)
   # Emulates CMake 3.21+ behavior.
@@ -37,11 +42,15 @@ set(${PROJECT_NAME}_LIB_VERSION_CURRENT 4)
 set(${PROJECT_NAME}_LIB_VERSION_REVISION 1)
 set(${PROJECT_NAME}_LIB_VERSION_AGE 2)
 
+#=============================
+# Language setup
+#=============================
 set(CMAKE_C_STANDARD 90)
 set(CMAKE_C_EXTENSIONS OFF)
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-
+#=============================
+# Configurable options
+#=============================
 option(BUILD_SHARED_LIBS "Build shared libraries." ON)
 option(SECP256K1_DISABLE_SHARED "Disable shared library. Overrides BUILD_SHARED_LIBS." OFF)
 if(SECP256K1_DISABLE_SHARED)
@@ -267,10 +276,6 @@ if(SECP256K1_BUILD_CTIME_TESTS)
     set(print_msan_notice YES)
   endif()
   unset(msan_enabled)
-endif()
-
-if(SECP256K1_BUILD_BENCHMARK OR SECP256K1_BUILD_TESTS OR SECP256K1_BUILD_EXHAUSTIVE_TESTS OR SECP256K1_BUILD_CTIME_TESTS OR SECP256K1_BUILD_EXAMPLES)
-  enable_testing()
 endif()
 
 set(SECP256K1_APPEND_CFLAGS "" CACHE STRING "Compiler flags that are appended to the command line after all other flags added by the build system. This variable is intended for debugging and special builds.")
