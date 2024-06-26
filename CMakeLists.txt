@@ -269,9 +269,6 @@ if(SECP256K1_BUILD_CTIME_TESTS)
   unset(msan_enabled)
 endif()
 
-include(CTest)
-# We do not use CTest's BUILD_TESTING because a single toggle for all tests is too coarse for our needs.
-mark_as_advanced(BUILD_TESTING)
 if(SECP256K1_BUILD_BENCHMARK OR SECP256K1_BUILD_TESTS OR SECP256K1_BUILD_EXHAUSTIVE_TESTS OR SECP256K1_BUILD_CTIME_TESTS OR SECP256K1_BUILD_EXAMPLES)
   enable_testing()
 endif()
