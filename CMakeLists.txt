@@ -191,7 +191,6 @@ endif()
 # Define custom "Coverage" build type.
 set(CMAKE_C_FLAGS_COVERAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O0 -DCOVERAGE=1 --coverage" CACHE STRING
   "Flags used by the C compiler for compiling and linking during \"Coverage\" builds."
-  FORCE
 )
 mark_as_advanced(
   CMAKE_C_FLAGS_COVERAGE
