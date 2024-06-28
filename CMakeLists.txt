@@ -269,6 +269,11 @@ if(SECP256K1_BUILD_CTIME_TESTS)
   unset(msan_enabled)
 endif()
 
+if(NOT SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS)
+  include(TryAppendLinkerFlags)
+  try_append_linker_flags(-Wl,--no-undefined)
+endif()
+
 include(CTest)
 # We do not use CTest's BUILD_TESTING because a single toggle for all tests is too coarse for our needs.
 mark_as_advanced(BUILD_TESTING)
