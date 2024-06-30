@@ -67,14 +67,16 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
     volatile int32_t cond_add, cond_negate;
 
 #ifdef VERIFY
-    /* Verify that all limbs are in range (-2^30,2^30). */
-    int i;
-    for (i = 0; i < 9; ++i) {
-        VERIFY_CHECK(r->v[i] >= -M30);
-        VERIFY_CHECK(r->v[i] <= M30);
+    {
+        /* Verify that all limbs are in range (-2^30,2^30). */
+        int i_ver;
+        for (i_ver = 0; i_ver < 9; ++i_ver) {
+            VERIFY_CHECK(r->v[i_ver] >= -M30);
+            VERIFY_CHECK(r->v[i_ver] <= M30);
+        }
+        VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(r, 9, &modinfo->modulus, -2) > 0); /* r > -2*modulus */
+        VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(r, 9, &modinfo->modulus, 1) < 0); /* r < modulus */
     }
-    VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(r, 9, &modinfo->modulus, -2) > 0); /* r > -2*modulus */
-    VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(r, 9, &modinfo->modulus, 1) < 0); /* r < modulus */
 #endif
 
     /* In a first step, add the modulus if the input is negative, and then negate if requested.
@@ -586,7 +588,7 @@ static void secp256k1_modinv32_var(secp256k1_modinv32_signed30 *x, const secp256
     secp256k1_modinv32_signed30 f = modinfo->modulus;
     secp256k1_modinv32_signed30 g = *x;
 #ifdef VERIFY
-    int i = 0;
+    int i_ver = 0;
 #endif
     int j, len = 9;
     int32_t eta = -1; /* eta = -delta; delta is initially 1 (faster for the variable-time code) */
@@ -631,7 +633,7 @@ static void secp256k1_modinv32_var(secp256k1_modinv32_signed30 *x, const secp256
             --len;
         }
 
-        VERIFY_CHECK(++i < 25); /* We should never need more than 25*30 = 750 divsteps */
+        VERIFY_CHECK(++i_ver < 25); /* We should never need more than 25*30 = 750 divsteps */
         VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(&f, len, &modinfo->modulus, -1) > 0); /* f > -modulus */
         VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(&f, len, &modinfo->modulus, 1) <= 0); /* f <= modulus */
         VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(&g, len, &modinfo->modulus, -1) > 0); /* g > -modulus */
