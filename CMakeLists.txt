@@ -97,7 +97,7 @@ include(CheckStringOptionValue)
 check_string_option_value(SECP256K1_ECMULT_WINDOW_SIZE)
 add_compile_definitions(ECMULT_WINDOW_SIZE=${SECP256K1_ECMULT_WINDOW_SIZE})
 
-set(SECP256K1_ECMULT_GEN_KB 22 CACHE STRING "The size of the precomputed table for signing in multiples of 1024 bytes (on typical platforms). Larger values result in possibly better signing or key generation performance at the cost of a larger table. Valid choices are 2, 22, 86. The default value is a reasonable setting for desktop machines (currently 22). [default=22]")
+set(SECP256K1_ECMULT_GEN_KB 86 CACHE STRING "The size of the precomputed table for signing in multiples of 1024 bytes (on typical platforms). Larger values result in possibly better signing or key generation performance at the cost of a larger table. Valid choices are 2, 22, 86. The default value is a reasonable setting for desktop machines (currently 86). [default=86]")
 set_property(CACHE SECP256K1_ECMULT_GEN_KB PROPERTY STRINGS 2 22 86)
 check_string_option_value(SECP256K1_ECMULT_GEN_KB)
 if(SECP256K1_ECMULT_GEN_KB EQUAL 2)
