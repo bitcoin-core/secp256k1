@@ -864,5 +864,5 @@ jobs:
           CI_BUILD: ${{ runner.temp }}/${{ github.run_id }}${{ github.action }}/build
           CI_INSTALL: ${{ runner.temp }}/${{ github.run_id }}${{ github.action }}/install
         run: |
-          cmake -B ${{ env.CI_BUILD }} -DCMAKE_INSTALL_PREFIX=${{ env.CI_INSTALL }} && cmake --build ${{ env.CI_BUILD }} --target install && ls -RlAh ${{ env.CI_INSTALL }}
+          cmake -B ${{ env.CI_BUILD }} -DCMAKE_INSTALL_PREFIX=${{ env.CI_INSTALL }} && cmake --install ${{ env.CI_BUILD }} && ls -RlAh ${{ env.CI_INSTALL }}
           gcc -o ecdsa examples/ecdsa.c -I ${{ env.CI_INSTALL }}/include -L ${{ env.CI_INSTALL }}/lib*/ -l secp256k1 -Wl,-rpath,"${{ env.CI_INSTALL }}/lib",-rpath,"${{ env.CI_INSTALL }}/lib64" && ./ecdsa
