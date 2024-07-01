@@ -22,7 +22,7 @@ env:
   BUILD: 'check'
   ### secp256k1 config
   ECMULTWINDOW: 15
-  ECMULTGENKB: 22
+  ECMULTGENKB: 86
   ASM: 'no'
   WIDEMUL: 'auto'
   WITH_VALGRIND: 'yes'
