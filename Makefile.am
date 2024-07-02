@@ -259,10 +259,15 @@ maintainer-clean-local: clean-precomp
 ### Pregenerated test vectors
 ### (see the comments in the previous section for detailed rationale)
 TESTVECTORS = src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
+TESTVECTORS += src/modules/silentpayments/vectors.h
 
 src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
 	mkdir -p $(@D)
 	python3 $(top_srcdir)/tools/tests_wycheproof_generate.py $(top_srcdir)/src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json > $@
+
+src/modules/silentpayments/vectors.h:
+	mkdir -p $(@D)
+	python3 $(top_srcdir)/tools/tests_silentpayments_generate.py $(top_srcdir)/src/modules/silentpayments/bip352_send_and_receive_test_vectors.json > $@
 
 testvectors: $(TESTVECTORS)
 
