@@ -264,6 +264,10 @@ maintainer-clean-local: clean-precomp
 ### (see the comments in the previous section for detailed rationale)
 TESTVECTORS = src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
 
+if ENABLE_MODULE_SILENTPAYMENTS
+TESTVECTORS += src/modules/silentpayments/vectors.h
+endif
+
 if ENABLE_MODULE_ECDH
 TESTVECTORS += src/wycheproof/ecdh_secp256k1_test.h
 endif
@@ -275,6 +279,10 @@ src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
 src/wycheproof/ecdh_secp256k1_test.h:
 	mkdir -p $(@D)
 	python3 $(top_srcdir)/tools/tests_wycheproof_generate_ecdh.py $(top_srcdir)/src/wycheproof/ecdh_secp256k1_test.json > $@
+
+src/modules/silentpayments/vectors.h:
+	mkdir -p $(@D)
+	python3 $(top_srcdir)/tools/tests_silentpayments_generate.py $(top_srcdir)/src/modules/silentpayments/bip352_send_and_receive_test_vectors.json > $@
 
 testvectors: $(TESTVECTORS)
 
@@ -298,9 +306,11 @@ EXTRA_DIST += sage/secp256k1_params.sage
 EXTRA_DIST += sage/weierstrass_prover.sage
 EXTRA_DIST += src/wycheproof/WYCHEPROOF_COPYING
 EXTRA_DIST += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json
+EXTRA_DIST += src/modules/silentpayments/bip352_send_and_receive_test_vectors.json
 EXTRA_DIST += src/wycheproof/ecdh_secp256k1_test.json
 EXTRA_DIST += tools/tests_wycheproof_generate_ecdsa.py
 EXTRA_DIST += tools/tests_wycheproof_generate_ecdh.py
+EXTRA_DIST += tools/tests_silentpayments_generate.py
 
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include
