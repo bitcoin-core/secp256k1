@@ -8,6 +8,38 @@
 extern "C" {
 #endif
 
+/** This module implements incremental (Half-)Aggregation of Schnorr
+ *  signatures as specificed by the Bitcoin Improvement Proposal draft
+ *  "Half-Aggregation of BIP 340 signatures"
+ *  (https://github.com/BlockstreamResearch/cross-input-aggregation/blob/master/half-aggregation.mediawiki).
+ */
+
+/** (Half-)Aggregate a sequence of Schnorr signatures.
+ *
+ *  Returns 1 on success, 0 on failure.
+ *  Args:           ctx: a secp256k1 context object.
+ *  Out:         aggsig: pointer to an array of aggsig_len many bytes to
+ *                       store the serialized aggregate signature. The size
+ *                       is expected to be 32*(n+1) bytes.
+ *  In/Out:  aggsig_len: size of the aggsig array that is passed in bytes;
+ *                       will be overwritten to be the exact size of aggsig.
+ *  In:         pubkeys: Array of n many x-only public keys.
+ *                       Can only be NULL if n is 0.
+ *               msgs32: Array of n many 32-byte messages.
+ *                       Can only be NULL if n is 0.
+ *               sigs64: Array of n many 64-byte signatures.
+ *                       Can only be NULL if n is 0.
+ *                    n: number of signatures to be aggregated.
+ */
+SECP256K1_API int secp256k1_schnorrsig_aggregate(
+    const secp256k1_context *ctx,
+    unsigned char *aggsig,
+    size_t *aggsig_len,
+    const secp256k1_xonly_pubkey *pubkeys,
+    const unsigned char *msgs32,
+    const unsigned char *sigs64,
+    size_t n
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
 /** Incrementally (Half-)Aggregate a sequence of Schnorr
  *  signatures to an existing half-aggregate signature.
@@ -22,7 +54,7 @@ extern "C" {
  *           aggsig_len: size of aggsig array in bytes.
  *                       Should be large enough to hold the new
  *                       serialized aggregate signature, i.e.,
- *                       should satisfy aggsig_size >= 32*(n_before+n_new+1).
+ *                       should satisfy aggsig_len >= 32*(n_before+n_new+1).
  *                       It will be overwritten to be the exact size of the
  *                       resulting aggsig.
  *  In:     all_pubkeys: Array of (n_before + n_new) many x-only public keys,
@@ -51,32 +83,6 @@ SECP256K1_API int secp256k1_schnorrsig_inc_aggregate(
     size_t n_new
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
 
-/** (Half-)Aggregate a sequence of Schnorr signatures.
- *
- *  Returns 1 on success, 0 on failure.
- *  Args:           ctx: a secp256k1 context object.
- *  Out:         aggsig: pointer to an array of aggsig_len many bytes to
- *                       store the serialized aggregate signature.
- *  In/Out:  aggsig_len: size of the aggsig array that is passed in bytes;
- *                       will be overwritten to be the exact size of aggsig.
- *  In:         pubkeys: Array of n many x-only public keys.
- *                       Can only be NULL if n is 0.
- *               msgs32: Array of n many 32-byte messages.
- *                       Can only be NULL if n is 0.
- *               sigs64: Array of n many 64-byte signatures.
- *                       Can only be NULL if n is 0.
- *                    n: number of signatures to be aggregated.
- */
-SECP256K1_API int secp256k1_schnorrsig_aggregate(
-    const secp256k1_context *ctx,
-    unsigned char *aggsig,
-    size_t *aggsig_len,
-    const secp256k1_xonly_pubkey *pubkeys,
-    const unsigned char *msgs32,
-    const unsigned char *sigs64,
-    size_t n
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
-
 /** Verify a (Half-)aggregate Schnorr signature.
  *
  *  Returns:          1: correct signature.
@@ -85,11 +91,11 @@ SECP256K1_API int secp256k1_schnorrsig_aggregate(
  *  In:         pubkeys: Array of n many x-only public keys. Can only be NULL if n is 0.
  *               msgs32: Array of n many 32-byte messages. Can only be NULL if n is 0.
  *                    n: number of signatures to that have been aggregated.
- *               aggsig: Pointer to an array of aggsig_size many bytes
+ *               aggsig: Pointer to an array of aggsig_len many bytes
  *                       containing the serialized aggregate
  *                       signature to be verified.
  *           aggsig_len: Size of the aggregate signature in bytes.
- *                       Should be aggsig_len = 32*(n+1)
+ *                       Must be aggsig_len = 32*(n+1)
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_aggverify(
     const secp256k1_context *ctx,
