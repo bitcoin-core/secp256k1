@@ -114,6 +114,7 @@ Usage examples can be found in the [examples](examples) directory. To compile th
   * [ECDSA example](examples/ecdsa.c)
   * [Schnorr signatures example](examples/schnorr.c)
   * [Deriving a shared secret (ECDH) example](examples/ecdh.c)
+  * [ElligatorSwift key exchange example](examples/ellswift.c)
 
 To compile the Schnorr signature and ECDH examples, you also need to configure with `--enable-module-schnorrsig` and `--enable-module-ecdh`.
 
