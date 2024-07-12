@@ -10,13 +10,6 @@ function(add_example name)
   )
   set(test_name ${name}_example)
   add_test(NAME ${test_name} COMMAND ${target_name})
-  if(BUILD_SHARED_LIBS AND MSVC)
-    # The DLL must reside either in the same folder where the executable is
-    # or somewhere in PATH. Using the latter option.
-    set_tests_properties(${test_name} PROPERTIES
-      ENVIRONMENT "PATH=$<TARGET_FILE_DIR:secp256k1>;$ENV{PATH}"
-    )
-  endif()
 endfunction()
 
 add_example(ecdsa)

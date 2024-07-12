@@ -741,14 +741,14 @@ jobs:
         # Use the bash shell included with Git for Windows.
         shell: bash
         run: |
-          cd build/src/RelWithDebInfo && file *tests.exe bench*.exe libsecp256k1-*.dll || true
+          cd build/bin/RelWithDebInfo && file *tests.exe bench*.exe libsecp256k1-*.dll || true
 
       - name: Check
         run: |
           ctest -C RelWithDebInfo --test-dir build -j ([int]$env:NUMBER_OF_PROCESSORS + 1)
-          build\src\RelWithDebInfo\bench_ecmult.exe
-          build\src\RelWithDebInfo\bench_internal.exe
-          build\src\RelWithDebInfo\bench.exe
+          build\bin\RelWithDebInfo\bench_ecmult.exe
+          build\bin\RelWithDebInfo\bench_internal.exe
+          build\bin\RelWithDebInfo\bench.exe
 
   win64-native-headers:
     name: "x64 (MSVC): C++ (public headers)"
