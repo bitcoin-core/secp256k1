@@ -58,28 +58,59 @@ linux_arm64_container_snippet: &LINUX_ARM64_CONTAINER
   test_script:
     - docker run --rm --mount "type=bind,src=./,dst=/ci_secp256k1" --env-file /tmp/env --replace --name "ci_secp256k1_arm" "ci_secp256k1_arm" bash -c "cd /ci_secp256k1/ && ./ci/ci.sh"
 
-task:
-  name: "ARM64: Linux (Debian stable)"
-  persistent_worker:
-    labels:
-      type: arm64
-  env:
-    ECDH: yes
-    RECOVERY: yes
-    SCHNORRSIG: yes
-    ELLSWIFT: yes
-  matrix:
-     # Currently only gcc-snapshot, the other compilers are tested on GHA with QEMU
-     - env: { CC: 'gcc-snapshot' }
-  << : *LINUX_ARM64_CONTAINER
-  << : *CAT_LOGS
+linux_armhf_container_snippet: &LINUX_ARMHF_CONTAINER
+  env_script:
+    - env | tee /tmp/env
+  build_script:
+    - DOCKER_BUILDKIT=1 docker build --file "ci/linux-debian.Dockerfile" --tag="ci_secp256k1_arm"
+    - docker image prune --force  # Cleanup stale layers
+  test_script:
+# We need valgrind-dbg for backtraces
+    - docker run --rm --mount "type=bind,src=./,dst=/ci_secp256k1" --env-file /tmp/env --replace --name "ci_secp256k1_arm" "ci_secp256k1_arm" bash -c "apt-get update && apt-get install --no-install-recommends -y valgrind:armhf valgrind-dbg:armhf && cd /ci_secp256k1/ && ./ci/ci.sh"
+
+# task:
+#   name: "ARM64: Linux (Debian stable)"
+#   persistent_worker:
+#     labels:
+#       type: arm64
+#   env:
+#     ECDH: yes
+#     RECOVERY: yes
+#     SCHNORRSIG: yes
+#     ELLSWIFT: yes
+#   matrix:
+#      # Currently only gcc-snapshot, the other compilers are tested on GHA with QEMU
+#      - env: { CC: 'gcc-snapshot' }
+#   << : *LINUX_ARM64_CONTAINER
+#   << : *CAT_LOGS
+
+# task:
+#   name: "ARM64: Linux (Debian stable), Valgrind"
+#   persistent_worker:
+#     labels:
+#       type: arm64
+#   env:
+#     ECDH: yes
+#     RECOVERY: yes
+#     SCHNORRSIG: yes
+#     ELLSWIFT: yes
+#     WRAPPER_CMD: 'valgrind --error-exitcode=42'
+#     SECP256K1_TEST_ITERS: 2
+#   matrix:
+#      - env: { CC: 'gcc' }
+#      - env: { CC: 'clang' }
+#      - env: { CC: 'gcc-snapshot' }
+#      - env: { CC: 'clang-snapshot' }
+#   << : *LINUX_ARM64_CONTAINER
+#   << : *CAT_LOGS
 
 task:
-  name: "ARM64: Linux (Debian stable), Valgrind"
+  name: "ARM32: Linux (Debian stable), Valgrind"
   persistent_worker:
     labels:
       type: arm64
   env:
+    HOST: 'arm-linux-gnueabihf'
     ECDH: yes
     RECOVERY: yes
     SCHNORRSIG: yes
@@ -87,9 +118,12 @@ task:
     WRAPPER_CMD: 'valgrind --error-exitcode=42'
     SECP256K1_TEST_ITERS: 2
   matrix:
-     - env: { CC: 'gcc' }
-     - env: { CC: 'clang' }
-     - env: { CC: 'gcc-snapshot' }
-     - env: { CC: 'clang-snapshot' }
-  << : *LINUX_ARM64_CONTAINER
+     - env: { }
+     - env: { EXPERIMENTAL: 'yes', ASM: 'arm32' }
+  matrix:
+     - env: { } # gcc
+     - env: { CC: 'clang --target=arm-linux-gnueabihf', CCASFLAGS: "-Wa,-mthumb" }
+     # - env: { CC: 'gcc-snapshot' } # FIXME multilib gcc?
+     - env: { CC: 'clang-snapshot --target=arm-linux-gnueabihf', CCASFLAGS: "-Wa,-mthumb" }
+  << : *LINUX_ARMHF_CONTAINER
   << : *CAT_LOGS
