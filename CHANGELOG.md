@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Added
  - Added usage example for an ElligatorSwift key exchange.
 
+#### Fixed
+- Fixed compilation when the extrakeys module is disabled.
+
 ## [0.5.0] - 2024-05-06
 
 #### Added
