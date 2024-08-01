@@ -44,7 +44,8 @@ Perform these checks when reviewing the release PR (see below):
 1. Open a PR to the master branch with a commit (using message `"release: prepare for $MAJOR.$MINOR.$PATCH"`, for example) that
    * finalizes the release notes in [CHANGELOG.md](../CHANGELOG.md) by
        * adding a section for the release (make sure that the version number is a link to a diff between the previous and new version),
-       * removing the `[Unreleased]` section header, and
+       * removing the `[Unreleased]` section header,
+       * ensuring that the release notes are not missing entries (check the `needs-changelog` label on github), and
        * including an entry for `### ABI Compatibility` if it doesn't exist,
    * sets `_PKG_VERSION_IS_RELEASE` to `true` in `configure.ac`, and,
    * if this is not a patch release,
