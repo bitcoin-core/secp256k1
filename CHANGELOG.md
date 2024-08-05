@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added
  - Added usage example for an ElligatorSwift key exchange.
+ - New module `musig` implements the MuSig2 multisignature scheme according to the [BIP 327 specification](https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki). See:
+   - Header file `include/secp256k1_musig.h` which defines the new API.
+   - Document `doc/musig.md` for further notes on API usage.
+   - Usage example `examples/musig.c`.
 
 #### Changed
  - The default size of the precomputed table for signing was changed from 22 KiB to 86 KiB. The size can be changed with the configure option `--ecmult-gen-kb` (`SECP256K1_ECMULT_GEN_KB` for CMake).
