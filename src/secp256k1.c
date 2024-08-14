@@ -791,7 +791,7 @@ int secp256k1_ec_pubkey_combine(const secp256k1_context* ctx, secp256k1_pubkey *
     for (i = 0; i < n; i++) {
         ARG_CHECK(pubnonces[i] != NULL);
         secp256k1_pubkey_load(ctx, &Q, pubnonces[i]);
-        secp256k1_gej_add_ge(&Qj, &Qj, &Q);
+        secp256k1_gej_add_ge_var(&Qj, &Qj, &Q, NULL);
     }
     if (secp256k1_gej_is_infinity(&Qj)) {
         return 0;
