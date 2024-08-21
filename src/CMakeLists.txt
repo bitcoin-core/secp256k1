@@ -51,8 +51,8 @@ elseif(APPLE)
   if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.17)
     math(EXPR ${PROJECT_NAME}_compatibility_version "${${PROJECT_NAME}_LIB_VERSION_CURRENT} + 1")
     set_target_properties(secp256k1 PROPERTIES
-      MACHO_COMPATIBILITY_VERSION ${${PROJECT_NAME}_compatibility_version}
-      MACHO_CURRENT_VERSION ${${PROJECT_NAME}_compatibility_version}.${${PROJECT_NAME}_LIB_VERSION_REVISION}
+      MACHO_COMPATIBILITY_VERSION ${${PROJECT_NAME}_compatibility_version}.0.0
+      MACHO_CURRENT_VERSION ${${PROJECT_NAME}_compatibility_version}.${${PROJECT_NAME}_LIB_VERSION_REVISION}.0
     )
     unset(${PROJECT_NAME}_compatibility_version)
   elseif(BUILD_SHARED_LIBS)
