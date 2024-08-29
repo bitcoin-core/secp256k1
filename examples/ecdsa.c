@@ -53,14 +53,12 @@ int main(void) {
     /* If the secret key is zero or out of range (bigger than secp256k1's
      * order), we try to sample a new key. Note that the probability of this
      * happening is negligible. */
-    while (1) {
-        if (!fill_random(seckey, sizeof(seckey))) {
-            printf("Failed to generate randomness\n");
-            return 1;
-        }
-        if (secp256k1_ec_seckey_verify(ctx, seckey)) {
-            break;
-        }
+    if (!fill_random(seckey, sizeof(seckey))) {
+        printf("Failed to generate randomness\n");
+        return 1;
+    }
+    if (secp256k1_ec_seckey_verify(ctx, seckey)) {
+        break;
     }
 
     /* Public key creation using a valid context with a verified secret key should never fail */

@@ -51,14 +51,12 @@ int main(void) {
     /* If the secret key is zero or out of range (bigger than secp256k1's
      * order), we try to sample a new key. Note that the probability of this
      * happening is negligible. */
-    while (1) {
-        if (!fill_random(seckey1, sizeof(seckey1)) || !fill_random(seckey2, sizeof(seckey2))) {
-            printf("Failed to generate randomness\n");
-            return 1;
-        }
-        if (secp256k1_ec_seckey_verify(ctx, seckey1) && secp256k1_ec_seckey_verify(ctx, seckey2)) {
-            break;
-        }
+    if (!fill_random(seckey1, sizeof(seckey1)) || !fill_random(seckey2, sizeof(seckey2))) {
+        printf("Failed to generate randomness\n");
+        return 1;
+    }
+    if (secp256k1_ec_seckey_verify(ctx, seckey1) && secp256k1_ec_seckey_verify(ctx, seckey2)) {
+        break;
     }
 
     /* Generate ElligatorSwift public keys. This should never fail with valid context and
