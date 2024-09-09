@@ -77,6 +77,22 @@ AC_DEFUN([SECP_TRY_APPEND_CFLAGS], [
   AC_SUBST($2)
 ])
 
+dnl SECP_TRY_APPEND_LDFLAGS(flags, VAR)
+dnl Append flags to VAR if a linker accepts them.
+AC_DEFUN([SECP_TRY_APPEND_LDFLAGS], [
+  AC_MSG_CHECKING([if linker supports $1])
+  SECP_TRY_APPEND_LDFLAGS_saved_LDFLAGS="$LDFLAGS"
+  LDFLAGS="$1 $LDFLAGS"
+  AC_LINK_IFELSE([AC_LANG_PROGRAM()], [flag_works=yes], [flag_works=no])
+  AC_MSG_RESULT($flag_works)
+  LDFLAGS="$SECP_TRY_APPEND_LDFLAGS_saved_LDFLAGS"
+  if test x"$flag_works" = x"yes"; then
+    $2="$$2 $1"
+  fi
+  unset flag_works
+  AC_SUBST($2)
+])
+
 dnl SECP_SET_DEFAULT(VAR, default, default-dev-mode)
 dnl Set VAR to default or default-dev-mode, depending on whether dev mode is enabled
 AC_DEFUN([SECP_SET_DEFAULT], [
