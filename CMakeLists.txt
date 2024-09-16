@@ -192,14 +192,15 @@ endif()
 
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
-if(MSVC)
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
-else()
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
+foreach(config IN LISTS CMAKE_BUILD_TYPE CMAKE_CONFIGURATION_TYPES)
+  if(config)
+    string(TOUPPER "${config}" config)
+    string(REGEX REPLACE "(^| )[-/]DNDEBUG( |$)" " " CMAKE_C_FLAGS_${config} "${CMAKE_C_FLAGS_${config}}")
+    string(STRIP "${CMAKE_C_FLAGS_${config}}" CMAKE_C_FLAGS_${config})
+  endif()
+endforeach()
+
+if(NOT MSVC)
   # Prefer -O2 optimization level. (-O3 is CMake's default for Release for many compilers.)
   string(REGEX REPLACE "-O3( |$)" "-O2\\1" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 endif()
