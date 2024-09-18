@@ -192,6 +192,12 @@ AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]), [],
     [SECP_SET_DEFAULT([enable_external_default_callbacks], [no], [no])])
 
+if test x"$enable_external_default_callbacks" = x"yes"; then
+  enable_benchmark="no"
+  enable_ctime_tests="no"
+  enable_examples="no"
+fi
+
 # Test-only override of the (autodetected by the C code) "widemul" setting.
 # Legal values are:
 #  * int64 (for [u]int64_t),
