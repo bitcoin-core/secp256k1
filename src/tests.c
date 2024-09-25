@@ -7467,6 +7467,18 @@ static void run_secp256k1_memczero_test(void) {
     CHECK(secp256k1_memcmp_var(buf1, buf2, sizeof(buf1)) == 0);
 }
 
+
+static void run_secp256k1_is_zero_array_test(void) {
+    unsigned char buf1[3] = {0, 1};
+    unsigned char buf2[3] = {1, 0};
+
+    CHECK(secp256k1_is_zero_array(buf1, 0) == 1);
+    CHECK(secp256k1_is_zero_array(buf1, 1) == 1);
+    CHECK(secp256k1_is_zero_array(buf1, 2) == 0);
+    CHECK(secp256k1_is_zero_array(buf2, 1) == 0);
+    CHECK(secp256k1_is_zero_array(buf2, 2) == 0);
+}
+
 static void run_secp256k1_byteorder_tests(void) {
     {
         const uint32_t x = 0xFF03AB45;
@@ -7806,6 +7818,7 @@ int main(int argc, char **argv) {
 
     /* util tests */
     run_secp256k1_memczero_test();
+    run_secp256k1_is_zero_array_test();
     run_secp256k1_byteorder_tests();
 
     run_cmov_tests();
