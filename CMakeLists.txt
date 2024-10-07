@@ -60,12 +60,21 @@ option(SECP256K1_ENABLE_MODULE_ECDH "Enable ECDH module." ON)
 option(SECP256K1_ENABLE_MODULE_RECOVERY "Enable ECDSA pubkey recovery module." OFF)
 option(SECP256K1_ENABLE_MODULE_EXTRAKEYS "Enable extrakeys module." ON)
 option(SECP256K1_ENABLE_MODULE_SCHNORRSIG "Enable schnorrsig module." ON)
+option(SECP256K1_ENABLE_MODULE_MUSIG "Enable musig module." ON)
 option(SECP256K1_ENABLE_MODULE_ELLSWIFT "Enable ElligatorSwift module." ON)
 
 # Processing must be done in a topological sorting of the dependency graph
 # (dependent module first).
 if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
   add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
+endif()
+
+if(SECP256K1_ENABLE_MODULE_MUSIG)
+  if(DEFINED SECP256K1_ENABLE_MODULE_SCHNORRSIG AND NOT SECP256K1_ENABLE_MODULE_SCHNORRSIG)
+    message(FATAL_ERROR "Module dependency error: You have disabled the schnorrsig module explicitly, but it is required by the musig module.")
+  endif()
+  set(SECP256K1_ENABLE_MODULE_SCHNORRSIG ON)
+  add_compile_definitions(ENABLE_MODULE_MUSIG=1)
 endif()
 
 if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
@@ -307,6 +316,7 @@ message("  ECDH ................................ ${SECP256K1_ENABLE_MODULE_ECDH}
 message("  ECDSA pubkey recovery ............... ${SECP256K1_ENABLE_MODULE_RECOVERY}")
 message("  extrakeys ........................... ${SECP256K1_ENABLE_MODULE_EXTRAKEYS}")
 message("  schnorrsig .......................... ${SECP256K1_ENABLE_MODULE_SCHNORRSIG}")
+message("  musig ............................... ${SECP256K1_ENABLE_MODULE_MUSIG}")
 message("  ElligatorSwift ...................... ${SECP256K1_ENABLE_MODULE_ELLSWIFT}")
 message("Parameters:")
 message("  ecmult window size .................. ${SECP256K1_ECMULT_WINDOW_SIZE}")
