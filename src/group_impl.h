@@ -198,7 +198,6 @@ static void secp256k1_ge_set_gej_var(secp256k1_ge *r, secp256k1_gej *a) {
 static void secp256k1_ge_set_all_gej(secp256k1_ge *r, const secp256k1_gej *a, size_t len) {
     secp256k1_fe u;
     size_t i;
-    size_t last_i = SIZE_MAX;
 #ifdef VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GEJ_VERIFY(&a[i]);
@@ -206,29 +205,22 @@ static void secp256k1_ge_set_all_gej(secp256k1_ge *r, const secp256k1_gej *a, si
     }
 #endif
 
-    for (i = 0; i < len; i++) {
-        /* Use destination's x coordinates as scratch space */
-        if (last_i == SIZE_MAX) {
-            r[i].x = a[i].z;
-        } else {
-            secp256k1_fe_mul(&r[i].x, &r[last_i].x, &a[i].z);
-        }
-        last_i = i;
-    }
-    if (last_i == SIZE_MAX) {
+    if (len == 0) {
         return;
     }
-    secp256k1_fe_inv(&u, &r[last_i].x);
 
-    i = last_i;
-    while (i > 0) {
-        i--;
-        secp256k1_fe_mul(&r[last_i].x, &r[i].x, &u);
-        secp256k1_fe_mul(&u, &u, &a[last_i].z);
-        last_i = i;
+    /* Use destination's x coordinates as scratch space */
+    r[0].x = a[0].z;
+    for (i = 1; i < len; i++) {
+        secp256k1_fe_mul(&r[i].x, &r[i - 1].x, &a[i].z);
     }
-    VERIFY_CHECK(!a[last_i].infinity);
-    r[last_i].x = u;
+    secp256k1_fe_inv(&u, &r[len - 1].x);
+
+    for (i = len - 1; i > 0; i--) {
+        secp256k1_fe_mul(&r[i].x, &r[i - 1].x, &u);
+        secp256k1_fe_mul(&u, &u, &a[i].z);
+    }
+    r[0].x = u;
 
     for (i = 0; i < len; i++) {
         secp256k1_ge_set_gej_zinv(&r[i], &a[i], &r[i].x);
