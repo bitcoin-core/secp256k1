@@ -351,6 +351,10 @@ static void test_exhaustive_sign(const secp256k1_context *ctx, const secp256k1_g
 #include "modules/ellswift/tests_exhaustive_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_MUSIG
+#include "modules/musig/tests_exhaustive_impl.h"
+#endif
+
 int main(int argc, char** argv) {
     int i;
     secp256k1_gej groupj[EXHAUSTIVE_TEST_ORDER];
@@ -454,6 +458,9 @@ int main(int argc, char** argv) {
     #if !EXHAUSTIVE_TEST_CURVE_HAS_EVEN_ORDER
         test_exhaustive_ellswift(ctx, group);
     #endif
+#endif
+#ifdef ENABLE_MODULE_MUSIG
+        test_exhaustive_musig(ctx);
 #endif
 
         secp256k1_context_destroy(ctx);
