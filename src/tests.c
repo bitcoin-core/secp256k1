@@ -3842,6 +3842,17 @@ static void test_ge(void) {
             CHECK(secp256k1_ge_eq_var(&ge_set_all_var[i], &ge_set_all[i]));
         }
 
+        /* Test with an array of length 1. */
+        secp256k1_ge_set_all_gej_var(ge_set_all_var, &gej[1], 1);
+        secp256k1_ge_set_all_gej(ge_set_all, &gej[1], 1);
+        CHECK(secp256k1_gej_eq_ge_var(&gej[1], &ge_set_all_var[1]));
+        CHECK(secp256k1_gej_eq_ge_var(&gej[1], &ge_set_all[1]));
+        CHECK(secp256k1_ge_eq_var(&ge_set_all_var[1], &ge_set_all[1]));
+
+        /* Test with an array of length 0. */
+        secp256k1_ge_set_all_gej_var(NULL, NULL, 0);
+        secp256k1_ge_set_all_gej(NULL, NULL, 0);
+
         free(ge_set_all_var);
         free(ge_set_all);
     }
