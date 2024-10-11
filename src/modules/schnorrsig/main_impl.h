@@ -189,6 +189,7 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
     secp256k1_scalar_clear(&k);
     secp256k1_scalar_clear(&sk);
     secp256k1_memclear(seckey, sizeof(seckey));
+    secp256k1_gej_clear(&rj);
 
     return ret;
 }
