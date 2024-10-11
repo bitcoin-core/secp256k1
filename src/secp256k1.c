@@ -597,6 +597,7 @@ static int secp256k1_ec_pubkey_create_helper(const secp256k1_ecmult_gen_context 
 
     secp256k1_ecmult_gen(ecmult_gen_ctx, &pj, seckey_scalar);
     secp256k1_ge_set_gej(p, &pj);
+    secp256k1_gej_clear(&pj);
     return ret;
 }
 
