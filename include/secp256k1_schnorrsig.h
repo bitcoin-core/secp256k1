@@ -273,6 +273,63 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_verify(
     const secp256k1_xonly_pubkey *pubkey
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(5);
 
+/** Schnorr Anti-Exfil Protocol
+ *
+ *  The secp256k1_schnorrsig_anti_exfil_*, functions can be used to prevent a signing device from
+ *  exfiltrating the secret signing keys through biased signature nonces. The general
+ *  idea is that a host provides additional randomness to the signing device client
+ *  and the client commits to the randomness in the nonce using sign-to-contract.
+ *
+ *  The following scheme is described by Stepan Snigirev here:
+ *    https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2020-February/017655.html
+ *  and by Pieter Wuille (as "Scheme 6") here:
+ *    https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2020-March/017667.html
+ *
+ *  In order to ensure the host cannot trick the signing device into revealing its
+ *  keys, or the signing device to bias the nonce despite the host's contributions,
+ *  the host and client must engage in a commit-reveal protocol as follows:
+ *  1. The host draws randomness `rho` and computes a sha256 commitment to it using
+ *     `secp256k1_schnorrsig_anti_exfil_host_commit`. It sends this to the signing device.
+ *  2. The signing device computes a public nonce `R` using the host's commitment
+ *     as auxiliary randomness, using `secp256k1_schnorrsig_anti_exfil_signer_commit`.
+ *     The signing device sends the resulting `R` to the host as a s2c_opening.
+ *
+ *     If, at any point from this step onward, the hardware device fails, it is
+ *     okay to restart the protocol using **exactly the same `rho`** and checking
+ *     that the hardware device proposes **exactly the same** `R`. Otherwise, the
+ *     hardware device may be selectively aborting and thereby biasing the set of
+ *     nonces that are used in actual signatures.
+ *
+ *     It takes many (>100) such aborts before there is a plausible attack, given
+ *     current knowledge in 2024. However such aborts accumulate even across a total
+ *     replacement of all relevant devices (but not across replacement of the actual
+ *     signing keys with new independently random ones).
+ *
+ *     In case the hardware device cannot be made to sign with the given `rho`, `R`
+ *     pair, wallet authors should alert the user and present a very scary message
+ *     implying that if this happens more than even a few times, say 20 or more times
+ *     EVER, they should change hardware vendors and perhaps sweep their coins.
+ *
+ *  3. The host replies with `rho` generated in step 1.
+ *  4. The device signs with `secp256k1_schnorrsig_sign_custom`, using `rho` as `s2c_data32` of the
+ *     extraparams, and sends the signature to the host.
+ *  5. The host verifies that the signature's public nonce matches the opening from
+ *     step 2 and its original randomness `rho`, using `secp256k1_schnorrsig_anti_exfil_host_verify`.
+ *
+ *  Rationale:
+ *      - The reason for having a host commitment is to allow the signing device to
+ *        deterministically derive a unique nonce even if the host restarts the protocol
+ *        using the same message and keys. Otherwise the signer might reuse the original
+ *        nonce in two iterations of the protocol with different `rho`, which leaks the
+ *        the secret key.
+ *      - The signer does not need to check that the host commitment matches the host's
+ *        claimed `rho`. Instead it re-derives the commitment (and its original `R`) from
+ *        the provided `rho`. If this differs from the original commitment, the result
+ *        will be an invalid `s2c_opening`, but since `R` was unique there is no risk to
+ *        the signer's secret keys. Because of this, the signing device does not need to
+ *        maintain any state about the progress of the protocol.
+ */
+
 /** Verify a sign-to-contract commitment.
  *
  *  Returns: 1: the signature contains a commitment to data32
