@@ -47,8 +47,8 @@ int main(void) {
         return 1;
     }
     /* If the secret key is zero or out of range (greater than secp256k1's
-    * order), we fail. Note that the probability of this occurring
-    * is negligible with a properly functioning random number generator. */
+    * order), we fail. Note that the probability of this occurring is negligible
+    * with a properly functioning random number generator. */
     if (!secp256k1_ec_seckey_verify(ctx, seckey1) || !secp256k1_ec_seckey_verify(ctx, seckey2)) {
         printf("Generated secret key is invalid. This indicates an issue with the random number generator.\n");
         return 1;
