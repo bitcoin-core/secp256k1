@@ -679,12 +679,14 @@ SECP256K1_API int secp256k1_ecdsa_sign(
     const void *ndata
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
-/** Verify an ECDSA secret key.
+/** Verify an elliptic curve secret key.
  *
  *  A secret key is valid if it is not 0 and less than the secp256k1 curve order
  *  when interpreted as an integer (most significant byte first). The
  *  probability of choosing a 32-byte string uniformly at random which is an
- *  invalid secret key is negligible.
+ *  invalid secret key is negligible. However, if it does happen it should 
+ *  be assumed that the randomness source is severely broken and there should
+ *  be no retry.
  *
  *  Returns: 1: secret key is valid
  *           0: secret key is invalid
