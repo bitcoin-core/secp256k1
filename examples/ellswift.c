@@ -47,14 +47,13 @@ int main(void) {
     assert(return_val);
 
     /*** Generate secret keys ***/
-
-    /* If the secret key is zero or out of range (greater than secp256k1's
-     * order), we return 1. Note that the probability of this occurring
-     * is negligible with a properly functioning random number generator. */
     if (!fill_random(seckey1, sizeof(seckey1)) || !fill_random(seckey2, sizeof(seckey2))) {
         printf("Failed to generate randomness\n");
         return 1;
     }
+    /* If the secret key is zero or out of range (greater than secp256k1's
+    * order), we fail. Note that the probability of this occurring is negligible
+    * with a properly functioning random number generator. */
     if (!secp256k1_ec_seckey_verify(ctx, seckey1) || !secp256k1_ec_seckey_verify(ctx, seckey2)) {
         printf("Generated secret key is invalid. This indicates an issue with the random number generator.\n");
         return 1;

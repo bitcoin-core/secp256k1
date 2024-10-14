@@ -38,14 +38,17 @@ struct signer {
 /* Create a key pair, store it in signer_secrets->keypair and signer->pubkey */
 static int create_keypair(const secp256k1_context* ctx, struct signer_secrets *signer_secrets, struct signer *signer) {
     unsigned char seckey[32];
-    while (1) {
-        if (!fill_random(seckey, sizeof(seckey))) {
-            printf("Failed to generate randomness\n");
-            return 0;
-        }
-        if (secp256k1_keypair_create(ctx, &signer_secrets->keypair, seckey)) {
-            break;
-        }
+
+    if (!fill_random(seckey, sizeof(seckey))) {
+        printf("Failed to generate randomness\n");
+        return 0;
+    }
+    /* Try to create a keypair with a valid context. This only fails if the
+     * secret key is zero or out of range (greater than secp256k1's order). Note
+     * that the probability of this occurring is negligible with a properly
+     * functioning random number generator. */
+    if (!secp256k1_keypair_create(ctx, &signer_secrets->keypair, seckey)) {
+        return 0;
     }
     if (!secp256k1_keypair_pub(ctx, &signer->pubkey, &signer_secrets->keypair)) {
         return 0;
