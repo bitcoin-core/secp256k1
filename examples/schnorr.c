@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <secp256k1.h>
 #include <secp256k1_extrakeys.h>
@@ -34,7 +35,7 @@ int main(void) {
     secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     if (!fill_random(randomize, sizeof(randomize))) {
         printf("Failed to generate randomness\n");
-        return 1;
+        return EXIT_FAILURE;
     }
     /* Randomizing the context is recommended to protect against side-channel
      * leakage See `secp256k1_context_randomize` in secp256k1.h for more
@@ -48,13 +49,13 @@ int main(void) {
     * is negligible with a properly functioning random number generator. */
     if (!fill_random(seckey, sizeof(seckey))) {
         printf("Failed to generate randomness\n");
-        return 1;
+        return EXIT_FAILURE;
     }
     /* Try to create a keypair with a valid context, it should only fail if
      * the secret key is zero or out of range. */
     if (!secp256k1_keypair_create(ctx, &keypair, seckey)) {
         printf("Generated secret key is invalid. This indicates an issue with the random number generator.\n");
-	return 1;
+	return EXIT_FAILURE;
     }
 
     /* Extract the X-only public key from the keypair. We pass NULL for
@@ -91,7 +92,7 @@ int main(void) {
     /* Generate 32 bytes of randomness to use with BIP-340 schnorr signing. */
     if (!fill_random(auxiliary_rand, sizeof(auxiliary_rand))) {
         printf("Failed to generate randomness\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     /* Generate a Schnorr signature.
@@ -111,7 +112,7 @@ int main(void) {
      * be parsed correctly */
     if (!secp256k1_xonly_pubkey_parse(ctx, &pubkey, serialized_pubkey)) {
         printf("Failed parsing the public key\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     /* Compute the tagged hash on the received messages using the same tag as the signer. */
@@ -150,5 +151,5 @@ int main(void) {
      * Here we are preventing these writes from being optimized out, as any good compiler
      * will remove any writes that aren't used. */
     secure_erase(seckey, sizeof(seckey));
-    return 0;
+    return EXIT_SUCCESS;
 }
