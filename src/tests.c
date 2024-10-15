@@ -4096,6 +4096,83 @@ static void run_ec_combine(void) {
     }
 }
 
+static void test_ec_commit(void) {
+    secp256k1_scalar seckey_s;
+    secp256k1_ge pubkey;
+    secp256k1_gej pubkeyj;
+    secp256k1_ge commitment;
+    unsigned char data[32];
+    secp256k1_sha256 sha;
+
+    /* Create random keypair and data */
+    testutil_random_scalar_order_test(&seckey_s);
+    secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pubkeyj, &seckey_s);
+    secp256k1_ge_set_gej(&pubkey, &pubkeyj);
+    testrand256_test(data);
+
+    /* Commit to data and verify */
+    secp256k1_sha256_initialize(&sha);
+    CHECK(secp256k1_ec_commit(&commitment, &pubkey, &sha, data, 32) == 1);
+    secp256k1_sha256_initialize(&sha);
+    CHECK(secp256k1_ec_commit_verify(&commitment, &pubkey, &sha, data, 32) == 1);
+    secp256k1_sha256_initialize(&sha);
+    CHECK(secp256k1_ec_commit_seckey(&seckey_s, &pubkey, &sha, data, 32) == 1);
+    secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pubkeyj, &seckey_s);
+    secp256k1_gej_eq_ge_var(&pubkeyj, &commitment);
+
+    /* Check that verification fails with different data */
+    secp256k1_sha256_initialize(&sha);
+    CHECK(secp256k1_ec_commit_verify(&commitment, &pubkey, &sha, data, 31) == 0);
+
+    /* Check that commmitting fails when the inner pubkey is the point at
+     * infinity */
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_ge_set_infinity(&pubkey);
+    CHECK(secp256k1_ec_commit(&commitment, &pubkey, &sha, data, 32) == 0);
+    secp256k1_scalar_set_int(&seckey_s, 0);
+    CHECK(secp256k1_ec_commit_seckey(&seckey_s, &pubkey, &sha, data, 32) == 0);
+    CHECK(secp256k1_ec_commit_verify(&commitment, &pubkey, &sha, data, 32) == 0);
+}
+
+static void test_ec_commit_api(void) {
+    unsigned char seckey[32];
+    secp256k1_scalar seckey_s;
+    secp256k1_ge pubkey;
+    secp256k1_gej pubkeyj;
+    secp256k1_ge commitment;
+    unsigned char data[32];
+    secp256k1_sha256 sha;
+
+    memset(data, 23, sizeof(data));
+
+    /* Create random keypair */
+    testutil_random_scalar_order_test(&seckey_s);
+    secp256k1_scalar_get_b32(seckey, &seckey_s);
+    secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pubkeyj, &seckey_s);
+    secp256k1_ge_set_gej(&pubkey, &pubkeyj);
+
+    secp256k1_sha256_initialize(&sha);
+    CHECK(secp256k1_ec_commit(&commitment, &pubkey, &sha, data, 1) == 1);
+    /* The same pubkey can be both input and output of the function */
+    {
+        secp256k1_ge pubkey_tmp = pubkey;
+        secp256k1_sha256_initialize(&sha);
+        CHECK(secp256k1_ec_commit(&pubkey_tmp, &pubkey_tmp, &sha, data, 1) == 1);
+        secp256k1_ge_eq_var(&commitment, &pubkey_tmp);
+    }
+
+    secp256k1_sha256_initialize(&sha);
+    CHECK(secp256k1_ec_commit_verify(&commitment, &pubkey, &sha, data, 1) == 1);
+}
+
+static void run_ec_commit(void) {
+    int i;
+    for (i = 0; i < COUNT * 8; i++) {
+         test_ec_commit();
+    }
+    test_ec_commit_api();
+}
+
 static void test_group_decompress(const secp256k1_fe* x) {
     /* The input itself, normalized. */
     secp256k1_fe fex = *x;
@@ -7774,6 +7851,7 @@ int main(int argc, char **argv) {
     run_ecmult_const_tests();
     run_ecmult_multi_tests();
     run_ec_combine();
+    run_ec_commit();
 
     /* endomorphism tests */
     run_endomorphism_tests();
