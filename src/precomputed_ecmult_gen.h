@@ -16,7 +16,8 @@ extern "C" {
 #ifdef EXHAUSTIVE_TEST_ORDER
 static secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[COMB_BLOCKS][COMB_POINTS];
 #else
-extern const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[COMB_BLOCKS][COMB_POINTS];
+#include "util_local_visibility.h"
+SECP256K1_LOCAL_VAR const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[COMB_BLOCKS][COMB_POINTS];
 #endif /* defined(EXHAUSTIVE_TEST_ORDER) */
 
 #ifdef __cplusplus

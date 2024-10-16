@@ -40,6 +40,7 @@ env:
   BENCH: 'yes'
   SECP256K1_BENCH_ITERS: 2
   CTIMETESTS: 'yes'
+  SYMBOL_CHECK: 'yes'
   # Compile and run the examples.
   EXAMPLES: 'yes'
 
@@ -461,6 +462,7 @@ jobs:
       ASAN_OPTIONS: 'strict_string_checks=1:detect_stack_use_after_return=1:detect_leaks=1'
       LSAN_OPTIONS: 'use_unaligned=1'
       SECP256K1_TEST_ITERS: 32
+      SYMBOL_CHECK: 'no'
 
     steps:
       - name: Checkout
@@ -525,6 +527,7 @@ jobs:
       SECP256K1_TEST_ITERS: 32
       ASM: 'no'
       WITH_VALGRIND: 'no'
+      SYMBOL_CHECK: 'no'
 
     steps:
       - name: Checkout
@@ -620,6 +623,7 @@ jobs:
       CC: 'clang'
       HOMEBREW_NO_AUTO_UPDATE: 1
       HOMEBREW_NO_INSTALL_CLEANUP: 1
+      SYMBOL_CHECK: 'no'
 
     strategy:
       fail-fast: false
@@ -652,6 +656,11 @@ jobs:
         env: ${{ matrix.env_vars }}
         run: ./ci/ci.sh
 
+      - name: Symbol check
+        run: |
+          python3 -m pip install lief
+          python3 ./tools/symbol-check.py .libs/libsecp256k1.dylib
+
       - run: cat tests.log || true
         if: ${{ always() }}
       - run: cat noverify_tests.log || true
@@ -681,6 +690,7 @@ jobs:
       HOMEBREW_NO_INSTALL_CLEANUP: 1
       WITH_VALGRIND: 'no'
       CTIMETESTS: 'no'
+      SYMBOL_CHECK: 'no'
 
     strategy:
       fail-fast: false
@@ -707,6 +717,15 @@ jobs:
       - name: CI script
         env: ${{ matrix.env_vars }}
         run: ./ci/ci.sh
+
+      - name: Symbol check
+        env:
+          VIRTUAL_ENV: '${{ github.workspace }}/venv'
+        run: |
+          python3 -m venv $VIRTUAL_ENV
+          export PATH="$VIRTUAL_ENV/bin:$PATH"
+          python3 -m pip install lief
+          python3 ./tools/symbol-check.py .libs/libsecp256k1.dylib
 
       - run: cat tests.log || true
         if: ${{ always() }}
@@ -762,6 +781,12 @@ jobs:
         shell: bash
         run: |
           cd build/bin/RelWithDebInfo && file *tests.exe bench*.exe libsecp256k1-*.dll || true
+
+      - name: Symbol check
+        if: ${{ matrix.configuration.cmake_options != '-A x64 -DBUILD_SHARED_LIBS=OFF' }}
+        run: |
+          python -m pip install lief
+          python .\tools\symbol-check.py build\bin\RelWithDebInfo\libsecp256k1-2.dll
 
       - name: Check
         run: |

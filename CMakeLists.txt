@@ -267,8 +267,6 @@ else()
   try_append_c_flags(-Wundef)
 endif()
 
-set(CMAKE_C_VISIBILITY_PRESET hidden)
-
 set(print_msan_notice)
 if(SECP256K1_BUILD_CTIME_TESTS)
   include(CheckMemorySanitizer)
