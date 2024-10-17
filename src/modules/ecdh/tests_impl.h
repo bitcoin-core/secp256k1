@@ -8,7 +8,6 @@
 #define SECP256K1_MODULE_ECDH_TESTS_H
 
 static int ecdh_hash_function_test_xpassthru(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
-    (void)x;
     (void)y;
     (void)data;
     memcpy(output, x, 32);
@@ -170,8 +169,7 @@ static void test_ecdh_wycheproof(void) {
 
         expected_result = testvectors[t].expected_result;
 
-        /* fail if public key is valid, but doesn't parse */
-        CHECK(parsed_ok || expected_result == 0);
+        CHECK(parsed_ok == expected_result);
 
         if (!parsed_ok && expected_result == 0) {
             continue;

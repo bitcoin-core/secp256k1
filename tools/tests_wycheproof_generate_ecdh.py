@@ -12,18 +12,37 @@ import sys
 from binascii import hexlify, unhexlify
 from wycheproof_utils import to_c_array
 
-def should_skip(test_vector_flags):
+def should_skip_flags(test_vector_flags):
     # skip these vectors because they are for ASN.1 encoding issues and other curves
-    flags_to_skip = {"InvalidAsn", "InvalidCurveAttack", "InvalidEncoding", "WrongCurve", "UnnamedCurve"}
+    flags_to_skip = {"InvalidAsn", "WrongCurve"}
     return any(flag in test_vector_flags for flag in flags_to_skip)
+
+def should_skip_tcid(test_vector_tcid):
+    '''
+    We skip some test case IDs that have a public key whose custom ASN.1 representation explicitly
+    encodes some curve parameters that are invalid. libsecp256k1 never parses this part so we do
+    not care testing those. See https://github.com/bitcoin-core/secp256k1/pull/1492#discussion_r1572491546
+    '''
+    tcids_to_skip = [496, 497, 502, 503, 504, 505, 507]
+    return test_vector_tcid in tcids_to_skip
 
 # Rudimentary ASN.1 DER public key parser.
 # This should not be used for anything other than parsing Wycheproof test vectors.
 def parse_der_pk(s):
     tag = s[0]
     L = int(s[1])
-    value = s[2:(L+2)]
-    rest = s[(L+2):]
+    offset = 0
+    if L & 0x80:
+        if L == 0x81:
+            L = int(s[2])
+            offset = 1
+        elif L == 0x82:
+            L = 256*int(s[2]) + int(s[3])
+            offset = 2
+        else:
+            raise ValueError("invalid L")
+    value = s[(offset+2):(L+2+offset)]
+    rest = s[(L+2+offset):]
 
     if len(rest) > 0 or tag == 0x06: # OBJECT IDENTIFIER
         return parse_der_pk(rest)
@@ -71,7 +90,7 @@ for i in range(num_groups):
     for j in range(num_tests):
         test_vector = group['tests'][j]
 
-        if should_skip(test_vector['flags']):
+        if should_skip_flags(test_vector['flags']) or should_skip_tcid(test_vector['tcId']):
             continue
 
         public_key = parse_public_key(test_vector['public'])
@@ -114,9 +133,10 @@ for i in range(num_groups):
             pk_offset = cache_public_keys[pk]
 
         shared_secrets += to_c_array(test_vector['shared'])
+        wycheproof_tcid = test_vector['tcId']
 
         out += "  /" + "* tcId: " + str(test_vector['tcId']) + ". " + test_vector['comment'] + " *" + "/\n"
-        out += f"  {{{pk_offset}, {pk_size}, {sk_offset}, {sk_size}, {offset_shared}, {shared_size}, {expected_result} }},\n"
+        out += f"  {{{pk_offset}, {pk_size}, {sk_offset}, {sk_size}, {offset_shared}, {shared_size}, {expected_result}, {wycheproof_tcid} }},\n"
         if new_sk:
             offset_sk_running += sk_size
         if new_pk:
@@ -133,6 +153,7 @@ typedef struct {
     size_t shared_offset;
     size_t shared_len;
     int expected_result;
+    int wycheproof_tcid;
 } wycheproof_ecdh_testvector;
 """
 
