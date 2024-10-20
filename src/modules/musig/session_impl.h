@@ -448,7 +448,7 @@ int secp256k1_musig_nonce_gen_internal(const secp256k1_context* ctx, secp256k1_m
         secp256k1_gej nonce_ptj;
         secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &nonce_ptj, &k[i]);
         secp256k1_ge_set_gej(&nonce_pts[i], &nonce_ptj);
-        secp256k1_declassify(ctx, &nonce_pts[i], sizeof(nonce_pts));
+        secp256k1_declassify(ctx, &nonce_pts[i], sizeof(nonce_pts[i]));
         secp256k1_scalar_clear(&k[i]);
     }
     /* None of the nonce_pts will be infinity because k != 0 with overwhelming
