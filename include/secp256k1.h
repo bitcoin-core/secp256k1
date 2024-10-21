@@ -134,6 +134,15 @@ typedef int (*secp256k1_nonce_function)(
      * 1. If using Libtool, it defines DLL_EXPORT automatically.
      * 2. In other cases, SECP256K1_DLL_EXPORT must be defined. */
 #   define SECP256K1_API extern __declspec (dllexport)
+#  else
+    /* Building libsecp256k1 as a static library on Windows.
+     * No declspec is needed, and so we would want the non-Windows-specific
+     * logic below take care of this case. However, this may result in setting
+     * __attribute__ ((visibility("default"))), which is supposed to be a noop
+     * on Windows but may trigger warnings when compiling with -flto due to a
+     * bug in GCC, see
+     * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=116478 . */
+#   define SECP256K1_API extern
 #  endif
   /* The user must define SECP256K1_STATIC when consuming libsecp256k1 as a static
    * library on Windows. */
@@ -143,11 +152,12 @@ typedef int (*secp256k1_nonce_function)(
 # endif
 #endif
 #ifndef SECP256K1_API
+/* All cases not captured by the Windows-specific logic. */
 # if defined(__GNUC__) && (__GNUC__ >= 4) && defined(SECP256K1_BUILD)
-   /* Building libsecp256k1 on non-Windows using GCC or compatible. */
+   /* Building libsecp256k1 using GCC or compatible. */
 #  define SECP256K1_API extern __attribute__ ((visibility ("default")))
 # else
-   /* All cases not captured above. */
+   /* Fall back to standard C's extern. */
 #  define SECP256K1_API extern
 # endif
 #endif
