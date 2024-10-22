@@ -229,10 +229,10 @@ static SECP256K1_INLINE void secp256k1_memczero(void *s, size_t len, int flag) {
 
 /* Cleanses memory to prevent leaking sensitive info. Won't be optimized out. */
 static SECP256K1_INLINE void secp256k1_memclear(void *ptr, size_t len) {
-#if defined(_MSC_VER)
+#if 0
     /* SecureZeroMemory is guaranteed not to be optimized out by MSVC. */
     SecureZeroMemory(ptr, len);
-#elif defined(__GNUC__)
+#elif 0
     /* We use a memory barrier that scares the compiler away from optimizing out the memset.
      *
      * Quoting Adam Langley <agl@google.com> in commit ad1907fe73334d6c696c8539646c21b11178f20f
