@@ -25,7 +25,7 @@ env:
   MUSIG: no
   ELLSWIFT: no
   ### test options
-  SECP256K1_TEST_ITERS:
+  SECP256K1_TEST_ITERS: 64
   BENCH: yes
   SECP256K1_BENCH_ITERS: 2
   CTIMETESTS: yes
