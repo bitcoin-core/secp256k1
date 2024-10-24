@@ -612,9 +612,9 @@ jobs:
         if: ${{ always() }}
 
   x86_64-macos-native:
-    name: "x86_64: macOS Monterey, Valgrind"
+    name: "x86_64: macOS Ventura, Valgrind"
     # See: https://github.com/actions/runner-images#available-images.
-    runs-on: macos-12
+    runs-on: macos-13
 
     env:
       CC: 'clang'
