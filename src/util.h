@@ -192,14 +192,6 @@ static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_
 # endif
 #endif
 
-#if defined(_WIN32)
-# define I64FORMAT "I64d"
-# define I64uFORMAT "I64u"
-#else
-# define I64FORMAT "lld"
-# define I64uFORMAT "llu"
-#endif
-
 #if defined(__GNUC__)
 # define SECP256K1_GNUC_EXT __extension__
 #else
