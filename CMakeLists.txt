@@ -218,8 +218,8 @@ mark_as_advanced(
   CMAKE_SHARED_LINKER_FLAGS_COVERAGE
 )
 
+get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(PROJECT_IS_TOP_LEVEL)
-  get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
   set(default_build_type "RelWithDebInfo")
   if(is_multi_config)
     set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
@@ -340,10 +340,15 @@ message("Optional binaries:")
 message("  benchmark ........................... ${SECP256K1_BUILD_BENCHMARK}")
 message("  noverify_tests ...................... ${SECP256K1_BUILD_TESTS}")
 set(tests_status "${SECP256K1_BUILD_TESTS}")
-if(CMAKE_BUILD_TYPE STREQUAL "Coverage")
-  set(tests_status OFF)
+if(tests_status)
+  if(is_multi_config)
+    set(tests_status "${tests_status}, except for the 'Coverage' configuration")
+  elseif(CMAKE_BUILD_TYPE STREQUAL "Coverage")
+    set(tests_status OFF)
+  endif()
 endif()
 message("  tests ............................... ${tests_status}")
+unset(tests_status)
 message("  exhaustive tests .................... ${SECP256K1_BUILD_EXHAUSTIVE_TESTS}")
 message("  ctime_tests ......................... ${SECP256K1_BUILD_CTIME_TESTS}")
 message("  examples ............................ ${SECP256K1_BUILD_EXAMPLES}")
@@ -393,6 +398,14 @@ if(print_msan_notice)
     "Note:\n"
     "  MemorySanitizer detected, tried to add -fno-sanitize-memory-param-retval to compile options\n"
     "  to avoid false positives in ctime_tests. Pass -DSECP256K1_BUILD_CTIME_TESTS=OFF to avoid this.\n"
+  )
+endif()
+if($CACHE{SECP256K1_print_coverage_notice})
+  message(
+    "Note:\n"
+    "  CMake ${CMAKE_VERSION} does not support the '${CMAKE_GENERATOR}' generator fully. Consequently,\n"
+    "  the build system will still compile the 'tests' binary for the 'Coverage' configuration,\n"
+    "  which is meaningless.\n"
   )
 endif()
 if(SECP256K1_EXPERIMENTAL)
