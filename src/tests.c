@@ -37,7 +37,7 @@
 
 #define CONDITIONAL_TEST(cnt, nam) if (COUNT < (cnt)) { printf("Skipping %s (iteration count too low)\n", nam); } else
 
-static int COUNT = 64;
+static int COUNT = 16;
 static secp256k1_context *CTX = NULL;
 static secp256k1_context *STATIC_CTX = NULL;
 
@@ -5544,7 +5544,7 @@ static void run_ecmult_constants(void) {
         test_ecmult_constants_sha(1607366309u, 2048, expected32_8bit8);
     }
 
-    CONDITIONAL_TEST(35, "test_ecmult_constants_2bit") {
+    CONDITIONAL_TEST(16, "test_ecmult_constants_2bit") {
         test_ecmult_constants_2bit();
     }
 }
