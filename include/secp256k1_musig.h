@@ -40,7 +40,7 @@ extern "C" {
  *  Guaranteed to be 197 bytes in size. No serialization and parsing functions
  *  (yet).
  */
-typedef struct {
+typedef struct secp256k1_musig_keyagg_cache {
     unsigned char data[197];
 } secp256k1_musig_keyagg_cache;
 
@@ -56,7 +56,7 @@ typedef struct {
  *  Copying this data structure can result in nonce reuse which will leak the
  *  secret signing key.
  */
-typedef struct {
+typedef struct secp256k1_musig_secnonce {
     unsigned char data[132];
 } secp256k1_musig_secnonce;
 
@@ -65,7 +65,7 @@ typedef struct {
  *  Guaranteed to be 132 bytes in size. Serialized and parsed with
  *  `musig_pubnonce_serialize` and `musig_pubnonce_parse`.
  */
-typedef struct {
+typedef struct secp256k1_musig_pubnonce {
     unsigned char data[132];
 } secp256k1_musig_pubnonce;
 
@@ -74,7 +74,7 @@ typedef struct {
  *  Guaranteed to be 132 bytes in size. Serialized and parsed with
  *  `musig_aggnonce_serialize` and `musig_aggnonce_parse`.
  */
-typedef struct {
+typedef struct secp256k1_musig_aggnonce {
     unsigned char data[132];
 } secp256k1_musig_aggnonce;
 
@@ -84,7 +84,7 @@ typedef struct {
  *  be secure. Guaranteed to be 133 bytes in size. No serialization and parsing
  *  functions (yet).
  */
-typedef struct {
+typedef struct secp256k1_musig_session {
     unsigned char data[133];
 } secp256k1_musig_session;
 
@@ -93,7 +93,7 @@ typedef struct {
  *  Guaranteed to be 36 bytes in size. Serialized and parsed with
  *  `musig_partial_sig_serialize` and `musig_partial_sig_parse`.
  */
-typedef struct {
+typedef struct secp256k1_musig_partial_sig {
     unsigned char data[36];
 } secp256k1_musig_partial_sig;
 

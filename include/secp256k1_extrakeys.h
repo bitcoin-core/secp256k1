@@ -19,7 +19,7 @@ extern "C" {
  *  use secp256k1_xonly_pubkey_serialize and secp256k1_xonly_pubkey_parse. To
  *  compare keys, use secp256k1_xonly_pubkey_cmp.
  */
-typedef struct {
+typedef struct secp256k1_xonly_pubkey {
     unsigned char data[64];
 } secp256k1_xonly_pubkey;
 
@@ -30,7 +30,7 @@ typedef struct {
  *  guaranteed to be portable between different platforms or versions. It is
  *  however guaranteed to be 96 bytes in size, and can be safely copied/moved.
  */
-typedef struct {
+typedef struct secp256k1_keypair {
     unsigned char data[96];
 } secp256k1_keypair;
 

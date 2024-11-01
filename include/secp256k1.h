@@ -58,7 +58,7 @@ typedef struct secp256k1_context_struct secp256k1_context;
  *  use secp256k1_ec_pubkey_serialize and secp256k1_ec_pubkey_parse. To
  *  compare keys, use secp256k1_ec_pubkey_cmp.
  */
-typedef struct {
+typedef struct secp256k1_pubkey {
     unsigned char data[64];
 } secp256k1_pubkey;
 
@@ -71,7 +71,7 @@ typedef struct {
  *  comparison, use the secp256k1_ecdsa_signature_serialize_* and
  *  secp256k1_ecdsa_signature_parse_* functions.
  */
-typedef struct {
+typedef struct secp256k1_ecdsa_signature {
     unsigned char data[64];
 } secp256k1_ecdsa_signature;
 
