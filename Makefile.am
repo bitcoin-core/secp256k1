@@ -265,6 +265,7 @@ maintainer-clean-local: clean-testvectors
 ### Additional files to distribute
 EXTRA_DIST = autogen.sh CHANGELOG.md SECURITY.md
 EXTRA_DIST += doc/release-process.md doc/safegcd_implementation.md
+EXTRA_DIST += doc/ellswift.md doc/musig.md
 EXTRA_DIST += examples/EXAMPLES_COPYING
 EXTRA_DIST += sage/gen_exhaustive_groups.sage
 EXTRA_DIST += sage/gen_split_lambda_constants.sage
