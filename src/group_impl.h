@@ -283,36 +283,27 @@ static void secp256k1_ge_table_set_globalz(size_t len, secp256k1_ge *a, const se
 
 static void secp256k1_gej_set_infinity(secp256k1_gej *r) {
     r->infinity = 1;
-    secp256k1_fe_clear(&r->x);
-    secp256k1_fe_clear(&r->y);
-    secp256k1_fe_clear(&r->z);
+    secp256k1_fe_set_int(&r->x, 0);
+    secp256k1_fe_set_int(&r->y, 0);
+    secp256k1_fe_set_int(&r->z, 0);
 
     SECP256K1_GEJ_VERIFY(r);
 }
 
 static void secp256k1_ge_set_infinity(secp256k1_ge *r) {
     r->infinity = 1;
-    secp256k1_fe_clear(&r->x);
-    secp256k1_fe_clear(&r->y);
+    secp256k1_fe_set_int(&r->x, 0);
+    secp256k1_fe_set_int(&r->y, 0);
 
     SECP256K1_GE_VERIFY(r);
 }
 
 static void secp256k1_gej_clear(secp256k1_gej *r) {
-    r->infinity = 0;
-    secp256k1_fe_clear(&r->x);
-    secp256k1_fe_clear(&r->y);
-    secp256k1_fe_clear(&r->z);
-
-    SECP256K1_GEJ_VERIFY(r);
+    secp256k1_memclear(r, sizeof(secp256k1_gej));
 }
 
 static void secp256k1_ge_clear(secp256k1_ge *r) {
-    r->infinity = 0;
-    secp256k1_fe_clear(&r->x);
-    secp256k1_fe_clear(&r->y);
-
-    SECP256K1_GE_VERIFY(r);
+    secp256k1_memclear(r, sizeof(secp256k1_ge));
 }
 
 static int secp256k1_ge_set_xo_var(secp256k1_ge *r, const secp256k1_fe *x, int odd) {

@@ -494,11 +494,13 @@ static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *m
        buffer_append(keydata, &offset, algo16, 16);
    }
    secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, offset);
-   memset(keydata, 0, sizeof(keydata));
    for (i = 0; i <= counter; i++) {
        secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
    }
    secp256k1_rfc6979_hmac_sha256_finalize(&rng);
+
+   secp256k1_memclear(keydata, sizeof(keydata));
+   secp256k1_rfc6979_hmac_sha256_clear(&rng);
    return 1;
 }
 
@@ -548,7 +550,7 @@ static int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_sc
      * seckey. As a result is_sec_valid is included in ret only after ret was
      * used as a branching variable. */
     ret &= is_sec_valid;
-    memset(nonce32, 0, 32);
+    secp256k1_memclear(nonce32, sizeof(nonce32));
     secp256k1_scalar_clear(&msg);
     secp256k1_scalar_clear(&non);
     secp256k1_scalar_clear(&sec);
@@ -595,6 +597,7 @@ static int secp256k1_ec_pubkey_create_helper(const secp256k1_ecmult_gen_context 
 
     secp256k1_ecmult_gen(ecmult_gen_ctx, &pj, seckey_scalar);
     secp256k1_ge_set_gej(p, &pj);
+    secp256k1_gej_clear(&pj);
     return ret;
 }
 
@@ -799,6 +802,7 @@ int secp256k1_tagged_sha256(const secp256k1_context* ctx, unsigned char *hash32,
     secp256k1_sha256_initialize_tagged(&sha, tag, taglen);
     secp256k1_sha256_write(&sha, msg, msglen);
     secp256k1_sha256_finalize(&sha, hash32);
+    secp256k1_sha256_clear(&sha);
     return 1;
 }
 

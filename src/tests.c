@@ -3671,8 +3671,7 @@ static void test_ge(void) {
     secp256k1_fe zfi2, zfi3;
 
     secp256k1_gej_set_infinity(&gej[0]);
-    secp256k1_ge_clear(&ge[0]);
-    secp256k1_ge_set_gej_var(&ge[0], &gej[0]);
+    secp256k1_ge_set_infinity(&ge[0]);
     for (i = 0; i < runs; i++) {
         int j, k;
         secp256k1_ge g;
@@ -4797,12 +4796,12 @@ static void test_ecmult_multi(secp256k1_scratch *scratch, secp256k1_ecmult_multi
         testutil_random_ge_test(&pt[ncount]);
     }
 
-    secp256k1_scalar_clear(&sc[0]);
+    secp256k1_scalar_set_int(&sc[0], 0);
     CHECK(ecmult_multi(&CTX->error_callback, scratch, &r, &secp256k1_scalar_zero, ecmult_multi_callback, &data, 20));
-    secp256k1_scalar_clear(&sc[1]);
-    secp256k1_scalar_clear(&sc[2]);
-    secp256k1_scalar_clear(&sc[3]);
-    secp256k1_scalar_clear(&sc[4]);
+    secp256k1_scalar_set_int(&sc[1], 0);
+    secp256k1_scalar_set_int(&sc[2], 0);
+    secp256k1_scalar_set_int(&sc[3], 0);
+    secp256k1_scalar_set_int(&sc[4], 0);
     CHECK(ecmult_multi(&CTX->error_callback, scratch, &r, &secp256k1_scalar_zero, ecmult_multi_callback, &data, 6));
     CHECK(ecmult_multi(&CTX->error_callback, scratch, &r, &secp256k1_scalar_zero, ecmult_multi_callback, &data, 5));
     CHECK(secp256k1_gej_is_infinity(&r));
