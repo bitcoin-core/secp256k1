@@ -1,0 +1,2 @@
+include_HEADERS += include/secp256k1_hazmat.h
+noinst_HEADERS += src/modules/hazmat/main_impl.h
