@@ -206,6 +206,17 @@ musig_example_LDFLAGS += -lbcrypt
 endif
 TESTS += musig_example
 endif
+if ENABLE_MODULE_HAZMAT
+noinst_PROGRAMS += hazmat_example
+hazmat_example_SOURCES = examples/hazmat.c
+hazmat_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+hazmat_example_LDADD = libsecp256k1.la
+hazmat_example_LDFLAGS = -static
+if BUILD_WINDOWS
+hazmat_example_LDFLAGS += -lbcrypt
+endif
+TESTS += hazmat_example
+endif
 endif
 
 ### Precomputed tables
