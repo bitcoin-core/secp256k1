@@ -175,9 +175,11 @@ static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context
     return ret;
 }
 
-int secp256k1_silentpayments_sender_create_outputs(
+int secp256k1_silentpayments_sender_create_outputs_with_proof(
     const secp256k1_context *ctx,
     secp256k1_xonly_pubkey **generated_outputs,
+    secp256k1_silentpayments_dleq_data **dleq_data,
+    size_t *n_dleq_size,
     const secp256k1_silentpayments_recipient **recipients,
     size_t n_recipients,
     const unsigned char *outpoint_smallest36,
@@ -191,10 +193,14 @@ int secp256k1_silentpayments_sender_create_outputs(
     secp256k1_ge A_sum_ge;
     secp256k1_gej A_sum_gej;
     unsigned char input_hash[32];
-    unsigned char shared_secret[33];
+    secp256k1_ge shared_secret;
+    unsigned char shared_secret33[33];
+    unsigned char proof64[64];
     secp256k1_silentpayments_recipient last_recipient;
     int overflow = 0;
     int ret = 1;
+    int j = 0;
+    size_t len;
 
     /* Sanity check inputs. */
     VERIFY_CHECK(ctx != NULL);
@@ -264,13 +270,30 @@ int secp256k1_silentpayments_sender_create_outputs(
             secp256k1_ge pk;
             ret &= secp256k1_pubkey_load(ctx, &pk, &recipients[i]->scan_pubkey);
             if (!ret) break;
-            secp256k1_silentpayments_create_shared_secret(ctx, shared_secret, &a_sum_scalar, &pk);
+            /* Compute shared_secret = tweaked_secret_component * Public_component */
+            secp256k1_silentpayments_create_shared_secret_with_proof(ctx, proof64, &shared_secret, &a_sum_scalar, &pk);
+            if (dleq_data != NULL) {
+                secp256k1_pubkey pubkey;
+                size_t pklen = 33;
+                secp256k1_pubkey_save(&pubkey, &shared_secret);
+                secp256k1_ec_pubkey_serialize(ctx, dleq_data[j]->shared_secret, &pklen, &pubkey, SECP256K1_EC_COMPRESSED);
+                memcpy(dleq_data[j]->proof, proof64, 64);
+                dleq_data[j]->index = recipients[i]->index;
+            }
+            /* This can only fail if the shared secret is the point at infinity, which should be
+             * impossible at this point, considering we have already validated the public key and
+             * the secret key being used
+            */
+            ret = secp256k1_eckey_pubkey_serialize(&shared_secret, shared_secret33, &len, 1);
+            VERIFY_CHECK(ret && len == 33);
             k = 0;
+            j++;
         }
-        ret &= secp256k1_silentpayments_create_output_pubkey(ctx, generated_outputs[recipients[i]->index], shared_secret, &recipients[i]->spend_pubkey, k);
+        ret &= secp256k1_silentpayments_create_output_pubkey(ctx, generated_outputs[recipients[i]->index], shared_secret33, &recipients[i]->spend_pubkey, k);
         k++;
         last_recipient = *recipients[i];
     }
+    *n_dleq_size = j;
     /* Explicitly clear variables containing secret data */
     secp256k1_scalar_clear(&addend);
     secp256k1_scalar_clear(&a_sum_scalar);
@@ -279,8 +302,23 @@ int secp256k1_silentpayments_sender_create_outputs(
      * could result in a third party being able to identify the transaction as a silent payments transaction
      * and potentially link the transaction back to a silent payment address
      */
-    memset(&shared_secret, 0, sizeof(shared_secret));
+    memset(&shared_secret33, 0, sizeof(shared_secret33));
     return ret;
+}
+
+int secp256k1_silentpayments_sender_create_outputs(
+        const secp256k1_context *ctx,
+        secp256k1_xonly_pubkey **generated_outputs,
+        const secp256k1_silentpayments_recipient **recipients,
+        size_t n_recipients,
+        const unsigned char *outpoint_smallest36,
+        const secp256k1_keypair * const *taproot_seckeys,
+        size_t n_taproot_seckeys,
+        const unsigned char * const *plain_seckeys,
+        size_t n_plain_seckeys
+) {
+    size_t n_dleq_size;
+    return secp256k1_silentpayments_sender_create_outputs_with_proof(ctx, generated_outputs, NULL, &n_dleq_size, recipients, n_recipients, outpoint_smallest36, taproot_seckeys, n_taproot_seckeys, plain_seckeys, n_plain_seckeys);
 }
 
 /** Set hash state to the BIP340 tagged hash midstate for "BIP0352/Label". */
