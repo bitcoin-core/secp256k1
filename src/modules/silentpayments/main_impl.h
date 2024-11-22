@@ -9,6 +9,7 @@
 #include "../../../include/secp256k1.h"
 #include "../../../include/secp256k1_extrakeys.h"
 #include "../../../include/secp256k1_silentpayments.h"
+#include "dleq_impl.h"
 
 /** Sort an array of silent payment recipients. This is used to group recipients by scan pubkey to
  *  ensure the correct values of k are used when creating multiple outputs for a recipient. */
@@ -64,15 +65,46 @@ static void secp256k1_silentpayments_calculate_input_hash(unsigned char *input_h
     secp256k1_sha256_finalize(&hash, input_hash);
 }
 
-static void secp256k1_silentpayments_create_shared_secret(unsigned char *shared_secret33, const secp256k1_scalar *secret_component, const secp256k1_ge *public_component) {
+static int secp256k1_silentpayments_create_shared_secret_with_proof(const secp256k1_context *ctx, unsigned char *proof64, secp256k1_ge *shared_secret, const secp256k1_scalar *secret_component, secp256k1_ge *public_component) {
     secp256k1_gej ss_j;
-    secp256k1_ge ss;
-    size_t len;
-    int ret;
+    int ret = 1;
 
     /* Compute shared_secret = tweaked_secret_component * Public_component */
     secp256k1_ecmult_const(&ss_j, public_component, secret_component);
-    secp256k1_ge_set_gej(&ss, &ss_j);
+    secp256k1_ge_set_gej(shared_secret, &ss_j);
+
+    if (proof64 != NULL) {
+        secp256k1_scalar s;
+        secp256k1_scalar e;
+        secp256k1_ge ge_secret_component;
+        secp256k1_gej gej_secret_component;
+
+        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &gej_secret_component, secret_component);
+        secp256k1_ge_set_gej(&ge_secret_component, &gej_secret_component);
+
+        ret &= secp256k1_dleq_prove(ctx, &s, &e, secret_component, public_component, &ge_secret_component, shared_secret,
+                                   NULL, NULL); /*todo: how to pass auxrand*/
+        /* sanity check*/
+        ret &= secp256k1_dleq_verify(&s, &e, &ge_secret_component, public_component, shared_secret, NULL);
+
+        secp256k1_scalar_get_b32(proof64, &s);
+        secp256k1_scalar_get_b32(proof64 + 32, &e);
+    }
+    /* While not technically "secret" data, explicitly clear the shared secret since leaking this would allow an attacker
+     * to identify the resulting transaction as a silent payments transaction and potentially link the transaction
+     * back to the silent payment address
+     */
+    secp256k1_gej_clear(&ss_j);
+    return ret;
+}
+
+static void secp256k1_silentpayments_create_shared_secret(const secp256k1_context* ctx, unsigned char *shared_secret33, const secp256k1_scalar *secret_component, secp256k1_ge *public_component) {
+    size_t len;
+    int ret;
+    secp256k1_ge ss;
+
+    ret = secp256k1_silentpayments_create_shared_secret_with_proof(ctx, NULL, &ss, secret_component, public_component);
+    VERIFY_CHECK(ret);
     /* This can only fail if the shared secret is the point at infinity, which should be
      * impossible at this point, considering we have already validated the public key and
      * the secret key being used
@@ -85,7 +117,6 @@ static void secp256k1_silentpayments_create_shared_secret(unsigned char *shared_
      * back to the silent payment address
      */
     secp256k1_ge_clear(&ss);
-    secp256k1_gej_clear(&ss_j);
 }
 
 /** Set hash state to the BIP340 tagged hash midstate for "BIP0352/SharedSecret". */
@@ -233,7 +264,7 @@ int secp256k1_silentpayments_sender_create_outputs(
             secp256k1_ge pk;
             ret &= secp256k1_pubkey_load(ctx, &pk, &recipients[i]->scan_pubkey);
             if (!ret) break;
-            secp256k1_silentpayments_create_shared_secret(shared_secret, &a_sum_scalar, &pk);
+            secp256k1_silentpayments_create_shared_secret(ctx, shared_secret, &a_sum_scalar, &pk);
             k = 0;
         }
         ret &= secp256k1_silentpayments_create_output_pubkey(ctx, generated_outputs[recipients[i]->index], shared_secret, &recipients[i]->spend_pubkey, k);
@@ -490,7 +521,7 @@ int secp256k1_silentpayments_recipient_scan_outputs(
         secp256k1_scalar_mul(&rsk_scalar, &rsk_scalar, &input_hash_scalar);
         ret &= !overflow;
     }
-    secp256k1_silentpayments_create_shared_secret(shared_secret, &rsk_scalar, &A_sum_ge);
+    secp256k1_silentpayments_create_shared_secret(ctx, shared_secret, &rsk_scalar, &A_sum_ge);
 
     found_idx = 0;
     n_found = 0;
@@ -609,7 +640,7 @@ int secp256k1_silentpayments_recipient_create_shared_secret(const secp256k1_cont
     if (!ret) {
         return 0;
     }
-    secp256k1_silentpayments_create_shared_secret(shared_secret33, &rsk, &A_tweaked_ge);
+    secp256k1_silentpayments_create_shared_secret(ctx, shared_secret33, &rsk, &A_tweaked_ge);
 
     /* Explicitly clear secrets */
     secp256k1_scalar_clear(&rsk);
