@@ -487,6 +487,29 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipien
     const uint32_t k
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
+/** Verifies the Silent Payment proof. If the following algorithm succeeds, the points A and C were both generated from
+ * the same scalar. The former from multiplying by G, and the latter from multiplying by B.
+ *
+ * Here, A refers to input public key sum (present in prevouts_summary)
+ *       B refers to recipient's scan pubkey
+ *       C refers to shared_secret point
+ *
+ *  Returns: 1 if verification of proof was successful. 0 if an error occurred.
+ *  Args:                ctx: pointer to a context object
+ *  In:        shared_secret: 33 bytes shared secret
+ *                     proof: 64 bytes DLEQ proof
+ *     recipient_scan_pubkey: pointer to the recipient's scan pubkey
+ *               prevouts_summary: pointer to the input public key sum (optionally, with the `input_hash` multiplied in,
+ *                            see `_recipient_prevouts_summary_create`).
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_verify_proof(
+        const secp256k1_context *ctx,
+        const unsigned char *shared_secret33,
+        const unsigned char *proof64,
+        const secp256k1_pubkey *recipient_scan_pubkey,
+        const secp256k1_silentpayments_prevouts_summary *prevouts_summary
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
+
 /** Serialize a secp256k1_silentpayments_dleq_data object into a 101-byte sequence.
  *  101-byte sequence = 33 bytes shared secret + 64 bytes proof + 4 bytes index
  *                      where index is position in an array of pointers to silent payment recipients
