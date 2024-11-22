@@ -142,6 +142,36 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_sender_c
     size_t n_plain_seckeys
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(5);
 
+/** Create Silent Payment outputs and associated DLEQ proof(s) for recipient(s).
+ *
+ * Similar to secp256k1_silentpayments_sender_create_outputs,
+ * but also returns information about associated DLEQ proof.
+ *
+ *  Returns: 1 if creation of outputs was successful. 0 if an error occurred.
+ *  Args:                ctx: pointer to a context object
+ *  Out:   generated_outputs: pointer to an array of pointers to xonly pubkeys,
+ *                            one per recipient.
+ *                            The order of outputs here matches the original
+ *                            ordering of the recipients array.
+ *                dleq_data: pointer to an array of pointers to secp256k1_silentpayments_dleq_data,
+ *                            one per unique recipient.
+ *               n_dleq_size: number of DLEQ proofs generated (equivalent to number of unique recipients)
+ *  In: See input parameters in secp256k1_silentpayments_sender_create_outputs
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_sender_create_outputs_with_proof(
+        const secp256k1_context *ctx,
+        secp256k1_xonly_pubkey **generated_outputs,
+        secp256k1_silentpayments_dleq_data **dleq_data,
+        size_t *n_dleq_size,
+        const secp256k1_silentpayments_recipient **recipients,
+        size_t n_recipients,
+        const unsigned char *outpoint_smallest36,
+        const secp256k1_keypair * const *taproot_seckeys,
+        size_t n_taproot_seckeys,
+        const unsigned char * const *plain_seckeys,
+        size_t n_plain_seckeys
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(7);
+
 /** Create Silent Payment label tweak and label.
  *
  *  Given a recipient's 32 byte scan key and a label integer m, calculate the
