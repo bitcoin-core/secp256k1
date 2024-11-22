@@ -831,6 +831,35 @@ int secp256k1_silentpayments_recipient_create_output_pubkey(const secp256k1_cont
     return secp256k1_silentpayments_create_output_pubkey(ctx, output_xonly, shared_secret33, spend_pubkey, k);
 }
 
+int secp256k1_silentpayments_verify_proof(const secp256k1_context *ctx, const unsigned char *shared_secret33, const unsigned char *proof64, const secp256k1_pubkey *recipient_scan_pubkey, const secp256k1_silentpayments_prevouts_summary *prevouts_summary)
+{
+    secp256k1_scalar s;
+    secp256k1_scalar e;
+    secp256k1_pubkey pk;
+    secp256k1_ge pubkey_sum;
+    secp256k1_ge scan_pubkey;
+    secp256k1_ge shared_secret;
+    size_t pubkeylen = 33;
+    unsigned char pubkey33[33];
+    int ret = 1;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(shared_secret33 != NULL);
+    ARG_CHECK(proof64 != NULL);
+    ARG_CHECK(recipient_scan_pubkey != NULL);
+    ARG_CHECK(prevouts_summary != NULL);
+
+    ret &= secp256k1_silentpayments_recipient_prevouts_summary_serialize(ctx, pubkey33, prevouts_summary);
+    ret &= secp256k1_ec_pubkey_parse(ctx, &pk, pubkey33, pubkeylen);
+    ret &= secp256k1_pubkey_load(ctx, &pubkey_sum, &pk);
+    ret &= secp256k1_pubkey_load(ctx, &scan_pubkey, recipient_scan_pubkey);
+    ret &= secp256k1_ec_pubkey_parse(ctx, &pk, shared_secret33, pubkeylen);
+    ret &= secp256k1_pubkey_load(ctx, &shared_secret, &pk);
+    secp256k1_scalar_set_b32(&s, proof64, NULL);
+    secp256k1_scalar_set_b32(&e, proof64 + 32, NULL);
+    ret &= secp256k1_dleq_verify(&s, &e, &pubkey_sum, &scan_pubkey, &shared_secret, NULL);
+    return ret;
+}
 
 void secp256k1_silentpayments_dleq_data_serialize(unsigned char *output, const secp256k1_silentpayments_dleq_data *dleq_data) {
     memcpy(output, dleq_data->shared_secret, 33);
