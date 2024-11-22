@@ -9,6 +9,7 @@
 #include "../../../include/secp256k1.h"
 #include "../../../include/secp256k1_extrakeys.h"
 #include "../../../include/secp256k1_silentpayments.h"
+#include "dleq_impl.h"
 
 #include "../../eckey.h"
 #include "../../ecmult.h"
@@ -85,14 +86,43 @@ static int secp256k1_silentpayments_calculate_input_hash_scalar(secp256k1_scalar
     return !!ret & !overflow;
 }
 
-static void secp256k1_silentpayments_create_shared_secret(const secp256k1_context *ctx, unsigned char *shared_secret33, const secp256k1_ge *public_component, const secp256k1_scalar *secret_component) {
+static int secp256k1_silentpayments_create_shared_secret_with_proof(const secp256k1_context *ctx, unsigned char *proof64, secp256k1_ge *shared_secret, secp256k1_ge *public_component, const secp256k1_scalar *secret_component) {
     secp256k1_gej ss_j;
+    int ret = 1;
+
+    secp256k1_ecmult_const(&ss_j, public_component, secret_component);
+    secp256k1_ge_set_gej(shared_secret, &ss_j);
+    secp256k1_declassify(ctx, shared_secret, sizeof(*shared_secret));
+
+    if (proof64 != NULL) {
+        secp256k1_scalar s;
+        secp256k1_scalar e;
+        secp256k1_ge ge_secret_component;
+        secp256k1_gej gej_secret_component;
+
+        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &gej_secret_component, secret_component);
+        secp256k1_ge_set_gej(&ge_secret_component, &gej_secret_component);
+        secp256k1_declassify(ctx, &ge_secret_component, sizeof(ge_secret_component));
+
+        ret &= secp256k1_dleq_prove(ctx, &s, &e, secret_component, public_component, &ge_secret_component, shared_secret, NULL, NULL); /*todo: how to pass auxrand*/
+        secp256k1_declassify(ctx, &s, sizeof(s));
+        secp256k1_declassify(ctx, &e, sizeof(e));
+        /* sanity check */
+        ret &= secp256k1_dleq_verify(&s, &e, &ge_secret_component, public_component, shared_secret, NULL);
+        secp256k1_scalar_get_b32(proof64, &s);
+        secp256k1_scalar_get_b32(proof64 + 32, &e);
+    }
+    /* Leaking these values would break indistinguishability of the transaction, so clear them. */
+    secp256k1_gej_clear(&ss_j);
+    return ret;
+}
+static void secp256k1_silentpayments_create_shared_secret(const secp256k1_context *ctx, unsigned char *shared_secret33, secp256k1_ge *public_component, const secp256k1_scalar *secret_component) {
     secp256k1_ge ss;
     size_t len;
     int ret;
 
-    secp256k1_ecmult_const(&ss_j, public_component, secret_component);
-    secp256k1_ge_set_gej(&ss, &ss_j);
+    ret = secp256k1_silentpayments_create_shared_secret_with_proof(ctx, NULL, &ss, public_component, secret_component);
+    VERIFY_CHECK(ret);
     secp256k1_declassify(ctx, &ss, sizeof(ss));
     /* This can only fail if the shared secret is the point at infinity, which should be
      * impossible at this point considering we have already validated the public key and
@@ -107,7 +137,6 @@ static void secp256k1_silentpayments_create_shared_secret(const secp256k1_contex
 
     /* Leaking these values would break indistinguishability of the transaction, so clear them. */
     secp256k1_ge_clear(&ss);
-    secp256k1_gej_clear(&ss_j);
 }
 
 /** Set hash state to the BIP340 tagged hash midstate for "BIP0352/SharedSecret". */
