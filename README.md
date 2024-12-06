@@ -64,11 +64,11 @@ Implementation details
 Building with Autotools
 -----------------------
 
-    $ ./autogen.sh
-    $ ./configure
-    $ make
-    $ make check  # run the test suite
-    $ sudo make install  # optional
+    $ ./autogen.sh       # Generate a ./configure script
+    $ ./configure        # Generate a build system
+    $ make               # Run the actual build process
+    $ make check         # Run the test suite
+    $ sudo make install  # Install the library into the system (optional)
 
 To compile optional modules (such as Schnorr signatures), you need to run `./configure` with additional flags (such as `--enable-module-schnorrsig`). Run `./configure --help` to see the full list of available flags.
 
@@ -79,24 +79,23 @@ To maintain a pristine source tree, CMake encourages to perform an out-of-source
 
 ### Building on POSIX systems
 
-    $ mkdir build && cd build
-    $ cmake ..
-    $ cmake --build .
-    $ ctest  # run the test suite
-    $ sudo cmake --install .  # optional
+    $ cmake -B build              # Generate a build system in subdirectory "build"
+    $ cmake --build build         # Run the actual build process
+    $ ctest --test-dir build      # Run the test suite
+    $ sudo cmake --install build  # Install the library into the system (optional)
 
-To compile optional modules (such as Schnorr signatures), you need to run `cmake` with additional flags (such as `-DSECP256K1_ENABLE_MODULE_SCHNORRSIG=ON`). Run `cmake .. -LH` to see the full list of available flags.
+To compile optional modules (such as Schnorr signatures), you need to run `cmake` with additional flags (such as `-DSECP256K1_ENABLE_MODULE_SCHNORRSIG=ON`). Run `cmake -B build -LH` or `ccmake -B build` to see the full list of available flags.
 
 ### Cross compiling
 
 To alleviate issues with cross compiling, preconfigured toolchain files are available in the `cmake` directory.
 For example, to cross compile for Windows:
 
-    $ cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/x86_64-w64-mingw32.toolchain.cmake
+    $ cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/x86_64-w64-mingw32.toolchain.cmake
 
 To cross compile for Android with [NDK](https://developer.android.com/ndk/guides/cmake) (using NDK's toolchain file, and assuming the `ANDROID_NDK_ROOT` environment variable has been set):
 
-    $ cmake .. -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake" -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=28
+    $ cmake -B build -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake" -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=28
 
 ### Building on Windows
 
@@ -106,7 +105,7 @@ The following example assumes using of Visual Studio 2022 and CMake v3.21+.
 
 In "Developer Command Prompt for VS 2022":
 
-    >cmake -G "Visual Studio 17 2022" -A x64 -S . -B build
+    >cmake -G "Visual Studio 17 2022" -A x64 -B build
     >cmake --build build --config RelWithDebInfo
 
 Usage examples
