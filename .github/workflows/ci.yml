@@ -35,6 +35,7 @@ env:
   SCHNORRSIG: 'no'
   MUSIG: 'no'
   ELLSWIFT: 'no'
+  SCHNORRSIG_HALFAGG: 'no'
   ### test options
   SECP256K1_TEST_ITERS: 64
   BENCH: 'yes'
@@ -73,14 +74,15 @@ jobs:
       matrix:
         configuration:
           - env_vars: { WIDEMUL: 'int64',  RECOVERY: 'yes' }
-          - env_vars: { WIDEMUL: 'int64',                   ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
+          - env_vars: { WIDEMUL: 'int64',                   ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', EXPERIMENTAL: 'yes', SCHNORRSIG_HALFAGG: 'yes' }
           - env_vars: { WIDEMUL: 'int128' }
           - env_vars: { WIDEMUL: 'int128_struct',                                                             ELLSWIFT: 'yes' }
           - env_vars: { WIDEMUL: 'int128', RECOVERY: 'yes',              EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
-          - env_vars: { WIDEMUL: 'int128',                  ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes' }
+          - env_vars: { WIDEMUL: 'int128',                  ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes',                  EXPERIMENTAL: 'yes', SCHNORRSIG_HALFAGG: 'yes' }
           - env_vars: { WIDEMUL: 'int128', ASM: 'x86_64',                                                     ELLSWIFT: 'yes' }
-          - env_vars: {                    RECOVERY: 'yes',              EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes' }
-          - env_vars: { CTIMETESTS: 'no',  RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', CPPFLAGS: '-DVERIFY' }
+
+          - env_vars: {                    RECOVERY: 'yes',              EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes',                  EXPERIMENTAL: 'yes', SCHNORRSIG_HALFAGG: 'yes' }
+          - env_vars: { CTIMETESTS: 'no',  RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes',                  EXPERIMENTAL: 'yes', SCHNORRSIG_HALFAGG: 'yes', CPPFLAGS: '-DVERIFY' }
           - env_vars: { BUILD: 'distcheck', WITH_VALGRIND: 'no', CTIMETESTS: 'no', BENCH: 'no' }
           - env_vars: { CPPFLAGS: '-DDETERMINISTIC' }
           - env_vars: { CFLAGS: '-O0', CTIMETESTS: 'no' }
@@ -143,6 +145,8 @@ jobs:
       RECOVERY: 'yes'
       EXTRAKEYS: 'yes'
       SCHNORRSIG: 'yes'
+      EXPERIMENTAL: 'yes'
+      SCHNORRSIG_HALFAGG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
       CC: ${{ matrix.cc }}
@@ -189,6 +193,8 @@ jobs:
       RECOVERY: 'yes'
       EXTRAKEYS: 'yes'
       SCHNORRSIG: 'yes'
+      EXPERIMENTAL: 'yes'
+      SCHNORRSIG_HALFAGG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
@@ -242,6 +248,8 @@ jobs:
       RECOVERY: 'yes'
       EXTRAKEYS: 'yes'
       SCHNORRSIG: 'yes'
+      EXPERIMENTAL: 'yes'
+      SCHNORRSIG_HALFAGG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
@@ -289,6 +297,8 @@ jobs:
       RECOVERY: 'yes'
       EXTRAKEYS: 'yes'
       SCHNORRSIG: 'yes'
+      EXPERIMENTAL: 'yes'
+      SCHNORRSIG_HALFAGG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
@@ -346,6 +356,8 @@ jobs:
       RECOVERY: 'yes'
       EXTRAKEYS: 'yes'
       SCHNORRSIG: 'yes'
+      EXPERIMENTAL: 'yes'
+      SCHNORRSIG_HALFAGG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
@@ -400,6 +412,8 @@ jobs:
       RECOVERY: 'yes'
       EXTRAKEYS: 'yes'
       SCHNORRSIG: 'yes'
+      EXPERIMENTAL: 'yes'
+      SCHNORRSIG_HALFAGG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
@@ -453,6 +467,8 @@ jobs:
       RECOVERY: 'yes'
       EXTRAKEYS: 'yes'
       SCHNORRSIG: 'yes'
+      EXPERIMENTAL: 'yes'
+      SCHNORRSIG_HALFAGG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
@@ -519,6 +535,8 @@ jobs:
       RECOVERY: 'yes'
       EXTRAKEYS: 'yes'
       SCHNORRSIG: 'yes'
+      EXPERIMENTAL: 'yes'
+      SCHNORRSIG_HALFAGG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
       CC: 'clang'
@@ -567,6 +585,8 @@ jobs:
       RECOVERY: 'yes'
       EXTRAKEYS: 'yes'
       SCHNORRSIG: 'yes'
+      EXPERIMENTAL: 'yes'
+      SCHNORRSIG_HALFAGG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
@@ -686,13 +706,13 @@ jobs:
       fail-fast: false
       matrix:
         env_vars:
-          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', EXPERIMENTAL: 'yes', SCHNORRSIG_HALFAGG: 'yes' }
           - { WIDEMUL: 'int128_struct', ECMULTGENPRECISION: 2, ECMULTWINDOW: 4 }
-          - { WIDEMUL: 'int128',                  ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - { WIDEMUL: 'int128',                  ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', EXPERIMENTAL: 'yes', SCHNORRSIG_HALFAGG: 'yes' }
           - { WIDEMUL: 'int128', RECOVERY: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY' }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', EXPERIMENTAL: 'yes', SCHNORRSIG_HALFAGG: 'yes' }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc', EXPERIMENTAL: 'yes', SCHNORRSIG_HALFAGG: 'yes' }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY', EXPERIMENTAL: 'yes', SCHNORRSIG_HALFAGG: 'yes' }
           - BUILD: 'distcheck'
 
     steps:
@@ -800,6 +820,8 @@ jobs:
       RECOVERY: 'yes'
       EXTRAKEYS: 'yes'
       SCHNORRSIG: 'yes'
+      EXPERIMENTAL: 'yes'
+      SCHNORRSIG_HALFAGG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
 

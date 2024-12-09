@@ -22,6 +22,8 @@ env:
   RECOVERY: no
   EXTRAKEYS: no
   SCHNORRSIG: no
+  EXPERIMENTAL: no
+  SCHNORRSIG_HALFAGG: no
   MUSIG: no
   ELLSWIFT: no
   ### test options
@@ -70,6 +72,8 @@ task:
     RECOVERY: yes
     EXTRAKEYS: yes
     SCHNORRSIG: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG_HALFAGG: yes
     MUSIG: yes
     ELLSWIFT: yes
   matrix:
@@ -88,6 +92,8 @@ task:
     RECOVERY: yes
     EXTRAKEYS: yes
     SCHNORRSIG: yes
+    EXPERIMENTAL: yes
+    SCHNORRSIG_HALFAGG: yes
     MUSIG: yes
     ELLSWIFT: yes
     WRAPPER_CMD: 'valgrind --error-exitcode=42'

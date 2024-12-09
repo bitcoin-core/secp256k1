@@ -7447,6 +7447,10 @@ static void run_ecdsa_wycheproof(void) {
 # include "modules/schnorrsig/tests_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+# include "modules/schnorrsig_halfagg/tests_impl.h"
+#endif
+
 #ifdef ENABLE_MODULE_MUSIG
 # include "modules/musig/tests_impl.h"
 #endif
@@ -7813,6 +7817,10 @@ int main(int argc, char **argv) {
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
     run_schnorrsig_tests();
+#endif
+
+#ifdef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+    run_schnorrsig_halfagg_tests();
 #endif
 
 #ifdef ENABLE_MODULE_MUSIG
