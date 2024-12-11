@@ -61,6 +61,51 @@ Implementation details
   * Optional runtime blinding which attempts to frustrate differential power analysis.
   * The precomputed tables add and eventually subtract points for which no known scalar (secret key) is known, preventing even an attacker with control over the secret key used to control the data internally.
 
+Obtaining and verifying
+-----------------------
+
+The git tag for each release (e.g. `v0.6.0`) is GPG-signed by one of the maintainers.
+For a fully verified build of this project, it is recommended to obtain this repository
+via git, obtain the GPG keys of the signing maintainer(s), and then verify the release
+tag's signature using git.
+
+This can be done with the following steps:
+
+1. Check the latest release on the [Releases
+   page](https://github.com/bitcoin-core/secp256k1/releases). Determine the signing GPG ID
+   by clicking the green icon next to the tag name. For example, in the case of v0.6.0,
+   this would be `4861DBF262123605`.
+    - Consult [SECURITY.md](./SECURITY.md) for a complete listing of maintainer keys,
+      per Github.
+1. If possible, cross-reference this key ID with another source controlled by its owner (e.g.
+   https://x.com/n1ckler).
+    - This is to guard against the unlikely case that incorrect content is being presented by Github.com.
+1. Retrieve the GPG key from a keyserver, e.g.
+    ```
+    gpg --keyserver keyserver.ubuntu.com --recv-keys 4861DBF262123605
+    ```
+1. Clone the repository: 
+    ```
+    git clone https://github.com/bitcoin-core/secp256k1
+    ```
+1. Check out the latest release tag, e.g. 
+    ```
+    git checkout v0.6.0
+    ```
+1. Use git to verify the GPG signature: 
+   ```
+   % git tag -v v0.6.0 | grep -C 3 'Good signature'
+
+   gpg: Signature made Mon 04 Nov 2024 12:14:44 PM EST
+   gpg:                using RSA key 4BBB845A6F5A65A69DFAEC234861DBF262123605
+   gpg: Good signature from "Jonas Nick <jonas@n-ck.net>" [unknown]
+   gpg:                 aka "Jonas Nick <jonasd.nick@gmail.com>" [unknown]
+   gpg: WARNING: This key is not certified with a trusted signature!
+   gpg:          There is no indication that the signature belongs to the owner.
+   Primary key fingerprint: 36C7 1A37 C9D9 88BD E825  08D9 B1A7 0E4F 8DCD 0366
+        Subkey fingerprint: 4BBB 845A 6F5A 65A6 9DFA  EC23 4861 DBF2 6212 3605
+   ```
+
 Building with Autotools
 -----------------------
 
