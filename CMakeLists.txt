@@ -286,13 +286,13 @@ if(CMAKE_GENERATOR MATCHES "Make|Ninja")
   # guarantee that the flags appear at the end of the command line.
   set(SECP256K1_APPEND_CFLAGS "" CACHE STRING "Compiler flags that are appended to the command line after all other flags added by the build system. This variable is intended for debugging and special builds.")
   if(SECP256K1_APPEND_CFLAGS)
-    string(APPEND CMAKE_C_COMPILE_OBJECT " ${SECP256K1_APPEND_CFLAGS}")
+    string(REPLACE "<FLAGS>" "<FLAGS> ${SECP256K1_APPEND_CFLAGS}" CMAKE_C_COMPILE_OBJECT "${CMAKE_C_COMPILE_OBJECT}")
   endif()
 
   set(SECP256K1_APPEND_LDFLAGS "" CACHE STRING "Linker flags that are appended to the command line after all other flags added by the build system. This variable is intended for debugging and special builds.")
   if(SECP256K1_APPEND_LDFLAGS)
-    string(APPEND CMAKE_C_CREATE_SHARED_LIBRARY " ${SECP256K1_APPEND_LDFLAGS}")
-    string(APPEND CMAKE_C_LINK_EXECUTABLE " ${SECP256K1_APPEND_LDFLAGS}")
+    string(REPLACE "<LINK_FLAGS>" "<LINK_FLAGS> ${SECP256K1_APPEND_LDFLAGS}" CMAKE_C_CREATE_SHARED_LIBRARY "${CMAKE_C_CREATE_SHARED_LIBRARY}")
+    string(REPLACE "<LINK_FLAGS>" "<LINK_FLAGS> ${SECP256K1_APPEND_LDFLAGS}" CMAKE_C_LINK_EXECUTABLE "${CMAKE_C_LINK_EXECUTABLE}")
   endif()
 endif()
 
