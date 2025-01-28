@@ -9,6 +9,8 @@
 #include "../../../include/secp256k1_silentpayments.h"
 #include "../../../src/modules/silentpayments/dleq_impl.h"
 #include "../../../src/modules/silentpayments/vectors.h"
+#include "../../../src/modules/silentpayments/dleq_vectors.h"
+#include "../../../include/secp256k1.h"
 
 /** Constants
  *
@@ -869,6 +871,78 @@ static void dleq_tests(void) {
     CHECK(secp256k1_dleq_nonce(&k, a32, A_33, C_33, NULL, msg) == 1);
 }
 
+/* Test BIP-374 test vectors ("Discrete Log Equality Proofs").
+ * See tools/test_vectors_dleq_generate.py
+ * */
+
+static unsigned char zero_array[32] = {0x00};
+
+/* Helper function to check if given array is NOT equivalent to all zero array.
+ * Used to detect test vectors where zero array can represent:
+     * B_bytes at infinity
+     * Empty optional msg_bytes
+ * */
+int is_not_empty(const unsigned char *arr){
+    return (memcmp(arr, zero_array, 32) != 0);
+}
+
+static void test_dleq_bip_vectors(void) {
+    secp256k1_scalar a, s, e;
+    secp256k1_ge A;
+    secp256k1_ge B;
+    secp256k1_ge C;
+    int i;
+
+    /* bip-0374/test_vectors_generate_proof.csv*/
+    for (i = 0; i < 6; ++i) {
+        int ret = 1;
+        const unsigned char *m = NULL;
+        secp256k1_ge_set_infinity(&B);
+        if (i > 2) ret = 0;
+
+        secp256k1_scalar_set_b32(&a, a_bytes[i], NULL);
+        if (is_not_empty(B_bytes[i])) {
+            CHECK(secp256k1_eckey_pubkey_parse(&B, B_bytes[i], 33) == 1);
+        }
+
+        secp256k1_dleq_pair(&CTX->ecmult_gen_ctx, &A, &C, &a, &B);
+
+        if (is_not_empty(msg_bytes[i])) {
+            m = msg_bytes[i];
+        }
+        CHECK(secp256k1_dleq_prove(CTX, &s, &e, &a, &B, &A, &C, (unsigned char*)(auxrand_bytes[i]), m) == ret);
+
+        if (ret) {
+            unsigned char proof[64];
+            secp256k1_scalar_get_b32(proof, &e);
+            secp256k1_scalar_get_b32(proof + 32, &s);
+            CHECK(memcmp(proof, proof_bytes[i], 64) == 0);
+            CHECK(secp256k1_dleq_verify(&s, &e, &A, &B, &C, m) == 1);
+        }
+    }
+
+    /* bip-0374/test_vectors_verify_proof.csv*/
+    for (i = 0; i < 13; ++i) {
+        const unsigned char *m = NULL;
+
+        if (i > 2 && i < 6) {
+            /* skip invalid test cases which are not present in test_vectors_verify_proof.csv */
+            continue;
+        }
+        secp256k1_scalar_set_b32(&e, proof_bytes[i], NULL);
+        secp256k1_scalar_set_b32(&s, proof_bytes[i] + 32, NULL);
+
+        CHECK(secp256k1_eckey_pubkey_parse(&A, A_bytes[i], 33) == 1);
+        CHECK(secp256k1_eckey_pubkey_parse(&B, B_bytes[i], 33) == 1);
+        CHECK(secp256k1_eckey_pubkey_parse(&C, C_bytes[i], 33) == 1);
+
+        if (is_not_empty(msg_bytes[i])) {
+            m = msg_bytes[i];
+        }
+        CHECK(secp256k1_dleq_verify(&s, &e, &A, &B, &C, m) == success[i]);
+    }
+}
+
 void run_silentpayments_tests(void) {
     test_recipient_sort();
     test_send_api();
@@ -877,6 +951,7 @@ void run_silentpayments_tests(void) {
     run_silentpayments_test_vectors();
     silentpayments_sha256_tag_test();
     dleq_tests();
+    test_dleq_bip_vectors();
 }
 
 #endif
