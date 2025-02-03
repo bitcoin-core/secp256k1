@@ -111,13 +111,14 @@ const unsigned char* label_lookup(
 }
 
 int main(void) {
-    enum { N_INPUTS = 2, N_OUTPUTS = 3 };
+    enum { N_INPUTS = 2, N_OUTPUTS = 3, N_RECIPIENTS = 2 };
     unsigned char randomize[32];
     unsigned char xonly_print[32];
     secp256k1_xonly_pubkey tx_inputs[N_INPUTS];
     secp256k1_xonly_pubkey tx_outputs[N_OUTPUTS];
     int ret;
     size_t i;
+    unsigned char dleq_proof[N_RECIPIENTS][64];
 
     /* Before we can call actual API functions, we need to create a "context" */
     secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
@@ -218,14 +219,63 @@ int main(void) {
         for (i = 0; i < N_OUTPUTS; i++) {
             generated_output_ptrs[i] = &generated_outputs[i];
         }
-        ret = secp256k1_silentpayments_sender_create_outputs(ctx,
-            generated_output_ptrs,
-            recipient_ptrs, N_OUTPUTS,
-            smallest_outpoint,
-            sender_seckey_ptrs, N_INPUTS,
-            NULL, 0
-        );
-        assert(ret);
+
+        /* Sender can perform 1 of the following options:
+         * Option 1: generate outputs without DLEQ proofs
+            ret = secp256k1_silentpayments_sender_create_outputs(ctx,
+                generated_output_ptrs,
+                recipient_ptrs, N_OUTPUTS,
+                smallest_outpoint,
+                sender_seckey_ptrs, N_INPUTS,
+                NULL, 0
+            );
+            assert(ret);
+         */
+        {
+            /* Option 2: generate outputs with DLEQ proofs*/
+            secp256k1_silentpayments_public_data public_data;
+            const secp256k1_xonly_pubkey *tx_input_ptrs[N_INPUTS];
+            size_t n_dleq_size;
+            secp256k1_silentpayments_dleq_data dleq_data[N_RECIPIENTS];
+            secp256k1_silentpayments_dleq_data *dleq_data_ptrs[N_RECIPIENTS];
+            for (i = 0; i < N_RECIPIENTS; i++) {
+                dleq_data_ptrs[i] = &dleq_data[i];
+            }
+            for (i = 0; i < N_INPUTS; i++) {
+                tx_input_ptrs[i] = &tx_inputs[i];
+            }
+            ret = secp256k1_silentpayments_recipient_public_data_create(ctx, &public_data, smallest_outpoint,
+                                                                        tx_input_ptrs, N_INPUTS, NULL, 0);
+            assert(ret);
+
+            ret = secp256k1_silentpayments_sender_create_outputs_with_proof(ctx,
+                generated_output_ptrs, dleq_data_ptrs, &n_dleq_size,
+                recipient_ptrs, N_OUTPUTS,
+                smallest_outpoint,
+                sender_seckey_ptrs, N_INPUTS,
+                NULL, 0
+            );
+            assert(n_dleq_size == N_RECIPIENTS);
+            assert(ret);
+            /* Ensure that outputs are generated correctly at the sender side by verifying the DLEQ proof */
+            for (i = 0; i < N_RECIPIENTS; i++) {
+                /* Serialized form of proof can be sent from 1 sender side device to another sender side device.
+                 * ex: hardware wallet (which can do ECDH + proof calculation) to wallet application. */
+                unsigned char ss_proof_index_bytes[33 + 64 + 4];
+                secp256k1_silentpayments_dleq_data data;
+                secp256k1_silentpayments_dleq_data_serialize(ss_proof_index_bytes, &dleq_data[i]);
+                /* Parse the serialized proof on the second device. (ex: wallet application) */
+                secp256k1_silentpayments_dleq_data_parse(&data, ss_proof_index_bytes);
+                /* Proof verification can be done on the second device. */
+                ret = secp256k1_silentpayments_verify_proof(ctx, data.shared_secret, data.proof,
+                                                            &recipients[data.index].scan_pubkey,
+                                                            &public_data);
+                assert(ret);
+                /* Store proof to send to different receivers (Bob, Carol) later. */
+                memcpy(dleq_proof[i], ss_proof_index_bytes + 33, 64);
+            }
+        }
+
         printf("Alice created the following outputs for Bob and Carol: \n");
         for (i = 0; i < N_OUTPUTS; i++) {
             printf("    ");
@@ -400,6 +450,25 @@ int main(void) {
                 );
                 print_hex(xonly_print, sizeof(xonly_print));
             }
+            {
+                /* Optionally, Bob can use DLEQ proof to prove ownership of his address without revealing private keys
+                 * DLEQ proof verification needs proof, input pubkey sum, Bob's scan pubkey and shared secret as inputs. */
+                unsigned char shared_secret[33];
+                secp256k1_pubkey scan_pubkey;
+                /* 1. Get Bob's scan pubkey */
+                ret = secp256k1_ec_pubkey_parse(ctx, &scan_pubkey, bob_address[0], 33);
+                assert(ret);
+                /* 2. Compute input pubkey sum */
+                ret = secp256k1_silentpayments_recipient_public_data_parse(ctx, &public_data, light_client_data33);
+                assert(ret);
+                /* 3. Bob computes shared secret */
+                ret = secp256k1_silentpayments_recipient_create_shared_secret(ctx, shared_secret, bob_scan_key,
+                                                                              &public_data);
+                assert(ret);
+                /* 4. Use proof we obtained from Alice for verification */
+                ret &= secp256k1_silentpayments_verify_proof(ctx, shared_secret, dleq_proof[0], &scan_pubkey, &public_data);
+                assert(ret);
+            }
         }
         {
             /*** Scanning as a light client (Carol) ***
@@ -493,6 +562,18 @@ int main(void) {
             for (i = 0; i < n_found_outputs; i++) {
                 printf("    ");
                 print_hex(ser_found_outputs[i], 32);
+            }
+            {
+                /* Optionally, Carol can use DLEQ proof to prove ownership of her address without revealing private keys
+                 * DLEQ proof verification needs proof, input pubkey sum, Carol's scan pubkey and shared secret as inputs. */
+                /* 1. Get Carol's scan pubkey */
+                secp256k1_pubkey scan_pubkey;
+                ret = secp256k1_ec_pubkey_parse(ctx, &scan_pubkey, carol_address[0], 33);
+                assert(ret);
+                /* 2. Input pubkey sum and shared secret already computed at this point, so verify_proof directly */
+                /* 3. Use proof we obtained from Alice for verification */
+                ret &= secp256k1_silentpayments_verify_proof(ctx, shared_secret, dleq_proof[1], &scan_pubkey, &public_data);
+                assert(ret);
             }
         }
     }

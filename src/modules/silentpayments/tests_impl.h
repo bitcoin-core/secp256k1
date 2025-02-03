@@ -11,6 +11,7 @@
 #include "../../../src/modules/silentpayments/vectors.h"
 #include "../../../src/modules/silentpayments/dleq_vectors.h"
 #include "include/secp256k1.h"
+#include <assert.h>
 
 /** Constants
  *
@@ -130,6 +131,9 @@ static void test_recipient_sort_helper(unsigned char (*sp_addresses[3])[2][33], 
     const secp256k1_silentpayments_recipient *recipient_ptrs[3];
     secp256k1_xonly_pubkey generated_outputs[3];
     secp256k1_xonly_pubkey *generated_output_ptrs[3];
+    secp256k1_silentpayments_dleq_data dleq_data[2];
+    secp256k1_silentpayments_dleq_data *dleq_data_ptrs[2];
+    size_t n_dleq_size;
     unsigned char xonly_ser[32];
     size_t i;
     int ret;
@@ -141,15 +145,32 @@ static void test_recipient_sort_helper(unsigned char (*sp_addresses[3])[2][33], 
         recipients[i].index = i;
         recipient_ptrs[i] = &recipients[i];
         generated_output_ptrs[i] = &generated_outputs[i];
+        if (i != 2){
+            dleq_data_ptrs[i] = &dleq_data[i];
+        }
     }
-    ret = secp256k1_silentpayments_sender_create_outputs(CTX,
-        generated_output_ptrs,
+    ret = secp256k1_silentpayments_sender_create_outputs_with_proof(CTX,
+        generated_output_ptrs, dleq_data_ptrs, &n_dleq_size,
         recipient_ptrs, 3,
         SMALLEST_OUTPOINT,
         NULL, 0,
         seckey_ptrs, 1
     );
     CHECK(ret);
+    {
+        secp256k1_pubkey pk;
+        secp256k1_xonly_pubkey xonly_pk;
+        secp256k1_silentpayments_public_data public_data;
+        const secp256k1_xonly_pubkey *tx_input_ptr = &xonly_pk;
+        CHECK(secp256k1_ec_pubkey_create(CTX, &pk, seckey_ptrs[0]) == 1);
+        CHECK(secp256k1_xonly_pubkey_from_pubkey(CTX, &xonly_pk, NULL, &pk) == 1);
+        CHECK(secp256k1_silentpayments_recipient_public_data_create(CTX, &public_data, SMALLEST_OUTPOINT, &tx_input_ptr, 1, NULL, 0) == 1);
+        for (i = 0; i < 2; i++) {
+            CHECK(secp256k1_silentpayments_verify_proof(CTX, dleq_data_ptrs[i]->shared_secret, dleq_data_ptrs[i]->proof,
+                                                        &recipients[dleq_data_ptrs[i]->index].scan_pubkey,
+                                                        &public_data) == 1);
+        }
+    }
     for (i = 0; i < 3; i++) {
         secp256k1_xonly_pubkey_serialize(CTX, xonly_ser, &generated_outputs[i]);
         CHECK(secp256k1_memcmp_var(xonly_ser, (*sp_outputs[i]), 32) == 0);
@@ -374,9 +395,17 @@ void run_silentpayments_test_vector_send(const struct bip352_test_vector *test) 
     secp256k1_keypair taproot_keypairs[MAX_INPUTS_PER_TEST_CASE];
     secp256k1_keypair const *taproot_keypair_ptrs[MAX_INPUTS_PER_TEST_CASE];
     unsigned char const *plain_seckeys[MAX_INPUTS_PER_TEST_CASE];
+    secp256k1_pubkey plain_pubkeys[MAX_INPUTS_PER_TEST_CASE];
+    const secp256k1_pubkey *plain_pubkey_ptrs[MAX_INPUTS_PER_TEST_CASE];
+    secp256k1_xonly_pubkey xonly_pubkeys[MAX_INPUTS_PER_TEST_CASE];
+    const secp256k1_xonly_pubkey *xonly_pubkey_ptrs[MAX_INPUTS_PER_TEST_CASE];
+    secp256k1_silentpayments_dleq_data dleq_data[MAX_OUTPUTS_PER_TEST_CASE];
+    secp256k1_silentpayments_dleq_data *dleq_data_ptrs[MAX_OUTPUTS_PER_TEST_CASE];
     unsigned char created_output[32];
     size_t i, j, k;
     int match, ret;
+    size_t n_dleq_size;
+    secp256k1_silentpayments_public_data public_data;
 
     /* Check that sender creates expected outputs */
     for (i = 0; i < test->num_outputs; i++) {
@@ -385,16 +414,21 @@ void run_silentpayments_test_vector_send(const struct bip352_test_vector *test) 
         recipients[i].index = i;
         recipient_ptrs[i] = &recipients[i];
         generated_output_ptrs[i] = &generated_outputs[i];
+        dleq_data_ptrs[i] = &dleq_data[i];
     }
     for (i = 0; i < test->num_plain_inputs; i++) {
         plain_seckeys[i] = test->plain_seckeys[i];
+        CHECK(secp256k1_ec_pubkey_create(CTX, &plain_pubkeys[i], plain_seckeys[i]) == 1);
+        plain_pubkey_ptrs[i] = &plain_pubkeys[i];
     }
     for (i = 0; i < test->num_taproot_inputs; i++) {
         CHECK(secp256k1_keypair_create(CTX, &taproot_keypairs[i], test->taproot_seckeys[i]));
         taproot_keypair_ptrs[i] = &taproot_keypairs[i];
+        CHECK(secp256k1_keypair_xonly_pub(CTX, &xonly_pubkeys[i], NULL, &taproot_keypairs[i]) == 1);
+        xonly_pubkey_ptrs[i] = &xonly_pubkeys[i];
     }
-    ret = secp256k1_silentpayments_sender_create_outputs(CTX,
-                generated_output_ptrs,
+    ret = secp256k1_silentpayments_sender_create_outputs_with_proof(CTX,
+                generated_output_ptrs, dleq_data_ptrs, &n_dleq_size,
                 recipient_ptrs,
                 test->num_outputs,
                 test->outpoint_smallest,
@@ -428,6 +462,16 @@ void run_silentpayments_test_vector_send(const struct bip352_test_vector *test) 
         }
     }
     CHECK(match);
+
+    /* Verify generated DLEQ proofs*/
+    CHECK(secp256k1_silentpayments_recipient_public_data_create(CTX, &public_data, test->outpoint_smallest,
+                                                                test->num_taproot_inputs > 0 ? xonly_pubkey_ptrs : NULL, test->num_taproot_inputs,
+                                                                test->num_plain_inputs > 0 ? plain_pubkey_ptrs : NULL, test->num_plain_inputs) == 1);
+    for (i = 0; i < n_dleq_size; i++) {
+        CHECK(secp256k1_silentpayments_verify_proof(CTX, dleq_data_ptrs[i]->shared_secret, dleq_data_ptrs[i]->proof,
+                                                    &recipients[dleq_data_ptrs[i]->index].scan_pubkey,
+                                                    &public_data) == 1);
+    }
 }
 
 void run_silentpayments_test_vector_receive(const struct bip352_test_vector *test) {
