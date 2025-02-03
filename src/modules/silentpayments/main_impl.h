@@ -790,4 +790,16 @@ int secp256k1_silentpayments_recipient_create_output_pubkey(const secp256k1_cont
 }
 
 
+void secp256k1_silentpayments_dleq_data_serialize(unsigned char *output, const secp256k1_silentpayments_dleq_data *dleq_data) {
+    memcpy(output, dleq_data->shared_secret, 33);
+    memcpy(output + 33, dleq_data->proof, 64);
+    secp256k1_write_be32(output + 33 + 64, dleq_data->index);
+}
+
+void secp256k1_silentpayments_dleq_data_parse(secp256k1_silentpayments_dleq_data *dleq_data, const unsigned char *input) {
+    memcpy(dleq_data->shared_secret, input, 33);
+    memcpy(dleq_data->proof, input + 33, 64);
+    dleq_data->index = secp256k1_read_be32(input + 33 + 64);
+}
+
 #endif

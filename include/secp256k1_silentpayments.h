@@ -50,6 +50,19 @@ typedef struct secp256k1_silentpayments_recipient {
     size_t index;
 } secp256k1_silentpayments_recipient;
 
+/* This struct contains details of the DLEQ proof
+ *
+ * Fields:
+ * - shared_secret : 33-byte shared secret point
+ * - proof: 64-byte serialized DLEQ proof
+ * - index: Indicates which recipient the proof pertains to based on the original (not sorted) ordering of the addresses
+ */
+typedef struct {
+    unsigned char shared_secret[33];
+    unsigned char proof[64];
+    size_t index;
+} secp256k1_silentpayments_dleq_data;
+
 /** Create Silent Payment outputs for recipient(s).
  *
  *  Given a list of n secret keys a_1...a_n (one for each silent payment
@@ -443,6 +456,30 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipien
     const secp256k1_pubkey *spend_pubkey,
     const uint32_t k
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
+
+/** Serialize a secp256k1_silentpayments_dleq_data object into a 101-byte sequence.
+ *  101-byte sequence = 33 bytes shared secret + 64 bytes proof + 4 bytes index
+ *                      where index is position in an array of pointers to silent payment recipients
+ *
+ *  Out:       output: pointer to a 101-byte array to place the serialized `secp256k1_silentpayments_dleq_data` in
+ *  In:    dleq_data: pointer to an initialized secp256k1_silentpayments_dleq_data object
+ */
+SECP256K1_API void secp256k1_silentpayments_dleq_data_serialize(
+    unsigned char *output33,
+    const secp256k1_silentpayments_dleq_data *dleq_data
+)SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
+
+/** Parse a 101-byte sequence into a secp256k1_silentpayments_dleq_data object.
+ *  101-byte sequence = 33 bytes shared secret + 64 bytes proof + 4 bytes index
+ *                      where index is position in an array of pointers to silent payment recipients
+ *
+ *  Out:  dleq_data: pointer to a secp256k1_silentpayments_dleq_data object.
+ *  In:        input: pointer to a serialized secp256k1_silentpayments_dleq_data.
+ */
+SECP256K1_API void secp256k1_silentpayments_dleq_data_parse(
+        secp256k1_silentpayments_dleq_data *dleq_data,
+        const unsigned char *input
+)SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
 
 #ifdef __cplusplus
 }
