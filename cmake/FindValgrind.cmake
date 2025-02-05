@@ -1,4 +1,4 @@
-if(CMAKE_HOST_APPLE)
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
   find_program(BREW_COMMAND brew)
   execute_process(
     COMMAND ${BREW_COMMAND} --prefix valgrind

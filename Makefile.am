@@ -1,3 +1,5 @@
+.PHONY: clean-precomp precomp
+
 ACLOCAL_AMFLAGS = -I build-aux/m4
 
 # AM_CFLAGS will be automatically prepended to CFLAGS by Automake when compiling some foo
@@ -37,6 +39,7 @@ noinst_HEADERS += src/field_10x26_impl.h
 noinst_HEADERS += src/field_5x52.h
 noinst_HEADERS += src/field_5x52_impl.h
 noinst_HEADERS += src/field_5x52_int128_impl.h
+noinst_HEADERS += src/field_5x52_asm_impl.h
 noinst_HEADERS += src/modinv32.h
 noinst_HEADERS += src/modinv32_impl.h
 noinst_HEADERS += src/modinv64.h
@@ -45,7 +48,6 @@ noinst_HEADERS += src/precomputed_ecmult.h
 noinst_HEADERS += src/precomputed_ecmult_gen.h
 noinst_HEADERS += src/assumptions.h
 noinst_HEADERS += src/checkmem.h
-noinst_HEADERS += src/testutil.h
 noinst_HEADERS += src/util.h
 noinst_HEADERS += src/int128.h
 noinst_HEADERS += src/int128_impl.h
@@ -63,9 +65,6 @@ noinst_HEADERS += src/hash_impl.h
 noinst_HEADERS += src/field.h
 noinst_HEADERS += src/field_impl.h
 noinst_HEADERS += src/bench.h
-noinst_HEADERS += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
-noinst_HEADERS += src/hsort.h
-noinst_HEADERS += src/hsort_impl.h
 noinst_HEADERS += contrib/lax_der_parsing.h
 noinst_HEADERS += contrib/lax_der_parsing.c
 noinst_HEADERS += contrib/lax_der_privatekey_parsing.h
@@ -155,7 +154,7 @@ endif
 if USE_EXAMPLES
 noinst_PROGRAMS += ecdsa_example
 ecdsa_example_SOURCES = examples/ecdsa.c
-ecdsa_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+ecdsa_example_CPPFLAGS = -I$(top_srcdir)/include
 ecdsa_example_LDADD = libsecp256k1.la
 ecdsa_example_LDFLAGS = -static
 if BUILD_WINDOWS
@@ -165,7 +164,7 @@ TESTS += ecdsa_example
 if ENABLE_MODULE_ECDH
 noinst_PROGRAMS += ecdh_example
 ecdh_example_SOURCES = examples/ecdh.c
-ecdh_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+ecdh_example_CPPFLAGS = -I$(top_srcdir)/include
 ecdh_example_LDADD = libsecp256k1.la
 ecdh_example_LDFLAGS = -static
 if BUILD_WINDOWS
@@ -176,35 +175,13 @@ endif
 if ENABLE_MODULE_SCHNORRSIG
 noinst_PROGRAMS += schnorr_example
 schnorr_example_SOURCES = examples/schnorr.c
-schnorr_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+schnorr_example_CPPFLAGS = -I$(top_srcdir)/include
 schnorr_example_LDADD = libsecp256k1.la
 schnorr_example_LDFLAGS = -static
 if BUILD_WINDOWS
 schnorr_example_LDFLAGS += -lbcrypt
 endif
 TESTS += schnorr_example
-endif
-if ENABLE_MODULE_ELLSWIFT
-noinst_PROGRAMS += ellswift_example
-ellswift_example_SOURCES = examples/ellswift.c
-ellswift_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
-ellswift_example_LDADD = libsecp256k1.la
-ellswift_example_LDFLAGS = -static
-if BUILD_WINDOWS
-ellswift_example_LDFLAGS += -lbcrypt
-endif
-TESTS += ellswift_example
-endif
-if ENABLE_MODULE_MUSIG
-noinst_PROGRAMS += musig_example
-musig_example_SOURCES = examples/musig.c
-musig_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
-musig_example_LDADD = libsecp256k1.la
-musig_example_LDFLAGS = -static
-if BUILD_WINDOWS
-musig_example_LDFLAGS += -lbcrypt
-endif
-TESTS += musig_example
 endif
 endif
 
@@ -213,11 +190,11 @@ EXTRA_PROGRAMS = precompute_ecmult precompute_ecmult_gen
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 precompute_ecmult_SOURCES = src/precompute_ecmult.c
-precompute_ecmult_CPPFLAGS = $(SECP_CONFIG_DEFINES) -DVERIFY
+precompute_ecmult_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 precompute_ecmult_LDADD = $(COMMON_LIB)
 
 precompute_ecmult_gen_SOURCES = src/precompute_ecmult_gen.c
-precompute_ecmult_gen_CPPFLAGS = $(SECP_CONFIG_DEFINES) -DVERIFY
+precompute_ecmult_gen_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 precompute_ecmult_gen_LDADD = $(COMMON_LIB)
 
 # See Automake manual, Section "Errors with distclean".
@@ -225,7 +202,7 @@ precompute_ecmult_gen_LDADD = $(COMMON_LIB)
 # otherwise make's decision whether to rebuild them (even in the first
 # build by a normal user) depends on mtimes, and thus is very fragile.
 # This means that rebuilds of the prebuilt files always need to be
-# forced by deleting them.
+# forced by deleting them, e.g., by invoking `make clean-precomp`.
 src/precomputed_ecmult.c:
 	$(MAKE) $(AM_MAKEFLAGS) precompute_ecmult$(EXEEXT)
 	./precompute_ecmult$(EXEEXT)
@@ -240,32 +217,13 @@ precomp: $(PRECOMP)
 # e.g., after `make maintainer-clean`).
 BUILT_SOURCES = $(PRECOMP)
 
-.PHONY: clean-precomp
-clean-precomp:
-	rm -f $(PRECOMP)
 maintainer-clean-local: clean-precomp
 
-### Pregenerated test vectors
-### (see the comments in the previous section for detailed rationale)
-TESTVECTORS = src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
+clean-precomp:
+	rm -f $(PRECOMP)
 
-src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
-	mkdir -p $(@D)
-	python3 $(top_srcdir)/tools/tests_wycheproof_generate.py $(top_srcdir)/src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json > $@
-
-testvectors: $(TESTVECTORS)
-
-BUILT_SOURCES += $(TESTVECTORS)
-
-.PHONY: clean-testvectors
-clean-testvectors:
-	rm -f $(TESTVECTORS)
-maintainer-clean-local: clean-testvectors
-
-### Additional files to distribute
 EXTRA_DIST = autogen.sh CHANGELOG.md SECURITY.md
 EXTRA_DIST += doc/release-process.md doc/safegcd_implementation.md
-EXTRA_DIST += doc/ellswift.md doc/musig.md
 EXTRA_DIST += examples/EXAMPLES_COPYING
 EXTRA_DIST += sage/gen_exhaustive_groups.sage
 EXTRA_DIST += sage/gen_split_lambda_constants.sage
@@ -273,9 +231,6 @@ EXTRA_DIST += sage/group_prover.sage
 EXTRA_DIST += sage/prove_group_implementations.sage
 EXTRA_DIST += sage/secp256k1_params.sage
 EXTRA_DIST += sage/weierstrass_prover.sage
-EXTRA_DIST += src/wycheproof/WYCHEPROOF_COPYING
-EXTRA_DIST += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json
-EXTRA_DIST += tools/tests_wycheproof_generate.py
 
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include
@@ -293,10 +248,6 @@ if ENABLE_MODULE_SCHNORRSIG
 include src/modules/schnorrsig/Makefile.am.include
 endif
 
-if ENABLE_MODULE_MUSIG
-include src/modules/musig/Makefile.am.include
-endif
-
-if ENABLE_MODULE_ELLSWIFT
-include src/modules/ellswift/Makefile.am.include
+if ENABLE_MODULE_EXPORT
+include src/modules/export/Makefile.am.include
 endif

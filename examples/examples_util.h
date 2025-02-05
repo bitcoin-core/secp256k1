@@ -17,13 +17,7 @@
  */
 
 #if defined(_WIN32)
-/*
- * The defined WIN32_NO_STATUS macro disables return code definitions in
- * windows.h, which avoids "macro redefinition" MSVC warnings in ntstatus.h.
- */
-#define WIN32_NO_STATUS
 #include <windows.h>
-#undef WIN32_NO_STATUS
 #include <ntstatus.h>
 #include <bcrypt.h>
 #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
@@ -83,7 +77,7 @@ static void print_hex(unsigned char* data, size_t size) {
 #include <Windows.h>
 #endif
 /* Cleanses memory to prevent leaking sensitive info. Won't be optimized out. */
-static void secure_erase(void *ptr, size_t len) {
+static SECP256K1_INLINE void secure_erase(void *ptr, size_t len) {
 #if defined(_MSC_VER)
     /* SecureZeroMemory is guaranteed not to be optimized out by MSVC. */
     SecureZeroMemory(ptr, len);
@@ -95,7 +89,7 @@ static void secure_erase(void *ptr, size_t len) {
      *    As best as we can tell, this is sufficient to break any optimisations that
      *    might try to eliminate "superfluous" memsets.
      * This method used in memzero_explicit() the Linux kernel, too. Its advantage is that it is
-     * pretty efficient, because the compiler can still implement the memset() efficiently,
+     * pretty efficient, because the compiler can still implement the memset() efficently,
      * just not remove it entirely. See "Dead Store Elimination (Still) Considered Harmful" by
      * Yang et al. (USENIX Security 2017) for more background.
      */

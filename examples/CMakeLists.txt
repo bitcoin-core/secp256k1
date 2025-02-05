@@ -1,31 +1,34 @@
-function(add_example name)
-  set(target_name ${name}_example)
-  add_executable(${target_name} ${name}.c)
-  target_include_directories(${target_name} PRIVATE
-    ${PROJECT_SOURCE_DIR}/include
-  )
-  target_link_libraries(${target_name}
-    secp256k1
-    $<$<PLATFORM_ID:Windows>:bcrypt>
-  )
-  set(test_name ${name}_example)
-  add_test(NAME secp256k1_${test_name} COMMAND ${target_name})
-endfunction()
+add_library(example INTERFACE)
+target_include_directories(example INTERFACE
+  ${PROJECT_SOURCE_DIR}/include
+)
+target_compile_options(example INTERFACE
+  $<$<C_COMPILER_ID:MSVC>:/wd4005>
+)
+target_link_libraries(example INTERFACE
+  $<$<PLATFORM_ID:Windows>:bcrypt>
+)
+if(SECP256K1_BUILD_SHARED)
+  target_link_libraries(example INTERFACE secp256k1)
+elseif(SECP256K1_BUILD_STATIC)
+  target_link_libraries(example INTERFACE secp256k1_static)
+  if(MSVC)
+    target_link_options(example INTERFACE /IGNORE:4217)
+  endif()
+endif()
 
-add_example(ecdsa)
+add_executable(ecdsa_example ecdsa.c)
+target_link_libraries(ecdsa_example example)
+add_test(ecdsa_example ecdsa_example)
 
 if(SECP256K1_ENABLE_MODULE_ECDH)
-  add_example(ecdh)
+  add_executable(ecdh_example ecdh.c)
+  target_link_libraries(ecdh_example example)
+  add_test(ecdh_example ecdh_example)
 endif()
 
 if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
-  add_example(schnorr)
-endif()
-
-if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
-  add_example(ellswift)
-endif()
-
-if(SECP256K1_ENABLE_MODULE_MUSIG)
-  add_example(musig)
+  add_executable(schnorr_example schnorr.c)
+  target_link_libraries(schnorr_example example)
+  add_test(schnorr_example schnorr_example)
 endif()
