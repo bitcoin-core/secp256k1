@@ -1,0 +1,4 @@
+include_HEADERS += include/secp256k1_export.h
+noinst_HEADERS += src/modules/export/generator.h
+noinst_HEADERS += src/modules/export/main_impl.h
+noinst_HEADERS += src/modules/export/tests_impl.h
