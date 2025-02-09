@@ -196,6 +196,7 @@ SECP256K1_API void secp256k1_export_group_subtract(
 
 SECP256K1_API void secp256k1_export_group_ecmult(
     secp256k1_gej_alias *r,
+    const secp256k1_gej_alias* a,
     const secp256k1_scalar *q
 );
 

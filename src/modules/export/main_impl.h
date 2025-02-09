@@ -217,7 +217,7 @@ SECP256K1_API void secp256k1_export_group_ecmult(
     secp256k1_scalar_set_int(&zero, 0);
 
     /* calculate qG */
-    secp256k1_ecmult(UNALIAS_GEJ(r), &a, q, &zero);
+    secp256k1_ecmult(UNALIAS_GEJ(r), UNALIAS_GEJ(a), q, &zero);
 }
 
 SECP256K1_API int secp256k1_export_group_is_valid(

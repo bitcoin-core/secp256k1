@@ -33,6 +33,7 @@ static void test_group_mult(void) {
     );
     secp256k1_export_group_ecmult(
         &prod,
+        &g,
         &four
     );
      
