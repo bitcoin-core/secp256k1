@@ -210,17 +210,14 @@ SECP256K1_API void secp256k1_export_group_sub(
 
 SECP256K1_API void secp256k1_export_group_ecmult(
     secp256k1_gej_alias *r,
+    const secp256k1_gej_alias* a,
     const secp256k1_scalar *q
 ) {
-    secp256k1_gej a;
     secp256k1_scalar zero;
-
-    /* make a the identity element */
-    secp256k1_gej_set_infinity(&a);
     secp256k1_scalar_set_int(&zero, 0);
 
     /* calculate qG */
-    secp256k1_ecmult(UNALIAS_GEJ(r), &a, &zero, q);
+    secp256k1_ecmult(UNALIAS_GEJ(r), &a, q, &zero);
 }
 
 SECP256K1_API int secp256k1_export_group_is_valid(
