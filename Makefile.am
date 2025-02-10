@@ -300,3 +300,7 @@ endif
 if ENABLE_MODULE_ELLSWIFT
 include src/modules/ellswift/Makefile.am.include
 endif
+
+if ENABLE_MODULE_SCHNORRSIG_HALFAGG
+include src/modules/schnorrsig_halfagg/Makefile.am.include
+endif
