@@ -7837,5 +7837,5 @@ int main(int argc, char **argv) {
     testrand_finish();
 
     printf("no problems found\n");
-    return 0;
+    return EXIT_SUCCESS;
 }
