@@ -6248,11 +6248,6 @@ static void run_eckey_negate_test(void) {
     CHECK(secp256k1_ec_seckey_negate(CTX, seckey) == 1);
     CHECK(secp256k1_memcmp_var(seckey, seckey_tmp, 32) == 0);
 
-    /* Check that privkey alias gives same result */
-    CHECK(secp256k1_ec_seckey_negate(CTX, seckey) == 1);
-    CHECK(secp256k1_ec_privkey_negate(CTX, seckey_tmp) == 1);
-    CHECK(secp256k1_memcmp_var(seckey, seckey_tmp, 32) == 0);
-
     /* Negating all 0s fails */
     memset(seckey, 0, 32);
     memset(seckey_tmp, 0, 32);
@@ -6413,22 +6408,15 @@ static void test_ecdsa_end_to_end(void) {
     if (testrand_int(3) == 0) {
         int ret1;
         int ret2;
-        int ret3;
         unsigned char rnd[32];
-        unsigned char privkey_tmp[32];
         secp256k1_pubkey pubkey2;
         testrand256_test(rnd);
-        memcpy(privkey_tmp, privkey, 32);
         ret1 = secp256k1_ec_seckey_tweak_add(CTX, privkey, rnd);
         ret2 = secp256k1_ec_pubkey_tweak_add(CTX, &pubkey, rnd);
-        /* Check that privkey alias gives same result */
-        ret3 = secp256k1_ec_privkey_tweak_add(CTX, privkey_tmp, rnd);
         CHECK(ret1 == ret2);
-        CHECK(ret2 == ret3);
         if (ret1 == 0) {
             return;
         }
-        CHECK(secp256k1_memcmp_var(privkey, privkey_tmp, 32) == 0);
         CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey2, privkey) == 1);
         CHECK(secp256k1_memcmp_var(&pubkey, &pubkey2, sizeof(pubkey)) == 0);
     }
@@ -6437,22 +6425,15 @@ static void test_ecdsa_end_to_end(void) {
     if (testrand_int(3) == 0) {
         int ret1;
         int ret2;
-        int ret3;
         unsigned char rnd[32];
-        unsigned char privkey_tmp[32];
         secp256k1_pubkey pubkey2;
         testrand256_test(rnd);
-        memcpy(privkey_tmp, privkey, 32);
         ret1 = secp256k1_ec_seckey_tweak_mul(CTX, privkey, rnd);
         ret2 = secp256k1_ec_pubkey_tweak_mul(CTX, &pubkey, rnd);
-        /* Check that privkey alias gives same result */
-        ret3 = secp256k1_ec_privkey_tweak_mul(CTX, privkey_tmp, rnd);
         CHECK(ret1 == ret2);
-        CHECK(ret2 == ret3);
         if (ret1 == 0) {
             return;
         }
-        CHECK(secp256k1_memcmp_var(privkey, privkey_tmp, 32) == 0);
         CHECK(secp256k1_ec_pubkey_create(CTX, &pubkey2, privkey) == 1);
         CHECK(secp256k1_memcmp_var(&pubkey, &pubkey2, sizeof(pubkey)) == 0);
     }
