@@ -445,12 +445,18 @@ static int secp256k1_musig_nonce_gen_internal(const secp256k1_context* ctx, secp
     secp256k1_musig_secnonce_save(secnonce, k, &pk);
     secp256k1_musig_secnonce_invalidate(ctx, secnonce, !ret);
 
+    /* Compute pubnonce as two gejs */
     for (i = 0; i < 2; i++) {
         secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &nonce_ptj[i], &k[i]);
         secp256k1_scalar_clear(&k[i]);
-        secp256k1_gej_clear(&nonce_ptj);
     }
+
+    /* Batch convert to two public ges */
     secp256k1_ge_set_all_gej(nonce_pts, nonce_ptj, 2);
+    for (i = 0; i < 2; i++) {
+        secp256k1_gej_clear(&nonce_ptj[i]);
+    }
+
     for (i = 0; i < 2; i++) {
         secp256k1_declassify(ctx, &nonce_pts[i], sizeof(nonce_pts[i]));
     }
