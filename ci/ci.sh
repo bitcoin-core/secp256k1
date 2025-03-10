@@ -14,7 +14,7 @@ print_environment() {
     for var in WERROR_CFLAGS MAKEFLAGS BUILD \
             ECMULTWINDOW ECMULTGENKB ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
             EXPERIMENTAL ECDH RECOVERY EXTRAKEYS MUSIG SCHNORRSIG ELLSWIFT \
-            SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS\
+            SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS SYMBOL_CHECK \
             EXAMPLES \
             HOST WRAPPER_CMD \
             CC CFLAGS CPPFLAGS AR NM \
@@ -106,6 +106,20 @@ fi
 file *tests* || true
 file bench* || true
 file .libs/* || true
+
+if [ "$SYMBOL_CHECK" = "yes" ]
+then
+    python3 --version
+    case "$HOST" in
+        *mingw*)
+            ls -l .libs
+            python3 ./tools/symbol-check.py .libs/libsecp256k1-5.dll
+            ;;
+        *)
+            python3 ./tools/symbol-check.py .libs/libsecp256k1.so
+            ;;
+    esac
+fi
 
 # This tells `make check` to wrap test invocations.
 export LOG_COMPILER="$WRAPPER_CMD"
