@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Removed
+- Removed previously deprecated function aliases `secp256k1_ec_privkey_negate`, `secp256k1_ec_privkey_tweak_add` and
+  `secp256k1_ec_privkey_tweak_mul`. Use `secp256k1_ec_seckey_negate`, `secp256k1_ec_seckey_tweak_add` and
+  `secp256k1_ec_seckey_tweak_mul` instead.
+
 ## [0.6.0] - 2024-11-04
 
 #### Added
