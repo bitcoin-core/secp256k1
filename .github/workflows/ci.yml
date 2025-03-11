@@ -107,23 +107,9 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
 
   i686_debian:
     name: "i686: Linux (Debian stable)"
@@ -157,23 +143,9 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
 
   s390x_debian:
     name: "s390x (big-endian): Linux (Debian stable, QEMU)"
@@ -203,23 +175,10 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
+
 
   arm32_debian:
     name: "ARM32: Linux (Debian stable, QEMU)"
@@ -257,23 +216,9 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
 
   arm64_debian:
     name: "ARM64: Linux (Debian stable, QEMU)"
@@ -314,23 +259,9 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
 
   ppc64le_debian:
     name: "ppc64le: Linux (Debian stable, QEMU)"
@@ -360,23 +291,10 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
+
 
   valgrind_debian:
     name: "Valgrind (memcheck)"
@@ -416,23 +334,9 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
 
   sanitizers_debian:
     name: "UBSan, ASan, LSan"
@@ -473,23 +377,9 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
 
   msan_debian:
     name: "MSan"
@@ -537,23 +427,10 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
+
 
   mingw_debian:
     name: ${{ matrix.configuration.job_name }}
@@ -593,23 +470,9 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
 
   x86_64-macos-native:
     name: "x86_64: macOS Ventura, Valgrind"
@@ -652,23 +515,9 @@ jobs:
         env: ${{ matrix.env_vars }}
         run: ./ci/ci.sh
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
 
   arm64-macos-native:
     name: "ARM64: macOS Sonoma"
@@ -708,23 +557,10 @@ jobs:
         env: ${{ matrix.env_vars }}
         run: ./ci/ci.sh
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
+
 
   win64-native:
     name: ${{ matrix.configuration.job_name }}
@@ -815,23 +651,9 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: linux-debian-image
 
-      - run: cat tests.log || true
-        if: ${{ always() }}
-      - run: cat noverify_tests.log || true
-        if: ${{ always() }}
-      - run: cat exhaustive_tests.log || true
-        if: ${{ always() }}
-      - run: cat ctime_tests.log || true
-        if: ${{ always() }}
-      - run: cat bench.log || true
-        if: ${{ always() }}
-      - run: cat config.log || true
-        if: ${{ always() }}
-      - run: cat test_env.log || true
-        if: ${{ always() }}
-      - name: CI env
-        run: env
-        if: ${{ always() }}
+      - name: Print logs
+        uses: ./.github/actions/print-logs
+        if: ${{ !cancelled() }}
 
   cxx_headers_debian:
     name: "C++ (public headers)"
