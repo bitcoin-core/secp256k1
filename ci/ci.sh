@@ -94,10 +94,10 @@ if [ $build_exit_code -ne 0 ]; then
         *snapshot*)
             # Ignore internal compiler errors in gcc-snapshot and clang-snapshot
             grep -e "internal compiler error:" -e "PLEASE submit a bug report" make.log
-            return $?;
+            exit $?
             ;;
         *)
-            return 1;
+            exit 1
             ;;
     esac
 fi
