@@ -16,16 +16,20 @@ static void help(int default_iters) {
     printf("Benchmarks the following algorithms:\n");
     printf("    - ECDSA signing/verification\n");
 
-#ifdef ENABLE_MODULE_ECDH
-    printf("    - ECDH key exchange (optional module)\n");
-#endif
-
 #ifdef ENABLE_MODULE_RECOVERY
     printf("    - Public key recovery (optional module)\n");
 #endif
 
+#ifdef ENABLE_MODULE_ECDH
+    printf("    - ECDH key exchange (optional module)\n");
+#endif
+
 #ifdef ENABLE_MODULE_SCHNORRSIG
     printf("    - Schnorr signatures (optional module)\n");
+#endif
+
+#ifdef ENABLE_MODULE_ELLSWIFT
+    printf("    - ElligatorSwift (optional module)\n");
 #endif
 
     printf("\n");
