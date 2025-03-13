@@ -707,7 +707,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_seckey_negate(
  *  Args:   ctx:        pointer to a context object
  *  In/Out: pubkey:     pointer to the public key to be negated.
  */
-SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_negate(
+SECP256K1_API int secp256k1_ec_pubkey_negate(
     const secp256k1_context *ctx,
     secp256k1_pubkey *pubkey
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
@@ -857,7 +857,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_combine(
  *           msg: pointer to an array containing the message
  *        msglen: length of the message array
  */
-SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_tagged_sha256(
+SECP256K1_API int secp256k1_tagged_sha256(
     const secp256k1_context *ctx,
     unsigned char *hash32,
     const unsigned char *tag,
