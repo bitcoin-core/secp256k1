@@ -87,15 +87,6 @@ static void counting_callback_fn(const char* str, void* data) {
     (*p)++;
 }
 
-static void uncounting_illegal_callback_fn(const char* str, void* data) {
-    /* Dummy callback function that just counts (backwards). */
-    int32_t *p;
-    (void)str;
-    p = data;
-    CHECK(*p != INT32_MIN);
-    (*p)--;
-}
-
 static void run_xoshiro256pp_tests(void) {
     {
         size_t i;
