@@ -116,7 +116,7 @@ SECP256K1_API int secp256k1_export_scalar_eq(
 );
 
 SECP256K1_API int secp256k1_export_scalar_is_zero(
-   const  secp256k1_scalar* a
+    const secp256k1_scalar* a
 );
 
 SECP256K1_API void secp256k1_export_scalar_negate(
