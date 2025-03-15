@@ -62,7 +62,7 @@ extern "C" {
 #error "Please select wide multiplication implementation"
 #endif
 
-/* since secp256k1_gej in group.h not accessible from outside,
+/* since secp256k1_gej/ge in group.h not accessible from outside,
    this defines the identical structure with a different name */
 typedef struct {
     secp256k1_fe x;
@@ -70,6 +70,12 @@ typedef struct {
     secp256k1_fe z;
     int infinity;
 } secp256k1_gej_alias;
+
+typedef struct {
+    secp256k1_fe x;
+    secp256k1_fe y;
+    int infinity;
+} secp256k1_ge_alias;
 
 /* since secp256k1_ge_storage in group.h not accessible from outside,
    this defines the identical structure with a different name */
@@ -236,6 +242,11 @@ SECP256K1_API int secp256k1_export_group_is_valid(
 
 SECP256K1_API void secp256k1_export_group_set_infinity(
     secp256k1_gej_alias* r
+);
+
+extern void secp256k1_export_group_ge_set_gej(
+    secp256k1_ge_alias* r,
+    secp256k1_gej_alias* a
 );
 
 #ifdef __cplusplus

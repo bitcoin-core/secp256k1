@@ -7,6 +7,7 @@
 
 #define ALIAS_GEJ(x) ((secp256k1_gej_alias*) x)
 #define UNALIAS_GEJ(x) ((secp256k1_gej*) x)
+#define UNALIAS_GE(x) ((secp256k1_ge*) x)
 #define UNALIAS_GE_STORAGE(x) ((secp256k1_ge_storage*) x)
 
 /* Scalar functions */
@@ -232,6 +233,13 @@ SECP256K1_API void secp256k1_export_group_set_infinity(
     secp256k1_gej_alias* r
 ) {
     secp256k1_gej_set_infinity(UNALIAS_GEJ(r));
+}
+
+SECP256K1_API void secp256k1_export_group_ge_set_gej(
+    secp256k1_ge_alias* r,
+    secp256k1_gej_alias* a
+) {
+    secp256k1_ge_set_gej(UNALIAS_GE(r), UNALIAS_GEJ(a));
 }
 
 #endif /* SECP256K1_MODULE_EXPORT_MAIN_H */
