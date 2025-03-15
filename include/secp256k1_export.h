@@ -80,17 +80,23 @@ typedef struct {
 
 /* Field functions */
 
-extern int secp256k1_fe_is_zero(const secp256k1_fe *a);
-
-extern void secp256k1_fe_set_int(secp256k1_fe *r, int a);
-                
 extern void secp256k1_fe_add(secp256k1_fe *r, const secp256k1_fe *a);
+
+extern int secp256k1_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b);
+
+extern void secp256k1_fe_get_b32(unsigned char *r, const secp256k1_fe *a);
+
+extern void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a);
+
+extern int secp256k1_fe_is_zero(const secp256k1_fe *a);
 
 extern void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp256k1_fe * SECP256K1_RESTRICT b);
 
-extern void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a);
+extern void secp256k1_fe_normalize(secp256k1_fe *r);
 
-extern void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a);
+extern void secp256k1_fe_set_int(secp256k1_fe *r, int a);
+
+extern void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a);
 
 /* Scalar functions */
 
