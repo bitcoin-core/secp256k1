@@ -22,9 +22,23 @@ extern "C" {
  * using 64-bit based arithmetic (even if we need to fall back to 32x32->64 based
  * multiplication logic). */
 # define SECP256K1_WIDEMUL_INT128 1
+#endif
+
+/* Macro for restrict, when available and not in a VERIFY build. */
+#if defined(SECP256K1_BUILD) && defined(VERIFY)
+# define SECP256K1_RESTRICT
 #else
-/* Lastly, fall back to int64 based arithmetic. */
-# define SECP256K1_WIDEMUL_INT64 1
+# if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
+#  if SECP256K1_GNUC_PREREQ(3,0)
+#   define SECP256K1_RESTRICT __restrict__
+#  elif (defined(_MSC_VER) && _MSC_VER >= 1400)
+#   define SECP256K1_RESTRICT __restrict
+#  else
+#   define SECP256K1_RESTRICT
+#  endif
+# else
+#  define SECP256K1_RESTRICT restrict
+# endif
 #endif
 
 /* expose secp256k1_scalar to outside */
@@ -32,8 +46,6 @@ extern "C" {
 /* taken from "scalar.h" and extracted necessary part */
 #if defined(SECP256K1_WIDEMUL_INT128)
 #include "../src/scalar_4x64.h"
-#elif defined(SECP256K1_WIDEMUL_INT64)
-#include "../src/scalar_8x32.h"
 #else
 #error "Please select wide multiplication implementation"
 #endif
@@ -46,8 +58,6 @@ extern "C" {
 
 #if defined(SECP256K1_WIDEMUL_INT128)
 #include "../src/field_5x52.h"
-#elif defined(SECP256K1_WIDEMUL_INT64)
-#include "../src/field_10x26.h"
 #else
 #error "Please select wide multiplication implementation"
 #endif
@@ -67,6 +77,20 @@ typedef struct {
     secp256k1_fe_storage x;
     secp256k1_fe_storage y;
 } secp256k1_ge_storage_alias;
+
+/* Field functions */
+
+extern int secp256k1_fe_is_zero(const secp256k1_fe *a);
+
+extern void secp256k1_fe_set_int(secp256k1_fe *r, int a);
+                
+extern void secp256k1_fe_add(secp256k1_fe *r, const secp256k1_fe *a);
+
+extern void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp256k1_fe * SECP256K1_RESTRICT b);
+
+extern void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a);
+
+extern void secp256k1_fe_inv(secp256k1_fe *r, const secp256k1_fe *a);
 
 /* Scalar functions */
 
