@@ -710,7 +710,6 @@ static SECP256K1_WARN_UNUSED_RESULT int verify_secret_share(const secp256k1_cont
     secp256k1_scalar_set_int(&x, share->receiver_index);
     secp256k1_scalar_set_int(&x_to_the_i, 1);
     secp256k1_gej_set_infinity(&result);
-    secp256k1_gej_mul_scalar(&result, &result, &secp256k1_scalar_one);
 
     for (index = 0; index < commitment->num_coefficients; index++) {
         secp256k1_gej current;
@@ -759,8 +758,6 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_keygen_dkg_finali
     serialize_point(&pubkey, keypair->public_keys.public_key);
 
     secp256k1_gej_set_infinity(&group_pubkey);
-    secp256k1_gej_mul_scalar(&group_pubkey,
-                             &group_pubkey, &secp256k1_scalar_one);
 
     for (c_idx = 0; c_idx < num_participants; c_idx++) {
         secp256k1_gej secret_commitment;
@@ -885,7 +882,6 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_group_commitment(/* out */ secp2
     uint32_t index, inner_index;
 
     secp256k1_gej_set_infinity(group_commitment);
-    secp256k1_gej_mul_scalar(group_commitment, group_commitment, &secp256k1_scalar_one);
 
     for (index = 0; index < num_signers; index++) {
         secp256k1_scalar *rho_i;
@@ -907,7 +903,6 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_group_commitment(/* out */ secp2
         }
 
         secp256k1_gej_set_infinity(&partial);
-        secp256k1_gej_mul_scalar(&partial, &partial, &secp256k1_scalar_one);
 
         /* group_commitment += commitment.d + (commitment.e * rho_i) */
         deserialize_point(&hiding_cmt, commitment->hiding);
