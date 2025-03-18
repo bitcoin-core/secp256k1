@@ -710,7 +710,7 @@ static SECP256K1_WARN_UNUSED_RESULT int verify_secret_share(const secp256k1_cont
     secp256k1_scalar_set_int(&x, share->receiver_index);
     secp256k1_scalar_set_int(&x_to_the_i, 1);
     secp256k1_gej_set_infinity(&result);
-    secp256k1_gej_mul_scalar(&result, &result, &x_to_the_i);
+    secp256k1_gej_mul_scalar(&result, &result, &secp256k1_scalar_one);
 
     for (index = 0; index < commitment->num_coefficients; index++) {
         secp256k1_gej current;
