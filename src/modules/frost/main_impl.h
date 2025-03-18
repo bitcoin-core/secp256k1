@@ -670,8 +670,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_keygen_dkg_begin(
     secp256k1_scalar_get_b32(dkg_commitment->zkp_z, &z);
 
     /* Cleaning context */
-    secp256k1_scalar_set_int(&secret, 0);
-    secp256k1_scalar_set_int(&r, 0);
+    secp256k1_scalar_clear(&secret);
+    secp256k1_scalar_clear(&r);
     return 1;
 }
 
