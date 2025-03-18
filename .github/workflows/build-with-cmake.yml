@@ -11,9 +11,9 @@ on:
 jobs:
   build-with-cmake:
     runs-on: ubuntu-24.04
-    # Use fedora:39 to compile using gcc-13.2
+    # Use fedora:41 to compile using gcc-14.2
     container:
-      image: fedora:39
+      image: fedora:41
     steps:
       - name: Install build dependencies
         run: |
