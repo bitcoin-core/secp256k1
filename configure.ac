@@ -406,7 +406,7 @@ fi
 
 # FROST_SPECIFIC - START
 if test x"$enable_module_frost" = x"yes"; then
-  AC_DEFINE(ENABLE_MODULE_FROST, 1, [Define this symbol to enable the FROST module])
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_FROST=1"
   enable_module_frost=yes
 fi
 # FROST_SPECIFIC - END
