@@ -13,7 +13,7 @@ on:
 
 jobs:
   functional-tests:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     # Use fedora:39 to compile using gcc-13.2
     container:
       image: fedora:39
