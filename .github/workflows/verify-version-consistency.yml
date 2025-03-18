@@ -1,4 +1,4 @@
-name: Check that the version numbers contained in configure.ac and CMakeLists.txt are consistent to each other
+name: Check that the version numbers contained in configure.ac and CMakeLists.txt are consistent with each other
 
 on:
   push:
@@ -15,5 +15,5 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - name: Check that the version numbers contained in configure.ac and CMakeLists.txt are consistent to each other
+      - name: Check that the version numbers contained in configure.ac and CMakeLists.txt are consistent with each other
         run: scripts/verify-version-consistency.sh
