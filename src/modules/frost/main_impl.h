@@ -730,7 +730,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_keygen_dkg_finali
         const secp256k1_frost_keygen_secret_share *shares,
         secp256k1_frost_vss_commitments **commitments) {
     uint32_t s_idx, c_idx;
-    secp256k1_scalar scalar_unit, scalar_secret;
+    secp256k1_scalar scalar_secret;
     secp256k1_gej pubkey, group_pubkey;
 
     if (ctx == NULL || keypair == NULL || shares == NULL || commitments == NULL) {
@@ -759,9 +759,8 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_keygen_dkg_finali
     serialize_point(&pubkey, keypair->public_keys.public_key);
 
     secp256k1_gej_set_infinity(&group_pubkey);
-    secp256k1_scalar_set_int(&scalar_unit, 1);
     secp256k1_gej_mul_scalar(&group_pubkey,
-                             &group_pubkey, &scalar_unit);
+                             &group_pubkey, &secp256k1_scalar_one);
 
     for (c_idx = 0; c_idx < num_participants; c_idx++) {
         secp256k1_gej secret_commitment;
