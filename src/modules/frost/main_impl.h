@@ -881,13 +881,11 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_group_commitment(/* out */ secp2
                                                                            uint32_t num_signers,
                                                                            const secp256k1_frost_binding_factors *binding_factors,
                                                                            const secp256k1_frost_nonce_commitment *signing_commitments) {
-    secp256k1_scalar scalar_unit;
     secp256k1_gej hiding_cmt, binding_cmt;
     uint32_t index, inner_index;
 
-    secp256k1_scalar_set_int(&scalar_unit, 1);
     secp256k1_gej_set_infinity(group_commitment);
-    secp256k1_gej_mul_scalar(group_commitment, group_commitment, &scalar_unit);
+    secp256k1_gej_mul_scalar(group_commitment, group_commitment, &secp256k1_scalar_one);
 
     for (index = 0; index < num_signers; index++) {
         secp256k1_scalar *rho_i;
@@ -909,7 +907,7 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_group_commitment(/* out */ secp2
         }
 
         secp256k1_gej_set_infinity(&partial);
-        secp256k1_gej_mul_scalar(&partial, &partial, &scalar_unit);
+        secp256k1_gej_mul_scalar(&partial, &partial, &secp256k1_scalar_one);
 
         /* group_commitment += commitment.d + (commitment.e * rho_i) */
         deserialize_point(&hiding_cmt, commitment->hiding);
