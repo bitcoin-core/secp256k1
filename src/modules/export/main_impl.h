@@ -11,10 +11,42 @@
 #define UNALIAS_GE_STORAGE(x) ((secp256k1_ge_storage*) x)
 
 /* Field functions */
+SECP256K1_API void secp256k1_export_fe_add(secp256k1_fe *r, const secp256k1_fe *a) {
+    secp256k1_fe_add(r, a);
+}
+
+SECP256K1_API int secp256k1_export_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
+    return secp256k1_fe_equal(a, b);
+}
+
+SECP256K1_API void secp256k1_export_fe_get_b32(unsigned char *r, const secp256k1_fe *a) {
+    secp256k1_fe_get_b32(r, a);
+}
+
+SECP256K1_API void secp256k1_export_fe_inv(secp256k1_fe *r, const secp256k1_fe *a) {
+    secp256k1_fe_inv(r, a);
+}
+
+SECP256K1_API int secp256k1_export_fe_is_zero(const secp256k1_fe *a) {
+    return secp256k1_fe_is_zero(a);
+}
+
+SECP256K1_API void secp256k1_export_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp256k1_fe * SECP256K1_RESTRICT b) {
+    secp256k1_fe_mul(r, a, b);
+}
+
 SECP256K1_API void secp256k1_export_fe_normalize(
     secp256k1_fe *r
 ) {
     secp256k1_fe_normalize(r);
+}
+
+SECP256K1_API void secp256k1_export_fe_set_int(secp256k1_fe *r, int a) {
+    secp256k1_fe_set_int(r, a);
+}
+
+SECP256K1_API void secp256k1_export_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a) {
+    secp256k1_fe_sqr(r, a);
 }
 
 /* Scalar functions */
