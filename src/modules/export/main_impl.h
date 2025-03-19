@@ -10,6 +10,13 @@
 #define UNALIAS_GE(x) ((secp256k1_ge*) x)
 #define UNALIAS_GE_STORAGE(x) ((secp256k1_ge_storage*) x)
 
+/* Field functions */
+SECP256K1_API void secp256k1_export_fe_normalize(
+    secp256k1_fe *r
+) {
+    secp256k1_fe_normalize(r);
+}
+
 /* Scalar functions */
 
 SECP256K1_API void secp256k1_export_scalar_clear(

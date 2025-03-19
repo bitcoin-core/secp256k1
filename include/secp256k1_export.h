@@ -98,7 +98,9 @@ extern int secp256k1_fe_is_zero(const secp256k1_fe *a);
 
 extern void secp256k1_fe_mul(secp256k1_fe *r, const secp256k1_fe *a, const secp256k1_fe * SECP256K1_RESTRICT b);
 
-extern void secp256k1_fe_normalize(secp256k1_fe *r);
+SECP256K1_API void secp256k1_export_fe_normalize(
+    secp256k1_fe *r
+);
 
 extern void secp256k1_fe_set_int(secp256k1_fe *r, int a);
 
