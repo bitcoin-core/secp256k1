@@ -35,6 +35,7 @@ jobs:
               --disable-coverage \
               --disable-exhaustive-tests \
               --disable-module-ecdh \
+              --disable-module-ellswift \
               --disable-module-extrakeys \
               --disable-module-recovery \
               --disable-module-schnorrsig \

@@ -11,9 +11,11 @@ print_environment() {
     set +x
     # There are many ways to print variable names and their content. This one
     # does not rely on bash.
+    # FROST_SPECIFIC: added "FROST". The comment cannot be put on the same line for syntactic limitations
     for var in WERROR_CFLAGS MAKEFLAGS BUILD \
             ECMULTWINDOW ECMULTGENPRECISION ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
             EXPERIMENTAL ECDH RECOVERY SCHNORRSIG ELLSWIFT \
+            FROST \
             SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS\
             EXAMPLES \
             HOST WRAPPER_CMD \
@@ -69,6 +71,7 @@ esac
 
 ./autogen.sh
 
+# FROST_SPECIFIC: added "FROST". The comment cannot be put on the same line for syntactic limitations
 ./configure \
     --enable-experimental="$EXPERIMENTAL" \
     --with-test-override-wide-multiply="$WIDEMUL" --with-asm="$ASM" \
@@ -77,6 +80,7 @@ esac
     --enable-module-ecdh="$ECDH" --enable-module-recovery="$RECOVERY" \
     --enable-module-ellswift="$ELLSWIFT" \
     --enable-module-schnorrsig="$SCHNORRSIG" \
+    --enable-module-frost="$FROST" \
     --enable-examples="$EXAMPLES" \
     --enable-ctime-tests="$CTIMETESTS" \
     --with-valgrind="$WITH_VALGRIND" \

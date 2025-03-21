@@ -33,6 +33,7 @@ env:
   RECOVERY: 'no'
   SCHNORRSIG: 'no'
   ELLSWIFT: 'no'
+  FROST: 'no' # FROST_SPECIFIC
   ### test options
   SECP256K1_TEST_ITERS:
   BENCH: 'yes'
@@ -71,18 +72,18 @@ jobs:
       matrix:
         configuration:
           - env_vars: { WIDEMUL: 'int64',  RECOVERY: 'yes' }
-          - env_vars: { WIDEMUL: 'int64',                   ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - env_vars: { WIDEMUL: 'int64',                   ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes',      EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
           - env_vars: { WIDEMUL: 'int128' }
-          - env_vars: { WIDEMUL: 'int128_struct',                                           ELLSWIFT: 'yes' }
-          - env_vars: { WIDEMUL: 'int128', RECOVERY: 'yes',              SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
-          - env_vars: { WIDEMUL: 'int128',                  ECDH: 'yes', SCHNORRSIG: 'yes' }
-          - env_vars: { WIDEMUL: 'int128', ASM: 'x86_64',                                   ELLSWIFT: 'yes' }
-          - env_vars: {                    RECOVERY: 'yes',              SCHNORRSIG: 'yes' }
-          - env_vars: { CTIMETESTS: 'no',  RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', CPPFLAGS: '-DVERIFY' }
+          - env_vars: { WIDEMUL: 'int128_struct',                                           ELLSWIFT: 'yes',      EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - env_vars: { WIDEMUL: 'int128', RECOVERY: 'yes',              SCHNORRSIG: 'yes', ELLSWIFT: 'yes',      EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - env_vars: { WIDEMUL: 'int128',                  ECDH: 'yes', SCHNORRSIG: 'yes',                       EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - env_vars: { WIDEMUL: 'int128', ASM: 'x86_64',                                   ELLSWIFT: 'yes',      EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - env_vars: {                    RECOVERY: 'yes',              SCHNORRSIG: 'yes',                       EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - env_vars: { CTIMETESTS: 'no',  RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', CPPFLAGS: '-DVERIFY', EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
           - env_vars: { BUILD: 'distcheck', WITH_VALGRIND: 'no', CTIMETESTS: 'no', BENCH: 'no' }
           - env_vars: { CPPFLAGS: '-DDETERMINISTIC' }
           - env_vars: { CFLAGS: '-O0', CTIMETESTS: 'no' }
-          - env_vars: { CFLAGS: '-O1',     RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - env_vars: { CFLAGS: '-O1',     RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes',      EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
           - env_vars: { ECMULTGENPRECISION: 2, ECMULTWINDOW: 2 }
           - env_vars: { ECMULTGENPRECISION: 8, ECMULTWINDOW: 4 }
         cc:
@@ -138,6 +139,8 @@ jobs:
     env:
       HOST: 'i686-linux-gnu'
       ECDH: 'yes'
+      EXPERIMENTAL: 'yes' # FROST_SPECIFIC
+      FROST: 'yes' # FROST_SPECIFIC
       RECOVERY: 'yes'
       SCHNORRSIG: 'yes'
       ELLSWIFT: 'yes'
@@ -182,6 +185,8 @@ jobs:
       HOST: 's390x-linux-gnu'
       WITH_VALGRIND: 'no'
       ECDH: 'yes'
+      EXPERIMENTAL: 'yes' # FROST_SPECIFIC
+      FROST: 'yes' # FROST_SPECIFIC
       RECOVERY: 'yes'
       SCHNORRSIG: 'yes'
       ELLSWIFT: 'yes'
@@ -233,6 +238,8 @@ jobs:
       HOST: 'arm-linux-gnueabihf'
       WITH_VALGRIND: 'no'
       ECDH: 'yes'
+      EXPERIMENTAL: 'yes' # FROST_SPECIFIC
+      FROST: 'yes' # FROST_SPECIFIC
       RECOVERY: 'yes'
       SCHNORRSIG: 'yes'
       ELLSWIFT: 'yes'
@@ -278,6 +285,8 @@ jobs:
       HOST: 'aarch64-linux-gnu'
       WITH_VALGRIND: 'no'
       ECDH: 'yes'
+      EXPERIMENTAL: 'yes' # FROST_SPECIFIC
+      FROST: 'yes' # FROST_SPECIFIC
       RECOVERY: 'yes'
       SCHNORRSIG: 'yes'
       ELLSWIFT: 'yes'
@@ -385,6 +394,8 @@ jobs:
       # otherwise it will return 0 (https://www.valgrind.org/docs/manual/manual-core.html).
       WRAPPER_CMD: 'valgrind --error-exitcode=42'
       ECDH: 'yes'
+      EXPERIMENTAL: 'yes' # FROST_SPECIFIC
+      FROST: 'yes' # FROST_SPECIFIC
       RECOVERY: 'yes'
       SCHNORRSIG: 'yes'
       ELLSWIFT: 'yes'
@@ -439,6 +450,8 @@ jobs:
       RECOVERY: 'yes'
       SCHNORRSIG: 'yes'
       ELLSWIFT: 'yes'
+      EXPERIMENTAL: 'yes' # FROST_SPECIFIC
+      FROST: 'yes' # FROST_SPECIFIC
       CTIMETESTS: 'no'
       CFLAGS: '-fsanitize=undefined,address -g'
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
@@ -496,6 +509,8 @@ jobs:
       RECOVERY: 'yes'
       SCHNORRSIG: 'yes'
       ELLSWIFT: 'yes'
+      EXPERIMENTAL: 'yes' # FROST_SPECIFIC
+      FROST: 'yes' # FROST_SPECIFIC
       CTIMETESTS: 'yes'
       CC: 'clang'
       SECP256K1_TEST_ITERS: 32
@@ -540,6 +555,8 @@ jobs:
       WRAPPER_CMD: 'wine'
       WITH_VALGRIND: 'no'
       ECDH: 'yes'
+      EXPERIMENTAL: 'yes' # FROST_SPECIFIC
+      FROST: 'yes' # FROST_SPECIFIC
       RECOVERY: 'yes'
       SCHNORRSIG: 'yes'
       ELLSWIFT: 'yes'
@@ -599,15 +616,15 @@ jobs:
       fail-fast: false
       matrix:
         env_vars:
-          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
           - { WIDEMUL: 'int128_struct', ECMULTGENPRECISION: 2, ECMULTWINDOW: 4 }
-          - { WIDEMUL: 'int128',                  ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
+          - { WIDEMUL: 'int128',                  ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
           - { WIDEMUL: 'int128', RECOVERY: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes',            WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2 }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc', WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2 }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY', CTIMETESTS: 'no' }
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc', EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes',            WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2, EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc', WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2, EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY', CTIMETESTS: 'no', EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
           - BUILD: 'distcheck'
 
     steps:
@@ -715,6 +732,8 @@ jobs:
       CPPFLAGS: '-DSECP256K1_CPLUSPLUS_TEST_OVERRIDE'
       WERROR_CFLAGS:
       ECDH: 'yes'
+      EXPERIMENTAL: 'yes' # FROST_SPECIFIC
+      FROST: 'yes' # FROST_SPECIFIC
       RECOVERY: 'yes'
       SCHNORRSIG: 'yes'
       ELLSWIFT: 'yes'
