@@ -280,7 +280,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_keygen_dkg_finali
  *  Args:            ctx: pointer to a context object, initialized for signing.
  *  Out: share_commitment: pointer to a secp256k1_frost_vss_commitments to store the dealer commitments.
  *                shares: pointer to an array of num_shares shares
- *               keypair: pointer to a frost_keypair to store the generated keypairs.
+ *              keypairs: pointer to a frost_keypair to store the generated keypairs.
  *  In: num_participants: number of participants and shares that will be produced.
  *             threshold: validity threshold for signatures.
  */
@@ -308,8 +308,10 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_keygen_with_deale
  *  Returns 1 on success, 0 on failure.
  *  Out:  signature_share: pointer to a 64-byte array to store the serialized signature.
  *  In:             msg32: the 32-byte message being signed.
+ *            num_signers: number of signers
  *                keypair: pointer to an initialized keypair.
  *                  nonce: pointer to an initialized nonce.
+ *    signing_commitments: pointer to an array of num_signers signing commitments.
  */
 SECP256K1_API int secp256k1_frost_sign(
         secp256k1_frost_signature_share *signature_share,
@@ -339,7 +341,7 @@ SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
  *         public_keys: pointer to an array of public keys of signers.
  *         commitments: pointer to an array of commitments.
  *    signature_shares: pointer to an array of signature shares.
- *          num_signer: number of signers.
+ *         num_signers: number of signers.
  */
 SECP256K1_API int secp256k1_frost_aggregate(
         const secp256k1_context *ctx,
