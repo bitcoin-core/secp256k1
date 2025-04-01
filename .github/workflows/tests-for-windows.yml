@@ -1,0 +1,136 @@
+name: Build for Windows with autotools and CMake. Run functional tests and frost example under Wine
+
+on:
+  push:
+    branches:
+      - frost
+  pull_request:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  example-and-tests-mingw-autotools-cmake:
+    runs-on: ubuntu-24.04
+    container:
+      image: fedora:41
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+              --setopt=install_weak_deps=False \
+              autoconf \
+              automake \
+              cmake \
+              libtool \
+              mingw64-gcc \
+              pkg-config \
+              wine-core
+      - name: set up wine 1
+        # This is a (not pretty) solution to the error:
+        #     "wine: '/github/home' is not owned by you, refusing to create a configuration directory there"
+        #
+        # Taken from:
+        #     https://github.com/electron-userland/electron-builder/issues/2510#issuecomment-2625427588
+        run: echo HOME=/root >> "$GITHUB_ENV"
+      - name: set up wine 2
+        run: wine64 winecfg /v win11
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: "Autotools: run autogen"
+        run: ./autogen.sh
+      - name: "Autotools: configure for building a windows binary via MinGW"
+        run: |
+          mingw64-configure \
+              SECP_CFLAGS="" \
+              --enable-experimental \
+              --with-test-override-wide-multiply=auto \
+              --with-asm=no \
+              --with-ecmult-window=auto \
+              --with-ecmult-gen-precision=auto \
+              --disable-ctime-tests \
+              --enable-examples \
+              --enable-module-ecdh \
+              --enable-module-recovery \
+              --enable-module-schnorrsig \
+              --enable-module-frost \
+              --with-valgrind=no
+      - name: "Autotools: build via MinGW"
+        continue-on-error: true
+        id: autotools_build
+        # we do not need to invoke mingw64-make, because we have already
+        # configured the project via mingw64-configure.
+        # See: https://fedoraproject.org/wiki/MinGW/Tutorial
+        run: make -j
+      - name: "Autotools: run frost example via Wine"
+        continue-on-error: true
+        id: autotools_frost_example
+        run: wine64 ./frost_example.exe
+      - name: "Autotools: run functional tests manually via Wine"
+        continue-on-error: true
+        id: autotools_functional_tests
+        run: wine64 ./tests.exe
+      - name: "CMake: build via MinGW"
+        continue-on-error: true
+        id: cmake_build
+        run: |
+          mkdir build
+          cd build
+          mingw64-cmake \
+              -DCMAKE_C_FLAGS="-Werror" \
+              -DCMAKE_BUILD_TYPE="Release" \
+              -DSECP256K1_BUILD_TESTS=ON \
+              -DSECP256K1_BUILD_EXHAUSTIVE_TESTS=OFF \
+              -DSECP256K1_BUILD_BENCHMARK=OFF \
+              -DSECP256K1_BUILD_EXAMPLES=ON \
+              -DSECP256K1_EXPERIMENTAL=ON \
+              -DSECP256K1_ENABLE_MODULE_FROST=ON \
+              ..
+          make -j
+      - name: "CMake: run FROST example via Wine"
+        continue-on-error: true
+        id: cmake_frost_example
+        run: |
+          # frost_example.exe is dynamically linked. Let's copy it under src so
+          # that wine's linker is able to find libsecp256k1-2.dll. There is
+          # probably a more elegant way.
+          #
+          # About the use of "yes n | cp ...": is is an ugly workaround because
+          # coreutils 9.5 (which are part of Fedora 41) do not support
+          # cp --update=none-fail because of a bug.
+          #
+          # TODO: replace with --update=none-fail when possible
+          yes n | cp --interactive "${GITHUB_WORKSPACE}/build/examples/frost_example.exe" "${GITHUB_WORKSPACE}/build/src"
+          wine "${GITHUB_WORKSPACE}/build/src/frost_example.exe"
+      - name: "Cmake: run functional tests via Wine"
+        continue-on-error: true
+        id: cmake_functional_tests
+        run: |
+          wine "${GITHUB_WORKSPACE}/build/src/tests.exe"
+      - name: "Show that windows build fail with both autotools and CMake"
+        run: |
+          # summary
+          RED='\033[0;31m'
+          GREEN='\033[0;32m'
+          NC='\033[0m' # No Color
+
+          FAIL_THE_STEP=0
+
+          verify_failure() {
+            echo -n "step ${1}: "
+            if [[ "${2}" == "success" ]]; then
+                printf "${RED}ERROR${NC}: the step succeeded: it should have failed!\n"
+                FAIL_THE_STEP=1
+            else
+                printf "${GREEN}OK${NC}: the step failed as expected\n"
+            fi
+          }
+
+          verify_failure autotools_build            ${{ steps.autotools_build.outcome }}
+          verify_failure autotools_frost_example    ${{ steps.autotools_frost_example.outcome }}
+          verify_failure autotools_functional_tests ${{ steps.autotools_functional_tests.outcome }}
+          verify_failure cmake_build                ${{ steps.cmake_build.outcome }}
+          verify_failure cmake_frost_example        ${{ steps.cmake_frost_example.outcome }}
+          verify_failure cmake_functional_tests     ${{ steps.cmake_functional_tests.outcome }}
+
+          exit "${FAIL_THE_STEP}"
