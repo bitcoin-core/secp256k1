@@ -7,7 +7,7 @@
 #ifndef SECP256K1_MODULE_FROST_MAIN_H
 #define SECP256K1_MODULE_FROST_MAIN_H
 
-#include <sys/random.h>
+#include "fill_random.h"
 #include "../../../include/secp256k1.h"
 #include "../../../include/secp256k1_frost.h"
 
@@ -143,13 +143,14 @@ static SECP256K1_WARN_UNUSED_RESULT int deserialize_frost_signature(secp256k1_fr
 
 static SECP256K1_WARN_UNUSED_RESULT int initialize_random_scalar(secp256k1_scalar *nonce) {
     /*
-     * simplified from:
-     * https://github.com/bitcoin/bitcoin/blob/747cdf1d652d8587e9f2e3d4436c3ecdbf56d0a5/src/secp256k1/examples/random.h
-     * TODO: If `getrandom(2)` is not available you should fall back to /dev/urandom */
+     * WARNING: please be aware that the security of the signature scheme
+     * strongly depends on the quality of the randomness produced by
+     * fill_random(), and fill_random() has not been vetted enough.
+     */
     unsigned char seed[SCALAR_SIZE];
-    ssize_t random_bytes;
-    random_bytes = getrandom(seed, SCALAR_SIZE, 0);
-    if (random_bytes != SCALAR_SIZE) {
+    ssize_t res;
+    res = fill_random(seed, SCALAR_SIZE);
+    if (res != 1) {
         return 0;
     }
     /* Overflow ignored on purpose */

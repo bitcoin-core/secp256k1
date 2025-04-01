@@ -56,22 +56,18 @@ jobs:
               --enable-module-frost \
               --with-valgrind=no
       - name: "Autotools: build via MinGW"
-        continue-on-error: true
         id: autotools_build
         # we do not need to invoke mingw64-make, because we have already
         # configured the project via mingw64-configure.
         # See: https://fedoraproject.org/wiki/MinGW/Tutorial
         run: make -j
       - name: "Autotools: run frost example via Wine"
-        continue-on-error: true
         id: autotools_frost_example
         run: wine64 ./frost_example.exe
       - name: "Autotools: run functional tests manually via Wine"
-        continue-on-error: true
         id: autotools_functional_tests
         run: wine64 ./tests.exe
       - name: "CMake: build via MinGW"
-        continue-on-error: true
         id: cmake_build
         run: |
           mkdir build
@@ -88,7 +84,6 @@ jobs:
               ..
           make -j
       - name: "CMake: run FROST example via Wine"
-        continue-on-error: true
         id: cmake_frost_example
         run: |
           # frost_example.exe is dynamically linked. Let's copy it under src so
@@ -103,34 +98,6 @@ jobs:
           yes n | cp --interactive "${GITHUB_WORKSPACE}/build/examples/frost_example.exe" "${GITHUB_WORKSPACE}/build/src"
           wine "${GITHUB_WORKSPACE}/build/src/frost_example.exe"
       - name: "Cmake: run functional tests via Wine"
-        continue-on-error: true
         id: cmake_functional_tests
         run: |
           wine "${GITHUB_WORKSPACE}/build/src/tests.exe"
-      - name: "Show that windows build fail with both autotools and CMake"
-        run: |
-          # summary
-          RED='\033[0;31m'
-          GREEN='\033[0;32m'
-          NC='\033[0m' # No Color
-
-          FAIL_THE_STEP=0
-
-          verify_failure() {
-            echo -n "step ${1}: "
-            if [[ "${2}" == "success" ]]; then
-                printf "${RED}ERROR${NC}: the step succeeded: it should have failed!\n"
-                FAIL_THE_STEP=1
-            else
-                printf "${GREEN}OK${NC}: the step failed as expected\n"
-            fi
-          }
-
-          verify_failure autotools_build            ${{ steps.autotools_build.outcome }}
-          verify_failure autotools_frost_example    ${{ steps.autotools_frost_example.outcome }}
-          verify_failure autotools_functional_tests ${{ steps.autotools_functional_tests.outcome }}
-          verify_failure cmake_build                ${{ steps.cmake_build.outcome }}
-          verify_failure cmake_frost_example        ${{ steps.cmake_frost_example.outcome }}
-          verify_failure cmake_functional_tests     ${{ steps.cmake_functional_tests.outcome }}
-
-          exit "${FAIL_THE_STEP}"

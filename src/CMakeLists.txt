@@ -6,6 +6,13 @@ add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL
   precomputed_ecmult_gen.c
 )
 
+# FROST_SPECIFIC - START
+# conditionally add brcypt for Frost-enabled builds on Windows (MinGW)
+target_link_libraries(secp256k1_precomputed PRIVATE
+  $<$<AND:$<BOOL:${SECP256K1_ENABLE_MODULE_FROST}>,$<PLATFORM_ID:Windows>>:bcrypt>
+)
+# FROST_SPECIFIC - END
+
 # Add objects explicitly rather than linking to the object libs to keep them
 # from being exported.
 add_library(secp256k1 secp256k1.c $<TARGET_OBJECTS:secp256k1_precomputed>)
@@ -36,6 +43,13 @@ target_include_directories(secp256k1 INTERFACE
   $<BUILD_INTERFACE:$<$<NOT:$<BOOL:${PROJECT_IS_TOP_LEVEL}>>:${PROJECT_SOURCE_DIR}/include>>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+
+# FROST_SPECIFIC - START
+# conditionally add brcypt for Frost-enabled builds on Windows (MinGW)
+target_link_libraries(secp256k1 PRIVATE
+  $<$<AND:$<BOOL:${SECP256K1_ENABLE_MODULE_FROST}>,$<PLATFORM_ID:Windows>>:bcrypt>
+)
+# FROST_SPECIFIC - END
 
 # This emulates Libtool to make sure Libtool and CMake agree on the ABI version,
 # see below "Calculate the version variables" in build-aux/ltmain.sh.
@@ -79,19 +93,19 @@ if(SECP256K1_BUILD_BENCHMARK)
   add_executable(bench bench.c)
   target_link_libraries(bench secp256k1)
   add_executable(bench_internal bench_internal.c)
-  target_link_libraries(bench_internal secp256k1_precomputed secp256k1_asm)
+  target_link_libraries(bench_internal secp256k1_precomputed secp256k1_asm $<$<AND:$<BOOL:${SECP256K1_ENABLE_MODULE_FROST}>,$<PLATFORM_ID:Windows>>:bcrypt>) # FROST_SPECIFIC: conditionally add brcypt for Frost-enabled builds on Windows (MinGW)
   add_executable(bench_ecmult bench_ecmult.c)
-  target_link_libraries(bench_ecmult secp256k1_precomputed secp256k1_asm)
+  target_link_libraries(bench_ecmult secp256k1_precomputed secp256k1_asm $<$<AND:$<BOOL:${SECP256K1_ENABLE_MODULE_FROST}>,$<PLATFORM_ID:Windows>>:bcrypt>) # FROST_SPECIFIC: conditionally add brcypt for Frost-enabled builds on Windows (MinGW)
 endif()
 
 if(SECP256K1_BUILD_TESTS)
   add_executable(noverify_tests tests.c)
-  target_link_libraries(noverify_tests secp256k1_precomputed secp256k1_asm)
+  target_link_libraries(noverify_tests secp256k1_precomputed secp256k1_asm $<$<AND:$<BOOL:${SECP256K1_ENABLE_MODULE_FROST}>,$<PLATFORM_ID:Windows>>:bcrypt>) # FROST_SPECIFIC: conditionally add brcypt for Frost-enabled builds on Windows (MinGW)
   add_test(NAME noverify_tests COMMAND noverify_tests)
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Coverage")
     add_executable(tests tests.c)
     target_compile_definitions(tests PRIVATE VERIFY)
-    target_link_libraries(tests secp256k1_precomputed secp256k1_asm)
+    target_link_libraries(tests secp256k1_precomputed secp256k1_asm $<$<AND:$<BOOL:${SECP256K1_ENABLE_MODULE_FROST}>,$<PLATFORM_ID:Windows>>:bcrypt>) # FROST_SPECIFIC: conditionally add brcypt for Frost-enabled builds on Windows (MinGW)
     add_test(NAME tests COMMAND tests)
   endif()
 endif()
@@ -99,7 +113,7 @@ endif()
 if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
   # Note: do not include secp256k1_precomputed in exhaustive_tests (it uses runtime-generated tables).
   add_executable(exhaustive_tests tests_exhaustive.c)
-  target_link_libraries(exhaustive_tests secp256k1_asm)
+  target_link_libraries(exhaustive_tests secp256k1_asm $<$<AND:$<BOOL:${SECP256K1_ENABLE_MODULE_FROST}>,$<PLATFORM_ID:Windows>>:bcrypt>) # FROST_SPECIFIC: conditionally add brcypt for Frost-enabled builds on Windows (MinGW)
   target_compile_definitions(exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
   add_test(NAME exhaustive_tests COMMAND exhaustive_tests)
 endif()

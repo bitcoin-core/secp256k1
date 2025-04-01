@@ -97,6 +97,13 @@ libsecp256k1_la_SOURCES = src/secp256k1.c
 libsecp256k1_la_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 libsecp256k1_la_LIBADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
 libsecp256k1_la_LDFLAGS = -no-undefined -version-info $(LIB_VERSION_CURRENT):$(LIB_VERSION_REVISION):$(LIB_VERSION_AGE)
+# FROST_SPECIFIC - START
+if ENABLE_MODULE_FROST
+if BUILD_WINDOWS
+libsecp256k1_la_LDFLAGS += -lbcrypt
+endif
+endif
+# FROST_SPECIFIC - END
 
 noinst_PROGRAMS =
 if USE_BENCHMARK
@@ -107,9 +114,23 @@ bench_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 bench_internal_SOURCES = src/bench_internal.c
 bench_internal_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
 bench_internal_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+# FROST_SPECIFIC - START
+if ENABLE_MODULE_FROST
+if BUILD_WINDOWS
+bench_internal_LDFLAGS = -lbcrypt
+endif
+endif
+# FROST_SPECIFIC - END
 bench_ecmult_SOURCES = src/bench_ecmult.c
 bench_ecmult_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
 bench_ecmult_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+# FROST_SPECIFIC - START
+if ENABLE_MODULE_FROST
+if BUILD_WINDOWS
+bench_ecmult_LDFLAGS = -lbcrypt
+endif
+endif
+# FROST_SPECIFIC - END
 endif
 
 TESTS =
@@ -120,6 +141,13 @@ noverify_tests_SOURCES = src/tests.c
 noverify_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 noverify_tests_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
 noverify_tests_LDFLAGS = -static
+# FROST_SPECIFIC - START
+if ENABLE_MODULE_FROST
+if BUILD_WINDOWS
+noverify_tests_LDFLAGS += -lbcrypt
+endif
+endif
+# FROST_SPECIFIC - END
 if !ENABLE_COVERAGE
 TESTS += tests
 noinst_PROGRAMS += tests
@@ -127,6 +155,13 @@ tests_SOURCES  = $(noverify_tests_SOURCES)
 tests_CPPFLAGS = $(noverify_tests_CPPFLAGS) -DVERIFY
 tests_LDADD    = $(noverify_tests_LDADD)
 tests_LDFLAGS  = $(noverify_tests_LDFLAGS)
+# FROST_SPECIFIC - START
+if ENABLE_MODULE_FROST
+if BUILD_WINDOWS
+tests_LDFLAGS += -lbcrypt
+endif
+endif
+# FROST_SPECIFIC - END
 endif
 endif
 
@@ -147,6 +182,13 @@ endif
 # Note: do not include $(PRECOMPUTED_LIB) in exhaustive_tests (it uses runtime-generated tables).
 exhaustive_tests_LDADD = $(COMMON_LIB)
 exhaustive_tests_LDFLAGS = -static
+# FROST_SPECIFIC - START
+if ENABLE_MODULE_FROST
+if BUILD_WINDOWS
+exhaustive_tests_LDFLAGS += -lbcrypt
+endif
+endif
+# FROST_SPECIFIC - END
 TESTS += exhaustive_tests
 endif
 
