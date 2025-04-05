@@ -702,6 +702,18 @@ jobs:
             g++ -Werror include/*.h
             clang -Werror -x c++-header include/*.h
 
+  headers:
+    name: "Self-contained headers"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test script
+        run: |
+          ./tools/check_header.sh src/field.h src/field_5x52.h src/field_10x26.h
+
   sage:
     name: "SageMath prover"
     runs-on: ubuntu-latest
