@@ -4,7 +4,8 @@ set -eux
 
 export LC_ALL=C
 
-# Print relevant CI environment to allow reproducing the job outside of CI.
+# Print commit and relevant CI environment to allow reproducing the job outside of CI.
+git show --no-patch
 print_environment() {
     # Turn off -x because it messes up the output
     set +x
@@ -12,7 +13,7 @@ print_environment() {
     # does not rely on bash.
     for var in WERROR_CFLAGS MAKEFLAGS BUILD \
             ECMULTWINDOW ECMULTGENPRECISION ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
-            EXPERIMENTAL ECDH RECOVERY SCHNORRSIG \
+            EXPERIMENTAL ECDH RECOVERY SCHNORRSIG ELLSWIFT \
             SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS\
             EXAMPLES \
             HOST WRAPPER_CMD \
@@ -30,18 +31,14 @@ print_environment() {
 }
 print_environment
 
-# Start persistent wineserver if necessary.
-# This speeds up jobs with many invocations of wine (e.g., ./configure with MSVC) tremendously.
-case "$WRAPPER_CMD" in
-    *wine*)
-        # Make sure to shutdown wineserver whenever we exit.
-        trap "wineserver -k || true" EXIT INT HUP
-        # This is apparently only reliable when we run a dummy command such as "hh.exe" afterwards.
-        wineserver -p && wine hh.exe
+env >> test_env.log
+
+# If gcc is requested, assert that it's in fact gcc (and not some symlinked Apple clang).
+case "${CC:-undefined}" in
+    *gcc*)
+        $CC -v 2>&1 | grep -q "gcc version" || exit 1;
         ;;
 esac
-
-env >> test_env.log
 
 if [ -n "${CC+x}" ]; then
     # The MSVC compiler "cl" doesn't understand "-v"
@@ -54,6 +51,22 @@ if [ -n "$WRAPPER_CMD" ]; then
     $WRAPPER_CMD --version
 fi
 
+# Workaround for https://bugs.kde.org/show_bug.cgi?id=452758 (fixed in valgrind 3.20.0).
+case "${CC:-undefined}" in
+    clang*)
+        if [ "$CTIMETESTS" = "yes" ] && [ "$WITH_VALGRIND" = "yes" ]
+        then
+            export CFLAGS="${CFLAGS:+$CFLAGS }-gdwarf-4"
+        else
+            case "$WRAPPER_CMD" in
+                valgrind*)
+                    export CFLAGS="${CFLAGS:+$CFLAGS }-gdwarf-4"
+                    ;;
+            esac
+        fi
+        ;;
+esac
+
 ./autogen.sh
 
 ./configure \
@@ -62,6 +75,7 @@ fi
     --with-ecmult-window="$ECMULTWINDOW" \
     --with-ecmult-gen-precision="$ECMULTGENPRECISION" \
     --enable-module-ecdh="$ECDH" --enable-module-recovery="$RECOVERY" \
+    --enable-module-ellswift="$ELLSWIFT" \
     --enable-module-schnorrsig="$SCHNORRSIG" \
     --enable-examples="$EXAMPLES" \
     --enable-ctime-tests="$CTIMETESTS" \

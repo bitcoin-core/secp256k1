@@ -27,10 +27,10 @@ if(SECP256K1_ASM STREQUAL "arm32")
   target_link_libraries(secp256k1_asm INTERFACE secp256k1_asm_arm)
 endif()
 
-# Define our export symbol only for Win32 and only for shared libs.
-# This matches libtool's usage of DLL_EXPORT
 if(WIN32)
-  set_target_properties(secp256k1 PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
+  # Define our export symbol only for shared libs.
+  set_target_properties(secp256k1 PROPERTIES DEFINE_SYMBOL SECP256K1_DLL_EXPORT)
+  target_compile_definitions(secp256k1 INTERFACE $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:SECP256K1_STATIC>)
 endif()
 
 # Object libs don't know if they're being built for a shared or static lib.
@@ -145,6 +145,9 @@ if(SECP256K1_INSTALL)
   endif()
   if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
     list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_schnorrsig.h")
+  endif()
+  if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
+    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_ellswift.h")
   endif()
   # FROST_SPECIFIC - START
   if(SECP256K1_ENABLE_MODULE_FROST)
