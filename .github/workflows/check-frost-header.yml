@@ -1,0 +1,59 @@
+name: Check that frost header fails to be precompiled
+
+on:
+  push:
+    branches:
+      - frost
+  pull_request:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  precompile_frost_header:
+    runs-on: ubuntu-24.04
+    # Use fedora:41 to compile using gcc-14.2
+    container:
+      image: fedora:41
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+              g++ \
+              gcc
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Check that frost header fails to be precompiled (C)
+        continue-on-error: true
+        id: precompile_frost_header_c
+        run: |
+          scripts/ensure-frost-header-is-precompilable.sh c
+      - name: Check that frost header fails to be precompiled (C++)
+        continue-on-error: true
+        id: precompile_frost_header_cpp
+        run: |
+          scripts/ensure-frost-header-is-precompilable.sh c++
+      - name: Summarize outcomes. Fail if any step failed.
+        run: |
+          # summary
+          RED='\033[0;31m'
+          GREEN='\033[0;32m'
+          NC='\033[0m' # No Color
+
+          echo -n "Check that frost header can be precompiled (C): "
+          if [[ ${{ steps.precompile_frost_header_c.outcome }} == "success" ]]; then
+            printf "${RED}FAIL${NC} the step suceeded (${{ steps.precompile_frost_header_c.outcome }}), but it should have failed. Please check\n"
+          else
+            printf "${GREEN}SUCCESS${NC}: the step failed as expected\n"
+          fi
+
+          echo -n "Check that frost header can be precompiled (C++): "
+          if [[ ${{ steps.precompile_frost_header_cpp.outcome }} == "success" ]]; then
+            printf "${RED}FAIL${NC} the step suceeded (${{ steps.precompile_frost_header_cpp.outcome }}), but it should have failed. Please check\n"
+          else
+            printf "${GREEN}SUCCESS${NC}: the step failed as expected\n"
+          fi
+
+          if [[ ${{ steps.precompile_frost_header_c.outcome }} == "success" ]] || [[ ${{ steps.precompile_frost_header_cpp.outcome }} == "success" ]]; then
+            exit 1
+          fi
