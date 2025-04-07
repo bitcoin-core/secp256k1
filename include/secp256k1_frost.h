@@ -7,6 +7,23 @@
 #ifndef SECP256K1_FROST_H
 #define SECP256K1_FROST_H
 
+/*
+ * The following inclusions are needed to bring uint32_t in scope in a platform
+ * and language independent way.
+ * Without this snippet the following commands would fail:
+ *     gcc -xc++ -c -Werror -pedantic-errors -include include/secp256k1_frost.h /dev/null -o /dev/null
+ *     gcc -xc   -c -Werror -pedantic-errors -include include/secp256k1_frost.h /dev/null -o /dev/null
+ *
+ * references:
+ *     scripts/ensure-frost-header-is-precompilable.sh
+ *     https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108732#c2 (for the gcc invocation syntax)
+ */
+#ifdef __cplusplus
+    #include <cstdint>
+#else
+    #include <stdint.h>
+#endif
+
 #include "secp256k1.h"
 #include "secp256k1_extrakeys.h"
 
