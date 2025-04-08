@@ -6,7 +6,7 @@ AC_PREREQ([2.60])
 define(_PKG_VERSION_MAJOR, 0)
 define(_PKG_VERSION_MINOR, 3)
 define(_PKG_VERSION_PATCH, 2)
-define(_PKG_VERSION_FROST_BUILD, 1) # FROST_SPECIFIC: this field controls the final digit in the version identifier "MAJOR.MINOR.BUILD-frost-FROST_BUILD". WARNING: this number should be equal to the fourth digit of project(... VERSION ...) in CMakeLists.txt
+define(_PKG_VERSION_FROST_BUILD, 2) # FROST_SPECIFIC: this field controls the final digit in the version identifier "MAJOR.MINOR.BUILD-frost-FROST_BUILD". WARNING: this number should be equal to the fourth digit of project(... VERSION ...) in CMakeLists.txt
 define(_PKG_VERSION_IS_RELEASE, true)
 
 # The library version is based on libtool versioning of the ABI. The set of
@@ -128,7 +128,7 @@ AC_DEFUN([SECP_TRY_APPEND_DEFAULT_CFLAGS], [
       # (See the libtool manual, section "Windows DLLs" for background.)
       # Unfortunately, libtool tries to be too clever and strips "-Xlinker arg"
       # into "arg", so this will be " -Xlinker -ignore:4217" after stripping.
-      LDFLAGS="-Xlinker -Xlinker -Xlinker -ignore:4217 $LDFLAGS" 
+      LDFLAGS="-Xlinker -Xlinker -Xlinker -ignore:4217 $LDFLAGS"
     fi
 ])
 SECP_TRY_APPEND_DEFAULT_CFLAGS(SECP_CFLAGS)

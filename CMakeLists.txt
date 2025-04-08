@@ -11,7 +11,7 @@ project(libsecp256k1
   # The package (a.k.a. release) version is based on semantic versioning 2.0.0 of
   # the API. All changes in experimental modules are treated as
   # backwards-compatible and therefore at most increase the minor version.
-  VERSION 0.3.2.1 # FROST_SPECIFIC: the fourth number must be equal to the value of _PKG_VERSION_FROST_BUILD in configure.ac
+  VERSION 0.3.2.2 # FROST_SPECIFIC: the fourth number must be equal to the value of _PKG_VERSION_FROST_BUILD in configure.ac
   DESCRIPTION "Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1."
   HOMEPAGE_URL "https://github.com/bancaditalia/secp256k1-frost" # FROST_SPECIFIC: replaced URIs with those of Bank of Italy's fork.
   LANGUAGES C
