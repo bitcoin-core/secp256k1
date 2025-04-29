@@ -1,4 +1,4 @@
-name: Check that frost header can be precompiled
+name: "FROST: check that FROST header can be precompiled"
 
 on:
   push:

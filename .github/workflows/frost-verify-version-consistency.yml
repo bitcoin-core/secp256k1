@@ -1,4 +1,4 @@
-name: Check that the version numbers contained in configure.ac and CMakeLists.txt are consistent with each other
+name: "FROST: check that the version numbers contained in configure.ac and CMakeLists.txt are consistent with each other"
 
 on:
   push:

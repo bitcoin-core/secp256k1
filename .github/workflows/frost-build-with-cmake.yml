@@ -1,4 +1,4 @@
-name: Build using CMake
+name: "FROST: build using CMake"
 
 on:
   push:

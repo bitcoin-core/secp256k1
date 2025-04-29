@@ -1,4 +1,4 @@
-name: Build for Windows with autotools and CMake. Run functional tests and frost example under Wine
+name: "FROST: build for Windows with autotools and CMake. Run functional tests and example under Wine"
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: Run FROST tests and example under Valgrind
+name: "FROST: run tests and example under Valgrind"
 
 on:
   push:

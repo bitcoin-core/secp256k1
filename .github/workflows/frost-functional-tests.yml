@@ -1,4 +1,4 @@
-name: Functional tests, gcc14
+name: "FROST: functional tests (with and without coverage analysis)"
 
 # In secp256k1 some assertions are not exactly equal when coverage is enabled
 # and when it is not. Hence, it is better to run the two cases separately.
