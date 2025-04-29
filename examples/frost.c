@@ -18,9 +18,9 @@
 #define EXAMPLE_MIN_PARTICIPANTS 2
 
 int main(void) {
-    unsigned char msg[12] = "Hello World!";
+    unsigned char msg[12] = {'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd', '!'};
     unsigned char msg_hash[32];
-    unsigned char tag[14] = "frost_protocol";
+    unsigned char tag[14] = {'f', 'r', 'o', 's', 't', '_', 'p', 'r', 'o', 't', 'o', 'c', 'o', 'l'};
     uint32_t index;
     unsigned char binding_seed[32] = {0};
     unsigned char hiding_seed[32] = {0};

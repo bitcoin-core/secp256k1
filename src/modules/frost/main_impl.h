@@ -11,10 +11,10 @@
 #include "../../../include/secp256k1.h"
 #include "../../../include/secp256k1_frost.h"
 
-static const unsigned char hash_context_prefix_h1[29] = "FROST-secp256k1-SHA256-v11rho";
-static const unsigned char hash_context_prefix_h3[31] = "FROST-secp256k1-SHA256-v11nonce";
-static const unsigned char hash_context_prefix_h4[29] = "FROST-secp256k1-SHA256-v11msg";
-static const unsigned char hash_context_prefix_h5[29] = "FROST-secp256k1-SHA256-v11com";
+static const unsigned char hash_context_prefix_h1[29] = {'F', 'R', 'O', 'S', 'T', '-', 's', 'e', 'c', 'p', '2', '5', '6', 'k', '1', '-', 'S', 'H', 'A', '2', '5', '6', '-', 'v', '1', '1', 'r', 'h', 'o'};
+static const unsigned char hash_context_prefix_h3[31] = {'F', 'R', 'O', 'S', 'T', '-', 's', 'e', 'c', 'p', '2', '5', '6', 'k', '1', '-', 'S', 'H', 'A', '2', '5', '6', '-', 'v', '1', '1', 'n', 'o', 'n', 'c', 'e'};
+static const unsigned char hash_context_prefix_h4[29] = {'F', 'R', 'O', 'S', 'T', '-', 's', 'e', 'c', 'p', '2', '5', '6', 'k', '1', '-', 'S', 'H', 'A', '2', '5', '6', '-', 'v', '1', '1', 'm', 's', 'g'};
+static const unsigned char hash_context_prefix_h5[29] = {'F', 'R', 'O', 'S', 'T', '-', 's', 'e', 'c', 'p', '2', '5', '6', 'k', '1', '-', 'S', 'H', 'A', '2', '5', '6', '-', 'v', '1', '1', 'c', 'o', 'm'};
 
 #define SCALAR_SIZE (32U)
 #define SHA256_SIZE (32U)
@@ -173,7 +173,7 @@ static void compute_hash_h2(const unsigned char *msg, uint32_t msg_len, unsigned
     /* TODO: replace with hash-to-curve
     * H2(m): Implemented using hash_to_field from [HASH-TO-CURVE], Section 5.2 using L = 48,
     * expand_message_xmd with SHA-256, DST = "FROST-secp256k1-SHA256-v11" || "chal", and prime modulus equal to Order().*/
-    const unsigned char prefix[17] = "BIP0340/challenge";
+    const unsigned char prefix[17] = {'B', 'I', 'P', '0', '3', '4', '0', '/', 'c', 'h', 'a', 'l', 'l', 'e', 'n', 'g', 'e'};
     secp256k1_sha256 sha;
     secp256k1_sha256_initialize(&sha);
     secp256k1_sha256_write(&sha, prefix, sizeof(prefix));
