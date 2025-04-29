@@ -12,7 +12,7 @@ jobs:
   example-and-tests-mingw-autotools-cmake:
     runs-on: ubuntu-24.04
     container:
-      image: fedora:41
+      image: fedora:42
     steps:
       - name: Install build dependencies
         run: |
@@ -21,6 +21,7 @@ jobs:
               autoconf \
               automake \
               cmake \
+              gawk \
               libtool \
               mingw64-gcc \
               pkg-config \
@@ -90,12 +91,10 @@ jobs:
           # that wine's linker is able to find libsecp256k1-2.dll. There is
           # probably a more elegant way.
           #
-          # About the use of "yes n | cp ...": is is an ugly workaround because
-          # coreutils 9.5 (which are part of Fedora 41) do not support
-          # cp --update=none-fail because of a bug.
-          #
-          # TODO: replace with --update=none-fail when possible
-          yes n | cp --interactive "${GITHUB_WORKSPACE}/build/examples/frost_example.exe" "${GITHUB_WORKSPACE}/build/src"
+          # "--update=none-fail" did not work on coreutils 9.5 (Fedora 41) due
+          # to a bug. It required a workaround that is no longer necessary with
+          # coreutils 9.6 (Fedora 42).
+          cp --update=none-fail "${GITHUB_WORKSPACE}/build/examples/frost_example.exe" "${GITHUB_WORKSPACE}/build/src"
           wine "${GITHUB_WORKSPACE}/build/src/frost_example.exe"
       - name: "Cmake: run functional tests via Wine"
         id: cmake_functional_tests
