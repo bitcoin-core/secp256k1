@@ -132,7 +132,7 @@ typedef int (*secp256k1_nonce_function)(
 #  if defined(DLL_EXPORT) || defined(SECP256K1_DLL_EXPORT)
     /* Building libsecp256k1 as a DLL.
      * 1. If using Libtool, it defines DLL_EXPORT automatically.
-     * 2. In other cases, SECP256K1_DLL_EXPORT must be defined. */
+     * 2. If using CMake, it defines SECP256K1_DLL_EXPORT automatically. */
 #   define SECP256K1_API extern __declspec (dllexport)
 #  else
     /* Building libsecp256k1 as a static library on Windows.
@@ -153,7 +153,7 @@ typedef int (*secp256k1_nonce_function)(
 #endif
 #ifndef SECP256K1_API
 /* All cases not captured by the Windows-specific logic. */
-# if defined(__GNUC__) && (__GNUC__ >= 4) && defined(SECP256K1_BUILD)
+# if defined(__GNUC__) && (__GNUC__ >= 4) && defined(SECP256K1_BUILD) && !defined(SECP256K1_NO_EXPORTS)
    /* Building libsecp256k1 using GCC or compatible. */
 #  define SECP256K1_API extern __attribute__ ((visibility ("default")))
 # else
