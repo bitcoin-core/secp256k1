@@ -983,7 +983,8 @@ void test_quicksort_on_signing_commitment(void) {
     for (i = 0; i < 5; i++) {
         cmt[i].index = (i * 3) % 5;
     }
-    signing_commitment_sort(cmt, 0, 4);
+    secp256k1_hsort(cmt, 5, sizeof(*cmt),
+                    secp256k1_frost_signing_commitments_sort_cmp, (void *) NULL);
     for (i = 0; i < 5; i++) {
         CHECK(cmt[i].index == i);
     }
@@ -1000,8 +1001,8 @@ void test_quicksort_on_signing_commitment_with_duplicates(void) {
     }
     cmt[3].index = 0;
 
-    signing_commitment_sort(cmt, 0, 4);
-
+    secp256k1_hsort(cmt, 5, sizeof(*cmt),
+                    secp256k1_frost_signing_commitments_sort_cmp, (void *) NULL);
     for (i = 0; i < 5; i++) {
         uint32_t rhs;
         rhs = (uint32_t) (i > 0 ? i - 1 : i);

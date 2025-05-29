@@ -835,43 +835,10 @@ static SECP256K1_WARN_UNUSED_RESULT int signing_commitment_compare(secp256k1_fro
     return 0;
 }
 
-static void signing_commitment_swap(secp256k1_frost_nonce_commitment *v1, secp256k1_frost_nonce_commitment *v2) {
-    uint32_t size;
-    secp256k1_frost_nonce_commitment buffer;
-
-    size = sizeof(secp256k1_frost_nonce_commitment);
-    memcpy(&buffer, v1, size);
-    memcpy(v1, v2, size);
-    memcpy(v2, &buffer, size);
-}
-
-static SECP256K1_WARN_UNUSED_RESULT int signing_commitment_partition(secp256k1_frost_nonce_commitment *v, int p, int q) {
-    int i, j;
-    i = p;
-    j = q;
-    while (i <= j) {
-        while (signing_commitment_compare(&v[j], &v[p]) > 0) { j--; }
-        while (i <= j && signing_commitment_compare(&v[i], &v[p]) <= 0) { i++; }
-        if (i < j) {
-            signing_commitment_swap(&v[i], &v[j]);
-            i++;
-            j--;
-        }
-    }
-    signing_commitment_swap(&v[p], &v[j]);
-    return j;
-}
-
-static void signing_commitment_sort(secp256k1_frost_nonce_commitment *v, int p, int q) {
-    int l;
-    l = signing_commitment_partition(v, p, q);
-    if ((l - p) < (q - l)) {
-        if (p < (l - 1)) { signing_commitment_sort(v, p, l - 1); }
-        if ((l + 1) < q) { signing_commitment_sort(v, l + 1, q); }
-    } else {
-        if ((l + 1) < q) { signing_commitment_sort(v, l + 1, q); }
-        if (p < (l - 1)) { signing_commitment_sort(v, p, l - 1); }
-    }
+static int secp256k1_frost_signing_commitments_sort_cmp(const void* s1, const void* s2, void * context) {
+    (void) context; /* Suppress unused parameter warning; */
+    return signing_commitment_compare((secp256k1_frost_nonce_commitment *)s1,
+                                      (secp256k1_frost_nonce_commitment *)s2);
 }
 
 static SECP256K1_WARN_UNUSED_RESULT int compute_group_commitment(/* out */ secp256k1_gej *group_commitment,
@@ -1038,7 +1005,8 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_binding_factors(
     binding_factors->num_binding_factors = num_signers;
 
     /* Note: this sorting is performed in place; but this is acceptable. */
-    signing_commitment_sort(signing_commitments, 0, ((int32_t) num_signers) - 1);
+    secp256k1_hsort(signing_commitments, num_signers, sizeof(*signing_commitments),
+                    secp256k1_frost_signing_commitments_sort_cmp, (void *) NULL);
 
     for (index = 0; index < num_signers; index++) {
         compute_binding_factor(&(binding_factors->binding_factors[index]),
