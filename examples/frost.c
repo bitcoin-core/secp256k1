@@ -97,8 +97,9 @@ int main(void) {
          * Besides the message (msg_hash in this case), the function requires the number of other signers,
          * the private signer keypair and nonce, and the public signing commitments of other participants.
          */
-        return_val = secp256k1_frost_sign(&(signature_shares[index]), msg_hash, EXAMPLE_MIN_PARTICIPANTS,
-                             &keypairs[index], nonces[index], signing_commitments);
+        return_val = secp256k1_frost_sign(sign_verify_ctx, &(signature_shares[index]),
+                                          msg_hash, EXAMPLE_MIN_PARTICIPANTS,
+                                          &keypairs[index], nonces[index], signing_commitments);
         assert(return_val == 1);
     }
 

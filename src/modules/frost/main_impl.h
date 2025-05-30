@@ -993,6 +993,7 @@ static void compute_binding_factor(
 }
 
 static SECP256K1_WARN_UNUSED_RESULT int compute_binding_factors(
+                                  const secp256k1_context *ctx,
                                   /* out */ secp256k1_frost_binding_factors *binding_factors,
                                   const unsigned char *msg32,
                                   uint32_t msg_len,
@@ -1006,7 +1007,7 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_binding_factors(
 
     /* Note: this sorting is performed in place; but this is acceptable. */
     secp256k1_hsort(signing_commitments, num_signers, sizeof(*signing_commitments),
-                    secp256k1_frost_signing_commitments_sort_cmp, (void *) NULL);
+                    secp256k1_frost_signing_commitments_sort_cmp, (void *) ctx);
 
     for (index = 0; index < num_signers; index++) {
         compute_binding_factor(&(binding_factors->binding_factors[index]),
@@ -1144,6 +1145,7 @@ SECP256K1_API int secp256k1_frost_pubkey_from_keypair(secp256k1_frost_pubkey *pu
 }
 
 SECP256K1_API int secp256k1_frost_sign(
+        const secp256k1_context *ctx,
         secp256k1_frost_signature_share *signature_share,
         const unsigned char *msg32,
         uint32_t num_signers,
@@ -1173,7 +1175,7 @@ SECP256K1_API int secp256k1_frost_sign(
                     checked_malloc(&default_error_callback, num_signers * sizeof(unsigned char *));
 
     /* Compute the binding factor(s) */
-    if (compute_binding_factors(&binding_factors, msg32, 32, num_signers, signing_commitments) == 0) {
+    if (compute_binding_factors(ctx, &binding_factors, msg32, 32, num_signers, signing_commitments) == 0) {
         return 0;
     }
 
@@ -1355,7 +1357,7 @@ SECP256K1_API int secp256k1_frost_aggregate(const secp256k1_context *ctx,
                     checked_malloc(&default_error_callback, num_signers * sizeof(unsigned char *));
 
     /* Compute the binding factor(s) */
-    if (compute_binding_factors(&binding_factors, msg32, 32, num_signers, commitments) == 0) {
+    if (compute_binding_factors(ctx, &binding_factors, msg32, 32, num_signers, commitments) == 0) {
         free_binding_factors(&binding_factors);
         return 0;
     }

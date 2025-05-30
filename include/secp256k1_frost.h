@@ -306,6 +306,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_keygen_with_deale
  *  signatures from being valid in multiple contexts by accident.
  *
  *  Returns 1 on success, 0 on failure.
+ *  Args:          ctx: pointer to a context object, initialized for signing.
  *  Out:  signature_share: pointer to a 64-byte array to store the serialized signature.
  *  In:             msg32: the 32-byte message being signed.
  *            num_signers: number of signers
@@ -314,14 +315,15 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_frost_keygen_with_deale
  *    signing_commitments: pointer to an array of num_signers signing commitments.
  */
 SECP256K1_API int secp256k1_frost_sign(
+        const secp256k1_context *ctx,
         secp256k1_frost_signature_share *signature_share,
         const unsigned char *msg32,
         uint32_t num_signers,
         const secp256k1_frost_keypair *keypair,
         secp256k1_frost_nonce *nonce,
         secp256k1_frost_nonce_commitment *signing_commitments
-) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(4)
-SECP256K1_ARG_NONNULL(5) SECP256K1_ARG_NONNULL(6);
+) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(5)
+SECP256K1_ARG_NONNULL(6) SECP256K1_ARG_NONNULL(7);
 
 /*
  * Combine FROST signature shares to obtain an aggregated signature.
