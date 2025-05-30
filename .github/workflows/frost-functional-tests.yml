@@ -86,6 +86,14 @@ jobs:
           (WARNING) Ignoring suspicious hits in line '                    if (bitpos >= 0 && bitpos < 256) {'.
           (WARNING) Ignoring suspicious hits in line '                    if (bitpos >= 0 && bitpos < 256) {'.
           (WARNING) Ignoring suspicious hits in line '                        sub |= ((m[bitpos >> 4] >> (bitpos & 15)) & 1) << p;'.
+          (WARNING) Ignoring suspicious hits in line 'static SECP256K1_INLINE void secp256k1_u128_accum_mul(secp256k1_uint128 *r, uint64_t a, uint64_t b) {'.
+          (WARNING) Ignoring suspicious hits in line '   *r += (uint128_t)a * b;'.
+          (WARNING) Ignoring suspicious hits in line '}'.
+          (WARNING) Ignoring suspicious hits in line 'static SECP256K1_INLINE void secp256k1_u128_rshift(secp256k1_uint128 *r, unsigned int n) {'.
+          (WARNING) Ignoring suspicious hits in line '   *r >>= n;'.
+          (WARNING) Ignoring suspicious hits in line '}'.
+          (WARNING) Ignoring suspicious hits in line 'static SECP256K1_INLINE uint64_t secp256k1_u128_to_u64(const secp256k1_uint128 *a) {'.
+          (WARNING) Ignoring suspicious hits in line '   return (uint64_t)(*a);'.
           (INFO) Writing coverage report...
           EOF
           if [[ "${ACTUAL_WARNINGS}" != "${EXPECTED_WARNINGS}" ]]; then
