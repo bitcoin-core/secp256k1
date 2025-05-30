@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 
 #=============================
 # Project / Package metadata
@@ -14,17 +14,6 @@ project(libsecp256k1
 )
 enable_testing()
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-
-if(CMAKE_VERSION VERSION_LESS 3.21)
-  # Emulates CMake 3.21+ behavior.
-  if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    set(PROJECT_IS_TOP_LEVEL ON)
-    set(${PROJECT_NAME}_IS_TOP_LEVEL ON)
-  else()
-    set(PROJECT_IS_TOP_LEVEL OFF)
-    set(${PROJECT_NAME}_IS_TOP_LEVEL OFF)
-  endif()
-endif()
 
 # The library version is based on libtool versioning of the ABI. The set of
 # rules for updating the version can be found here:
