@@ -5,7 +5,7 @@ AC_PREREQ([2.60])
 # backwards-compatible and therefore at most increase the minor version.
 define(_PKG_VERSION_MAJOR, 0)
 define(_PKG_VERSION_MINOR, 5)
-define(_PKG_VERSION_PATCH, 0)
+define(_PKG_VERSION_PATCH, 1)
 define(_PKG_VERSION_FROST_BUILD, 1) # FROST_SPECIFIC: this field controls the final digit in the version identifier "MAJOR.MINOR.BUILD-frost-FROST_BUILD". WARNING: this number should be equal to the fourth digit of project(... VERSION ...) in CMakeLists.txt
 define(_PKG_VERSION_IS_RELEASE, true)
 
@@ -15,7 +15,7 @@ define(_PKG_VERSION_IS_RELEASE, true)
 # All changes in experimental modules are treated as if they don't affect the
 # interface and therefore only increase the revision.
 define(_LIB_VERSION_CURRENT, 4)
-define(_LIB_VERSION_REVISION, 0)
+define(_LIB_VERSION_REVISION, 1)
 define(_LIB_VERSION_AGE, 2)
 
 AC_INIT([libsecp256k1],m4_join([.], _PKG_VERSION_MAJOR, _PKG_VERSION_MINOR, _PKG_VERSION_PATCH)m4_if(_PKG_VERSION_IS_RELEASE, [true], [], [-dev])[-frost-]_PKG_VERSION_FROST_BUILD,[https://github.com/bancaditalia/secp256k1-frost/issues],[libsecp256k1],[https://github.com/bancaditalia/secp256k1-frost]) # FROST_SPECIFIC: added frost build number and replaced URIs with those of Bank of Italy's fork.
@@ -210,22 +210,22 @@ AC_ARG_WITH([test-override-wide-multiply], [] ,[set_widemul=$withval], [set_wide
 AC_ARG_WITH([asm], [AS_HELP_STRING([--with-asm=x86_64|arm32|no|auto],
 [assembly to use (experimental: arm32) [default=auto]])],[req_asm=$withval], [req_asm=auto])
 
-AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE|auto],
+AC_ARG_WITH([ecmult-window], [AS_HELP_STRING([--with-ecmult-window=SIZE],
 [window size for ecmult precomputation for verification, specified as integer in range [2..24].]
 [Larger values result in possibly better performance at the cost of an exponentially larger precomputed table.]
 [The table will store 2^(SIZE-1) * 64 bytes of data but can be larger in memory due to platform-specific padding and alignment.]
 [A window size larger than 15 will require you delete the prebuilt precomputed_ecmult.c file so that it can be rebuilt.]
 [For very large window sizes, use "make -j 1" to reduce memory use during compilation.]
-["auto" is a reasonable setting for desktop machines (currently 15). [default=auto]]
+[The default value is a reasonable setting for desktop machines (currently 15). [default=15]]
 )],
-[req_ecmult_window=$withval], [req_ecmult_window=auto])
+[set_ecmult_window=$withval], [set_ecmult_window=15])
 
-AC_ARG_WITH([ecmult-gen-kb], [AS_HELP_STRING([--with-ecmult-gen-kb=2|22|86|auto],
+AC_ARG_WITH([ecmult-gen-kb], [AS_HELP_STRING([--with-ecmult-gen-kb=2|22|86],
 [The size of the precomputed table for signing in multiples of 1024 bytes (on typical platforms).]
 [Larger values result in possibly better signing/keygeneration performance at the cost of a larger table.]
-["auto" is a reasonable setting for desktop machines (currently 22). [default=auto]]
+[The default value is a reasonable setting for desktop machines (currently 86). [default=86]]
 )],
-[req_ecmult_gen_kb=$withval], [req_ecmult_gen_kb=auto])
+[set_ecmult_gen_kb=$withval], [set_ecmult_gen_kb=86])
 
 AC_ARG_WITH([valgrind], [AS_HELP_STRING([--with-valgrind=yes|no|auto],
 [Build with extra checks for running inside Valgrind [default=auto]]
@@ -252,6 +252,20 @@ fi
 
 if test x"$enable_ctime_tests" = x"auto"; then
     enable_ctime_tests=$enable_valgrind
+fi
+
+print_msan_notice=no
+if test x"$enable_ctime_tests" = x"yes"; then
+  SECP_MSAN_CHECK
+  # MSan on Clang >=16 reports unitialized memory in function parameters and return values, even if
+  # the uninitalized variable is never actually "used". This is called "eager" checking, and it's
+  # sounds like good idea for normal use of MSan. However, it yields many false positives in the
+  # ctime_tests because many return values depend on secret (i.e., "uninitialized") values, and
+  # we're only interested in detecting branches (which count as "uses") on secret data.
+  if test x"$msan_enabled" = x"yes"; then
+    SECP_TRY_APPEND_CFLAGS([-fno-sanitize-memory-param-retval], SECP_CFLAGS)
+    print_msan_notice=yes
+  fi
 fi
 
 if test x"$enable_coverage" = x"yes"; then
@@ -342,14 +356,7 @@ auto)
   ;;
 esac
 
-# Set ecmult window size
-if test x"$req_ecmult_window" = x"auto"; then
-  set_ecmult_window=15
-else
-  set_ecmult_window=$req_ecmult_window
-fi
-
-error_window_size=['window size for ecmult precomputation not an integer in range [2..24] or "auto"']
+error_window_size=['window size for ecmult precomputation not an integer in range [2..24]']
 case $set_ecmult_window in
 ''|*[[!0-9]]*)
   # no valid integer
@@ -364,13 +371,6 @@ case $set_ecmult_window in
   ;;
 esac
 
-# Set ecmult gen kb
-if test x"$req_ecmult_gen_kb" = x"auto"; then
-  set_ecmult_gen_kb=22
-else
-  set_ecmult_gen_kb=$req_ecmult_gen_kb
-fi
-
 case $set_ecmult_gen_kb in
 2)
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOMB_BLOCKS=2 -DCOMB_TEETH=5"
@@ -382,7 +382,7 @@ case $set_ecmult_gen_kb in
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOMB_BLOCKS=43 -DCOMB_TEETH=6"
   ;;
 *)
-  AC_MSG_ERROR(['ecmult gen table size not 2, 22, 86 or "auto"'])
+  AC_MSG_ERROR(['ecmult gen table size not 2, 22 or 86'])
   ;;
 esac
 
@@ -440,21 +440,16 @@ fi
 ### Check for --enable-experimental if necessary
 ###
 
-if test x"$enable_experimental" = x"yes"; then
-  AC_MSG_NOTICE([******])
-  AC_MSG_NOTICE([WARNING: experimental build])
-  AC_MSG_NOTICE([Experimental features do not have stable APIs or properties, and may not be safe for production use.])
-  AC_MSG_NOTICE([Building frost module: $enable_module_frost]) # FROST_SPECIFIC
-  AC_MSG_NOTICE([******])
-else
+if test x"$enable_experimental" = x"no"; then
+  if test x"$set_asm" = x"arm32"; then
+    AC_MSG_ERROR([ARM32 assembly is experimental. Use --enable-experimental to allow.])
+  fi
+  
   # FROST_SPECIFIC - START
   if test x"$enable_module_frost" = x"yes"; then
     AC_MSG_ERROR([frost module is experimental. Use --enable-experimental to allow.])
   fi
   # FROST_SPECIFIC - END
-  if test x"$set_asm" = x"arm32"; then
-    AC_MSG_ERROR([ARM32 assembly is experimental. Use --enable-experimental to allow.])
-  fi
 fi
 
 ###
@@ -514,3 +509,17 @@ echo "  CPPFLAGS                = $CPPFLAGS"
 echo "  SECP_CFLAGS             = $SECP_CFLAGS"
 echo "  CFLAGS                  = $CFLAGS"
 echo "  LDFLAGS                 = $LDFLAGS"
+
+if test x"$print_msan_notice" = x"yes"; then
+  echo
+  echo "Note:"
+  echo "  MemorySanitizer detected, tried to add -fno-sanitize-memory-param-retval to SECP_CFLAGS"
+  echo "  to avoid false positives in ctime_tests. Pass --disable-ctime-tests to avoid this."
+fi
+
+if test x"$enable_experimental" = x"yes"; then
+  echo
+  echo "WARNING: Experimental build"
+  echo "  Experimental features do not have stable APIs or properties, and may not be safe for"
+  echo "  production use."
+fi

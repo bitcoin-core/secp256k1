@@ -1,32 +1,24 @@
-cmake_minimum_required(VERSION 3.13)
-
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.15)
-  # MSVC runtime library flags are selected by the CMAKE_MSVC_RUNTIME_LIBRARY abstraction.
-  cmake_policy(SET CMP0091 NEW)
-  # MSVC warning flags are not in CMAKE_<LANG>_FLAGS by default.
-  cmake_policy(SET CMP0092 NEW)
-endif()
+cmake_minimum_required(VERSION 3.16)
 
 project(libsecp256k1
   # The package (a.k.a. release) version is based on semantic versioning 2.0.0 of
   # the API. All changes in experimental modules are treated as
   # backwards-compatible and therefore at most increase the minor version.
-  VERSION 0.5.0.1 # FROST_SPECIFIC: the fourth number must be equal to the value of _PKG_VERSION_FROST_BUILD in configure.ac
+  VERSION 0.5.1.1 # FROST_SPECIFIC: the fourth number must be equal to the value of _PKG_VERSION_FROST_BUILD in configure.ac
   DESCRIPTION "Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1."
   HOMEPAGE_URL "https://github.com/bancaditalia/secp256k1-frost" # FROST_SPECIFIC: replaced URIs with those of Bank of Italy's fork.
   LANGUAGES C
 )
 
 if(CMAKE_VERSION VERSION_LESS 3.21)
-  get_directory_property(parent_directory PARENT_DIRECTORY)
-  if(parent_directory)
-    set(PROJECT_IS_TOP_LEVEL OFF CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
-    set(${PROJECT_NAME}_IS_TOP_LEVEL OFF CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+  # Emulates CMake 3.21+ behavior.
+  if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(PROJECT_IS_TOP_LEVEL ON)
+    set(${PROJECT_NAME}_IS_TOP_LEVEL ON)
   else()
-    set(PROJECT_IS_TOP_LEVEL ON CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
-    set(${PROJECT_NAME}_IS_TOP_LEVEL ON CACHE INTERNAL "Emulates CMake 3.21+ behavior.")
+    set(PROJECT_IS_TOP_LEVEL OFF)
+    set(${PROJECT_NAME}_IS_TOP_LEVEL OFF)
   endif()
-  unset(parent_directory)
 endif()
 
 # The library version is based on libtool versioning of the ABI. The set of
@@ -35,7 +27,7 @@ endif()
 # All changes in experimental modules are treated as if they don't affect the
 # interface and therefore only increase the revision.
 set(${PROJECT_NAME}_LIB_VERSION_CURRENT 4)
-set(${PROJECT_NAME}_LIB_VERSION_REVISION 0)
+set(${PROJECT_NAME}_LIB_VERSION_REVISION 1)
 set(${PROJECT_NAME}_LIB_VERSION_AGE 2)
 
 set(CMAKE_C_STANDARD 90)
@@ -92,21 +84,15 @@ if(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS)
   add_compile_definitions(USE_EXTERNAL_DEFAULT_CALLBACKS=1)
 endif()
 
-set(SECP256K1_ECMULT_WINDOW_SIZE "AUTO" CACHE STRING "Window size for ecmult precomputation for verification, specified as integer in range [2..24]. \"AUTO\" is a reasonable setting for desktop machines (currently 15). [default=AUTO]")
-set_property(CACHE SECP256K1_ECMULT_WINDOW_SIZE PROPERTY STRINGS "AUTO" 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24)
+set(SECP256K1_ECMULT_WINDOW_SIZE 15 CACHE STRING "Window size for ecmult precomputation for verification, specified as integer in range [2..24]. The default value is a reasonable setting for desktop machines (currently 15). [default=15]")
+set_property(CACHE SECP256K1_ECMULT_WINDOW_SIZE PROPERTY STRINGS 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24)
 include(CheckStringOptionValue)
 check_string_option_value(SECP256K1_ECMULT_WINDOW_SIZE)
-if(SECP256K1_ECMULT_WINDOW_SIZE STREQUAL "AUTO")
-  set(SECP256K1_ECMULT_WINDOW_SIZE 15)
-endif()
 add_compile_definitions(ECMULT_WINDOW_SIZE=${SECP256K1_ECMULT_WINDOW_SIZE})
 
-set(SECP256K1_ECMULT_GEN_KB "AUTO" CACHE STRING "The size of the precomputed table for signing in multiples of 1024 bytes (on typical platforms). Larger values result in possibly better signing or key generation performance at the cost of a larger table. Valid choices are 2, 22, 86. \"AUTO\" is a reasonable setting for desktop machines (currently 22). [default=AUTO]")
-set_property(CACHE SECP256K1_ECMULT_GEN_KB PROPERTY STRINGS "AUTO" 2 22 86)
+set(SECP256K1_ECMULT_GEN_KB 86 CACHE STRING "The size of the precomputed table for signing in multiples of 1024 bytes (on typical platforms). Larger values result in possibly better signing or key generation performance at the cost of a larger table. Valid choices are 2, 22, 86. The default value is a reasonable setting for desktop machines (currently 86). [default=86]")
+set_property(CACHE SECP256K1_ECMULT_GEN_KB PROPERTY STRINGS 2 22 86)
 check_string_option_value(SECP256K1_ECMULT_GEN_KB)
-if(SECP256K1_ECMULT_GEN_KB STREQUAL "AUTO")
-  set(SECP256K1_ECMULT_GEN_KB 22)
-endif()
 if(SECP256K1_ECMULT_GEN_KB EQUAL 2)
   add_compile_definitions(COMB_BLOCKS=2)
   add_compile_definitions(COMB_TEETH=5)
@@ -203,7 +189,7 @@ else()
   string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
   string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
   # Prefer -O2 optimization level. (-O3 is CMake's default for Release for many compilers.)
-  string(REGEX REPLACE "-O3[ \t\r\n]*" "-O2" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+  string(REGEX REPLACE "-O3( |$)" "-O2\\1" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 endif()
 
 # Define custom "Coverage" build type.
@@ -225,23 +211,25 @@ mark_as_advanced(
   CMAKE_SHARED_LINKER_FLAGS_COVERAGE
 )
 
-get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-set(default_build_type "RelWithDebInfo")
-if(is_multi_config)
-  set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
-    "Supported configuration types."
-    FORCE
-  )
-else()
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
-    STRINGS "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage"
-  )
-  if(NOT CMAKE_BUILD_TYPE)
-    message(STATUS "Setting build type to \"${default_build_type}\" as none was specified")
-    set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
-      "Choose the type of build."
+if(PROJECT_IS_TOP_LEVEL)
+  get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  set(default_build_type "RelWithDebInfo")
+  if(is_multi_config)
+    set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
+      "Supported configuration types."
       FORCE
     )
+  else()
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
+      STRINGS "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage"
+    )
+    if(NOT CMAKE_BUILD_TYPE)
+      message(STATUS "Setting build type to \"${default_build_type}\" as none was specified")
+      set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
+        "Choose the type of build."
+        FORCE
+      )
+    endif()
   endif()
 endif()
 
@@ -274,10 +262,17 @@ endif()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 
-# Ask CTest to create a "check" target (e.g., make check) as alias for the "test" target.
-# CTEST_TEST_TARGET_ALIAS is not documented but supposed to be user-facing.
-# See: https://gitlab.kitware.com/cmake/cmake/-/commit/816c9d1aa1f2b42d40c81a991b68c96eb12b6d2
-set(CTEST_TEST_TARGET_ALIAS check)
+set(print_msan_notice)
+if(SECP256K1_BUILD_CTIME_TESTS)
+  include(CheckMemorySanitizer)
+  check_memory_sanitizer(msan_enabled)
+  if(msan_enabled)
+    try_append_c_flags(-fno-sanitize-memory-param-retval)
+    set(print_msan_notice YES)
+  endif()
+  unset(msan_enabled)
+endif()
+
 include(CTest)
 # We do not use CTest's BUILD_TESTING because a single toggle for all tests is too coarse for our needs.
 mark_as_advanced(BUILD_TESTING)
@@ -285,14 +280,16 @@ if(SECP256K1_BUILD_BENCHMARK OR SECP256K1_BUILD_TESTS OR SECP256K1_BUILD_EXHAUST
   enable_testing()
 endif()
 
-set(SECP256K1_LATE_CFLAGS "" CACHE STRING "Compiler flags that are added to the command line after all other flags added by the build system.")
-include(AllTargetsCompileOptions)
+set(SECP256K1_APPEND_CFLAGS "" CACHE STRING "Compiler flags that are appended to the command line after all other flags added by the build system. This variable is intended for debugging and special builds.")
+if(SECP256K1_APPEND_CFLAGS)
+  # Appending to this low-level rule variable is the only way to
+  # guarantee that the flags appear at the end of the command line.
+  string(APPEND CMAKE_C_COMPILE_OBJECT " ${SECP256K1_APPEND_CFLAGS}")
+endif()
 
 add_subdirectory(src)
-all_targets_compile_options(src "${SECP256K1_LATE_CFLAGS}")
 if(SECP256K1_BUILD_EXAMPLES)
   add_subdirectory(examples)
-  all_targets_compile_options(examples "${SECP256K1_LATE_CFLAGS}")
 endif()
 
 message("\n")
@@ -346,7 +343,7 @@ message("Valgrind .............................. ${SECP256K1_VALGRIND}")
 get_directory_property(definitions COMPILE_DEFINITIONS)
 string(REPLACE ";" " " definitions "${definitions}")
 message("Preprocessor defined macros ........... ${definitions}")
-message("C compiler ............................ ${CMAKE_C_COMPILER}")
+message("C compiler ............................ ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}, ${CMAKE_C_COMPILER}")
 message("CFLAGS ................................ ${CMAKE_C_FLAGS}")
 get_directory_property(compile_options COMPILE_OPTIONS)
 string(REPLACE ";" " " compile_options "${compile_options}")
@@ -369,10 +366,17 @@ else()
   message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
   message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_DEBUG}")
 endif()
-if(SECP256K1_LATE_CFLAGS)
-  message("SECP256K1_LATE_CFLAGS ................. ${SECP256K1_LATE_CFLAGS}")
+if(SECP256K1_APPEND_CFLAGS)
+  message("SECP256K1_APPEND_CFLAGS ............... ${SECP256K1_APPEND_CFLAGS}")
 endif()
-message("\n")
+message("")
+if(print_msan_notice)
+  message(
+    "Note:\n"
+    "  MemorySanitizer detected, tried to add -fno-sanitize-memory-param-retval to compile options\n"
+    "  to avoid false positives in ctime_tests. Pass -DSECP256K1_BUILD_CTIME_TESTS=OFF to avoid this.\n"
+  )
+endif()
 if(SECP256K1_EXPERIMENTAL)
   message(
     "  ******\n"

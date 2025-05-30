@@ -14,7 +14,7 @@ print_environment() {
     # FROST_SPECIFIC: added "FROST". The comment cannot be put on the same line for syntactic limitations
     for var in WERROR_CFLAGS MAKEFLAGS BUILD \
             ECMULTWINDOW ECMULTGENKB ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
-            EXPERIMENTAL ECDH RECOVERY SCHNORRSIG ELLSWIFT \
+            EXPERIMENTAL ECDH RECOVERY EXTRAKEYS SCHNORRSIG ELLSWIFT \
             FROST \
             SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS\
             EXAMPLES \
@@ -80,6 +80,7 @@ esac
     --with-ecmult-gen-kb="$ECMULTGENKB" \
     --enable-module-ecdh="$ECDH" --enable-module-recovery="$RECOVERY" \
     --enable-module-ellswift="$ELLSWIFT" \
+    --enable-module-extrakeys="$EXTRAKEYS" \
     --enable-module-schnorrsig="$SCHNORRSIG" \
     --enable-module-frost="$FROST" \
     --enable-examples="$EXAMPLES" \
