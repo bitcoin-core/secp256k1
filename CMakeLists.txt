@@ -11,7 +11,7 @@ project(libsecp256k1
   # The package (a.k.a. release) version is based on semantic versioning 2.0.0 of
   # the API. All changes in experimental modules are treated as
   # backwards-compatible and therefore at most increase the minor version.
-  VERSION 0.4.1.1 # FROST_SPECIFIC: the fourth number must be equal to the value of _PKG_VERSION_FROST_BUILD in configure.ac
+  VERSION 0.5.0.1 # FROST_SPECIFIC: the fourth number must be equal to the value of _PKG_VERSION_FROST_BUILD in configure.ac
   DESCRIPTION "Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1."
   HOMEPAGE_URL "https://github.com/bancaditalia/secp256k1-frost" # FROST_SPECIFIC: replaced URIs with those of Bank of Italy's fork.
   LANGUAGES C
@@ -34,9 +34,9 @@ endif()
 # https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
 # All changes in experimental modules are treated as if they don't affect the
 # interface and therefore only increase the revision.
-set(${PROJECT_NAME}_LIB_VERSION_CURRENT 3)
-set(${PROJECT_NAME}_LIB_VERSION_REVISION 1)
-set(${PROJECT_NAME}_LIB_VERSION_AGE 1)
+set(${PROJECT_NAME}_LIB_VERSION_CURRENT 4)
+set(${PROJECT_NAME}_LIB_VERSION_REVISION 0)
+set(${PROJECT_NAME}_LIB_VERSION_AGE 2)
 
 set(CMAKE_C_STANDARD 90)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -51,29 +51,40 @@ endif()
 
 option(SECP256K1_INSTALL "Enable installation." ${PROJECT_IS_TOP_LEVEL})
 
+## Modules
+
+# We declare all options before processing them, to make sure we can express
+# dependendencies while processing.
 option(SECP256K1_ENABLE_MODULE_ECDH "Enable ECDH module." ON)
-if(SECP256K1_ENABLE_MODULE_ECDH)
-  add_compile_definitions(ENABLE_MODULE_ECDH=1)
-endif()
-
 option(SECP256K1_ENABLE_MODULE_RECOVERY "Enable ECDSA pubkey recovery module." OFF)
-if(SECP256K1_ENABLE_MODULE_RECOVERY)
-  add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
-endif()
-
 option(SECP256K1_ENABLE_MODULE_EXTRAKEYS "Enable extrakeys module." ON)
 option(SECP256K1_ENABLE_MODULE_SCHNORRSIG "Enable schnorrsig module." ON)
+option(SECP256K1_ENABLE_MODULE_ELLSWIFT "Enable ElligatorSwift module." ON)
+
+# Processing must be done in a topological sorting of the dependency graph
+# (dependent module first).
+if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
+  add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
+endif()
+
 if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
+  if(DEFINED SECP256K1_ENABLE_MODULE_EXTRAKEYS AND NOT SECP256K1_ENABLE_MODULE_EXTRAKEYS)
+    message(FATAL_ERROR "Module dependency error: You have disabled the extrakeys module explicitly, but it is required by the schnorrsig module.")
+  endif()
   set(SECP256K1_ENABLE_MODULE_EXTRAKEYS ON)
   add_compile_definitions(ENABLE_MODULE_SCHNORRSIG=1)
 endif()
+
 if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
   add_compile_definitions(ENABLE_MODULE_EXTRAKEYS=1)
 endif()
 
-option(SECP256K1_ENABLE_MODULE_ELLSWIFT "Enable ElligatorSwift module." ON)
-if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
-  add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
+if(SECP256K1_ENABLE_MODULE_RECOVERY)
+  add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
+endif()
+
+if(SECP256K1_ENABLE_MODULE_ECDH)
+  add_compile_definitions(ENABLE_MODULE_ECDH=1)
 endif()
 
 option(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS "Enable external default callback functions." OFF)
@@ -90,13 +101,22 @@ if(SECP256K1_ECMULT_WINDOW_SIZE STREQUAL "AUTO")
 endif()
 add_compile_definitions(ECMULT_WINDOW_SIZE=${SECP256K1_ECMULT_WINDOW_SIZE})
 
-set(SECP256K1_ECMULT_GEN_PREC_BITS "AUTO" CACHE STRING "Precision bits to tune the precomputed table size for signing, specified as integer 2, 4 or 8. \"AUTO\" is a reasonable setting for desktop machines (currently 4). [default=AUTO]")
-set_property(CACHE SECP256K1_ECMULT_GEN_PREC_BITS PROPERTY STRINGS "AUTO" 2 4 8)
-check_string_option_value(SECP256K1_ECMULT_GEN_PREC_BITS)
-if(SECP256K1_ECMULT_GEN_PREC_BITS STREQUAL "AUTO")
-  set(SECP256K1_ECMULT_GEN_PREC_BITS 4)
+set(SECP256K1_ECMULT_GEN_KB "AUTO" CACHE STRING "The size of the precomputed table for signing in multiples of 1024 bytes (on typical platforms). Larger values result in possibly better signing or key generation performance at the cost of a larger table. Valid choices are 2, 22, 86. \"AUTO\" is a reasonable setting for desktop machines (currently 22). [default=AUTO]")
+set_property(CACHE SECP256K1_ECMULT_GEN_KB PROPERTY STRINGS "AUTO" 2 22 86)
+check_string_option_value(SECP256K1_ECMULT_GEN_KB)
+if(SECP256K1_ECMULT_GEN_KB STREQUAL "AUTO")
+  set(SECP256K1_ECMULT_GEN_KB 22)
 endif()
-add_compile_definitions(ECMULT_GEN_PREC_BITS=${SECP256K1_ECMULT_GEN_PREC_BITS})
+if(SECP256K1_ECMULT_GEN_KB EQUAL 2)
+  add_compile_definitions(COMB_BLOCKS=2)
+  add_compile_definitions(COMB_TEETH=5)
+elseif(SECP256K1_ECMULT_GEN_KB EQUAL 22)
+  add_compile_definitions(COMB_BLOCKS=11)
+  add_compile_definitions(COMB_TEETH=6)
+elseif(SECP256K1_ECMULT_GEN_KB EQUAL 86)
+  add_compile_definitions(COMB_BLOCKS=43)
+  add_compile_definitions(COMB_TEETH=6)
+endif()
 
 set(SECP256K1_TEST_OVERRIDE_WIDE_MULTIPLY "OFF" CACHE STRING "Test-only override of the (autodetected by the C code) \"widemul\" setting. Legal values are: \"OFF\", \"int128_struct\", \"int128\" or \"int64\". [default=OFF]")
 set_property(CACHE SECP256K1_TEST_OVERRIDE_WIDE_MULTIPLY PROPERTY STRINGS "OFF" "int128_struct" "int128" "int64")
@@ -265,9 +285,14 @@ if(SECP256K1_BUILD_BENCHMARK OR SECP256K1_BUILD_TESTS OR SECP256K1_BUILD_EXHAUST
   enable_testing()
 endif()
 
+set(SECP256K1_LATE_CFLAGS "" CACHE STRING "Compiler flags that are added to the command line after all other flags added by the build system.")
+include(AllTargetsCompileOptions)
+
 add_subdirectory(src)
+all_targets_compile_options(src "${SECP256K1_LATE_CFLAGS}")
 if(SECP256K1_BUILD_EXAMPLES)
   add_subdirectory(examples)
+  all_targets_compile_options(examples "${SECP256K1_LATE_CFLAGS}")
 endif()
 
 message("\n")
@@ -292,7 +317,7 @@ message("  FROST ............................... ${SECP256K1_ENABLE_MODULE_FROST
 # FROST_SPECIFIC - END
 message("Parameters:")
 message("  ecmult window size .................. ${SECP256K1_ECMULT_WINDOW_SIZE}")
-message("  ecmult gen precision bits ........... ${SECP256K1_ECMULT_GEN_PREC_BITS}")
+message("  ecmult gen table size ............... ${SECP256K1_ECMULT_GEN_KB} KiB")
 message("Optional features:")
 message("  assembly ............................ ${SECP256K1_ASM}")
 message("  external callbacks .................. ${SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS}")
@@ -343,6 +368,9 @@ else()
   message(" - CFLAGS ............................. ${CMAKE_C_FLAGS_DEBUG}")
   message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
   message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_DEBUG}")
+endif()
+if(SECP256K1_LATE_CFLAGS)
+  message("SECP256K1_LATE_CFLAGS ................. ${SECP256K1_LATE_CFLAGS}")
 endif()
 message("\n")
 if(SECP256K1_EXPERIMENTAL)

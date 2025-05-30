@@ -36,6 +36,7 @@
 #include "int128_impl.h"
 #include "scratch_impl.h"
 #include "selftest.h"
+#include "hsort_impl.h"
 
 #ifdef SECP256K1_NO_BUILD
 # error "secp256k1.h processed without SECP256K1_BUILD defined while building secp256k1.c"
@@ -237,36 +238,25 @@ static SECP256K1_INLINE void secp256k1_declassify(const secp256k1_context* ctx, 
 }
 
 static int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge, const secp256k1_pubkey* pubkey) {
-    if (sizeof(secp256k1_ge_storage) == 64) {
-        /* When the secp256k1_ge_storage type is exactly 64 byte, use its
-         * representation inside secp256k1_pubkey, as conversion is very fast.
-         * Note that secp256k1_pubkey_save must use the same representation. */
-        secp256k1_ge_storage s;
-        memcpy(&s, &pubkey->data[0], sizeof(s));
-        secp256k1_ge_from_storage(ge, &s);
-    } else {
-        /* Otherwise, fall back to 32-byte big endian for X and Y. */
-        secp256k1_fe x, y;
-        ARG_CHECK(secp256k1_fe_set_b32_limit(&x, pubkey->data));
-        ARG_CHECK(secp256k1_fe_set_b32_limit(&y, pubkey->data + 32));
-        secp256k1_ge_set_xy(ge, &x, &y);
-    }
+    secp256k1_ge_storage s;
+
+    /* We require that the secp256k1_ge_storage type is exactly 64 bytes.
+     * This is formally not guaranteed by the C standard, but should hold on any
+     * sane compiler in the real world. */
+    STATIC_ASSERT(sizeof(secp256k1_ge_storage) == 64);
+    memcpy(&s, &pubkey->data[0], 64);
+    secp256k1_ge_from_storage(ge, &s);
     ARG_CHECK(!secp256k1_fe_is_zero(&ge->x));
     return 1;
 }
 
 static void secp256k1_pubkey_save(secp256k1_pubkey* pubkey, secp256k1_ge* ge) {
-    if (sizeof(secp256k1_ge_storage) == 64) {
-        secp256k1_ge_storage s;
-        secp256k1_ge_to_storage(&s, ge);
-        memcpy(&pubkey->data[0], &s, sizeof(s));
-    } else {
-        VERIFY_CHECK(!secp256k1_ge_is_infinity(ge));
-        secp256k1_fe_normalize_var(&ge->x);
-        secp256k1_fe_normalize_var(&ge->y);
-        secp256k1_fe_get_b32(pubkey->data, &ge->x);
-        secp256k1_fe_get_b32(pubkey->data + 32, &ge->y);
-    }
+    secp256k1_ge_storage s;
+
+    STATIC_ASSERT(sizeof(secp256k1_ge_storage) == 64);
+    VERIFY_CHECK(!secp256k1_ge_is_infinity(ge));
+    secp256k1_ge_to_storage(&s, ge);
+    memcpy(&pubkey->data[0], &s, 64);
 }
 
 int secp256k1_ec_pubkey_parse(const secp256k1_context* ctx, secp256k1_pubkey* pubkey, const unsigned char *input, size_t inputlen) {
@@ -334,6 +324,34 @@ int secp256k1_ec_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_pubkey
         }
     }
     return secp256k1_memcmp_var(out[0], out[1], sizeof(out[0]));
+}
+
+static int secp256k1_ec_pubkey_sort_cmp(const void* pk1, const void* pk2, void *ctx) {
+    return secp256k1_ec_pubkey_cmp((secp256k1_context *)ctx,
+                                     *(secp256k1_pubkey **)pk1,
+                                     *(secp256k1_pubkey **)pk2);
+}
+
+int secp256k1_ec_pubkey_sort(const secp256k1_context* ctx, const secp256k1_pubkey **pubkeys, size_t n_pubkeys) {
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(pubkeys != NULL);
+
+    /* Suppress wrong warning (fixed in MSVC 19.33) */
+    #if defined(_MSC_VER) && (_MSC_VER < 1933)
+    #pragma warning(push)
+    #pragma warning(disable: 4090)
+    #endif
+
+    /* Casting away const is fine because neither secp256k1_hsort nor
+     * secp256k1_ec_pubkey_sort_cmp modify the data pointed to by the cmp_data
+     * argument. */
+    secp256k1_hsort(pubkeys, n_pubkeys, sizeof(*pubkeys), secp256k1_ec_pubkey_sort_cmp, (void *)ctx);
+
+    #if defined(_MSC_VER) && (_MSC_VER < 1933)
+    #pragma warning(pop)
+    #endif
+
+    return 1;
 }
 
 static void secp256k1_ecdsa_signature_load(const secp256k1_context* ctx, secp256k1_scalar* r, secp256k1_scalar* s, const secp256k1_ecdsa_signature* sig) {

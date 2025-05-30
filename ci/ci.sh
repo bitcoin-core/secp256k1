@@ -13,13 +13,14 @@ print_environment() {
     # does not rely on bash.
     # FROST_SPECIFIC: added "FROST". The comment cannot be put on the same line for syntactic limitations
     for var in WERROR_CFLAGS MAKEFLAGS BUILD \
-            ECMULTWINDOW ECMULTGENPRECISION ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
+            ECMULTWINDOW ECMULTGENKB ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
             EXPERIMENTAL ECDH RECOVERY SCHNORRSIG ELLSWIFT \
             FROST \
             SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS\
             EXAMPLES \
             HOST WRAPPER_CMD \
-            CC CFLAGS CPPFLAGS AR NM
+            CC CFLAGS CPPFLAGS AR NM \
+            UBSAN_OPTIONS ASAN_OPTIONS LSAN_OPTIONS
     do
         eval "isset=\${$var+x}"
         if [ -n "$isset" ]; then
@@ -76,7 +77,7 @@ esac
     --enable-experimental="$EXPERIMENTAL" \
     --with-test-override-wide-multiply="$WIDEMUL" --with-asm="$ASM" \
     --with-ecmult-window="$ECMULTWINDOW" \
-    --with-ecmult-gen-precision="$ECMULTGENPRECISION" \
+    --with-ecmult-gen-kb="$ECMULTGENKB" \
     --enable-module-ecdh="$ECDH" --enable-module-recovery="$RECOVERY" \
     --enable-module-ellswift="$ELLSWIFT" \
     --enable-module-schnorrsig="$SCHNORRSIG" \

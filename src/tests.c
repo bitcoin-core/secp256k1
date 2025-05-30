@@ -248,8 +248,9 @@ static void run_selftest_tests(void) {
 
 static int ecmult_gen_context_eq(const secp256k1_ecmult_gen_context *a, const secp256k1_ecmult_gen_context *b) {
     return a->built == b->built
-            && secp256k1_scalar_eq(&a->blind, &b->blind)
-            && secp256k1_gej_eq_var(&a->initial, &b->initial);
+            && secp256k1_scalar_eq(&a->scalar_offset, &b->scalar_offset)
+            && secp256k1_ge_eq_var(&a->ge_offset, &b->ge_offset)
+            && secp256k1_fe_equal(&a->proj_blind, &b->proj_blind);
 }
 
 static int context_eq(const secp256k1_context *a, const secp256k1_context *b) {
@@ -2149,7 +2150,7 @@ static void scalar_test(void) {
         for (i = 0; i < 256; i += 4) {
             secp256k1_scalar t;
             int j;
-            secp256k1_scalar_set_int(&t, secp256k1_scalar_get_bits(&s, 256 - 4 - i, 4));
+            secp256k1_scalar_set_int(&t, secp256k1_scalar_get_bits_limb32(&s, 256 - 4 - i, 4));
             for (j = 0; j < 4; j++) {
                 secp256k1_scalar_add(&n, &n, &n);
             }
@@ -2927,20 +2928,18 @@ static void run_scalar_tests(void) {
             secp256k1_scalar_set_b32(&r2, res[i][1], &overflow);
             CHECK(!overflow);
             secp256k1_scalar_mul(&z, &x, &y);
-            CHECK(!secp256k1_scalar_check_overflow(&z));
             CHECK(secp256k1_scalar_eq(&r1, &z));
             if (!secp256k1_scalar_is_zero(&y)) {
                 secp256k1_scalar_inverse(&zz, &y);
-                CHECK(!secp256k1_scalar_check_overflow(&zz));
                 secp256k1_scalar_inverse_var(&zzv, &y);
                 CHECK(secp256k1_scalar_eq(&zzv, &zz));
                 secp256k1_scalar_mul(&z, &z, &zz);
-                CHECK(!secp256k1_scalar_check_overflow(&z));
                 CHECK(secp256k1_scalar_eq(&x, &z));
                 secp256k1_scalar_mul(&zz, &zz, &y);
-                CHECK(!secp256k1_scalar_check_overflow(&zz));
                 CHECK(secp256k1_scalar_eq(&secp256k1_scalar_one, &zz));
             }
+            secp256k1_scalar_mul(&z, &x, &x);
+            CHECK(secp256k1_scalar_eq(&r2, &z));
         }
     }
 }
@@ -2955,7 +2954,7 @@ static void random_fe_non_square(secp256k1_fe *ns) {
     }
 }
 
-static int check_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
+static int fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
     secp256k1_fe an = *a;
     secp256k1_fe bn = *b;
     secp256k1_fe_normalize_weak(&an);
@@ -3092,7 +3091,7 @@ static void run_field_half(void) {
 #endif
         secp256k1_fe_normalize_weak(&u);
         secp256k1_fe_add(&u, &u);
-        CHECK(check_fe_equal(&t, &u));
+        CHECK(fe_equal(&t, &u));
 
         /* Check worst-case input: ensure the LSB is 1 so that P will be added,
          * which will also cause all carries to be 1, since all limbs that can
@@ -3111,7 +3110,7 @@ static void run_field_half(void) {
 #endif
         secp256k1_fe_normalize_weak(&u);
         secp256k1_fe_add(&u, &u);
-        CHECK(check_fe_equal(&t, &u));
+        CHECK(fe_equal(&t, &u));
     }
 }
 
@@ -3138,7 +3137,7 @@ static void run_field_misc(void) {
         secp256k1_fe_add(&z, &q); /* z = x+v */
         q = x; /* q = x */
         secp256k1_fe_add_int(&q, v); /* q = x+v */
-        CHECK(check_fe_equal(&q, &z));
+        CHECK(fe_equal(&q, &z));
         /* Test the fe equality and comparison operations. */
         CHECK(secp256k1_fe_cmp_var(&x, &x) == 0);
         CHECK(secp256k1_fe_equal(&x, &x));
@@ -3198,27 +3197,27 @@ static void run_field_misc(void) {
         secp256k1_fe_add(&y, &x);
         z = x;
         secp256k1_fe_mul_int(&z, 3);
-        CHECK(check_fe_equal(&y, &z));
+        CHECK(fe_equal(&y, &z));
         secp256k1_fe_add(&y, &x);
         secp256k1_fe_add(&z, &x);
-        CHECK(check_fe_equal(&z, &y));
+        CHECK(fe_equal(&z, &y));
         z = x;
         secp256k1_fe_mul_int(&z, 5);
         secp256k1_fe_mul(&q, &x, &fe5);
-        CHECK(check_fe_equal(&z, &q));
+        CHECK(fe_equal(&z, &q));
         secp256k1_fe_negate(&x, &x, 1);
         secp256k1_fe_add(&z, &x);
         secp256k1_fe_add(&q, &x);
-        CHECK(check_fe_equal(&y, &z));
-        CHECK(check_fe_equal(&q, &y));
+        CHECK(fe_equal(&y, &z));
+        CHECK(fe_equal(&q, &y));
         /* Check secp256k1_fe_half. */
         z = x;
         secp256k1_fe_half(&z);
         secp256k1_fe_add(&z, &z);
-        CHECK(check_fe_equal(&x, &z));
+        CHECK(fe_equal(&x, &z));
         secp256k1_fe_add(&z, &z);
         secp256k1_fe_half(&z);
-        CHECK(check_fe_equal(&x, &z));
+        CHECK(fe_equal(&x, &z));
     }
 }
 
@@ -3287,18 +3286,31 @@ static void run_fe_mul(void) {
 }
 
 static void run_sqr(void) {
-    secp256k1_fe x, s;
+    int i;
+    secp256k1_fe x, y, lhs, rhs, tmp;
 
-    {
-        int i;
-        secp256k1_fe_set_int(&x, 1);
-        secp256k1_fe_negate(&x, &x, 1);
+    secp256k1_fe_set_int(&x, 1);
+    secp256k1_fe_negate(&x, &x, 1);
 
-        for (i = 1; i <= 512; ++i) {
-            secp256k1_fe_mul_int(&x, 2);
-            secp256k1_fe_normalize(&x);
-            secp256k1_fe_sqr(&s, &x);
-        }
+    for (i = 1; i <= 512; ++i) {
+        secp256k1_fe_mul_int(&x, 2);
+        secp256k1_fe_normalize(&x);
+
+        /* Check that (x+y)*(x-y) = x^2 - y*2 for some random values y */
+        random_fe_test(&y);
+
+        lhs = x;
+        secp256k1_fe_add(&lhs, &y);         /* lhs = x+y */
+        secp256k1_fe_negate(&tmp, &y, 1);   /* tmp = -y */
+        secp256k1_fe_add(&tmp, &x);         /* tmp = x-y */
+        secp256k1_fe_mul(&lhs, &lhs, &tmp); /* lhs = (x+y)*(x-y) */
+
+        secp256k1_fe_sqr(&rhs, &x);         /* rhs = x^2 */
+        secp256k1_fe_sqr(&tmp, &y);         /* tmp = y^2 */
+        secp256k1_fe_negate(&tmp, &tmp, 1); /* tmp = -y^2 */
+        secp256k1_fe_add(&rhs, &tmp);       /* rhs = x^2 - y^2 */
+
+        CHECK(fe_equal(&lhs, &rhs));
     }
 }
 
@@ -3620,9 +3632,9 @@ static void run_inverse_tests(void)
     for (i = 0; (size_t)i < sizeof(fe_cases)/sizeof(fe_cases[0]); ++i) {
         for (var = 0; var <= 1; ++var) {
             test_inverse_field(&x_fe, &fe_cases[i][0], var);
-            check_fe_equal(&x_fe, &fe_cases[i][1]);
+            CHECK(fe_equal(&x_fe, &fe_cases[i][1]));
             test_inverse_field(&x_fe, &fe_cases[i][1], var);
-            check_fe_equal(&x_fe, &fe_cases[i][0]);
+            CHECK(fe_equal(&x_fe, &fe_cases[i][0]));
         }
     }
     for (i = 0; (size_t)i < sizeof(scalar_cases)/sizeof(scalar_cases[0]); ++i) {
@@ -3662,6 +3674,78 @@ static void run_inverse_tests(void)
             }
         }
     }
+}
+
+/***** HSORT TESTS *****/
+
+static void test_heap_swap(void) {
+    unsigned char a[600];
+    unsigned char e[sizeof(a)];
+    memset(a,       21, 200);
+    memset(a + 200, 99, 200);
+    memset(a + 400, 42, 200);
+    memset(e,       42, 200);
+    memset(e + 200, 99, 200);
+    memset(e + 400, 21, 200);
+    secp256k1_heap_swap(a, 0, 2, 200);
+    CHECK(secp256k1_memcmp_var(a, e, sizeof(a)) == 0);
+}
+
+static void test_hsort_is_sorted(unsigned char *elements, size_t n, size_t len) {
+    size_t i;
+    for (i = 1; i < n; i++) {
+        CHECK(secp256k1_memcmp_var(&elements[(i-1) * len], &elements[i * len], len) <= 0);
+    }
+}
+
+struct test_hsort_cmp_data {
+    size_t counter;
+    size_t element_len;
+};
+
+
+static int test_hsort_cmp(const void *ele1, const void *ele2, void *data) {
+  struct test_hsort_cmp_data *d = (struct test_hsort_cmp_data *) data;
+    d->counter += 1;
+    return secp256k1_memcmp_var((unsigned char *)ele1, (unsigned char *)ele2, d->element_len);
+}
+
+#define NUM 65
+#define MAX_ELEMENT_LEN 65
+static void test_hsort(size_t element_len) {
+    unsigned char elements[NUM * MAX_ELEMENT_LEN] = { 0 };
+    struct test_hsort_cmp_data data;
+    int i;
+
+    VERIFY_CHECK(element_len <= MAX_ELEMENT_LEN);
+    data.counter = 0;
+    data.element_len = element_len;
+
+    secp256k1_hsort(elements, 0, element_len, test_hsort_cmp, &data);
+    CHECK(data.counter == 0);
+    secp256k1_hsort(elements, 1, element_len, test_hsort_cmp, &data);
+    CHECK(data.counter == 0);
+    secp256k1_hsort(elements, NUM, element_len, test_hsort_cmp, &data);
+    CHECK(data.counter >= NUM - 1);
+    test_hsort_is_sorted(elements, NUM, element_len);
+
+    /* Test hsort with array of random length n */
+    for (i = 0; i < COUNT; i++) {
+        int n = secp256k1_testrand_int(NUM);
+        secp256k1_testrand_bytes_test(elements, n*element_len);
+        secp256k1_hsort(elements, n, element_len, test_hsort_cmp, &data);
+        test_hsort_is_sorted(elements, n, element_len);
+    }
+}
+#undef NUM
+#undef MAX_ELEMENT_LEN
+
+
+static void run_hsort_tests(void) {
+    test_heap_swap();
+    test_hsort(1);
+    test_hsort(64);
+    test_hsort(65);
 }
 
 /***** GROUP TESTS *****/
@@ -4558,7 +4642,7 @@ static void ecmult_const_mult_xonly(void) {
         /* Check that resj's X coordinate corresponds with resx. */
         secp256k1_fe_sqr(&v, &resj.z);
         secp256k1_fe_mul(&v, &v, &resx);
-        CHECK(check_fe_equal(&v, &resj.x));
+        CHECK(fe_equal(&v, &resj.x));
     }
 
     /* Test that secp256k1_ecmult_const_xonly correctly rejects X coordinates not on curve. */
@@ -5559,18 +5643,18 @@ static void test_ecmult_gen_blind(void) {
     unsigned char seed32[32];
     secp256k1_gej pgej;
     secp256k1_gej pgej2;
-    secp256k1_gej i;
+    secp256k1_ge p;
     secp256k1_ge pge;
     random_scalar_order_test(&key);
     secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej, &key);
     secp256k1_testrand256(seed32);
-    b = CTX->ecmult_gen_ctx.blind;
-    i = CTX->ecmult_gen_ctx.initial;
+    b = CTX->ecmult_gen_ctx.scalar_offset;
+    p = CTX->ecmult_gen_ctx.ge_offset;
     secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, seed32);
-    CHECK(!secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.blind));
+    CHECK(!secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.scalar_offset));
     secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej2, &key);
     CHECK(!gej_xyz_equals_gej(&pgej, &pgej2));
-    CHECK(!gej_xyz_equals_gej(&i, &CTX->ecmult_gen_ctx.initial));
+    CHECK(!secp256k1_ge_eq_var(&p, &CTX->ecmult_gen_ctx.ge_offset));
     secp256k1_ge_set_gej(&pge, &pgej);
     CHECK(secp256k1_gej_eq_ge_var(&pgej2, &pge));
 }
@@ -5578,18 +5662,39 @@ static void test_ecmult_gen_blind(void) {
 static void test_ecmult_gen_blind_reset(void) {
     /* Test ecmult_gen() blinding reset and confirm that the blinding is consistent. */
     secp256k1_scalar b;
-    secp256k1_gej initial;
+    secp256k1_ge p1, p2;
     secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, 0);
-    b = CTX->ecmult_gen_ctx.blind;
-    initial = CTX->ecmult_gen_ctx.initial;
+    b = CTX->ecmult_gen_ctx.scalar_offset;
+    p1 = CTX->ecmult_gen_ctx.ge_offset;
     secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, 0);
-    CHECK(secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.blind));
-    CHECK(gej_xyz_equals_gej(&initial, &CTX->ecmult_gen_ctx.initial));
+    CHECK(secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.scalar_offset));
+    p2 = CTX->ecmult_gen_ctx.ge_offset;
+    CHECK(secp256k1_ge_eq_var(&p1, &p2));
+}
+
+/* Verify that ecmult_gen for scalars gn for which gn + scalar_offset = {-1,0,1}. */
+static void test_ecmult_gen_edge_cases(void) {
+    int i;
+    secp256k1_gej res1, res2, res3;
+    secp256k1_scalar gn = secp256k1_scalar_one; /* gn = 1 */
+    secp256k1_scalar_add(&gn, &gn, &CTX->ecmult_gen_ctx.scalar_offset); /* gn = 1 + scalar_offset */
+    secp256k1_scalar_negate(&gn, &gn); /* gn = -1 - scalar_offset */
+
+    for (i = -1; i < 2; ++i) {
+        /* Run test with gn = i - scalar_offset (so that the ecmult_gen recoded value represents i). */
+        secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &res1, &gn);
+        secp256k1_ecmult(&res2, NULL, &secp256k1_scalar_zero, &gn);
+        secp256k1_ecmult_const(&res3, &secp256k1_ge_const_g, &gn);
+        CHECK(secp256k1_gej_eq_var(&res1, &res2));
+        CHECK(secp256k1_gej_eq_var(&res1, &res3));
+        secp256k1_scalar_add(&gn, &gn, &secp256k1_scalar_one);
+    }
 }
 
 static void run_ecmult_gen_blind(void) {
     int i;
     test_ecmult_gen_blind_reset();
+    test_ecmult_gen_edge_cases();
     for (i = 0; i < 10; i++) {
         test_ecmult_gen_blind();
     }
@@ -6596,6 +6701,161 @@ static void run_pubkey_comparison(void) {
     CHECK(secp256k1_ec_pubkey_cmp(CTX, &pk2, &pk1) > 0);
 }
 
+static void test_sort_helper(secp256k1_pubkey *pk, size_t *pk_order, size_t n_pk) {
+    size_t i;
+    const secp256k1_pubkey *pk_test[5];
+
+    for (i = 0; i < n_pk; i++) {
+        pk_test[i] = &pk[pk_order[i]];
+    }
+    secp256k1_ec_pubkey_sort(CTX, pk_test, n_pk);
+    for (i = 0; i < n_pk; i++) {
+        CHECK(secp256k1_memcmp_var(pk_test[i], &pk[i], sizeof(*pk_test[i])) == 0);
+    }
+}
+
+static void permute(size_t *arr, size_t n) {
+    size_t i;
+    for (i = n - 1; i >= 1; i--) {
+        size_t tmp, j;
+        j = secp256k1_testrand_int(i + 1);
+        tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+    }
+}
+
+static void rand_pk(secp256k1_pubkey *pk) {
+    unsigned char seckey[32];
+    secp256k1_keypair keypair;
+    secp256k1_testrand256(seckey);
+    CHECK(secp256k1_keypair_create(CTX, &keypair, seckey) == 1);
+    CHECK(secp256k1_keypair_pub(CTX, pk, &keypair) == 1);
+}
+
+static void test_sort_api(void) {
+    secp256k1_pubkey pks[2];
+    const secp256k1_pubkey *pks_ptr[2];
+
+    pks_ptr[0] = &pks[0];
+    pks_ptr[1] = &pks[1];
+
+    rand_pk(&pks[0]);
+    rand_pk(&pks[1]);
+
+    CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, 2) == 1);
+    CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_sort(CTX, NULL, 2));
+    CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, 0) == 1);
+    /* Test illegal public keys */
+    memset(&pks[0], 0, sizeof(pks[0]));
+    CHECK_ILLEGAL_VOID(CTX, CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, 2) == 1));
+    memset(&pks[1], 0, sizeof(pks[1]));
+    {
+        int32_t ecount = 0;
+        secp256k1_context_set_illegal_callback(CTX, counting_callback_fn, &ecount);
+        CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, 2) == 1);
+        CHECK(ecount == 2);
+        secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
+    }
+}
+
+static void test_sort(void) {
+    secp256k1_pubkey pk[5];
+    unsigned char pk_ser[5][33] = {
+        { 0x02, 0x08 },
+        { 0x02, 0x0b },
+        { 0x02, 0x0c },
+        { 0x03, 0x05 },
+        { 0x03, 0x0a },
+    };
+    int i;
+    size_t pk_order[5] = { 0, 1, 2, 3, 4 };
+
+    for (i = 0; i < 5; i++) {
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &pk[i], pk_ser[i], sizeof(pk_ser[i])));
+    }
+
+    permute(pk_order, 1);
+    test_sort_helper(pk, pk_order, 1);
+    permute(pk_order, 2);
+    test_sort_helper(pk, pk_order, 2);
+    permute(pk_order, 3);
+    test_sort_helper(pk, pk_order, 3);
+    for (i = 0; i < COUNT; i++) {
+        permute(pk_order, 4);
+        test_sort_helper(pk, pk_order, 4);
+    }
+    for (i = 0; i < COUNT; i++) {
+        permute(pk_order, 5);
+        test_sort_helper(pk, pk_order, 5);
+    }
+    /* Check that sorting also works for random pubkeys */
+    for (i = 0; i < COUNT; i++) {
+        int j;
+        const secp256k1_pubkey *pk_ptr[5];
+        for (j = 0; j < 5; j++) {
+            rand_pk(&pk[j]);
+            pk_ptr[j] = &pk[j];
+        }
+        secp256k1_ec_pubkey_sort(CTX, pk_ptr, 5);
+        for (j = 1; j < 5; j++) {
+            CHECK(secp256k1_ec_pubkey_sort_cmp(&pk_ptr[j - 1], &pk_ptr[j], CTX) <= 0);
+        }
+    }
+}
+
+/* Test vectors from BIP-MuSig2 */
+static void test_sort_vectors(void) {
+    enum { N_PUBKEYS = 6 };
+    unsigned char pk_ser[N_PUBKEYS][33] = {
+        { 0x02, 0xDD, 0x30, 0x8A, 0xFE, 0xC5, 0x77, 0x7E, 0x13, 0x12, 0x1F,
+          0xA7, 0x2B, 0x9C, 0xC1, 0xB7, 0xCC, 0x01, 0x39, 0x71, 0x53, 0x09,
+          0xB0, 0x86, 0xC9, 0x60, 0xE1, 0x8F, 0xD9, 0x69, 0x77, 0x4E, 0xB8 },
+        { 0x02, 0xF9, 0x30, 0x8A, 0x01, 0x92, 0x58, 0xC3, 0x10, 0x49, 0x34,
+          0x4F, 0x85, 0xF8, 0x9D, 0x52, 0x29, 0xB5, 0x31, 0xC8, 0x45, 0x83,
+          0x6F, 0x99, 0xB0, 0x86, 0x01, 0xF1, 0x13, 0xBC, 0xE0, 0x36, 0xF9 },
+        { 0x03, 0xDF, 0xF1, 0xD7, 0x7F, 0x2A, 0x67, 0x1C, 0x5F, 0x36, 0x18,
+          0x37, 0x26, 0xDB, 0x23, 0x41, 0xBE, 0x58, 0xFE, 0xAE, 0x1D, 0xA2,
+          0xDE, 0xCE, 0xD8, 0x43, 0x24, 0x0F, 0x7B, 0x50, 0x2B, 0xA6, 0x59 },
+        { 0x02, 0x35, 0x90, 0xA9, 0x4E, 0x76, 0x8F, 0x8E, 0x18, 0x15, 0xC2,
+          0xF2, 0x4B, 0x4D, 0x80, 0xA8, 0xE3, 0x14, 0x93, 0x16, 0xC3, 0x51,
+          0x8C, 0xE7, 0xB7, 0xAD, 0x33, 0x83, 0x68, 0xD0, 0x38, 0xCA, 0x66 },
+        { 0x02, 0xDD, 0x30, 0x8A, 0xFE, 0xC5, 0x77, 0x7E, 0x13, 0x12, 0x1F,
+          0xA7, 0x2B, 0x9C, 0xC1, 0xB7, 0xCC, 0x01, 0x39, 0x71, 0x53, 0x09,
+          0xB0, 0x86, 0xC9, 0x60, 0xE1, 0x8F, 0xD9, 0x69, 0x77, 0x4E, 0xFF },
+        { 0x02, 0xDD, 0x30, 0x8A, 0xFE, 0xC5, 0x77, 0x7E, 0x13, 0x12, 0x1F,
+          0xA7, 0x2B, 0x9C, 0xC1, 0xB7, 0xCC, 0x01, 0x39, 0x71, 0x53, 0x09,
+          0xB0, 0x86, 0xC9, 0x60, 0xE1, 0x8F, 0xD9, 0x69, 0x77, 0x4E, 0xB8 }
+    };
+    secp256k1_pubkey pubkeys[N_PUBKEYS];
+    secp256k1_pubkey *sorted[N_PUBKEYS];
+    const secp256k1_pubkey *pks_ptr[N_PUBKEYS];
+    int i;
+
+    sorted[0] = &pubkeys[3];
+    sorted[1] = &pubkeys[0];
+    sorted[2] = &pubkeys[0];
+    sorted[3] = &pubkeys[4];
+    sorted[4] = &pubkeys[1];
+    sorted[5] = &pubkeys[2];
+
+    for (i = 0; i < N_PUBKEYS; i++) {
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkeys[i], pk_ser[i], sizeof(pk_ser[i])));
+        pks_ptr[i] = &pubkeys[i];
+    }
+    CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, N_PUBKEYS) == 1);
+    for (i = 0; i < N_PUBKEYS; i++) {
+        CHECK(secp256k1_memcmp_var(pks_ptr[i], sorted[i], sizeof(secp256k1_pubkey)) == 0);
+    }
+}
+
+static void run_pubkey_sort(void) {
+    test_sort_api();
+    test_sort();
+    test_sort_vectors();
+}
+
+
 static void run_random_pubkeys(void) {
     int i;
     for (i = 0; i < 10*COUNT; i++) {
@@ -7561,6 +7821,9 @@ int main(int argc, char **argv) {
     run_modinv_tests();
     run_inverse_tests();
 
+    /* sorting tests */
+    run_hsort_tests();
+
     /* hash tests */
     run_sha256_known_output_tests();
     run_sha256_counter_tests();
@@ -7617,6 +7880,7 @@ int main(int argc, char **argv) {
     /* ecdsa tests */
     run_ec_illegal_argument_tests();
     run_pubkey_comparison();
+    run_pubkey_sort();
     run_random_pubkeys();
     run_ecdsa_der_parse();
     run_ecdsa_sign_verify();
