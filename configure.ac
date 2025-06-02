@@ -45,6 +45,7 @@ AS_UNSET(ac_cv_prog_AR)
 AS_UNSET(ac_cv_prog_ac_ct_AR)
 LT_INIT([win32-dll])
 
+SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_AUTOTOOLS_BUILD=1"
 build_windows=no
 
 case $host_os in

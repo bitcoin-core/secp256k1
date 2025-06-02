@@ -20,9 +20,9 @@ if(SECP256K1_ASM STREQUAL "arm32")
   target_link_libraries(secp256k1_asm INTERFACE secp256k1_asm_arm)
 endif()
 
+# Define our export symbol only for shared libs.
+set_target_properties(secp256k1 PROPERTIES DEFINE_SYMBOL SECP256K1_CMAKE_SHARED_BUILD)
 if(WIN32)
-  # Define our export symbol only for shared libs.
-  set_target_properties(secp256k1 PROPERTIES DEFINE_SYMBOL SECP256K1_DLL_EXPORT)
   target_compile_definitions(secp256k1 INTERFACE $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:SECP256K1_STATIC>)
 endif()
 
