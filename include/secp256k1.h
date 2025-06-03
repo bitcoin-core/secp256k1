@@ -152,14 +152,36 @@ typedef int (*secp256k1_nonce_function)(
 # endif
 #endif
 #ifndef SECP256K1_API
-/* All cases not captured by the Windows-specific logic. */
-# if defined(__GNUC__) && (__GNUC__ >= 4) && defined(SECP256K1_BUILD)
-   /* Building libsecp256k1 using GCC or compatible. */
-#  define SECP256K1_API extern __attribute__ ((visibility ("default")))
-# else
-   /* Fall back to standard C's extern. */
-#  define SECP256K1_API extern
+# if defined(__GNUC__) && (__GNUC__ == 4) && defined(SECP256K1_BUILD)
+   /* Building libsecp256k1 using GCC or compatible on non-Windows. */
+#  if defined(SECP256K1_FORCE_HIDDEN_VISIBILITY)
+    /* Hidden visibility is requested explicitly.
+     *
+     * Forcing hidden visibility can be useful, e.g., when building a static
+     * library which is linked into a shared library, and the latter should not
+     * reexport the libsecp256k1 API. Since this will create an unusable shared
+     * library, SECP256K1_FORCE_HIDDEN_VISIBILITY should only be used when
+     * building a static library. (You want to ./configure with --disable-shared
+     * if using Autotools.)
+     *
+     * While visibility is a concept that applies only to shared libraries,
+     * setting visibility will still make a difference when building a static
+     * library: the visibility settings will be stored in the static library,
+     * solely for the potential case that the static library will be linked into
+     * a shared library. In that case, the stored visibility settings will
+     * resurface and be honored for the shared library. */
+#   define SECP256K1_API extern __attribute__ ((visibility("hidden")))
+#  else
+    /* Set default visibility explicit. This is to not break the build for users
+     * who pass `-fvisibility=hidden` in the expection that this is a
+     * visibility-aware library. */
+#   define SECP256K1_API extern __attribute__ ((visibility("default")))
+#  endif
 # endif
+#endif
+#ifndef SECP256K1_API
+  /* Fall back to standard C's extern. */
+# define SECP256K1_API extern
 #endif
 
 /* Warning attributes
