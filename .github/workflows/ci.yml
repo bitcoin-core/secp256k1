@@ -693,13 +693,13 @@ jobs:
       fail-fast: false
       matrix:
         env_vars:
-          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128_struct', ECMULTGENPRECISION: 2, ECMULTWINDOW: 4 }
-          - { WIDEMUL: 'int128',                  ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY' }
+          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes',                        EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - { WIDEMUL: 'int128_struct', ECMULTGENPRECISION: 2, ECMULTWINDOW: 4 ,                                                            EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - { WIDEMUL: 'int128',                  ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes',                        EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - { WIDEMUL: 'int128', RECOVERY: 'yes',                                                                                           EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes',                        EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' ,            EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
+          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY' , EXPERIMENTAL: 'yes', FROST: 'yes' } # FROST_SPECIFIC: added EXPERIMENTAL and FROST. Both set to 'yes'
           - BUILD: 'distcheck'
 
     steps:
