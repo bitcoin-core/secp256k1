@@ -47,8 +47,8 @@ jobs:
               --enable-experimental \
               --with-test-override-wide-multiply=auto \
               --with-asm=no \
-              --with-ecmult-window=auto \
-              --with-ecmult-gen-precision=auto \
+              --with-ecmult-window=15 \
+              --with-ecmult-gen-kb=86 \
               --disable-ctime-tests \
               --enable-examples \
               --enable-module-ecdh \
