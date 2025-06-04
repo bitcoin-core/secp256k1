@@ -1,10 +1,15 @@
-# Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
-include(GNUInstallDirs)
+add_library(secp256k1)
+
+set_property(TARGET secp256k1 PROPERTY PUBLIC_HEADER
+  ${PROJECT_SOURCE_DIR}/include/secp256k1.h
+  ${PROJECT_SOURCE_DIR}/include/secp256k1_preallocated.h
+)
 
 # Processing must be done in a topological sorting of the dependency graph
 # (dependent module first).
 if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
   add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
+  set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_ellswift.h)
 endif()
 
 if(SECP256K1_ENABLE_MODULE_MUSIG)
@@ -13,6 +18,7 @@ if(SECP256K1_ENABLE_MODULE_MUSIG)
   endif()
   set(SECP256K1_ENABLE_MODULE_SCHNORRSIG ON)
   add_compile_definitions(ENABLE_MODULE_MUSIG=1)
+  set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_musig.h)
 endif()
 
 if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
@@ -21,18 +27,22 @@ if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
   endif()
   set(SECP256K1_ENABLE_MODULE_EXTRAKEYS ON)
   add_compile_definitions(ENABLE_MODULE_SCHNORRSIG=1)
+  set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_schnorrsig.h)
 endif()
 
 if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
   add_compile_definitions(ENABLE_MODULE_EXTRAKEYS=1)
+  set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_extrakeys.h)
 endif()
 
 if(SECP256K1_ENABLE_MODULE_RECOVERY)
   add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
+  set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_recovery.h)
 endif()
 
 if(SECP256K1_ENABLE_MODULE_ECDH)
   add_compile_definitions(ENABLE_MODULE_ECDH=1)
+  set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_ecdh.h)
 endif()
 
 add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL
@@ -42,7 +52,7 @@ add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL
 
 # Add objects explicitly rather than linking to the object libs to keep them
 # from being exported.
-add_library(secp256k1 secp256k1.c $<TARGET_OBJECTS:secp256k1_precomputed>)
+target_sources(secp256k1 PRIVATE secp256k1.c $<TARGET_OBJECTS:secp256k1_precomputed>)
 
 add_library(secp256k1_asm INTERFACE)
 if(SECP256K1_ASM STREQUAL "arm32")
@@ -68,7 +78,6 @@ set_target_properties(secp256k1_precomputed PROPERTIES POSITION_INDEPENDENT_CODE
 target_include_directories(secp256k1 INTERFACE
   # Add the include path for parent projects so that they don't have to manually add it.
   $<BUILD_INTERFACE:$<$<NOT:$<BOOL:${PROJECT_IS_TOP_LEVEL}>>:${PROJECT_SOURCE_DIR}/include>>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 # This emulates Libtool to make sure Libtool and CMake agree on the ABI version,
@@ -136,36 +145,16 @@ if(SECP256K1_BUILD_CTIME_TESTS)
 endif()
 
 if(SECP256K1_INSTALL)
+  include(GNUInstallDirs)
+  target_include_directories(secp256k1 INTERFACE
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  )
   install(TARGETS secp256k1
     EXPORT ${PROJECT_NAME}-targets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
-  set(${PROJECT_NAME}_headers
-    "${PROJECT_SOURCE_DIR}/include/secp256k1.h"
-    "${PROJECT_SOURCE_DIR}/include/secp256k1_preallocated.h"
-  )
-  if(SECP256K1_ENABLE_MODULE_ECDH)
-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_ecdh.h")
-  endif()
-  if(SECP256K1_ENABLE_MODULE_RECOVERY)
-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_recovery.h")
-  endif()
-  if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_extrakeys.h")
-  endif()
-  if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_schnorrsig.h")
-  endif()
-  if(SECP256K1_ENABLE_MODULE_MUSIG)
-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_musig.h")
-  endif()
-  if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_ellswift.h")
-  endif()
-  install(FILES ${${PROJECT_NAME}_headers}
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
 
   install(EXPORT ${PROJECT_NAME}-targets
