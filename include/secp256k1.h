@@ -129,10 +129,11 @@ typedef int (*secp256k1_nonce_function)(
    * Attributes" in the GCC manual and the recommendations in
    * https://gcc.gnu.org/wiki/Visibility. */
 # if defined(SECP256K1_BUILD)
-#  if defined(DLL_EXPORT) || defined(SECP256K1_DLL_EXPORT)
+#  if defined(DLL_EXPORT) || defined(SECP256K1_CMAKE_SHARED_BUILD) || defined(SECP256K1_DLL_EXPORT)
     /* Building libsecp256k1 as a DLL.
      * 1. If using Libtool, it defines DLL_EXPORT automatically.
-     * 2. In other cases, SECP256K1_DLL_EXPORT must be defined. */
+     * 2. If using CMake, it defines SECP256K1_CMAKE_SHARED_BUILD automatically.
+     * 3. In other cases, SECP256K1_DLL_EXPORT must be defined. */
 #   define SECP256K1_API extern __declspec (dllexport)
 #  else
     /* Building libsecp256k1 as a static library on Windows.
@@ -155,11 +156,16 @@ typedef int (*secp256k1_nonce_function)(
 /* All cases not captured by the Windows-specific logic. */
 # if defined(__GNUC__) && (__GNUC__ >= 4) && defined(SECP256K1_BUILD)
    /* Building libsecp256k1 using GCC or compatible. */
-#  define SECP256K1_API extern __attribute__ ((visibility ("default")))
-# else
+#  if !defined(SECP256K1_NO_EXPORT_SYMBOLS)
+#   if defined(SECP256K1_CMAKE_SHARED_BUILD) || defined(SECP256K1_AUTOTOOLS_BUILD)
+#    define SECP256K1_API extern __attribute__ ((visibility ("default")))
+#   endif
+#  endif
+# endif
+#endif
+#ifndef SECP256K1_API
    /* Fall back to standard C's extern. */
 #  define SECP256K1_API extern
-# endif
 #endif
 
 /* Warning attributes
