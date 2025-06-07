@@ -151,8 +151,9 @@ Usage examples can be found in the [examples](examples) directory. To compile th
   * [Schnorr signatures example](examples/schnorr.c)
   * [Deriving a shared secret (ECDH) example](examples/ecdh.c)
   * [ElligatorSwift key exchange example](examples/ellswift.c)
+  * [MuSig2 Schnorr multi-signatures example](examples/musig.c)
 
-To compile the Schnorr signature and ECDH examples, you also need to configure with `--enable-module-schnorrsig` and `--enable-module-ecdh`.
+To compile the examples, make sure the corresponding modules are enabled.
 
 Benchmark
 ------------
