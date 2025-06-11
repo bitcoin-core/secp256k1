@@ -43,7 +43,7 @@ math(EXPR ${PROJECT_NAME}_soversion "${${PROJECT_NAME}_LIB_VERSION_CURRENT} - ${
 set_target_properties(secp256k1 PROPERTIES
   SOVERSION ${${PROJECT_NAME}_soversion}
 )
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME MATCHES "^(Linux|FreeBSD)$")
   set_target_properties(secp256k1 PROPERTIES
     VERSION ${${PROJECT_NAME}_soversion}.${${PROJECT_NAME}_LIB_VERSION_AGE}.${${PROJECT_NAME}_LIB_VERSION_REVISION}
   )
