@@ -52,40 +52,6 @@ option(SECP256K1_ENABLE_MODULE_SCHNORRSIG "Enable schnorrsig module." ON)
 option(SECP256K1_ENABLE_MODULE_MUSIG "Enable musig module." ON)
 option(SECP256K1_ENABLE_MODULE_ELLSWIFT "Enable ElligatorSwift module." ON)
 
-# Processing must be done in a topological sorting of the dependency graph
-# (dependent module first).
-if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
-  add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
-endif()
-
-if(SECP256K1_ENABLE_MODULE_MUSIG)
-  if(DEFINED SECP256K1_ENABLE_MODULE_SCHNORRSIG AND NOT SECP256K1_ENABLE_MODULE_SCHNORRSIG)
-    message(FATAL_ERROR "Module dependency error: You have disabled the schnorrsig module explicitly, but it is required by the musig module.")
-  endif()
-  set(SECP256K1_ENABLE_MODULE_SCHNORRSIG ON)
-  add_compile_definitions(ENABLE_MODULE_MUSIG=1)
-endif()
-
-if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
-  if(DEFINED SECP256K1_ENABLE_MODULE_EXTRAKEYS AND NOT SECP256K1_ENABLE_MODULE_EXTRAKEYS)
-    message(FATAL_ERROR "Module dependency error: You have disabled the extrakeys module explicitly, but it is required by the schnorrsig module.")
-  endif()
-  set(SECP256K1_ENABLE_MODULE_EXTRAKEYS ON)
-  add_compile_definitions(ENABLE_MODULE_SCHNORRSIG=1)
-endif()
-
-if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
-  add_compile_definitions(ENABLE_MODULE_EXTRAKEYS=1)
-endif()
-
-if(SECP256K1_ENABLE_MODULE_RECOVERY)
-  add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
-endif()
-
-if(SECP256K1_ENABLE_MODULE_ECDH)
-  add_compile_definitions(ENABLE_MODULE_ECDH=1)
-endif()
-
 option(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS "Enable external default callback functions." OFF)
 if(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS)
   add_compile_definitions(USE_EXTERNAL_DEFAULT_CALLBACKS=1)
