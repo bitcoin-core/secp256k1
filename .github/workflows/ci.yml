@@ -46,8 +46,18 @@ env:
 
 jobs:
   docker_cache:
-    name: "Build Docker image"
-    runs-on: ubuntu-latest
+    name: "Build ${{ matrix.arch }} Docker image"
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -60,7 +70,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           file: ./ci/linux-debian.Dockerfile
-          tags: x64-debian-image
+          tags: ${{ matrix.arch }}-debian-image
           cache-from: type=gha
           cache-to: type=gha,mode=min
 
