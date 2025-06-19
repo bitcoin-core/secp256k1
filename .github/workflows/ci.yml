@@ -60,7 +60,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           file: ./ci/linux-debian.Dockerfile
-          tags: linux-debian-image
+          tags: x64-debian-image
           cache-from: type=gha
           cache-to: type=gha,mode=min
 
@@ -106,7 +106,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -142,7 +142,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -174,7 +174,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -215,7 +215,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -258,7 +258,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -290,7 +290,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -333,7 +333,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -377,7 +377,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -428,7 +428,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -471,7 +471,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -678,7 +678,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
@@ -697,7 +697,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: linux-debian-image
+          tag: x64-debian-image
           command: |
             g++ -Werror include/*.h
             clang -Werror -x c++-header include/*.h
