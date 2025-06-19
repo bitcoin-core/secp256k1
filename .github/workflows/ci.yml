@@ -305,18 +305,38 @@ jobs:
 
 
   valgrind_debian:
-    name: "Valgrind (memcheck)"
-    runs-on: ubuntu-latest
+    name: "Valgrind ${{ matrix.binary_arch }} (memcheck)"
+    runs-on: ${{ matrix.runner }}
     needs: docker_cache
 
     strategy:
       fail-fast: false
       matrix:
-        configuration:
-          - env_vars: { CC: 'clang',                                      ASM: 'auto' }
-          - env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'auto' }
-          - env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
-          - env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
+        include:
+          - docker_arch: x64
+            runner: ubuntu-latest
+            binary_arch: x64
+            env_vars: { CC: 'clang',                                      ASM: 'auto' }
+          - docker_arch: x64
+            runner: ubuntu-latest
+            binary_arch: i686
+            env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'auto' }
+          - docker_arch: arm64
+            runner: ubuntu-24.04-arm
+            binary_arch: arm64
+            env_vars: { CC: 'clang',                                      ASM: 'auto' }
+          - docker_arch: x64
+            runner: ubuntu-latest
+            binary_arch: x64
+            env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
+          - docker_arch: x64
+            runner: ubuntu-latest
+            binary_arch: i686
+            env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
+          - docker_arch: arm64
+            runner: ubuntu-24.04-arm
+            binary_arch: arm64
+            env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
 
     env:
       # The `--error-exitcode` is required to make the test fail if valgrind found errors,
@@ -336,11 +356,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
+        env: ${{ matrix.env_vars }}
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
-          tag: x64-debian-image
+          tag: ${{ matrix.docker_arch }}-debian-image
 
       - name: Print logs
         uses: ./.github/actions/print-logs
