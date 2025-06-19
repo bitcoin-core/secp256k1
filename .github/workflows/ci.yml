@@ -254,6 +254,7 @@ jobs:
         cc:
           - 'gcc'
           - 'clang'
+          - 'gcc-snapshot'
           - 'clang-snapshot'
 
     steps:

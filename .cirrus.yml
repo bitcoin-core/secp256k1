@@ -64,24 +64,6 @@ linux_arm64_container_snippet: &LINUX_ARM64_CONTAINER
     - docker run --rm --mount "type=bind,src=./,dst=/ci_secp256k1" --env-file /tmp/env --replace --name "ci_secp256k1_arm" "ci_secp256k1_arm" bash -c "cd /ci_secp256k1/ && ./ci/ci.sh"
 
 task:
-  name: "ARM64: Linux (Debian stable)"
-  persistent_worker:
-    labels:
-      type: arm64
-  env:
-    ECDH: yes
-    RECOVERY: yes
-    EXTRAKEYS: yes
-    SCHNORRSIG: yes
-    MUSIG: yes
-    ELLSWIFT: yes
-  matrix:
-     # Currently only gcc-snapshot, the other compilers are tested on GHA with QEMU
-     - env: { CC: 'gcc-snapshot' }
-  << : *LINUX_ARM64_CONTAINER
-  << : *CAT_LOGS
-
-task:
   name: "ARM64: Linux (Debian stable), Valgrind"
   persistent_worker:
     labels:
