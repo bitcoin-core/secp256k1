@@ -54,6 +54,11 @@ add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL
 # from being exported.
 target_sources(secp256k1 PRIVATE secp256k1.c $<TARGET_OBJECTS:secp256k1_precomputed>)
 
+# Create a helper lib that parent projects can use to link secp256k1 into a
+# static lib.
+add_library(secp256k1_objs INTERFACE)
+target_sources(secp256k1_objs INTERFACE $<TARGET_OBJECTS:secp256k1> $<TARGET_OBJECTS:secp256k1_precomputed>)
+
 add_library(secp256k1_asm INTERFACE)
 if(SECP256K1_ASM STREQUAL "arm32")
   add_library(secp256k1_asm_arm OBJECT EXCLUDE_FROM_ALL)
@@ -61,6 +66,7 @@ if(SECP256K1_ASM STREQUAL "arm32")
     asm/field_10x26_arm.s
   )
   target_sources(secp256k1 PRIVATE $<TARGET_OBJECTS:secp256k1_asm_arm>)
+  target_sources(secp256k1_objs INTERFACE $<TARGET_OBJECTS:secp256k1_asm_arm>)
   target_link_libraries(secp256k1_asm INTERFACE secp256k1_asm_arm)
 endif()
 
@@ -75,9 +81,12 @@ endif()
 get_target_property(use_pic secp256k1 POSITION_INDEPENDENT_CODE)
 set_target_properties(secp256k1_precomputed PROPERTIES POSITION_INDEPENDENT_CODE ${use_pic})
 
+# Add the include path for parent projects so that they don't have to manually add it.
 target_include_directories(secp256k1 INTERFACE
-  # Add the include path for parent projects so that they don't have to manually add it.
   $<BUILD_INTERFACE:$<$<NOT:$<BOOL:${PROJECT_IS_TOP_LEVEL}>>:${PROJECT_SOURCE_DIR}/include>>
+)
+set_target_properties(secp256k1_objs PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "$<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>"
 )
 
 # This emulates Libtool to make sure Libtool and CMake agree on the ABI version,
