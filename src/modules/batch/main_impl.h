@@ -45,6 +45,14 @@ static size_t secp256k1_batch_scratch_size(int max_terms) {
     return ret;
 }
 
+/** Clears the scalar and points allocated on the batch object's scratch space */
+static void secp256k1_batch_scratch_clear(secp256k1_batch* batch) {
+    secp256k1_scalar_clear(&batch->sc_g);
+    /* setting the len = 0 will suffice (instead of clearing the memory)
+     * since, there are no secrets stored on the scratch space */
+    batch->len = 0;
+}
+
 /** Allocates space for `batch->capacity` number of scalars and points on batch
  *  object's scratch space */
 static int secp256k1_batch_scratch_alloc(const secp256k1_callback* error_callback, secp256k1_batch* batch) {
@@ -136,6 +144,42 @@ void secp256k1_batch_destroy(const secp256k1_context *ctx, secp256k1_batch *batc
         }
         free(batch);
     }
+}
+
+/** verifies the inputs (schnorrsig or tweak_check) by performing multi-scalar point
+ *  multiplication on the scalars (`batch->scalars`) and points (`batch->points`)
+ *  present in the batch. Uses `secp256k1_ecmult_strauss_batch_internal` to perform
+ *  the multi-multiplication.
+ *
+ * Fails if:
+ * 0 != -(s1 + a2*s2 + ... + au*su)G
+ *      + R1 + a2*R2 + ... + au*Ru + e1*P1 + (a2*e2)P2 + ... + (au*eu)Pu.
+ */
+int secp256k1_batch_verify(const secp256k1_context *ctx, secp256k1_batch *batch) {
+    secp256k1_gej resj;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(batch != NULL);
+
+    if(batch->result == 0) {
+        return 0;
+    }
+
+    if (batch->len > 0) {
+        int strauss_ret = secp256k1_ecmult_strauss_batch_internal(&ctx->error_callback, batch->data, &resj, batch->scalars, batch->points, &batch->sc_g, batch->len);
+        int mid_res = secp256k1_gej_is_infinity(&resj);
+
+        /* `_strauss_batch_internal` should not fail due to insufficient memory.
+         * `batch_create` will allocate memeory needed by `_strauss_batch_internal`. */
+        VERIFY_CHECK(strauss_ret != 0);
+        /* Silence −Wunused-variable when VERIFY is off */
+        (void)strauss_ret;
+
+        batch->result = batch->result && mid_res;
+        secp256k1_batch_scratch_clear(batch);
+    }
+
+    return batch->result;
 }
 
 #endif /* SECP256K1_MODULE_BATCH_MAIN_H */
