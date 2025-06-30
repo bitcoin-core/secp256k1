@@ -1,11 +1,8 @@
 function(add_example name)
   set(target_name ${name}_example)
   add_executable(${target_name} ${name}.c)
-  target_include_directories(${target_name} PRIVATE
-    ${PROJECT_SOURCE_DIR}/include
-  )
-  target_link_libraries(${target_name}
-    secp256k1
+  target_link_libraries(${target_name} PRIVATE
+    libsecp256k1::secp256k1
     $<$<PLATFORM_ID:Windows>:bcrypt>
   )
   set(test_name ${name}_example)
