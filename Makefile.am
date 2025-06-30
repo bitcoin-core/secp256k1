@@ -311,3 +311,7 @@ endif
 if ENABLE_MODULE_ELLSWIFT
 include src/modules/ellswift/Makefile.am.include
 endif
+
+if ENABLE_MODULE_BATCH
+include src/modules/batch/Makefile.am.include
+endif
