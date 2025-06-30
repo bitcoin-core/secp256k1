@@ -63,6 +63,31 @@ SECP256K1_API void secp256k1_batch_destroy(
     secp256k1_batch* batch
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
 
+/** Checks if a batch can be used by the `secp256k1_batch_add_*` APIs.
+ *
+ *  Returns: 1: batch can be used by `secp256k1_batch_add_*` APIs.
+ *           0: batch cannot be used by `secp256k1_batch_add_*` APIs.
+ *
+ *  Args:    ctx: a secp256k1 context object (can be initialized for none).
+ *         batch: a secp256k1 batch object that contains a set of schnorrsigs/tweaks.
+ *
+ *  You are advised to check if `secp256k1_batch_usable` returns 1 before calling
+ *  any `secp256k1_batch_add_*` API. We recommend this because `secp256k1_batch_add_*`
+ *  will fail in two cases:
+ *       - case 1: unparsable input (schnorrsig or tweak check)
+ *       - case 2: unusable (or invalid) batch
+ *  Calling `secp256k1_batch_usable` beforehand helps eliminate case 2 if
+ *  `secp256k1_batch_add_*` fails.
+ *
+ *  If you ignore the above advice, all the secp256k1_batch APIs will still
+ *  work correctly. It simply makes it hard to understand the reason behind
+ *  `secp256k1_batch_add_*` failure (if occurs).
+ */
+SECP256K1_API int secp256k1_batch_usable(
+    const secp256k1_context *ctx,
+    const secp256k1_batch *batch
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2);
+
 /** Verify the set of schnorr signatures or tweaked pubkeys present in the secp256k1_batch.
  *
  *  Returns: 1: every schnorrsig/tweak (in batch) is valid

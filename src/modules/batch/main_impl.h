@@ -3,6 +3,14 @@
 
 #include "../../../include/secp256k1_batch.h"
 
+/* Assume two batch objects (batch1 and batch2) and we call
+ * `batch_add_tweak_check` on batch1 and `batch_add_schnorrsig` on batch2.
+ * In this case, the same randomizer will be generated if the input bytes to
+ * batch1 and batch2 are the same (even though we use different `batch_add_` funcs).
+ * Including this tag during randomizer generation (to differentiate btw
+ * `batch_add_` funcs) will prevent such mishaps. */
+enum batch_add_type {schnorrsig = 1, tweak_check = 2};
+
 /** Opaque data structure that holds information required for the batch verification.
  *
  *  Members:
@@ -144,6 +152,13 @@ void secp256k1_batch_destroy(const secp256k1_context *ctx, secp256k1_batch *batc
         }
         free(batch);
     }
+}
+
+int secp256k1_batch_usable(const secp256k1_context *ctx, const secp256k1_batch *batch) {
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(batch != NULL);
+
+    return batch->result;
 }
 
 /** verifies the inputs (schnorrsig or tweak_check) by performing multi-scalar point
