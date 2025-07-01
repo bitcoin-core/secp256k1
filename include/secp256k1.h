@@ -121,45 +121,21 @@ typedef int (*secp256k1_nonce_function)(
 #endif
 
 /* Symbol visibility. */
-#if defined(_WIN32)
-  /* GCC for Windows (e.g., MinGW) accepts the __declspec syntax
-   * for MSVC compatibility. A __declspec declaration implies (but is not
-   * exactly equivalent to) __attribute__ ((visibility("default"))), and so we
-   * actually want __declspec even on GCC, see "Microsoft Windows Function
-   * Attributes" in the GCC manual and the recommendations in
-   * https://gcc.gnu.org/wiki/Visibility. */
-# if defined(SECP256K1_BUILD)
-#  if defined(DLL_EXPORT) || defined(SECP256K1_DLL_EXPORT)
-    /* Building libsecp256k1 as a DLL.
-     * 1. If using Libtool, it defines DLL_EXPORT automatically.
-     * 2. In other cases, SECP256K1_DLL_EXPORT must be defined. */
-#   define SECP256K1_API extern __declspec (dllexport)
-#  else
-    /* Building libsecp256k1 as a static library on Windows.
-     * No declspec is needed, and so we would want the non-Windows-specific
-     * logic below take care of this case. However, this may result in setting
-     * __attribute__ ((visibility("default"))), which is supposed to be a noop
-     * on Windows but may trigger warnings when compiling with -flto due to a
-     * bug in GCC, see
-     * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=116478 . */
-#   define SECP256K1_API extern
-#  endif
-  /* The user must define SECP256K1_STATIC when consuming libsecp256k1 as a static
-   * library on Windows. */
-# elif !defined(SECP256K1_STATIC)
-   /* Consuming libsecp256k1 as a DLL. */
-#  define SECP256K1_API extern __declspec (dllimport)
-# endif
+#if defined(_WIN32) || defined(__CYGWIN__)
+#  define SECP256K1_EXPORT __declspec(dllexport)
+#  define SECP256K1_IMPORT __declspec(dllimport)
+#else
+#  define SECP256K1_EXPORT __attribute__((visibility("default")))
+#  define SECP256K1_IMPORT __attribute__((visibility("default")))
 #endif
 #ifndef SECP256K1_API
-/* All cases not captured by the Windows-specific logic. */
-# if defined(__GNUC__) && (__GNUC__ >= 4) && defined(SECP256K1_BUILD)
-   /* Building libsecp256k1 using GCC or compatible. */
-#  define SECP256K1_API extern __attribute__ ((visibility ("default")))
-# else
-   /* Fall back to standard C's extern. */
-#  define SECP256K1_API extern
-# endif
+#  if defined(SECP256K1_STATIC)
+#    define SECP256K1_API extern
+#  elif defined(SECP256K1_BUILD)
+#    define SECP256K1_API extern SECP256K1_EXPORT
+#  else
+#    define SECP256K1_API extern SECP256K1_IMPORT
+#  endif
 #endif
 
 /* Warning attributes
