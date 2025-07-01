@@ -13,6 +13,7 @@ project(libsecp256k1
   LANGUAGES C
 )
 enable_testing()
+include(CTestUseLaunchers) # Allow users to set CTEST_USE_LAUNCHERS in custom `ctest -S` scripts.
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 # The library version is based on libtool versioning of the ABI. The set of
