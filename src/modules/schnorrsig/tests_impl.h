@@ -935,8 +935,9 @@ static void test_schnorrsig_sign(void) {
 
 #define N_SIGS 3
 /* Creates N_SIGS valid signatures and verifies them with verify and
- * verify_batch (TODO). Then flips some bits and checks that verification now
- * fails. */
+ * batch_verify. Then flips some bits and checks that verification now
+ * fails. The batch_verify variation of this test is implemented as
+ * test_schnorrsig_sign_batch_verify (in schnorrsig/batch_add_tests_impl.h) */
 static void test_schnorrsig_sign_verify(void) {
     unsigned char sk[32];
     unsigned char msg[N_SIGS][32];
