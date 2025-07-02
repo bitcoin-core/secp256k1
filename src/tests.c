@@ -7524,10 +7524,16 @@ static void run_ecdsa_wycheproof(void) {
 
 #ifdef ENABLE_MODULE_EXTRAKEYS
 # include "modules/extrakeys/tests_impl.h"
+#ifdef ENABLE_MODULE_BATCH
+#  include "modules/extrakeys/batch_add_tests_impl.h"
+#endif
 #endif
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
 # include "modules/schnorrsig/tests_impl.h"
+# ifdef ENABLE_MODULE_BATCH
+#  include "modules/schnorrsig/batch_add_tests_impl.h"
+# endif
 #endif
 
 #ifdef ENABLE_MODULE_MUSIG
@@ -7866,9 +7872,15 @@ static const struct tf_test_module registry_modules[] = {
 #endif
 #ifdef ENABLE_MODULE_EXTRAKEYS
     MAKE_TEST_MODULE(extrakeys),
+# ifdef ENABLE_MODULE_BATCH
+    MAKE_TEST_MODULE(batch_add_xonlypub_tweak),
+# endif
 #endif
 #ifdef ENABLE_MODULE_SCHNORRSIG
     MAKE_TEST_MODULE(schnorrsig),
+# ifdef ENABLE_MODULE_BATCH
+    MAKE_TEST_MODULE(batch_add_schnorrsig),
+# endif
 #endif
 #ifdef ENABLE_MODULE_MUSIG
     MAKE_TEST_MODULE(musig),
