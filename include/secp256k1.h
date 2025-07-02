@@ -121,6 +121,25 @@ typedef int (*secp256k1_nonce_function)(
 #endif
 
 /* Symbol visibility. */
+#if !defined(SECP256K1_API) && defined(SECP256K1_NO_API_VISIBILITY_ATTRIBUTES)
+     /* The user has requested that we don't specify visibility attributes in
+      * the public API.
+      *
+      * Since all our non-API declarations use the static qualifier, this means
+      * that the user can use -fvisibility=<value> to set the visibility of the
+      * API symbols. For instance, -fvisibility=hidden can be useful *even for
+      * the API symbols*, e.g., when building a static library which is linked
+      * into a shared library, and the latter should not re-export the
+      * libsecp256k1 API.
+      *
+      * While visibility is a concept that applies only to shared libraries,
+      * setting visibility will still make a difference when building a static
+      * library: the visibility settings will be stored in the static library,
+      * solely for the potential case that the static library will be linked into
+      * a shared library. In that case, the stored visibility settings will
+      * resurface and be honored for the shared library. */
+#    define SECP256K1_API extern
+#endif
 #if !defined(SECP256K1_API)
 #    if defined(SECP256K1_BUILD)
          /* On Windows, assume a shared library only if explicitly requested.
