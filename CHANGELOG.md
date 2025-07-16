@@ -7,10 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Added
+ - CMake: Added `secp256k1_objs` interface library to allow parent projects to embed libsecp256k1 object files into their own static libraries.
+ - build: Added `SECP256K1_NO_API_VISIBILITY_ATTRIBUTES` preprocessor flag (CMake option: `SECP256K1_ENABLE_API_VISIBILITY_ATTRIBUTES`) that disables explicit "visibility" attributes for API symbols. Defining this macro enables the user to control the visibility of the API symbols via `-fvisibility=<value>` when building libsecp256k1. (All non-API declarations will always have hidden visibility, even with `SECP256K1_ENABLE_API_VISIBILITY_ATTRIBUTES` defined.) For instance, `-fvisibility=hidden` can be useful even for the API symbols, e.g., when building a static libsecp256k1 which is linked into a shared library, and the latter should not re-export the libsecp256k1 API.
+
+#### Changed
+ - The pointers `secp256k1_context_static` and `secp256k1_context_no_precomp` to the constant context object are now const.
+ - Removed `SECP256K1_WARN_UNUSED_RESULT` attribute (defined as `__attribute__ ((__warn_unused_result__))`) from several API functions that always return 1. Compilers will no longer warn if the return value is unused.
+ - CMake: Building with CMake is no longer considered experimental.
+ - CMake: The minimum required CMake version was increased to 3.22.
+ - CMake: Shared libraries built with CMake on FreeBSD now create the full versioned filename and symlink chain, matching the behavior of autotools builds.
+
 #### Removed
 - Removed previously deprecated function aliases `secp256k1_ec_privkey_negate`, `secp256k1_ec_privkey_tweak_add` and
   `secp256k1_ec_privkey_tweak_mul`. Use `secp256k1_ec_seckey_negate`, `secp256k1_ec_seckey_tweak_add` and
   `secp256k1_ec_seckey_tweak_mul` instead.
+
+#### ABI Compatibility
+The symbols `secp256k1_ec_privkey_negate`, `secp256k1_ec_privkey_tweak_add`, and `secp256k1_ec_privkey_tweak_mul` were removed.
+The pointers `secp256k1_context_static` and `secp256k1_context_no_precomp` have been made const.
+Otherwise, the library maintains backward compatibility with version 0.6.0.
 
 ## [0.6.0] - 2024-11-04
 
