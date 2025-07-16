@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Added
+ - CMake: Added `secp256k1_objs` interface library to allow parent projects to embed secp256k1 object files into their own static libraries.
+
+#### Changed
+ - The pointers `secp256k1_context_static` and `secp256k1_context_no_precomp` to the constant context object are now const.
+ - Removed `SECP256K1_WARN_UNUSED_RESULT` attribute from several functions that always return 1. Compilers will no longer warn if the return value is unused.
+ - The minimum required CMake version was increased to 3.22.
+ - Building with CMake is no longer considered experimental.
+ - Shared libraries built with CMake on FreeBSD now create the full versioned filename and symlink chain, matching the behavior of autotools builds.
+
 #### Removed
 - Removed previously deprecated function aliases `secp256k1_ec_privkey_negate`, `secp256k1_ec_privkey_tweak_add` and
   `secp256k1_ec_privkey_tweak_mul`. Use `secp256k1_ec_seckey_negate`, `secp256k1_ec_seckey_tweak_add` and
