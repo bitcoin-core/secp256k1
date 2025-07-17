@@ -1,5 +1,9 @@
 add_library(secp256k1)
 
+# Allow projects in the same source tree to use this as if it had been imported.
+# The prefix has to match the NAMESPACE in `install(EXPORT)` further down.
+add_library(${PROJECT_NAME}::secp256k1 ALIAS secp256k1)
+
 set_property(TARGET secp256k1 PROPERTY PUBLIC_HEADER
   ${PROJECT_SOURCE_DIR}/include/secp256k1.h
   ${PROJECT_SOURCE_DIR}/include/secp256k1_preallocated.h
@@ -54,40 +58,24 @@ add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL
 # from being exported.
 target_sources(secp256k1 PRIVATE secp256k1.c $<TARGET_OBJECTS:secp256k1_precomputed>)
 
-# Create a helper lib that parent projects can use to link secp256k1 into a
-# static lib.
-add_library(secp256k1_objs INTERFACE)
-target_sources(secp256k1_objs INTERFACE $<TARGET_OBJECTS:secp256k1> $<TARGET_OBJECTS:secp256k1_precomputed>)
-
-add_library(secp256k1_asm INTERFACE)
 if(SECP256K1_ASM STREQUAL "arm32")
-  add_library(secp256k1_asm_arm OBJECT EXCLUDE_FROM_ALL)
-  target_sources(secp256k1_asm_arm PUBLIC
-    asm/field_10x26_arm.s
-  )
-  target_sources(secp256k1 PRIVATE $<TARGET_OBJECTS:secp256k1_asm_arm>)
-  target_sources(secp256k1_objs INTERFACE $<TARGET_OBJECTS:secp256k1_asm_arm>)
-  target_link_libraries(secp256k1_asm INTERFACE secp256k1_asm_arm)
+  add_library(secp256k1_asm OBJECT EXCLUDE_FROM_ALL asm/field_10x26_arm.s)
+else()
+  add_library(secp256k1_asm INTERFACE)
 endif()
 
-if(WIN32)
-  # Define our export symbol only for shared libs.
-  set_target_properties(secp256k1 PROPERTIES DEFINE_SYMBOL SECP256K1_DLL_EXPORT)
-  target_compile_definitions(secp256k1 INTERFACE $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:SECP256K1_STATIC>)
-endif()
+# When building a static libary, SECP256K1_STATIC must be defined both for itself and downstream.
+# Note that the generator expression is evaluated in the context of the consuming target!
+target_compile_definitions(secp256k1 PUBLIC $<$<STREQUAL:$<TARGET_PROPERTY:secp256k1,TYPE>,STATIC_LIBRARY>:SECP256K1_STATIC>)
+set_target_properties(secp256k1 PROPERTIES C_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON)
 
 # Object libs don't know if they're being built for a shared or static lib.
 # Grab the PIC property from secp256k1 which knows.
 get_target_property(use_pic secp256k1 POSITION_INDEPENDENT_CODE)
 set_target_properties(secp256k1_precomputed PROPERTIES POSITION_INDEPENDENT_CODE ${use_pic})
 
-# Add the include path for parent projects so that they don't have to manually add it.
-target_include_directories(secp256k1 INTERFACE
-  $<BUILD_INTERFACE:$<$<NOT:$<BOOL:${PROJECT_IS_TOP_LEVEL}>>:${PROJECT_SOURCE_DIR}/include>>
-)
-set_target_properties(secp256k1_objs PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES "$<TARGET_PROPERTY:secp256k1,INTERFACE_INCLUDE_DIRECTORIES>"
-)
+# Add the include path for projects in the same source tree.
+target_include_directories(secp256k1 INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
 
 # This emulates Libtool to make sure Libtool and CMake agree on the ABI version,
 # see below "Calculate the version variables" in build-aux/ltmain.sh.
@@ -123,18 +111,21 @@ if(SECP256K1_BUILD_BENCHMARK)
   add_executable(bench bench.c)
   target_link_libraries(bench secp256k1)
   add_executable(bench_internal bench_internal.c)
+  target_compile_definitions(bench_internal PRIVATE $<TARGET_PROPERTY:secp256k1,INTERFACE_COMPILE_DEFINITIONS>)
   target_link_libraries(bench_internal secp256k1_precomputed secp256k1_asm)
   add_executable(bench_ecmult bench_ecmult.c)
+  target_compile_definitions(bench_ecmult PRIVATE $<TARGET_PROPERTY:secp256k1,INTERFACE_COMPILE_DEFINITIONS>)
   target_link_libraries(bench_ecmult secp256k1_precomputed secp256k1_asm)
 endif()
 
 if(SECP256K1_BUILD_TESTS)
   add_executable(noverify_tests tests.c)
+  target_compile_definitions(noverify_tests PRIVATE $<TARGET_PROPERTY:secp256k1,INTERFACE_COMPILE_DEFINITIONS>)
   target_link_libraries(noverify_tests secp256k1_precomputed secp256k1_asm)
   add_test(NAME secp256k1_noverify_tests COMMAND noverify_tests)
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Coverage")
     add_executable(tests tests.c)
-    target_compile_definitions(tests PRIVATE VERIFY)
+    target_compile_definitions(tests PRIVATE VERIFY $<TARGET_PROPERTY:secp256k1,INTERFACE_COMPILE_DEFINITIONS>)
     target_link_libraries(tests secp256k1_precomputed secp256k1_asm)
     add_test(NAME secp256k1_tests COMMAND tests)
   endif()
@@ -144,7 +135,10 @@ if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
   # Note: do not include secp256k1_precomputed in exhaustive_tests (it uses runtime-generated tables).
   add_executable(exhaustive_tests tests_exhaustive.c)
   target_link_libraries(exhaustive_tests secp256k1_asm)
-  target_compile_definitions(exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
+  target_compile_definitions(exhaustive_tests PRIVATE
+    $<$<NOT:$<CONFIG:Coverage>>:VERIFY>
+    $<TARGET_PROPERTY:secp256k1,INTERFACE_COMPILE_DEFINITIONS>
+  )
   add_test(NAME secp256k1_exhaustive_tests COMMAND exhaustive_tests)
 endif()
 
