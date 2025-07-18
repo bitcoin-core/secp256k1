@@ -1,8 +1,0 @@
-{
-  "files.associations": {
-    "*.conf.template": "nginx",
-    "*.sql.template": "sql",
-    "modinv64_impl.h": "c",
-    "immintrin.h": "c"
-  }
-}
