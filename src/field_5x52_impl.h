@@ -7,7 +7,9 @@
 #ifndef SECP256K1_FIELD_REPR_IMPL_H
 #define SECP256K1_FIELD_REPR_IMPL_H
 
-#include <immintrin.h>
+#ifdef __X86_64__
+# include <immintrin.h>
+#endif
 
 #include "checkmem.h"
 #include "util.h"
