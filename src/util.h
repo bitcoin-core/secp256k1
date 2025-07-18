@@ -18,9 +18,17 @@
 #if defined(_MSC_VER)
 /* For SecureZeroMemory */
 #include <Windows.h>
-#define __builtin_bswap64 _byteswap_uint64
-#define __builtin_bswap32 _byteswap_ulong
-#define __builtin_bswap16 _byteswap_ushort
+#endif
+
+/* Byteswap intrinsics */
+#if defined(_MSC_VER)
+  #define BYTESWAP_16(x) _byteswap_ushort(x)
+  #define BYTESWAP_32(x) _byteswap_ulong(x)
+  #define BYTESWAP_64(x) _byteswap_uint64(x)
+#else
+  #define BYTESWAP_16(x) __builtin_bswap16(x)
+  #define BYTESWAP_32(x) __builtin_bswap32(x)
+  #define BYTESWAP_64(x) __builtin_bswap64(x)
 #endif
 
 #define STR_(x) #x

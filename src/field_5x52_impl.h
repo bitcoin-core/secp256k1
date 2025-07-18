@@ -270,10 +270,10 @@ static void secp256k1_fe_impl_set_b32_mod(secp256k1_fe *r, const unsigned char *
     uint64_t limbs[4];
     memcpy(limbs, a, 32);
 
-    limbs[0] = __builtin_bswap64(limbs[0]);
-    limbs[1] = __builtin_bswap64(limbs[1]);
-    limbs[2] = __builtin_bswap64(limbs[2]);
-    limbs[3] = __builtin_bswap64(limbs[3]);
+    limbs[0] = BYTESWAP_64(limbs[0]);
+    limbs[1] = BYTESWAP_64(limbs[1]);
+    limbs[2] = BYTESWAP_64(limbs[2]);
+    limbs[3] = BYTESWAP_64(limbs[3]);
 
     r->n[0] =                     (limbs[3] & 0xFFFFFFFFFFFFFULL);
     r->n[1] = (limbs[3] >> 52) | ((limbs[2] & 0xFFFFFFFFFFULL) << 12);
