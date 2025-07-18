@@ -38,6 +38,9 @@ static void secp256k1_fe_impl_verify(const secp256k1_fe *a) {
 #endif
 
 static void secp256k1_fe_impl_get_bounds(secp256k1_fe *r, int m) {
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     r->n[0] = 0x3FFFFFFUL * 2 * m;
     r->n[1] = 0x3FFFFFFUL * 2 * m;
     r->n[2] = 0x3FFFFFFUL * 2 * m;
@@ -263,6 +266,9 @@ SECP256K1_INLINE static void secp256k1_fe_impl_set_int(secp256k1_fe *r, int a) {
 
 SECP256K1_INLINE static int secp256k1_fe_impl_is_zero(const secp256k1_fe *a) {
     const uint32_t *t = a->n;
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     return (t[0] | t[1] | t[2] | t[3] | t[4] | t[5] | t[6] | t[7] | t[8] | t[9]) == 0;
 }
 
@@ -272,18 +278,20 @@ SECP256K1_INLINE static int secp256k1_fe_impl_is_odd(const secp256k1_fe *a) {
 
 static int secp256k1_fe_impl_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
     int i;
+    int diff;
     for (i = 9; i >= 0; i--) {
-        if (a->n[i] > b->n[i]) {
-            return 1;
-        }
-        if (a->n[i] < b->n[i]) {
-            return -1;
+        diff = (a->n[i] > b->n[i]) - (a->n[i] < b->n[i]);
+        if (diff != 0) {
+            return diff;
         }
     }
     return 0;
 }
 
 static void secp256k1_fe_impl_set_b32_mod(secp256k1_fe *r, const unsigned char *a) {
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+  
     r->n[0] = (uint32_t)a[31] | ((uint32_t)a[30] << 8) | ((uint32_t)a[29] << 16) | ((uint32_t)(a[28] & 0x3) << 24);
     r->n[1] = (uint32_t)((a[28] >> 2) & 0x3f) | ((uint32_t)a[27] << 6) | ((uint32_t)a[26] << 14) | ((uint32_t)(a[25] & 0xf) << 22);
     r->n[2] = (uint32_t)((a[25] >> 4) & 0xf) | ((uint32_t)a[24] << 4) | ((uint32_t)a[23] << 12) | ((uint32_t)(a[22] & 0x3f) << 20);
@@ -303,6 +311,9 @@ static int secp256k1_fe_impl_set_b32_limit(secp256k1_fe *r, const unsigned char 
 
 /** Convert a field element to a 32-byte big endian value. Requires the input to be normalized */
 static void secp256k1_fe_impl_get_b32(unsigned char *r, const secp256k1_fe *a) {
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+    
     r[0] = (a->n[9] >> 14) & 0xff;
     r[1] = (a->n[9] >> 6) & 0xff;
     r[2] = ((a->n[9] & 0x3F) << 2) | ((a->n[8] >> 24) & 0x3);
@@ -346,6 +357,9 @@ SECP256K1_INLINE static void secp256k1_fe_impl_negate_unchecked(secp256k1_fe *r,
 
     /* Due to the properties above, the left hand in the subtractions below is never less than
      * the right hand. */
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     r->n[0] = 0x3FFFC2FUL * 2 * (m + 1) - a->n[0];
     r->n[1] = 0x3FFFFBFUL * 2 * (m + 1) - a->n[1];
     r->n[2] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[2];
@@ -359,6 +373,8 @@ SECP256K1_INLINE static void secp256k1_fe_impl_negate_unchecked(secp256k1_fe *r,
 }
 
 SECP256K1_INLINE static void secp256k1_fe_impl_mul_int_unchecked(secp256k1_fe *r, int a) {
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     r->n[0] *= a;
     r->n[1] *= a;
     r->n[2] *= a;
@@ -372,6 +388,8 @@ SECP256K1_INLINE static void secp256k1_fe_impl_mul_int_unchecked(secp256k1_fe *r
 }
 
 SECP256K1_INLINE static void secp256k1_fe_impl_add(secp256k1_fe *r, const secp256k1_fe *a) {
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+  
     r->n[0] += a->n[0];
     r->n[1] += a->n[1];
     r->n[2] += a->n[2];
@@ -1017,6 +1035,10 @@ SECP256K1_INLINE static void secp256k1_fe_impl_cmov(secp256k1_fe *r, const secp2
     SECP256K1_CHECKMEM_CHECK_VERIFY(r->n, sizeof(r->n));
     mask0 = vflag + ~((uint32_t)0);
     mask1 = ~mask0;
+
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     r->n[0] = (r->n[0] & mask0) | (a->n[0] & mask1);
     r->n[1] = (r->n[1] & mask0) | (a->n[1] & mask1);
     r->n[2] = (r->n[2] & mask0) | (a->n[2] & mask1);
@@ -1065,6 +1087,8 @@ static SECP256K1_INLINE void secp256k1_fe_impl_half(secp256k1_fe *r) {
      *                     t9 <= D * (m + 1/2)
      */
 
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     r->n[0] = (t0 >> 1) + ((t1 & one) << 25);
     r->n[1] = (t1 >> 1) + ((t2 & one) << 25);
     r->n[2] = (t2 >> 1) + ((t3 & one) << 25);
@@ -1100,6 +1124,9 @@ static SECP256K1_INLINE void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, 
     SECP256K1_CHECKMEM_CHECK_VERIFY(r->n, sizeof(r->n));
     mask0 = vflag + ~((uint32_t)0);
     mask1 = ~mask0;
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     r->n[0] = (r->n[0] & mask0) | (a->n[0] & mask1);
     r->n[1] = (r->n[1] & mask0) | (a->n[1] & mask1);
     r->n[2] = (r->n[2] & mask0) | (a->n[2] & mask1);
@@ -1111,6 +1138,9 @@ static SECP256K1_INLINE void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, 
 }
 
 static void secp256k1_fe_impl_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a) {
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     r->n[0] = a->n[0] | a->n[1] << 26;
     r->n[1] = a->n[1] >> 6 | a->n[2] << 20;
     r->n[2] = a->n[2] >> 12 | a->n[3] << 14;
@@ -1123,6 +1153,9 @@ static void secp256k1_fe_impl_to_storage(secp256k1_fe_storage *r, const secp256k
 
 static SECP256K1_INLINE void secp256k1_fe_impl_from_storage(secp256k1_fe *r, const secp256k1_fe_storage *a) {
     r->n[0] = a->n[0] & 0x3FFFFFFUL;
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     r->n[1] = a->n[0] >> 26 | ((a->n[1] << 6) & 0x3FFFFFFUL);
     r->n[2] = a->n[1] >> 20 | ((a->n[2] << 12) & 0x3FFFFFFUL);
     r->n[3] = a->n[2] >> 14 | ((a->n[3] << 18) & 0x3FFFFFFUL);
@@ -1152,6 +1185,8 @@ static void secp256k1_fe_from_signed30(secp256k1_fe *r, const secp256k1_modinv32
     VERIFY_CHECK(a7 >> 30 == 0);
     VERIFY_CHECK(a8 >> 16 == 0);
 
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     r->n[0] =  a0                   & M26;
     r->n[1] = (a0 >> 26 | a1 <<  4) & M26;
     r->n[2] = (a1 >> 22 | a2 <<  8) & M26;
@@ -1168,6 +1203,8 @@ static void secp256k1_fe_to_signed30(secp256k1_modinv32_signed30 *r, const secp2
     const uint32_t M30 = UINT32_MAX >> 2;
     const uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4],
                    a5 = a->n[5], a6 = a->n[6], a7 = a->n[7], a8 = a->n[8], a9 = a->n[9];
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
 
     r->v[0] = (a0       | a1 << 26) & M30;
     r->v[1] = (a1 >>  4 | a2 << 22) & M30;
