@@ -7,7 +7,7 @@
 #ifndef SECP256K1_FIELD_REPR_IMPL_H
 #define SECP256K1_FIELD_REPR_IMPL_H
 
-#ifdef __X86_64__
+#ifdef X86
 # include <immintrin.h>
 #endif
 
@@ -270,10 +270,12 @@ static void secp256k1_fe_impl_set_b32_mod(secp256k1_fe *r, const unsigned char *
     uint64_t limbs[4];
     memcpy(limbs, a, 32);
 
+#ifdef LITTLE_ENDIAN
     limbs[0] = BYTESWAP_64(limbs[0]);
     limbs[1] = BYTESWAP_64(limbs[1]);
     limbs[2] = BYTESWAP_64(limbs[2]);
     limbs[3] = BYTESWAP_64(limbs[3]);
+#endif
 
     r->n[0] =                     (limbs[3] & 0xFFFFFFFFFFFFFULL);
     r->n[1] = (limbs[3] >> 52) | ((limbs[2] & 0xFFFFFFFFFFULL) << 12);
@@ -560,14 +562,14 @@ static SECP256K1_INLINE void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, 
 
 static void secp256k1_fe_impl_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a) {
 #ifdef __AVX2__
-    __m256i limbs_0123 = _mm256_loadu_si256((__m256i*)a->n);
-    __m256i limbs_1234 = _mm256_loadu_si256((__m256i*)(a->n + 1));
+    __m256i limbs_0123 = _mm256_loadu_si256((__m256i *)a->n);
+    __m256i limbs_1234 = _mm256_loadu_si256((__m256i *)(a->n + 1));
     const __m256i shift_lhs = _mm256_setr_epi64x(0, 12, 24, 36); /* TODO: precompute */
     const __m256i shift_rhs = _mm256_setr_epi64x(52, 40, 28, 16); /* TODO: precompute */
     __m256i rhs = _mm256_sllv_epi64(limbs_1234, shift_rhs);
     __m256i lhs = _mm256_srlv_epi64(limbs_0123, shift_lhs);
     __m256i out = _mm256_or_si256(lhs, rhs);
-    _mm256_storeu_si256((__m256i*)r->n, out);
+    _mm256_storeu_si256((__m256i *)r->n, out);
 #else
     r->n[0] = a->n[0]       | a->n[1] << 52;
     r->n[1] = a->n[1] >> 12 | a->n[2] << 40;
@@ -648,7 +650,7 @@ static void secp256k1_fe_to_signed62(secp256k1_modinv64_signed62 *r, const secp2
         __m256i rhs = _mm256_sllv_epi64(limbs_1234, shift_rhs);
         __m256i out = _mm256_or_si256(lhs, rhs);
         out = _mm256_and_si256(out, mask62);
-        _mm256_storeu_si256((__m256i*)r->v, out);
+        _mm256_storeu_si256((__m256i *)r->v, out);
     }
 #else
     r->v[0] = (a0       | a1 << 52) & M62;

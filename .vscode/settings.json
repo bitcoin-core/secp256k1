@@ -1,0 +1,10 @@
+{
+  "files.associations": {
+    "*.conf.template": "nginx",
+    "*.sql.template": "sql",
+    "immintrin.h": "c",
+    "x86gprintrin.h": "c",
+    "xmmintrin.h": "c",
+    "mmintrin.h": "c"
+  }
+}

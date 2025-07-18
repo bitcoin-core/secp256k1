@@ -31,6 +31,18 @@
   #define BYTESWAP_64(x) __builtin_bswap64(x)
 #endif
 
+/* X86 detection macro */
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+  #define X86
+#endif
+
+/* endianess detection macro */
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  #define LITTLE_ENDIAN
+#elif defined(_WIN32)
+  #define LITTLE_ENDIAN
+#endif
+
 #define STR_(x) #x
 #define STR(x) STR_(x)
 #define DEBUG_CONFIG_MSG(x) "DEBUG_CONFIG: " x
