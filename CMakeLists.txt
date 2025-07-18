@@ -42,6 +42,8 @@ endif()
 
 option(SECP256K1_INSTALL "Enable installation." ${PROJECT_IS_TOP_LEVEL})
 
+option(SECP256K1_ENABLE_API_VISIBILITY_ATTRIBUTES "Enable visibility attributes in the API." ON)
+
 ## Modules
 
 # We declare all options before processing them, to make sure we can express
@@ -312,6 +314,7 @@ else()
   set(cross_status "FALSE")
 endif()
 message("Cross compiling ....................... ${cross_status}")
+message("API visibility attributes ............. ${SECP256K1_ENABLE_API_VISIBILITY_ATTRIBUTES}")
 message("Valgrind .............................. ${SECP256K1_VALGRIND}")
 get_directory_property(definitions COMPILE_DEFINITIONS)
 string(REPLACE ";" " " definitions "${definitions}")

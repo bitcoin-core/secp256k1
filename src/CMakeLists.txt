@@ -54,6 +54,10 @@ add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL
 # from being exported.
 target_sources(secp256k1 PRIVATE secp256k1.c $<TARGET_OBJECTS:secp256k1_precomputed>)
 
+if(NOT SECP256K1_ENABLE_API_VISIBILITY_ATTRIBUTES)
+  target_compile_definitions(secp256k1 PRIVATE SECP256K1_NO_API_VISIBILITY_ATTRIBUTES)
+endif()
+
 # Create a helper lib that parent projects can use to link secp256k1 into a
 # static lib.
 add_library(secp256k1_objs INTERFACE)
