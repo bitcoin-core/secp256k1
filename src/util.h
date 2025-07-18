@@ -18,6 +18,9 @@
 #if defined(_MSC_VER)
 /* For SecureZeroMemory */
 #include <Windows.h>
+#define __builtin_bswap64 _byteswap_uint64
+#define __builtin_bswap32 _byteswap_ulong
+#define __builtin_bswap16 _byteswap_ushort
 #endif
 
 #define STR_(x) #x
