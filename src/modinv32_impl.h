@@ -49,8 +49,10 @@ static int secp256k1_modinv32_mul_cmp_30(const secp256k1_modinv32_signed30 *a, i
         VERIFY_CHECK(bm.v[i] >> 30 == 0);
     }
     for (i = 8; i >= 0; --i) {
-        if (am.v[i] < bm.v[i]) return -1;
-        if (am.v[i] > bm.v[i]) return 1;
+        diff = (am.v[i] > bm.v[i]) - (am.v[i] < bm.v[i]);
+        if (diff != 0) {
+            return diff;
+        }
     }
     return 0;
 }
@@ -76,6 +78,8 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(r, 9, &modinfo->modulus, -2) > 0); /* r > -2*modulus */
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(r, 9, &modinfo->modulus, 1) < 0); /* r < modulus */
 #endif
+
+    /* TODO: parallelize */
 
     /* In a first step, add the modulus if the input is negative, and then negate if requested.
      * This brings r from range (-2*modulus,modulus) to range (-modulus,modulus). As all input
