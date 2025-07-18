@@ -39,6 +39,9 @@
 #define SECP256K1_N_H_7 ((uint32_t)0x7FFFFFFFUL)
 
 SECP256K1_INLINE static void secp256k1_scalar_set_int(secp256k1_scalar *r, unsigned int v) {
+
+    /* TODO: parallel, SSE2 (32bit cpu only) */
+
     r->d[0] = v;
     r->d[1] = 0;
     r->d[2] = 0;
@@ -150,6 +153,8 @@ static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int
     SECP256K1_SCALAR_VERIFY(r);
     VERIFY_CHECK(bit < 256);
 
+    /* TODO: parallel, SSE2 (32bit cpu only) */
+
     bit += ((uint32_t) vflag - 1) & 0x100;  /* forcing (bit >> 5) > 7 makes this a noop */
     t = (uint64_t)r->d[0] + (((uint32_t)((bit >> 5) == 0)) << (bit & 0x1F));
     r->d[0] = t & 0xFFFFFFFFULL; t >>= 32;
@@ -174,6 +179,9 @@ static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int
 
 static void secp256k1_scalar_set_b32(secp256k1_scalar *r, const unsigned char *b32, int *overflow) {
     int over;
+
+    /* TODO: parallel, SSE2 (32bit cpu only) */
+
     r->d[0] = secp256k1_read_be32(&b32[28]);
     r->d[1] = secp256k1_read_be32(&b32[24]);
     r->d[2] = secp256k1_read_be32(&b32[20]);
@@ -193,6 +201,8 @@ static void secp256k1_scalar_set_b32(secp256k1_scalar *r, const unsigned char *b
 static void secp256k1_scalar_get_b32(unsigned char *bin, const secp256k1_scalar* a) {
     SECP256K1_SCALAR_VERIFY(a);
 
+    /* TODO: parallel, SSE2 (32bit cpu only) */
+
     secp256k1_write_be32(&bin[0], a->d[7]);
     secp256k1_write_be32(&bin[4], a->d[6]);
     secp256k1_write_be32(&bin[8], a->d[5]);
@@ -206,6 +216,8 @@ static void secp256k1_scalar_get_b32(unsigned char *bin, const secp256k1_scalar*
 SECP256K1_INLINE static int secp256k1_scalar_is_zero(const secp256k1_scalar *a) {
     SECP256K1_SCALAR_VERIFY(a);
 
+    /* TODO: parallel, SSE2 (32bit cpu only) */
+
     return (a->d[0] | a->d[1] | a->d[2] | a->d[3] | a->d[4] | a->d[5] | a->d[6] | a->d[7]) == 0;
 }
 
@@ -213,6 +225,8 @@ static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar 
     uint32_t nonzero = 0xFFFFFFFFUL * (secp256k1_scalar_is_zero(a) == 0);
     uint64_t t = (uint64_t)(~a->d[0]) + SECP256K1_N_0 + 1;
     SECP256K1_SCALAR_VERIFY(a);
+
+    /* TODO: parallel, SSE2 (32bit cpu only) */
 
     r->d[0] = t & nonzero; t >>= 32;
     t += (uint64_t)(~a->d[1]) + SECP256K1_N_1;
@@ -283,6 +297,8 @@ static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a
 
 SECP256K1_INLINE static int secp256k1_scalar_is_one(const secp256k1_scalar *a) {
     SECP256K1_SCALAR_VERIFY(a);
+
+    /* TODO: parallel, SSE2 (32bit cpu only) */
 
     return ((a->d[0] ^ 1) | a->d[1] | a->d[2] | a->d[3] | a->d[4] | a->d[5] | a->d[6] | a->d[7]) == 0;
 }
@@ -652,6 +668,8 @@ static void secp256k1_scalar_mul(secp256k1_scalar *r, const secp256k1_scalar *a,
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k) {
     SECP256K1_SCALAR_VERIFY(k);
 
+    /* TODO: parallel, SSE2 (32bit cpu only) */
+
     r1->d[0] = k->d[0];
     r1->d[1] = k->d[1];
     r1->d[2] = k->d[2];
@@ -689,6 +707,8 @@ SECP256K1_INLINE static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r,
     SECP256K1_SCALAR_VERIFY(b);
     VERIFY_CHECK(shift >= 256);
 
+    /* TODO: parallel, SSE2 (32bit cpu only) */
+
     secp256k1_scalar_mul_512(l, a, b);
     shiftlimbs = shift >> 5;
     shiftlow = shift & 0x1F;
@@ -711,6 +731,8 @@ static SECP256K1_INLINE void secp256k1_scalar_cmov(secp256k1_scalar *r, const se
     volatile int vflag = flag;
     SECP256K1_SCALAR_VERIFY(a);
     SECP256K1_CHECKMEM_CHECK_VERIFY(r->d, sizeof(r->d));
+
+    /* TODO: parallel, SSE2 (32bit cpu only) */
 
     mask0 = vflag + ~((uint32_t)0);
     mask1 = ~mask0;
@@ -743,6 +765,8 @@ static void secp256k1_scalar_from_signed30(secp256k1_scalar *r, const secp256k1_
     VERIFY_CHECK(a7 >> 30 == 0);
     VERIFY_CHECK(a8 >> 16 == 0);
 
+    /* TODO: parallel, SSE2 (32bit cpu only) */
+
     r->d[0] = a0       | a1 << 30;
     r->d[1] = a1 >>  2 | a2 << 28;
     r->d[2] = a2 >>  4 | a3 << 26;
@@ -760,6 +784,8 @@ static void secp256k1_scalar_to_signed30(secp256k1_modinv32_signed30 *r, const s
     const uint32_t a0 = a->d[0], a1 = a->d[1], a2 = a->d[2], a3 = a->d[3],
                    a4 = a->d[4], a5 = a->d[5], a6 = a->d[6], a7 = a->d[7];
     SECP256K1_SCALAR_VERIFY(a);
+
+    /* TODO: parallel, SSE2 (32bit cpu only) */
 
     r->v[0] =  a0                   & M30;
     r->v[1] = (a0 >> 30 | a1 <<  2) & M30;

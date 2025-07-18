@@ -14,6 +14,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifdef X86
+# include <immintrin.h>
+#endif
+
 #define Ch(x,y,z) ((z) ^ ((x) & ((y) ^ (z))))
 #define Maj(x,y,z) (((x) & (y)) | ((z) & ((x) | (y))))
 #define Sigma0(x) (((x) >> 2 | (x) << 30) ^ ((x) >> 13 | (x) << 19) ^ ((x) >> 22 | (x) << 10))

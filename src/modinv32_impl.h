@@ -40,6 +40,7 @@ static void secp256k1_modinv32_mul_30(secp256k1_modinv32_signed30 *r, const secp
 /* Return -1 for a<b*factor, 0 for a==b*factor, 1 for a>b*factor. A consists of alen limbs; b has 9. */
 static int secp256k1_modinv32_mul_cmp_30(const secp256k1_modinv32_signed30 *a, int alen, const secp256k1_modinv32_signed30 *b, int32_t factor) {
     int i;
+    int diff;
     secp256k1_modinv32_signed30 am, bm;
     secp256k1_modinv32_mul_30(&am, a, alen, 1); /* Normalize all but the top limb of a. */
     secp256k1_modinv32_mul_30(&bm, b, 9, factor);
