@@ -598,9 +598,7 @@ static SECP256K1_INLINE void secp256k1_fe_impl_from_storage(secp256k1_fe *r, con
 
 static void secp256k1_fe_from_signed62(secp256k1_fe *r, const secp256k1_modinv64_signed62 *a) {
     const uint64_t M52 = UINT64_MAX >> 12;
-#ifndef __AVX2__
-    uint64_t a0 = a->v[0], a1 = a->v[1], a2 = a->v[2], a3 = a->v[3];
-#endif
+    uint64_t a0 = a->v[0], a1 = a->v[1], a2 = a->v[2], a3 = a->v[3], a4 = a->v[4];
 
     /* The output from secp256k1_modinv64{_var} should be normalized to range [0,modulus), and
      * have limbs in [0,2^62). The modulus is < 2^256, so the top limb must be below 2^(256-62*4).
@@ -613,11 +611,11 @@ static void secp256k1_fe_from_signed62(secp256k1_fe *r, const secp256k1_modinv64
 
 #ifdef __AVX2__
     {
-        __m256i limbs_0123 = _mm256_loadu_si256((__m256i*)a->v);
+        __m256i limbs_0123 = _mm256_setr_epi64x(a0, a1, a2, a3);
+        __m256i limbs_0012 = _mm256_setr_epi64x(a0, a0, a1, a2);
         const __m256i shift_lhs = _mm256_setr_epi64x(64, 52, 42, 32); /*TODO: precompute */
         const __m256i shift_rhs = _mm256_setr_epi64x(0, 10, 20, 30); /*TODO: precompute */
         const __m256i mask52 = _mm256_set1_epi64x(M52); /*TODO: precompute */
-        __m256i limbs_0012 = _mm256_permute4x64_epi64(limbs_0123, _MM_SHUFFLE(2, 1, 0, 0));
         __m256i rhs = _mm256_sllv_epi64(limbs_0123, shift_rhs);
         __m256i lhs = _mm256_srlv_epi64(limbs_0012, shift_lhs);
         __m256i out = _mm256_or_si256(lhs, rhs);
@@ -630,19 +628,17 @@ static void secp256k1_fe_from_signed62(secp256k1_fe *r, const secp256k1_modinv64
     r->n[2] = (a1 >> 42 | a2 << 20) & M52;
     r->n[3] = (a2 >> 32 | a3 << 30) & M52;
 #endif
-    r->n[4] = a->v[3] >> 22 | a->v[4] << 40;
+    r->n[4] = (a3 >> 22 | a4 << 40);
 }
 
 static void secp256k1_fe_to_signed62(secp256k1_modinv64_signed62 *r, const secp256k1_fe *a) {
     const uint64_t M62 = UINT64_MAX >> 2;
-#ifndef __AVX2__
     uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4];
-#endif
 
 #ifdef __AVX2__
     {
-        __m256i limbs_0123 = _mm256_loadu_si256((__m256i *)a->n);
-        __m256i limbs_1234 = _mm256_loadu_si256((__m256i *)(a->n + 1));
+        __m256i limbs_0123 = _mm256_setr_epi64x(a0, a1, a2, a3);
+        __m256i limbs_1234 = _mm256_setr_epi64x(a1, a2, a3, a4);
         const __m256i shift_lhs = _mm256_setr_epi64x(0, 10, 20, 30); /*TODO: precompute */
         const __m256i shift_rhs = _mm256_setr_epi64x(52, 42, 32, 22); /*TODO: precompute */
         const __m256i mask62 = _mm256_set1_epi64x(M62); /*TODO: precompute */
@@ -658,7 +654,7 @@ static void secp256k1_fe_to_signed62(secp256k1_modinv64_signed62 *r, const secp2
     r->v[2] = (a2 >> 20 | a3 << 32) & M62;
     r->v[3] = (a3 >> 30 | a4 << 22) & M62;
 #endif
-    r->v[4] = a->n[4] >> 40;
+    r->v[4] = a4 >> 40;
 }
 
 static const secp256k1_modinv64_modinfo secp256k1_const_modinfo_fe = {
