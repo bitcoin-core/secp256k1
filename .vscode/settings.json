@@ -5,6 +5,7 @@
     "immintrin.h": "c",
     "x86gprintrin.h": "c",
     "xmmintrin.h": "c",
-    "mmintrin.h": "c"
+    "mmintrin.h": "c",
+    "random": "c"
   }
 }

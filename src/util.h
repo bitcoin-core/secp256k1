@@ -37,10 +37,8 @@
 #endif
 
 /* endianess detection macro */
-#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-  #define LITTLE_ENDIAN
-#elif defined(_WIN32)
-  #define LITTLE_ENDIAN
+#ifndef LITTLE_ENDIAN
+  #define LITTLE_ENDIAN (*(char*)&(int){1})
 #endif
 
 #define STR_(x) #x

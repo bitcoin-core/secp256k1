@@ -29,6 +29,13 @@
 } while(0)
 
 static void secp256k1_sha256_initialize(secp256k1_sha256 *hash) {
+#ifdef __AVX2__
+    const __m256i vec = _mm256_setr_epi32(
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    );
+    _mm256_storeu_si256((__m256i*)hash->s, vec);
+#else
     hash->s[0] = 0x6a09e667ul;
     hash->s[1] = 0xbb67ae85ul;
     hash->s[2] = 0x3c6ef372ul;
@@ -37,6 +44,7 @@ static void secp256k1_sha256_initialize(secp256k1_sha256 *hash) {
     hash->s[5] = 0x9b05688cul;
     hash->s[6] = 0x1f83d9abul;
     hash->s[7] = 0x5be0cd19ul;
+#endif
     hash->bytes = 0;
 }
 
