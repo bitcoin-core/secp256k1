@@ -419,42 +419,38 @@ static SECP256K1_INLINE int secp256k1_ctz64_var(uint64_t x) {
 
 /* Read a uint32_t in big endian */
 SECP256K1_INLINE static uint32_t secp256k1_read_be32(const unsigned char* p) {
-    return (uint32_t)p[0] << 24 |
-           (uint32_t)p[1] << 16 |
-           (uint32_t)p[2] << 8  |
-           (uint32_t)p[3];
+    uint32_t x;
+    memcpy(&x, p, sizeof(x));
+#ifdef LITTLE_ENDIAN
+    x = BYTESWAP_32(x);
+#endif
+    return x;
 }
 
 /* Write a uint32_t in big endian */
 SECP256K1_INLINE static void secp256k1_write_be32(unsigned char* p, uint32_t x) {
-    p[3] = x;
-    p[2] = x >>  8;
-    p[1] = x >> 16;
-    p[0] = x >> 24;
+#ifdef LITTLE_ENDIAN
+    x = BYTESWAP_32(x);
+#endif
+    memcpy(p, &x, sizeof(x));
 }
 
 /* Read a uint64_t in big endian */
 SECP256K1_INLINE static uint64_t secp256k1_read_be64(const unsigned char* p) {
-    return (uint64_t)p[0] << 56 |
-           (uint64_t)p[1] << 48 |
-           (uint64_t)p[2] << 40 |
-           (uint64_t)p[3] << 32 |
-           (uint64_t)p[4] << 24 |
-           (uint64_t)p[5] << 16 |
-           (uint64_t)p[6] << 8  |
-           (uint64_t)p[7];
+    uint64_t x;
+    memcpy(&x, p, sizeof(x));
+#ifdef LITTLE_ENDIAN
+    x = BYTESWAP_64(x);
+#endif
+    return x;
 }
 
 /* Write a uint64_t in big endian */
 SECP256K1_INLINE static void secp256k1_write_be64(unsigned char* p, uint64_t x) {
-    p[7] = x;
-    p[6] = x >>  8;
-    p[5] = x >> 16;
-    p[4] = x >> 24;
-    p[3] = x >> 32;
-    p[2] = x >> 40;
-    p[1] = x >> 48;
-    p[0] = x >> 56;
+#ifdef LITTLE_ENDIAN
+    x = BYTESWAP_64(x);
+#endif
+    memcpy(p, &x, sizeof(x));
 }
 
 /* Rotate a uint32_t to the right. */
