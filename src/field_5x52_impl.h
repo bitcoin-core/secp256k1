@@ -598,6 +598,9 @@ static SECP256K1_INLINE void secp256k1_fe_impl_from_storage(secp256k1_fe *r, con
 
 static void secp256k1_fe_from_signed62(secp256k1_fe *r, const secp256k1_modinv64_signed62 *a) {
     const uint64_t M52 = UINT64_MAX >> 12;
+#ifndef __AVX2__
+    uint64_t a0 = a->v[0], a1 = a->v[1], a2 = a->v[2], a3 = a->v[3];
+#endif
 
     /* The output from secp256k1_modinv64{_var} should be normalized to range [0,modulus), and
      * have limbs in [0,2^62). The modulus is < 2^256, so the top limb must be below 2^(256-62*4).
@@ -622,8 +625,6 @@ static void secp256k1_fe_from_signed62(secp256k1_fe *r, const secp256k1_modinv64
         _mm256_storeu_si256((__m256i*)r->n, out);
     }
 #else
-    uint64_t a0 = a->v[0], a1 = a->v[1], a2 = a->v[2], a3 = a->v[3];
-
     r->n[0] =             a0        & M52;
     r->n[1] = (a0 >> 52 | a1 << 10) & M52;
     r->n[2] = (a1 >> 42 | a2 << 20) & M52;
@@ -634,6 +635,9 @@ static void secp256k1_fe_from_signed62(secp256k1_fe *r, const secp256k1_modinv64
 
 static void secp256k1_fe_to_signed62(secp256k1_modinv64_signed62 *r, const secp256k1_fe *a) {
     const uint64_t M62 = UINT64_MAX >> 2;
+#ifndef __AVX2__
+    uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4];
+#endif
 
 #ifdef __AVX2__
     {
@@ -649,8 +653,6 @@ static void secp256k1_fe_to_signed62(secp256k1_modinv64_signed62 *r, const secp2
         _mm256_storeu_si256((__m256i*)r->v, out);
     }
 #else
-    uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4];
-
     r->v[0] = (a0       | a1 << 52) & M62;
     r->v[1] = (a1 >> 10 | a2 << 42) & M62;
     r->v[2] = (a2 >> 20 | a3 << 32) & M62;
