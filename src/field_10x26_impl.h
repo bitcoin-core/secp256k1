@@ -261,6 +261,9 @@ static int secp256k1_fe_impl_normalizes_to_zero_var(const secp256k1_fe *r) {
 
 SECP256K1_INLINE static void secp256k1_fe_impl_set_int(secp256k1_fe *r, int a) {
     r->n[0] = a;
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
+
     r->n[1] = r->n[2] = r->n[3] = r->n[4] = r->n[5] = r->n[6] = r->n[7] = r->n[8] = r->n[9] = 0;
 }
 

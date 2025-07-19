@@ -38,12 +38,12 @@ static void secp256k1_sha256_initialize(secp256k1_sha256 *hash) {
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
         0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
     );
-    _mm256_storeu_si256((__m256i*)hash->s, vec);
+    _mm256_storeu_si256((__m256i *)hash->s, vec);
 #elif defined(__SSE2__)
     const __m128i vec1 = _mm_setr_epi32(0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a); /* TODO: precompute */
     const __m128i vec2 = _mm_setr_epi32(0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19); /* TODO: precompute */
-    _mm_storeu_si128((__m128i*)hash->s, vec1);
-    _mm_storeu_si128((__m128i*)(hash->s + 4), vec2);
+    _mm_storeu_si128((__m128i *)hash->s, vec1);
+    _mm_storeu_si128((__m128i *)(hash->s + 4), vec2);
 #else
     hash->s[0] = 0x6a09e667ul;
     hash->s[1] = 0xbb67ae85ul;

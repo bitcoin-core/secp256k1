@@ -224,6 +224,9 @@ SECP256K1_INLINE static void secp256k1_fe_impl_set_int(secp256k1_fe *r, int a) {
 
 SECP256K1_INLINE static int secp256k1_fe_impl_is_zero(const secp256k1_fe *a) {
     const uint64_t *t = a->n;
+
+    /* TODO: parallelize. mm_testz */
+
     return (t[0] | t[1] | t[2] | t[3] | t[4]) == 0;
 }
 
