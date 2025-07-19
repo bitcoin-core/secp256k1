@@ -40,6 +40,7 @@ static void secp256k1_modinv32_mul_30(secp256k1_modinv32_signed30 *r, const secp
 /* Return -1 for a<b*factor, 0 for a==b*factor, 1 for a>b*factor. A consists of alen limbs; b has 9. */
 static int secp256k1_modinv32_mul_cmp_30(const secp256k1_modinv32_signed30 *a, int alen, const secp256k1_modinv32_signed30 *b, int32_t factor) {
     int i;
+    int diff;
     secp256k1_modinv32_signed30 am, bm;
     secp256k1_modinv32_mul_30(&am, a, alen, 1); /* Normalize all but the top limb of a. */
     secp256k1_modinv32_mul_30(&bm, b, 9, factor);
@@ -49,8 +50,10 @@ static int secp256k1_modinv32_mul_cmp_30(const secp256k1_modinv32_signed30 *a, i
         VERIFY_CHECK(bm.v[i] >> 30 == 0);
     }
     for (i = 8; i >= 0; --i) {
-        if (am.v[i] < bm.v[i]) return -1;
-        if (am.v[i] > bm.v[i]) return 1;
+        diff = (am.v[i] > bm.v[i]) - (am.v[i] < bm.v[i]);
+        if (diff != 0) {
+            return diff;
+        }
     }
     return 0;
 }
@@ -76,6 +79,8 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(r, 9, &modinfo->modulus, -2) > 0); /* r > -2*modulus */
     VERIFY_CHECK(secp256k1_modinv32_mul_cmp_30(r, 9, &modinfo->modulus, 1) < 0); /* r < modulus */
 #endif
+
+    /* TODO: parallelize, SSE2 (32bit cpu only) */
 
     /* In a first step, add the modulus if the input is negative, and then negate if requested.
      * This brings r from range (-2*modulus,modulus) to range (-modulus,modulus). As all input
