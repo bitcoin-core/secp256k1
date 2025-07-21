@@ -5,4 +5,5 @@ noinst_HEADERS += src/modules/musig/keyagg_impl.h
 noinst_HEADERS += src/modules/musig/session.h
 noinst_HEADERS += src/modules/musig/session_impl.h
 noinst_HEADERS += src/modules/musig/tests_impl.h
+noinst_HEADERS += src/modules/musig/tests_exhaustive_impl.h
 noinst_HEADERS += src/modules/musig/vectors.h
