@@ -918,6 +918,7 @@ static void musig_test_vectors_signverify(void) {
             continue;
         }
         CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, vector->pubkeys[0], sizeof(vector->pubkeys[0])));
+        CHECK(secp256k1_keypair_create(CTX, &keypair, vector->sk));
 
         expected = c->error != MUSIG_AGGNONCE;
         CHECK(expected == secp256k1_musig_aggnonce_parse(CTX, &aggnonce, vector->aggnonces[c->aggnonce_index]));
