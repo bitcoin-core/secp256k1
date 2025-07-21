@@ -34,10 +34,13 @@ set(CMAKE_C_EXTENSIONS OFF)
 #=============================
 # Configurable options
 #=============================
-option(BUILD_SHARED_LIBS "Build shared libraries." ON)
-option(SECP256K1_DISABLE_SHARED "Disable shared library. Overrides BUILD_SHARED_LIBS." OFF)
-if(SECP256K1_DISABLE_SHARED)
-  set(BUILD_SHARED_LIBS OFF)
+if(PROJECT_IS_TOP_LEVEL)
+  option(BUILD_SHARED_LIBS "Build shared libraries." ON)
+else()
+  option(SECP256K1_DISABLE_SHARED "Disable shared library. Overrides BUILD_SHARED_LIBS." OFF)
+  if(SECP256K1_DISABLE_SHARED)
+    set(BUILD_SHARED_LIBS OFF)
+  endif()
 endif()
 
 option(SECP256K1_INSTALL "Enable installation." ${PROJECT_IS_TOP_LEVEL})
