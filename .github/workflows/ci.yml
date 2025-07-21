@@ -652,10 +652,11 @@ jobs:
 
       - name: Symbol check
         if: ${{ matrix.configuration.symbol_check }}
+        shell: bash
         run: |
           py -3 --version
           py -3 -m pip install lief
-          py -3 .\tools\symbol-check.py build\bin\RelWithDebInfo\libsecp256k1-5.dll
+          py -3 ./tools/symbol-check.py build/bin/RelWithDebInfo/libsecp256k1-*.dll
 
       - name: Check
         run: |
