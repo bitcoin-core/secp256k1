@@ -107,3 +107,9 @@ Note that bug fixes need to be backported only to releases for which no compatib
 2. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
    Attach the tarball and the detached signature.
 3. Send an announcement email to the bitcoin-dev mailing list.
+
+
+## Cleaning up
+
+1. Close the GitHub milestone, and create a new one. Consider moving unresolved issues to the new milestone.
+2. Remove the `needs-changelog` label from all merged PRs.
