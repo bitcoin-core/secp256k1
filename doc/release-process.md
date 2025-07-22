@@ -58,7 +58,7 @@ You can see your default key by running `echo "test" | gpg --sign --verbose > /d
        * updates `_PKG_VERSION_*` and `_LIB_VERSION_*`  in `configure.ac`, and
        * updates `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_*` in `CMakeLists.txt`.
 2. Perform the [sanity checks](#sanity-checks) on the PR branch.
-3. After the PR is merged, tag the commit, and push the tag:
+3. After the PR has been merged, tag the commit, and push the tag:
    ```
    RELEASE_COMMIT=<merge commit of step 1>
    git tag -s v$MAJOR.$MINOR.$PATCH -m "libsecp256k1 $MAJOR.$MINOR.$PATCH" $RELEASE_COMMIT
@@ -87,13 +87,14 @@ Note that bug fixes need to be backported only to releases for which no compatib
      and the `$PATCH` component of `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_REVISION` in `CMakeLists.txt`
      (with commit message `"release: bump versions for $MAJOR.$MINOR.$PATCH"`, for example).
 3. Perform the [sanity checks](#sanity-checks) on the PR branch.
-4. After the PRs are merged, update the release branch, tag the commit, and push the tag:
+4. After the PR has been merged, update the release branch, tag the commit, and push the tag:
    ```
    git checkout $MAJOR.$MINOR && git pull
    git tag -s v$MAJOR.$MINOR.$PATCH -m "libsecp256k1 $MAJOR.$MINOR.$PATCH"
    git push git@github.com:bitcoin-core/secp256k1.git v$MAJOR.$MINOR.$PATCH
    ```
-5. Open PR to the master branch that includes a commit (with commit message `"release notes: add $MAJOR.$MINOR.$PATCH"`, for example) that adds release notes to [CHANGELOG.md](../CHANGELOG.md).
+5. Open a PR to the master branch that includes a commit (with commit message `"release notes: add $MAJOR.$MINOR.$PATCH"`, for example) that adds release notes to [CHANGELOG.md](../CHANGELOG.md).
+6. Get the PR merged to ensure that the [CHANGELOG.md](../CHANGELOG.md) file on the master branch is current before announcing the release.
 
 ## Creating a tarball and announcing the release
 
