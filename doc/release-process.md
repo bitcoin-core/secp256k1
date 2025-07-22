@@ -42,6 +42,9 @@ Perform these checks when reviewing the release PR (see below):
 
 ## Preparing and tagging a release
 
+If you're going to sign the release, make sure that your default GPG signing key is the [expected one](../SECURITY.md).
+You can see your default key by running `echo "test" | gpg --sign --verbose > /dev/null`.
+
 ### Regular release
 
 1. Open a PR to the master branch with a commit (using message `"release: prepare for $MAJOR.$MINOR.$PATCH"`, for example) that
@@ -92,7 +95,14 @@ Note that bug fixes need to be backported only to releases for which no compatib
    ```
 5. Open PR to the master branch that includes a commit (with commit message `"release notes: add $MAJOR.$MINOR.$PATCH"`, for example) that adds release notes to [CHANGELOG.md](../CHANGELOG.md).
 
-## Announcing the release
+## Creating a tarball and announcing the release
 
-1. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
-2. Send an announcement email to the bitcoin-dev mailing list.
+1. Create a tarball and a detached GPG signature covering it, and check that the signature verifies under the expected key.
+     ```
+     git archive --output "libsecp256k1-$MAJOR.$MINOR.$PATCH.tar.gz" --prefix "libsecp256k1-$MAJOR.$MINOR.$PATCH/" v$MAJOR.$MINOR.$PATCH
+     gpg --detach-sign "libsecp256k1-$MAJOR.$MINOR.$PATCH.tar.gz"
+     gpg --verify "libsecp256k1-$MAJOR.$MINOR.$PATCH.tar.gz.sig"
+     ```
+2. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
+   Attach the tarball and the detached signature.
+3. Send an announcement email to the bitcoin-dev mailing list.
