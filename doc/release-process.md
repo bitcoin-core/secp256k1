@@ -15,6 +15,7 @@ This process also assumes that there will be no minor releases for old major rel
 We aim to cut a regular release every 3-4 months, approximately twice as frequent as major Bitcoin Core releases. Every second release should be published one month before the feature freeze of the next major Bitcoin Core release, allowing sufficient time to update the library in Core.
 
 ## Sanity checks
+
 Perform these checks when reviewing the release PR (see below):
 
 1. Ensure `make distcheck` doesn't fail.
@@ -39,7 +40,9 @@ Perform these checks when reviewing the release PR (see below):
    tools/check-abi.sh
    ```
 
-## Regular release
+## Preparing and tagging a release
+
+### Regular release
 
 1. Open a PR to the master branch with a commit (using message `"release: prepare for $MAJOR.$MINOR.$PATCH"`, for example) that
    * finalizes the release notes in [CHANGELOG.md](../CHANGELOG.md) by
@@ -64,10 +67,8 @@ Perform these checks when reviewing the release PR (see below):
    * adds an `[Unreleased]` section header to the [CHANGELOG.md](../CHANGELOG.md).
 
    If other maintainers are not present to approve the PR, it can be merged without ACKs.
-5. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
-6. Send an announcement email to the bitcoin-dev mailing list.
 
-## Maintenance release
+### Maintenance release
 
 Note that bug fixes need to be backported only to releases for which no compatible release without the bug exists.
 
@@ -89,6 +90,9 @@ Note that bug fixes need to be backported only to releases for which no compatib
    git tag -s v$MAJOR.$MINOR.$PATCH -m "libsecp256k1 $MAJOR.$MINOR.$PATCH"
    git push git@github.com:bitcoin-core/secp256k1.git v$MAJOR.$MINOR.$PATCH
    ```
-6. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
-7. Send an announcement email to the bitcoin-dev mailing list.
-8. Open PR to the master branch that includes a commit (with commit message `"release notes: add $MAJOR.$MINOR.$PATCH"`, for example) that adds release notes to [CHANGELOG.md](../CHANGELOG.md).
+5. Open PR to the master branch that includes a commit (with commit message `"release notes: add $MAJOR.$MINOR.$PATCH"`, for example) that adds release notes to [CHANGELOG.md](../CHANGELOG.md).
+
+## Announcing the release
+
+1. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
+2. Send an announcement email to the bitcoin-dev mailing list.
