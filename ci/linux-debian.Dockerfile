@@ -80,4 +80,4 @@ RUN \
 ENV VIRTUAL_ENV=/root/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-RUN pip install lief
+RUN pip install lief==0.16.6
