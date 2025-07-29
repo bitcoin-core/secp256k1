@@ -1,7 +1,7 @@
 * The file `ecdsa_secp256k1_sha256_bitcoin_test.json` in this directory
   comes from project Wycheproof with git commit
-  `df4e933efef449fc88af0c06e028d425d84a9495`, see
-  https://github.com/C2SP/wycheproof/blob/df4e933efef449fc88af0c06e028d425d84a9495/testvectors_v1/ecdsa_secp256k1_sha256_bitcoin_test.json
+  `1f32ea7bb6cc5bd111cbd5507456b255dc8337c3`, see
+  https://github.com/C2SP/wycheproof/blob/1f32ea7bb6cc5bd111cbd5507456b255dc8337c3/testvectors_v1/ecdsa_secp256k1_sha256_bitcoin_test.json
 
 * The file `ecdh_secp256k1_test.json` in this directory
   comes from project Wycheproof with git commit
