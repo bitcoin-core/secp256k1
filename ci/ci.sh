@@ -80,7 +80,7 @@ esac
     --enable-module-extrakeys="$EXTRAKEYS" \
     --enable-module-schnorrsig="$SCHNORRSIG" \
     --enable-module-musig="$MUSIG" \
-    --enable-module-batch="$BATCH"
+    --enable-module-batch="$BATCH" \
     --enable-examples="$EXAMPLES" \
     --enable-ctime-tests="$CTIMETESTS" \
     --with-valgrind="$WITH_VALGRIND" \
