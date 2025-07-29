@@ -59,7 +59,7 @@ static size_t secp256k1_batch_scratch_size(int max_terms) {
 
 /** Clears the scalar and points allocated on the batch object's scratch space */
 static void secp256k1_batch_scratch_clear(secp256k1_batch* batch) {
-    secp256k1_scalar_clear(&batch->sc_g);
+    secp256k1_scalar_set_int(&batch->sc_g, 0);
     /* setting the len = 0 will suffice (instead of clearing the memory)
      * since, there are no secrets stored on the scratch space */
     batch->len = 0;
@@ -134,7 +134,7 @@ secp256k1_batch* secp256k1_batch_create(const secp256k1_context* ctx, size_t max
         }
 
         /* set remaining data members */
-        secp256k1_scalar_clear(&batch->sc_g);
+        secp256k1_scalar_set_int(&batch->sc_g, 0);
         secp256k1_batch_sha256_tagged(&batch->sha256);
         if (aux_rand16 != NULL) {
             secp256k1_sha256_write(&batch->sha256, aux_rand16, 16);
