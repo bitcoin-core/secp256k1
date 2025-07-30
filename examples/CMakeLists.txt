@@ -14,6 +14,10 @@ endfunction()
 
 add_example(ecdsa)
 
+if(SECP256K1_ENABLE_MODULE_RECOVERY)
+  add_example(recovery)
+endif()
+
 if(SECP256K1_ENABLE_MODULE_ECDH)
   add_example(ecdh)
 endif()
