@@ -12,6 +12,10 @@
 #include "modinv64_impl.h"
 #include "util.h"
 
+#ifdef X86
+# include <immintrin.h>
+#endif
+
 /* Limbs of the secp256k1 order. */
 #define SECP256K1_N_0 ((uint64_t)0xBFD25E8CD0364141ULL)
 #define SECP256K1_N_1 ((uint64_t)0xBAAEDCE6AF48A03BULL)
@@ -143,6 +147,7 @@ static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int
 
 static void secp256k1_scalar_set_b32(secp256k1_scalar *r, const unsigned char *b32, int *overflow) {
     int over;
+
     r->d[0] = secp256k1_read_be64(&b32[24]);
     r->d[1] = secp256k1_read_be64(&b32[16]);
     r->d[2] = secp256k1_read_be64(&b32[8]);
@@ -866,14 +871,27 @@ static void secp256k1_scalar_mul(secp256k1_scalar *r, const secp256k1_scalar *a,
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k) {
     SECP256K1_SCALAR_VERIFY(k);
 
+#ifdef __AVX2__
+    {
+      __m128i k_01 = _mm_loadu_si128((__m128i *)k->d);
+      __m128i k_23 = _mm_loadu_si128((__m128i *)(k->d + 2));
+      const __m128i zeros = _mm_setzero_si128(); /* TODO: precompute */
+      _mm_storeu_si128((__m128i*)(r1->d + 2), zeros);
+      _mm_storeu_si128((__m128i*)(r2->d + 2), zeros);
+      _mm_storeu_si128((__m128i*)r1->d, k_01);
+      _mm_storeu_si128((__m128i*)r2->d, k_23);
+    }
+#else
     r1->d[0] = k->d[0];
     r1->d[1] = k->d[1];
     r1->d[2] = 0;
     r1->d[3] = 0;
+
     r2->d[0] = k->d[2];
     r2->d[1] = k->d[3];
     r2->d[2] = 0;
     r2->d[3] = 0;
+#endif
 
     SECP256K1_SCALAR_VERIFY(r1);
     SECP256K1_SCALAR_VERIFY(r2);
@@ -883,7 +901,19 @@ SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const
     SECP256K1_SCALAR_VERIFY(a);
     SECP256K1_SCALAR_VERIFY(b);
 
-    return ((a->d[0] ^ b->d[0]) | (a->d[1] ^ b->d[1]) | (a->d[2] ^ b->d[2]) | (a->d[3] ^ b->d[3])) == 0;
+#ifdef __AVX2__
+    {
+        __m256i vec_a = _mm256_loadu_si256((__m256i *)a->d);
+        __m256i vec_b = _mm256_loadu_si256((__m256i *)b->d);
+        __m256i vec_xor = _mm256_xor_si256(vec_a, vec_b);
+        return _mm256_testz_si256(vec_xor, vec_xor);
+    }
+#else
+    return (  (a->d[0] ^ b->d[0]) |
+              (a->d[1] ^ b->d[1]) |
+              (a->d[2] ^ b->d[2]) |
+              (a->d[3] ^ b->d[3])  ) == 0;
+#endif
 }
 
 SECP256K1_INLINE static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b, unsigned int shift) {
@@ -899,6 +929,9 @@ SECP256K1_INLINE static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r,
     shiftlimbs = shift >> 6;
     shiftlow = shift & 0x3F;
     shifthigh = 64 - shiftlow;
+
+    /* TODO: parallel? */
+
     r->d[0] = shift < 512 ? (l[0 + shiftlimbs] >> shiftlow | (shift < 448 && shiftlow ? (l[1 + shiftlimbs] << shifthigh) : 0)) : 0;
     r->d[1] = shift < 448 ? (l[1 + shiftlimbs] >> shiftlow | (shift < 384 && shiftlow ? (l[2 + shiftlimbs] << shifthigh) : 0)) : 0;
     r->d[2] = shift < 384 ? (l[2 + shiftlimbs] >> shiftlow | (shift < 320 && shiftlow ? (l[3 + shiftlimbs] << shifthigh) : 0)) : 0;
@@ -909,6 +942,11 @@ SECP256K1_INLINE static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r,
 }
 
 static SECP256K1_INLINE void secp256k1_scalar_cmov(secp256k1_scalar *r, const secp256k1_scalar *a, int flag) {
+#ifdef __AVX2__
+    /* load here to mitigate load latency */
+    __m256i vec_r = _mm256_loadu_si256((__m256i *)(r->d));
+    __m256i vec_a = _mm256_loadu_si256((__m256i *)(a->d));
+#endif
     uint64_t mask0, mask1;
     volatile int vflag = flag;
     SECP256K1_SCALAR_VERIFY(a);
@@ -916,10 +954,22 @@ static SECP256K1_INLINE void secp256k1_scalar_cmov(secp256k1_scalar *r, const se
 
     mask0 = vflag + ~((uint64_t)0);
     mask1 = ~mask0;
+
+#ifdef __AVX2__
+    {
+        const __m256i vec_mask0 = _mm256_set1_epi64x(mask0); /* TODO: precompute*/
+        const __m256i vec_mask1 = _mm256_set1_epi64x(mask1); /* TODO: precompute*/
+        vec_r = _mm256_and_si256(vec_r, vec_mask0);
+        vec_a = _mm256_and_si256(vec_a, vec_mask1);
+        vec_r = _mm256_or_si256(vec_r, vec_a);
+        _mm256_storeu_si256((__m256i *)(r->d), vec_r);
+    }
+#else
     r->d[0] = (r->d[0] & mask0) | (a->d[0] & mask1);
     r->d[1] = (r->d[1] & mask0) | (a->d[1] & mask1);
     r->d[2] = (r->d[2] & mask0) | (a->d[2] & mask1);
     r->d[3] = (r->d[3] & mask0) | (a->d[3] & mask1);
+#endif
 
     SECP256K1_SCALAR_VERIFY(r);
 }
@@ -936,10 +986,23 @@ static void secp256k1_scalar_from_signed62(secp256k1_scalar *r, const secp256k1_
     VERIFY_CHECK(a3 >> 62 == 0);
     VERIFY_CHECK(a4 >> 8 == 0);
 
+#ifdef __AVX2__
+    {
+        __m256i limbs_0123 = _mm256_setr_epi64x(a0, a1, a2, a3);
+        __m256i limbs_1234 = _mm256_setr_epi64x(a1, a2, a3, a4);
+        const __m256i shift_lhs = _mm256_setr_epi64x(0, 2, 4, 6);
+        const __m256i shift_rhs = _mm256_setr_epi64x(62, 60, 58, 56);
+        __m256i lhs = _mm256_srlv_epi64(limbs_0123, shift_lhs);
+        __m256i rhs = _mm256_sllv_epi64(limbs_1234, shift_rhs);
+        __m256i out = _mm256_or_si256(lhs, rhs);
+        _mm256_storeu_si256((__m256i *)(r->d), out);
+    }
+#else
     r->d[0] = a0      | a1 << 62;
     r->d[1] = a1 >> 2 | a2 << 60;
     r->d[2] = a2 >> 4 | a3 << 58;
     r->d[3] = a3 >> 6 | a4 << 56;
+#endif
 
     SECP256K1_SCALAR_VERIFY(r);
 }
@@ -949,10 +1012,25 @@ static void secp256k1_scalar_to_signed62(secp256k1_modinv64_signed62 *r, const s
     const uint64_t a0 = a->d[0], a1 = a->d[1], a2 = a->d[2], a3 = a->d[3];
     SECP256K1_SCALAR_VERIFY(a);
 
+#ifdef __AVX2__
+    {
+        __m256i limbs_0012 = _mm256_setr_epi64x(a0, a0, a1, a2);
+        __m256i limbs_0123 = _mm256_setr_epi64x(a0, a1, a2, a3);
+        const __m256i shift_lhs = _mm256_setr_epi64x(0, 62, 60, 58); /*TODO: precompute */
+        const __m256i shift_rhs = _mm256_setr_epi64x(64, 2, 4, 6); /*TODO: precompute */
+        const __m256i mask62 = _mm256_set1_epi64x(M62); /*TODO: precompute */
+        __m256i lhs = _mm256_srlv_epi64(limbs_0012, shift_lhs);
+        __m256i rhs = _mm256_sllv_epi64(limbs_0123, shift_rhs);
+        __m256i out = _mm256_or_si256(lhs, rhs);
+        out = _mm256_and_si256(out, mask62);
+        _mm256_storeu_si256((__m256i *)r->v, out);
+    }
+#else
     r->v[0] =  a0                   & M62;
     r->v[1] = (a0 >> 62 | a1 <<  2) & M62;
     r->v[2] = (a1 >> 60 | a2 <<  4) & M62;
     r->v[3] = (a2 >> 58 | a3 <<  6) & M62;
+#endif
     r->v[4] =  a3 >> 56;
 }
 
