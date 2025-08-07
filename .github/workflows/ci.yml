@@ -108,17 +108,20 @@ jobs:
       CC: ${{ matrix.cc }}
 
     steps:
-      - name: Checkout
+      - &checkout
+        name: Checkout
         uses: actions/checkout@v4
 
-      - name: CI script
+      - &x64_ci_script
+        name: CI script
         env: ${{ matrix.configuration.env_vars }}
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: x64-debian-image
 
-      - name: Print logs
+      - &print-logs
+        name: Print logs
         uses: ./.github/actions/print-logs
         if: ${{ !cancelled() }}
 
@@ -130,6 +133,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        configuration:
+          - env_vars: {}
         cc:
           - 'i686-linux-gnu-gcc'
           - 'clang --target=i686-pc-linux-gnu -isystem /usr/i686-linux-gnu/include'
@@ -145,23 +150,19 @@ jobs:
       CC: ${{ matrix.cc }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: CI script
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-          tag: x64-debian-image
-
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
+      - *checkout
+      - *x64_ci_script
+      - *print-logs
 
   s390x_debian:
     name: "s390x (big-endian): Linux (Debian stable, QEMU)"
     runs-on: ubuntu-latest
     needs: docker_cache
+
+    strategy:
+      matrix:
+        configuration:
+          - env_vars: {}
 
     env:
       WRAPPER_CMD: 'qemu-s390x'
@@ -177,19 +178,9 @@ jobs:
       CTIMETESTS: 'no'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: CI script
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-          tag: x64-debian-image
-
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
-
+      - *checkout
+      - *x64_ci_script
+      - *print-logs
 
   arm32_debian:
     name: "ARM32: Linux (Debian stable, QEMU)"
@@ -217,19 +208,9 @@ jobs:
       CTIMETESTS: 'no'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-          tag: x64-debian-image
-
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
+      - *checkout
+      - *x64_ci_script
+      - *print-logs
 
   arm64-debian:
     name: "arm64: Linux (Debian stable)"
@@ -258,8 +239,7 @@ jobs:
           - 'clang-snapshot'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *checkout
 
       - name: CI script
         uses: ./.github/actions/run-in-docker-action
@@ -267,14 +247,17 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: arm64-debian-image
 
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
+      - *print-logs
 
   ppc64le_debian:
     name: "ppc64le: Linux (Debian stable, QEMU)"
     runs-on: ubuntu-latest
     needs: docker_cache
+
+    strategy:
+      matrix:
+        configuration:
+          - env_vars: {}
 
     env:
       WRAPPER_CMD: 'qemu-ppc64le'
@@ -290,19 +273,9 @@ jobs:
       CTIMETESTS: 'no'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: CI script
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-          tag: x64-debian-image
-
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
-
+      - *checkout
+      - *x64_ci_script
+      - *print-logs
 
   valgrind_debian:
     name: "Valgrind ${{ matrix.binary_arch }} (memcheck)"
@@ -352,8 +325,7 @@ jobs:
       SECP256K1_TEST_ITERS: 2
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *checkout
 
       - name: CI script
         env: ${{ matrix.env_vars }}
@@ -362,9 +334,7 @@ jobs:
           dockerfile: ./ci/linux-debian.Dockerfile
           tag: ${{ matrix.docker_arch }}-debian-image
 
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
+      - *print-logs
 
   sanitizers_debian:
     name: "UBSan, ASan, LSan"
@@ -396,19 +366,9 @@ jobs:
       SYMBOL_CHECK: 'no'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-          tag: x64-debian-image
-
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
+      - *checkout
+      - *x64_ci_script
+      - *print-logs
 
   msan_debian:
     name: "MSan"
@@ -447,20 +407,9 @@ jobs:
       SYMBOL_CHECK: 'no'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-          tag: x64-debian-image
-
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
-
+      - *checkout
+      - *x64_ci_script
+      - *print-logs
 
   mingw_debian:
     name: ${{ matrix.configuration.job_name }}
@@ -490,19 +439,9 @@ jobs:
               HOST: 'i686-w64-mingw32'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-          tag: x64-debian-image
-
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
+      - *checkout
+      - *x64_ci_script
+      - *print-logs
 
   x86_64-macos-native:
     name: "x86_64: macOS Ventura, Valgrind"
@@ -531,8 +470,7 @@ jobs:
           - BUILD: 'distcheck'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *checkout
 
       - name: Install Homebrew packages
         run: |
@@ -552,9 +490,7 @@ jobs:
           python3 -m pip install lief
           python3 ./tools/symbol-check.py .libs/libsecp256k1.dylib
 
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
+      - *print-logs
 
   arm64-macos-native:
     name: "ARM64: macOS Sonoma"
@@ -583,8 +519,7 @@ jobs:
           - BUILD: 'distcheck'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *checkout
 
       - name: Install Homebrew packages
         run: |
@@ -605,10 +540,7 @@ jobs:
           python3 -m pip install lief
           python3 ./tools/symbol-check.py .libs/libsecp256k1.dylib
 
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
-
+      - *print-logs
 
   win64-native:
     name: ${{ matrix.configuration.job_name }}
@@ -635,8 +567,7 @@ jobs:
             cmake_options: '-T ClangCL'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *checkout
 
       - name: Generate buildsystem
         run: cmake -E env CFLAGS="/WX ${{ matrix.configuration.cpp_flags }}" cmake -B build -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON ${{ matrix.configuration.cmake_options }}
@@ -671,8 +602,7 @@ jobs:
     runs-on: windows-2022
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *checkout
 
       - name: Add cl.exe to PATH
         uses: ilammy/msvc-dev-cmd@v1
@@ -685,6 +615,11 @@ jobs:
     name: "C++ -fpermissive (entire project)"
     runs-on: ubuntu-latest
     needs: docker_cache
+
+    strategy:
+      matrix:
+        configuration:
+          - env_vars: {}
 
     env:
       CC: 'g++'
@@ -699,18 +634,9 @@ jobs:
       ELLSWIFT: 'yes'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: CI script
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-          tag: x64-debian-image
-
-      - name: Print logs
-        uses: ./.github/actions/print-logs
-        if: ${{ !cancelled() }}
+      - *checkout
+      - *x64_ci_script
+      - *print-logs
 
   cxx_headers_debian:
     name: "C++ (public headers)"
@@ -718,8 +644,7 @@ jobs:
     needs: docker_cache
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *checkout
 
       - name: CI script
         uses: ./.github/actions/run-in-docker-action
@@ -738,8 +663,7 @@ jobs:
       options: --user root
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *checkout
 
       - name: CI script
         run: |
@@ -750,8 +674,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *checkout
 
       - run: ./autogen.sh && ./configure --enable-dev-mode && make distcheck
 
