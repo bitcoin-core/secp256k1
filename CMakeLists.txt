@@ -174,8 +174,8 @@ mark_as_advanced(
   CMAKE_SHARED_LINKER_FLAGS_COVERAGE
 )
 
+get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(PROJECT_IS_TOP_LEVEL)
-  get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
   set(default_build_type "RelWithDebInfo")
   if(is_multi_config)
     set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
