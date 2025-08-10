@@ -177,12 +177,10 @@ mark_as_advanced(
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(PROJECT_IS_TOP_LEVEL)
   set(default_build_type "RelWithDebInfo")
-  if(is_multi_config)
-    set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
-      "Supported configuration types."
-      FORCE
-    )
-  else()
+  if(CMAKE_GENERATOR STREQUAL "Ninja Multi-Config")
+    # Specify the configuration to use by default in the "Ninja Multi-Config" generator.
+    set(CMAKE_DEFAULT_BUILD_TYPE ${default_build_type} CACHE STRING "")
+  elseif(NOT is_multi_config)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
       STRINGS "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage"
     )
@@ -194,6 +192,7 @@ if(PROJECT_IS_TOP_LEVEL)
       )
     endif()
   endif()
+  unset(default_build_type)
 endif()
 
 include(TryAppendCFlags)
