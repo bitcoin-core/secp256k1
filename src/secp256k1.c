@@ -26,19 +26,24 @@
 #include "checkmem.h"
 #include "util.h"
 
-#include "field_impl.h"
-#include "scalar_impl.h"
-#include "group_impl.h"
-#include "ecmult_impl.h"
-#include "ecmult_const_impl.h"
-#include "ecmult_gen_impl.h"
 #include "ecdsa_impl.h"
 #include "eckey_impl.h"
+#include "ecmult_const_impl.h"
+#include "ecmult_gen_impl.h"
+#include "ecmult_impl.h"
+#include "field_impl.h"
+#include "group_impl.h"
 #include "hash_impl.h"
+#include "hsort_impl.h"
 #include "int128_impl.h"
+#include "modinv32_impl.h"
+#ifdef SECP256K1_WIDEMUL_INT128
+/* modinv64 is only available if we have an int128 implementation. */
+#include "modinv64_impl.h"
+#endif
+#include "scalar_impl.h"
 #include "scratch_impl.h"
 #include "selftest.h"
-#include "hsort_impl.h"
 
 #ifdef SECP256K1_NO_BUILD
 # error "secp256k1.h processed without SECP256K1_BUILD defined while building secp256k1.c"

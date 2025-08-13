@@ -10,7 +10,7 @@
 #include "checkmem.h"
 #include "util.h"
 #include "field.h"
-#include "modinv32_impl.h"
+#include "modinv32.h"
 
 #ifdef VERIFY
 static void secp256k1_fe_impl_verify(const secp256k1_fe *a) {

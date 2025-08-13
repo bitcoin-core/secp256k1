@@ -27,12 +27,6 @@
 #include "../contrib/lax_der_parsing.c"
 #include "../contrib/lax_der_privatekey_parsing.c"
 
-#include "modinv32_impl.h"
-#ifdef SECP256K1_WIDEMUL_INT128
-#include "modinv64_impl.h"
-#include "int128_impl.h"
-#endif
-
 #define CONDITIONAL_TEST(cnt, nam) if (COUNT < (cnt)) { printf("Skipping %s (iteration count too low)\n", nam); } else
 
 static int COUNT = 16;
