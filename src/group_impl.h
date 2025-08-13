@@ -95,7 +95,6 @@ static void secp256k1_gej_verify(const secp256k1_gej *a) {
     (void)a;
 }
 
-/* Set r to the affine coordinates of Jacobian point (a.x, a.y, 1/zi). */
 static void secp256k1_ge_set_gej_zinv(secp256k1_ge *r, const secp256k1_gej *a, const secp256k1_fe *zi) {
     secp256k1_fe zi2;
     secp256k1_fe zi3;
@@ -112,7 +111,6 @@ static void secp256k1_ge_set_gej_zinv(secp256k1_ge *r, const secp256k1_gej *a, c
     SECP256K1_GE_VERIFY(r);
 }
 
-/* Set r to the affine coordinates of Jacobian point (a.x, a.y, 1/zi). */
 static void secp256k1_ge_set_ge_zinv(secp256k1_ge *r, const secp256k1_ge *a, const secp256k1_fe *zi) {
     secp256k1_fe zi2;
     secp256k1_fe zi3;
