@@ -8,6 +8,7 @@
 #define SECP256K1_SELFTEST_H
 
 #include "hash.h"
+#include "util.h"
 
 #include <string.h>
 

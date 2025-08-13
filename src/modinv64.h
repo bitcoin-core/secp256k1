@@ -9,6 +9,8 @@
 
 #include "util.h"
 
+#include <stdint.h>
+
 #ifndef SECP256K1_WIDEMUL_INT128
 #error "modinv64 requires 128-bit wide multiplication support"
 #endif

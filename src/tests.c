@@ -8,8 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <time.h>
-
 #ifdef USE_EXTERNAL_DEFAULT_CALLBACKS
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in tests.")
     #undef USE_EXTERNAL_DEFAULT_CALLBACKS
