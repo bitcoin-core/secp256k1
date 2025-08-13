@@ -5455,7 +5455,7 @@ static void test_ecmult_constants_2bit(void) {
     secp256k1_sha256 acc;
     unsigned char b32[32];
     int i, j;
-    secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(CTX, 65536);
+    secp256k1_scratch_space *scratch = secp256k1_scratch_create(&CTX->error_callback, 65536);
 
     /* Expected hash of all the computed points; created with an independent
      * implementation. */
@@ -5483,7 +5483,7 @@ static void test_ecmult_constants_2bit(void) {
     secp256k1_sha256_finalize(&acc, b32);
     CHECK(secp256k1_memcmp_var(b32, expected32, 32) == 0);
 
-    secp256k1_scratch_space_destroy(CTX, scratch);
+    secp256k1_scratch_destroy(&CTX->error_callback, scratch);
 }
 
 static void test_ecmult_constants_sha(uint32_t prefix, size_t iter, const unsigned char* expected32) {
@@ -5499,7 +5499,7 @@ static void test_ecmult_constants_sha(uint32_t prefix, size_t iter, const unsign
     unsigned char b32[32];
     unsigned char inp[6];
     size_t i;
-    secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(CTX, 65536);
+    secp256k1_scratch_space *scratch = secp256k1_scratch_create(&CTX->error_callback, 65536);
 
     inp[0] = prefix & 0xFF;
     inp[1] = (prefix >> 8) & 0xFF;
@@ -5526,7 +5526,7 @@ static void test_ecmult_constants_sha(uint32_t prefix, size_t iter, const unsign
     secp256k1_sha256_finalize(&acc, b32);
     CHECK(secp256k1_memcmp_var(b32, expected32, 32) == 0);
 
-    secp256k1_scratch_space_destroy(CTX, scratch);
+    secp256k1_scratch_destroy(&CTX->error_callback, scratch);
 }
 
 static void run_ecmult_constants(void) {
