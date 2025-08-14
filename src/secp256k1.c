@@ -43,7 +43,7 @@
 #endif
 #include "scalar_impl.h"
 #include "scratch_impl.h"
-#include "selftest.h"
+#include "selftest_impl.h"
 
 #ifdef SECP256K1_NO_BUILD
 # error "secp256k1.h processed without SECP256K1_BUILD defined while building secp256k1.c"

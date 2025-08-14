@@ -58,6 +58,7 @@ noinst_HEADERS += src/int128_struct_impl.h
 noinst_HEADERS += src/scratch.h
 noinst_HEADERS += src/scratch_impl.h
 noinst_HEADERS += src/selftest.h
+noinst_HEADERS += src/selftest_impl.h
 noinst_HEADERS += src/testrand.h
 noinst_HEADERS += src/testrand_impl.h
 noinst_HEADERS += src/hash.h
