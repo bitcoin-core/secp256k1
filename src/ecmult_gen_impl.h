@@ -242,7 +242,7 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
              *    (https://cryptojedi.org/peter/data/chesrump-20130822.pdf) and
              *   "Cache Attacks and Countermeasures: the Case of AES", RSA 2006,
              *    by Dag Arne Osvik, Adi Shamir, and Eran Tromer
-             *    (https://www.tau.ac.il/~tromer/papers/cache.pdf)
+             *    (https://eprint.iacr.org/2005/271.pdf)
              */
             for (index = 0; index < COMB_POINTS; ++index) {
                 secp256k1_ge_storage_cmov(&adds, &secp256k1_ecmult_gen_prec_table[block][index], index == abs);
