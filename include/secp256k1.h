@@ -340,9 +340,9 @@ SECP256K1_API void secp256k1_context_destroy(
  *
  *  On the other hand, during debug stage, one would want to be informed about
  *  such mistakes, and the default (crashing) may be inadvisable.
- *  When this callback is triggered, the API function called is guaranteed not
- *  to cause a crash, though its return value and output arguments are
- *  undefined.
+ *  Should this callback return instead of crashing, the return value and output
+ *  arguments of the API function call are undefined. Moreover, the same API
+ *  call may trigger the callback again in this case.
  *
  *  When this function has not been called (or called with fn==NULL), then the
  *  default handler will be used. The library provides a default handler which
