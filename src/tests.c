@@ -609,6 +609,13 @@ static void test_sha256_eq(const secp256k1_sha256 *sha1, const secp256k1_sha256 
     CHECK(sha1->bytes == sha2->bytes);
     CHECK(secp256k1_memcmp_var(sha1->s, sha2->s, sizeof(sha1->s)) == 0);
 }
+/* Convenience function for using test_sha256_eq to verify the correctness of a
+ * tagged hash midstate. This function is used by some module tests. */
+static void test_sha256_tag_midstate(secp256k1_sha256 *sha_tagged, const unsigned char *tag, size_t taglen) {
+    secp256k1_sha256 sha;
+    secp256k1_sha256_initialize_tagged(&sha, tag, taglen);
+    test_sha256_eq(&sha, sha_tagged);
+}
 
 static void run_hmac_sha256_tests(void) {
     static const char *keys[6] = {
