@@ -631,8 +631,16 @@ jobs:
             cpp_flags: '/DSECP256K1_MSVC_MULH_TEST_OVERRIDE'
           - job_name: 'x86 (MSVC): Windows (VS 2022)'
             cmake_options: '-A Win32'
-          - job_name: 'x64 (MSVC): Windows (clang-cl)'
-            cmake_options: '-T ClangCL'
+          - job_name: 'x64 (clang-cl): Windows (VS 2022, shared)'
+            cmake_options: '-T ClangCL -DBUILD_SHARED_LIBS=ON'
+            symbol_check: 'true'
+          - job_name: 'x64 (clang-cl): Windows (VS 2022, static)'
+            cmake_options: '-T ClangCL -DBUILD_SHARED_LIBS=OFF'
+          - job_name: 'x64 (clang-cl): Windows (VS 2022, int128_struct)'
+            cmake_options: '-T ClangCL -DSECP256K1_TEST_OVERRIDE_WIDE_MULTIPLY=int128_struct'
+          - job_name: 'x64 (clang-cl): Windows (VS 2022, int128_struct with __(u)mulh)'
+            cmake_options: '-T ClangCL -DSECP256K1_TEST_OVERRIDE_WIDE_MULTIPLY=int128_struct'
+            cpp_flags: '/DSECP256K1_MSVC_MULH_TEST_OVERRIDE'
 
     steps:
       - name: Checkout
