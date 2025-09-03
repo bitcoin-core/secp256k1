@@ -92,7 +92,7 @@ check_equal() {
 
 check_prerequisites
 
-# gather data from configure.ac
+# gather version data from configure.ac
 AC_VERSION_MAJOR=$(extract_from_configure_ac _PKG_VERSION_MAJOR)
 AC_VERSION_MINOR=$(extract_from_configure_ac _PKG_VERSION_MINOR)
 AC_VERSION_PATCH=$(extract_from_configure_ac _PKG_VERSION_PATCH)
@@ -100,7 +100,7 @@ AC_VERSION_FROST=$(extract_from_configure_ac _PKG_VERSION_FROST_BUILD)
 AC_VERSION_FULL="${AC_VERSION_MAJOR}.${AC_VERSION_MINOR}.${AC_VERSION_PATCH}.${AC_VERSION_FROST}"
 errecho "INFO: version found in configure.ac is: \"${AC_VERSION_FULL}\""
 
-# gather data from CMakeLists.txt
+# gather version data from CMakeLists.txt
 cmake --log-level=error -S "${BASE_DIR}" -B "${BUILD_DIR}" >/dev/null
 # shellcheck disable=SC2164
 pushd "${BUILD_DIR}" >/dev/null
