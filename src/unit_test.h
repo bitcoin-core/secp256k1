@@ -69,12 +69,21 @@ typedef struct {
     int idx;
 } TestRef;
 
+struct Targets {
+    /* Target tests indexes */
+    TestRef slots[MAX_ARGS];
+    /* Next available slot */
+    int size;
+};
+
 /* --- Command-line args --- */
 struct Args {
     /* 0 => sequential; 1..MAX_SUBPROCESSES => parallel workers */
     int num_processes;
     /* Specific RNG seed */
     const char* custom_seed;
+    /* Target tests indexes */
+    struct Targets targets;
 };
 
 struct TestFramework {
