@@ -107,6 +107,17 @@ check_equal() {
     fi
 }
 
+initialize_cmake() {
+    log_info "initializing temporary CMake project in ${BUILD_DIR}"
+    # initialize the cmake project in a temporary directory and return the contents of "cmake --system-information -N"
+    cmake --log-level=error -S "${BASE_DIR}" -B "${BUILD_DIR}" >/dev/null
+    # shellcheck disable=SC2164
+    pushd "${BUILD_DIR}" >/dev/null
+    SYSTEM_INFORMATION=$(cmake --system-information -N)
+    # shellcheck disable=SC2164
+    popd >/dev/null
+}
+
 quit_and_cleanup() {
     # $1: exit code
     #
@@ -116,6 +127,7 @@ quit_and_cleanup() {
 }
 
 check_prerequisites
+initialize_cmake
 
 # gather version data from configure.ac
 AC_VERSION_MAJOR=$(extract_from_configure_ac _PKG_VERSION_MAJOR)
@@ -126,13 +138,6 @@ AC_VERSION_FULL="${AC_VERSION_MAJOR}.${AC_VERSION_MINOR}.${AC_VERSION_PATCH}.${A
 log_info "version found in configure.ac is: \"${AC_VERSION_FULL}\""
 
 # gather version data from CMakeLists.txt
-cmake --log-level=error -S "${BASE_DIR}" -B "${BUILD_DIR}" >/dev/null
-# shellcheck disable=SC2164
-pushd "${BUILD_DIR}" >/dev/null
-SYSTEM_INFORMATION=$(cmake --system-information -N)
-# shellcheck disable=SC2164
-popd >/dev/null
-
 CMAKE_PROJECT_VERSION_MAJOR=$(extract_from_cmake "CMAKE_PROJECT_VERSION_MAJOR:STATIC")
 CMAKE_PROJECT_VERSION_MINOR=$(extract_from_cmake "CMAKE_PROJECT_VERSION_MINOR:STATIC")
 CMAKE_PROJECT_VERSION_PATCH=$(extract_from_cmake "CMAKE_PROJECT_VERSION_PATCH:STATIC")
