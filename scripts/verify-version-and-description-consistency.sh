@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 #
 # This project supports two build systems: autotools and CMake.
-# Each of them declares a project version.
+# Each of them declares a project version and a project description.
 #
 # This script verifies that:
 # - the versions contained in CMakeLists.txt and configure.ac are the same
+# - the project descriptions in CMakeLists.txt and libsecp256k1.pc.in both end
+#   with the string ", with support for FROST signature scheme". The upstream
+#   descriptions are not the same, so we cannot enforce strict equality.
+#   - libsecp256k1.pc.in: "Optimized C library for EC operations on curve secp256k1, with support for FROST signature scheme"
+#   - CMakeLists.txt is:  "Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1, with support for FROST signature scheme"
 
 set -u
 set -o errtrace
@@ -16,6 +21,8 @@ MY_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 BASE_DIR=$(realpath "${MY_DIR}/..")
 BUILD_DIR=$(mktemp --tmpdir --directory secp256k1-frost-build.XXXX)
 CONFIGURE_AC=$(realpath --canonicalize-existing "${BASE_DIR}/configure.ac")
+FROST_DESCRIPTION=", with support for FROST signature scheme"
+LIBSECP256K1_PC_IN=$(realpath --canonicalize-existing "${BASE_DIR}/libsecp256k1.pc.in")
 
 errecho() {
     # prints to stderr
@@ -79,6 +86,27 @@ extract_from_configure_ac() {
     echo "${EXTRACTED_NUMBER}"
 }
 
+extract_description_from_libsecp256k1_pc_in() {
+    # Extract the contents of the "Description" field in libsecp256k1.pc.in.
+    # Requires that the line ends with the comment " # FROST_SPECIFIC". The
+    # comment is not returned by the function.
+    #
+    # The function accepts no parameters, reads the global variable
+    # LIBSECP256K1_PC_IN and interprets it as a file name.
+    local DESCRIPTION_WITH_COMMENT
+    local EXTRACTED_DESCRIPTION
+    local FROST_SPECIFIC=" # FROST_SPECIFIC"
+    DESCRIPTION_WITH_COMMENT=$(gawk "match(\$0, /Description: (.*)/, a) { print a[1] }" "${LIBSECP256K1_PC_IN}")
+    check_string_ends_with "${DESCRIPTION_WITH_COMMENT}" "${FROST_SPECIFIC}"
+    EXTRACTED_DESCRIPTION=$(gawk "match(\$0, /(.*)${FROST_SPECIFIC}/, a) { print a[1] }" <<<"${DESCRIPTION_WITH_COMMENT}")
+    # source: https://unix.stackexchange.com/questions/146942/how-can-i-test-if-a-variable-is-empty-or-contains-only-spaces/#146945
+    if [[ -z "${EXTRACTED_DESCRIPTION// }" ]]; then
+        log_error "could not find a project description in ${LIBSECP256K1_PC_IN}, or found an empty one."
+        quit_and_cleanup 1
+    fi
+    echo "${EXTRACTED_DESCRIPTION}"
+}
+
 extract_from_cmake() {
     # $1: variable part of the regex defining the field to be matched
     # $2: if true, also require that the extracted string is a number
@@ -103,6 +131,17 @@ check_equal() {
     #     eventual error message
     if [[ "${1}" != "${2}" ]]; then
         log_error "field \"${3}\" in configure.ac (\"${1}\") is different than the one in CMakeLists.txt (\"${2}\")"
+        quit_and_cleanup 1
+    fi
+}
+
+check_string_ends_with() {
+    # $1: input string that will be checked
+    # $2: the suffix to be searched for
+    #
+    # Exits with an error if $1 does not end with $2. Otherwise, does nothing.
+    if ! [[ "$1" == *"$2" ]]; then
+        log_error "string \"${1}\" does not end with \"${2}\""
         quit_and_cleanup 1
     fi
 }
@@ -145,6 +184,11 @@ CMAKE_PROJECT_VERSION_TWEAK=$(extract_from_cmake "CMAKE_PROJECT_VERSION_TWEAK:ST
 CMAKE_PROJECT_VERSION=$(extract_from_cmake "CMAKE_PROJECT_VERSION:STATIC" false)
 log_info "version found in CMakeLists.txt is: \"${CMAKE_PROJECT_VERSION}\""
 
+PKG_CONFIG_PROJECT_DESCRIPTION=$(extract_description_from_libsecp256k1_pc_in)
+log_info "project description found in libsecp256k1.pc.in is: \"${PKG_CONFIG_PROJECT_DESCRIPTION}\""
+CMAKE_PROJECT_DESCRIPTION=$(extract_from_cmake "CMAKE_PROJECT_DESCRIPTION:STATIC" false)
+log_info "project description found in CMakeLists.txt is:     \"${CMAKE_PROJECT_DESCRIPTION}\""
+
 # check that configure.ac and CMakeLists.txt contain the same information
 check_equal "${AC_VERSION_MAJOR}" "${CMAKE_PROJECT_VERSION_MAJOR}" "major version"
 check_equal "${AC_VERSION_MINOR}" "${CMAKE_PROJECT_VERSION_MINOR}" "minor version"
@@ -152,5 +196,9 @@ check_equal "${AC_VERSION_PATCH}" "${CMAKE_PROJECT_VERSION_PATCH}" "patch versio
 check_equal "${AC_VERSION_FROST}" "${CMAKE_PROJECT_VERSION_TWEAK}" "frost version"
 check_equal "${AC_VERSION_FULL}" "${CMAKE_PROJECT_VERSION}" "full frost version"
 
+check_string_ends_with "${PKG_CONFIG_PROJECT_DESCRIPTION}" "${FROST_DESCRIPTION}"
+check_string_ends_with "${CMAKE_PROJECT_DESCRIPTION}"   "${FROST_DESCRIPTION}"
+
 echo "SUCCESS: identified version ${AC_VERSION_FULL}"
+echo "SUCCESS: both project descriptions end with \"${FROST_DESCRIPTION}\""
 cleanup_build_dir

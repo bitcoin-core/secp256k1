@@ -1,0 +1,32 @@
+name: "FROST: check that the version numbers contained in configure.ac and CMakeLists.txt are consistent with each other. Verify, however, that the project descriptions do not end with the same reference to Frost"
+
+on:
+  push:
+    branches:
+      - frost
+  pull_request:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  verify-version-and-description-consistency:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: check that the version numbers contained in configure.ac and CMakeLists.txt are consistent with each other. Verify, however, that the project descriptions do not end with the same reference to Frost
+        id: frost_check_versions_and_descriptions
+        continue-on-error: true
+        run: scripts/verify-version-and-description-consistency.sh
+      - name: enforce the failure of the previous step
+        run: |
+          RED='\033[0;31m'
+          GREEN='\033[0;32m'
+          NC='\033[0m' # No Color
+
+          if [[ ${{ steps.frost_check_versions_and_descriptions.outcome }} == "success" ]]; then
+            printf "${RED}FAIL${NC} The versions and descriptions check succeeded, whereas it should have failed. Please check\n"
+            exit 1
+          fi
+          printf "${GREEN}SUCCESS${NC}: the versions and descriptions check failed as expected.\n"
