@@ -74,6 +74,23 @@ static int parse_arg(const char* key, const char* value, struct tf_framework* tf
     return -1;
 }
 
+static void help(void) {
+    printf("Usage: ./tests [options]\n\n");
+    printf("Run the test suite for the project with optional configuration.\n\n");
+    printf("Options:\n");
+    printf("    --help, -h                           Show this help message\n");
+    printf("    --jobs=<num>, -j=<num>               Number of parallel worker processes (default: 0 = sequential)\n");
+    printf("    --iterations=<num>, -i=<num>         Number of iterations for each test (default: 16)\n");
+    printf("    --seed=<hex>                         Set a specific RNG seed (default: random)\n");
+    printf("\n");
+    printf("Notes:\n");
+    printf("    - All arguments must be provided in the form '--key=value', '-key=value' or '-k=value'.\n");
+    printf("    - Single or double dashes are allowed for multi character options.\n");
+    printf("    - Unknown arguments are reported but ignored.\n");
+    printf("    - Sequential execution occurs if -jobs=0 or unspecified.\n");
+    printf("    - Iterations and seed can also be passed as positional arguments before any other argument for backward compatibility.\n");
+}
+
 static int parse_jobs_count(const char* key, const char* value, struct tf_framework* tf) {
     char* ptr_val;
     long val = strtol(value, &ptr_val, 10); /* base 10 */
@@ -157,6 +174,11 @@ static int read_args(int argc, char** argv, int start, struct tf_framework* tf) 
 
         eq = strchr(raw_arg, '=');
         if (!eq || eq == raw_arg + 1) {
+            /* Allowed options without value */
+            if (strcmp(key, "h") == 0 || strcmp(key, "help") == 0) {
+                tf->args.help = 1;
+                return 0;
+            }
             fprintf(stderr, "Invalid arg '%s': must be -k=value or --key=value\n", raw_arg);
             return -1;
         }
@@ -264,6 +286,7 @@ static int tf_init(struct tf_framework* tf, int argc, char** argv)
     /* Initialize command-line options */
     tf->args.num_processes = 0;
     tf->args.custom_seed = NULL;
+    tf->args.help = 0;
 
     /* Disable buffering for stdout to improve reliability of getting
      * diagnostic information. Happens right at the start of main because
@@ -294,6 +317,11 @@ static int tf_init(struct tf_framework* tf, int argc, char** argv)
         }
         if (read_args(argc, argv, named_arg_start, tf) != 0) {
             return EXIT_FAILURE;
+        }
+
+        if (tf->args.help) {
+            help();
+            exit(EXIT_SUCCESS);
         }
     }
 
