@@ -98,7 +98,7 @@ AC_VERSION_MINOR=$(extract_from_configure_ac _PKG_VERSION_MINOR)
 AC_VERSION_PATCH=$(extract_from_configure_ac _PKG_VERSION_PATCH)
 AC_VERSION_FROST=$(extract_from_configure_ac _PKG_VERSION_FROST_BUILD)
 AC_VERSION_FULL="${AC_VERSION_MAJOR}.${AC_VERSION_MINOR}.${AC_VERSION_PATCH}.${AC_VERSION_FROST}"
-errecho "INFO: version found in configure.ac: is \"${AC_VERSION_FULL}\""
+errecho "INFO: version found in configure.ac is: \"${AC_VERSION_FULL}\""
 
 # gather data from CMakeLists.txt
 cmake --log-level=error -S "${BASE_DIR}" -B "${BUILD_DIR}" >/dev/null
@@ -113,7 +113,7 @@ CMAKE_PROJECT_VERSION_MINOR=$(extract_from_cmake "CMAKE_PROJECT_VERSION_MINOR:ST
 CMAKE_PROJECT_VERSION_PATCH=$(extract_from_cmake "CMAKE_PROJECT_VERSION_PATCH:STATIC")
 CMAKE_PROJECT_VERSION_TWEAK=$(extract_from_cmake "CMAKE_PROJECT_VERSION_TWEAK:STATIC")
 CMAKE_PROJECT_VERSION=$(extract_from_cmake "CMAKE_PROJECT_VERSION:STATIC" false)
-errecho "INFO: version found in CMakeLists.txt: is \"${CMAKE_PROJECT_VERSION}\""
+errecho "INFO: version found in CMakeLists.txt is: \"${CMAKE_PROJECT_VERSION}\""
 
 # check that configure.ac and CMakeLists.txt contain the same information
 check_equal "${AC_VERSION_MAJOR}" "${CMAKE_PROJECT_VERSION_MAJOR}" "major version"
