@@ -69,6 +69,13 @@ typedef struct {
     int idx;
 } TestRef;
 
+struct Targets {
+    /* Target tests indexes */
+    TestRef slots[MAX_ARGS];
+    /* Next available slot */
+    int size;
+};
+
 /* --- Command-line args --- */
 struct Args {
     /* 0 => sequential; 1..MAX_SUBPROCESSES => parallel workers */
@@ -77,6 +84,8 @@ struct Args {
     const char* custom_seed;
     /* Whether to print the help msg */
     int help;
+    /* Target tests indexes */
+    struct Targets targets;
 };
 
 struct TestFramework {
