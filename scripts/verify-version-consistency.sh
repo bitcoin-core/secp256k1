@@ -37,7 +37,7 @@ log_info() {
 handle_error() {
     local EXIT_CODE
     EXIT_CODE=$1 && shift
-    log_error "exiting on unexpected error ${EXIT_CODE}"
+    log_error "exiting on unexpected error ${EXIT_CODE} on line $(caller). The temporary directory ${BUILD_DIR} will not be cleaned up"
     exit "${EXIT_CODE}"
 }
 
@@ -46,16 +46,21 @@ trap 'handle_error $?' ERR
 check_prerequisites() {
     if ! command -v cmake &> /dev/null; then
         log_error "Please install cmake"
-        exit 1
+        quit_and_cleanup 1
     fi
     if ! command -v gawk &> /dev/null; then
         log_error "Please install gawk"
-        exit 1
+        quit_and_cleanup 1
     fi
     if ! command -v realpath &> /dev/null; then
         log_error "The realpath command is not available"
-        exit 1
+        quit_and_cleanup 1
     fi
+}
+
+cleanup_build_dir() {
+    log_debug "cleaning up ${BUILD_DIR}"
+    rm -rf "${BUILD_DIR}"
 }
 
 extract_from_configure_ac() {
@@ -69,7 +74,7 @@ extract_from_configure_ac() {
     REQUIRE_NUMERIC_FORMAT="${2:-true}"
     if [[ "${REQUIRE_NUMERIC_FORMAT}" == true ]] && ! [[ "${EXTRACTED_NUMBER}" =~ ^[0-9]+$ ]]; then
         log_error "could not extract field $1 from ${CONFIGURE_AC}. The value that was found (\"${EXTRACTED_NUMBER}\") is not a number"
-        exit 1
+        quit_and_cleanup 1
     fi
     echo "${EXTRACTED_NUMBER}"
 }
@@ -86,7 +91,7 @@ extract_from_cmake() {
     REQUIRE_NUMERIC_FORMAT="${2:-true}"
     if [[ "${REQUIRE_NUMERIC_FORMAT}" == true ]] && ! [[ "${EXTRACTED_NUMBER}" =~ ^[0-9]+$ ]]; then
         log_error "could not extract field $1 from ${BUILD_DIR}/CMakeCache.txt. The value that was found (\"${EXTRACTED_NUMBER}\") is not a number. Check your CMakeLists.txt"
-        exit 1
+        quit_and_cleanup 1
     fi
     echo "${EXTRACTED_NUMBER}"
 }
@@ -98,8 +103,16 @@ check_equal() {
     #     eventual error message
     if [[ "${1}" != "${2}" ]]; then
         log_error "field \"${3}\" in configure.ac (\"${1}\") is different than the one in CMakeLists.txt (\"${2}\")"
-        exit 1
+        quit_and_cleanup 1
     fi
+}
+
+quit_and_cleanup() {
+    # $1: exit code
+    #
+    # Call cleanup_build_dir and exit with $1.
+    cleanup_build_dir
+    exit "$1"
 }
 
 check_prerequisites
@@ -135,3 +148,4 @@ check_equal "${AC_VERSION_FROST}" "${CMAKE_PROJECT_VERSION_TWEAK}" "frost versio
 check_equal "${AC_VERSION_FULL}" "${CMAKE_PROJECT_VERSION}" "full frost version"
 
 echo "SUCCESS: identified version ${AC_VERSION_FULL}"
+cleanup_build_dir
