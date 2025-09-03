@@ -46,6 +46,11 @@
 # define BYTESWAP_64(x) (((x) >> 56) | (((x) >> 40) & 0xFF00) | (((x) >> 24) & 0xFF0000) | (((x) >> 8) & 0xFF000000ULL) | (((x) << 8) & 0xFF00000000ULL) | (((x) << 24) & 0xFF0000000000ULL) | (((x) << 40) & 0xFF000000000000ULL) | ((x) << 56) )
 #endif
 
+/* X86 detection macro */
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+# define X86
+#endif
+
 #define STR_(x) #x
 #define STR(x) STR_(x)
 #define DEBUG_CONFIG_MSG(x) "DEBUG_CONFIG: " x
