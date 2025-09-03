@@ -5,7 +5,7 @@ project(libsecp256k1
   # the API. All changes in experimental modules are treated as
   # backwards-compatible and therefore at most increase the minor version.
   VERSION 0.5.1.1 # FROST_SPECIFIC: the fourth number must be equal to the value of _PKG_VERSION_FROST_BUILD in configure.ac
-  DESCRIPTION "Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1."
+  DESCRIPTION "Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1, with support for FROST signature scheme" # FROST_SPECIFIC
   HOMEPAGE_URL "https://github.com/bancaditalia/secp256k1-frost" # FROST_SPECIFIC: replaced URIs with those of Bank of Italy's fork.
   LANGUAGES C
 )
