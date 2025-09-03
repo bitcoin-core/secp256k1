@@ -62,10 +62,10 @@ SECP256K1_INLINE static uint32_t secp256k1_scalar_get_bits_var(const secp256k1_s
 SECP256K1_INLINE static int secp256k1_scalar_check_overflow(const secp256k1_scalar *a) {
     int yes = 0;
     int no = 0;
-    no |= (a->d[3] < SECP256K1_N_3); /* No need for a > check. */
-    no |= (a->d[2] < SECP256K1_N_2);
+    no  |= (a->d[3] < SECP256K1_N_3); /* No need for a > check. */
+    no  |= (a->d[2] < SECP256K1_N_2);
     yes |= (a->d[2] > SECP256K1_N_2) & ~no;
-    no |= (a->d[1] < SECP256K1_N_1);
+    no  |= (a->d[1] < SECP256K1_N_1);
     yes |= (a->d[1] > SECP256K1_N_1) & ~no;
     yes |= (a->d[0] >= SECP256K1_N_0) & ~no;
     return yes;
@@ -243,10 +243,10 @@ static int secp256k1_scalar_is_high(const secp256k1_scalar *a) {
     int no = 0;
     SECP256K1_SCALAR_VERIFY(a);
 
-    no |= (a->d[3] < SECP256K1_N_H_3);
+    no  |= (a->d[3] < SECP256K1_N_H_3);
     yes |= (a->d[3] > SECP256K1_N_H_3) & ~no;
-    no |= (a->d[2] < SECP256K1_N_H_2) & ~yes; /* No need for a > check. */
-    no |= (a->d[1] < SECP256K1_N_H_1) & ~yes;
+    no  |= (a->d[2] < SECP256K1_N_H_2) & ~yes; /* No need for a > check. */
+    no  |= (a->d[1] < SECP256K1_N_H_1) & ~yes;
     yes |= (a->d[1] > SECP256K1_N_H_1) & ~no;
     yes |= (a->d[0] > SECP256K1_N_H_0) & ~no;
     return yes;
