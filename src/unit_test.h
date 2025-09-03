@@ -75,6 +75,8 @@ struct Args {
     int num_processes;
     /* Specific RNG seed */
     const char* custom_seed;
+    /* Whether to print the help msg */
+    int help;
 };
 
 struct TestFramework {
