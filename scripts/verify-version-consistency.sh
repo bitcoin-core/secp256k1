@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+#
+# This project supports two build systems: autotools and CMake.
+# Each of them declares a project version.
+#
+# This script verifies that:
+# - the versions contained in CMakeLists.txt and configure.ac are the same
 
 set -u
 set -o errtrace
