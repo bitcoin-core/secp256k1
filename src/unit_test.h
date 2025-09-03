@@ -62,11 +62,12 @@ struct tf_test_module {
 typedef int (*setup_ctx_fn)(void);
 typedef int (*teardown_fn)(void);
 
-/* Reference to a test in the registry. Group index and test index */
-typedef struct {
-    int group;
-    int idx;
-} tf_test_ref;
+struct tf_targets {
+    /* Target tests indexes */
+    const struct tf_test_entry* slots[MAX_ARGS];
+    /* Next available slot */
+    int size;
+};
 
 /* --- Command-line args --- */
 struct tf_args {
@@ -76,6 +77,8 @@ struct tf_args {
     const char* custom_seed;
     /* Whether to print the help msg */
     int help;
+    /* Target tests indexes */
+    struct tf_targets targets;
 };
 
 /* --------------------------------------------------------- */
