@@ -22,10 +22,22 @@ errecho() {
     >&2 echo "${@}"
 }
 
+log_error() {
+    errecho "ERROR: $1"
+}
+
+log_debug() {
+    errecho "DEBUG: $1"
+}
+
+log_info() {
+    errecho "INFO: $1"
+}
+
 handle_error() {
     local EXIT_CODE
     EXIT_CODE=$1 && shift
-    errecho "ERROR: exiting on unexpected error ${EXIT_CODE}"
+    log_error "exiting on unexpected error ${EXIT_CODE}"
     exit "${EXIT_CODE}"
 }
 
@@ -33,15 +45,15 @@ trap 'handle_error $?' ERR
 
 check_prerequisites() {
     if ! command -v cmake &> /dev/null; then
-        errecho "Please install cmake"
+        log_error "Please install cmake"
         exit 1
     fi
     if ! command -v gawk &> /dev/null; then
-        errecho "Please install gawk"
+        log_error "Please install gawk"
         exit 1
     fi
     if ! command -v realpath &> /dev/null; then
-        errecho "The realpath command is not available"
+        log_error "The realpath command is not available"
         exit 1
     fi
 }
@@ -56,7 +68,7 @@ extract_from_configure_ac() {
     EXTRACTED_NUMBER=$(gawk "match(\$0, /define\(${1}, ([^\)]*)\)/, a) { print a[1] }" "${CONFIGURE_AC}")
     REQUIRE_NUMERIC_FORMAT="${2:-true}"
     if [[ "${REQUIRE_NUMERIC_FORMAT}" == true ]] && ! [[ "${EXTRACTED_NUMBER}" =~ ^[0-9]+$ ]]; then
-        errecho "ERROR: could not extract field $1 from ${CONFIGURE_AC}. The value that was found (\"${EXTRACTED_NUMBER}\") is not a number"
+        log_error "could not extract field $1 from ${CONFIGURE_AC}. The value that was found (\"${EXTRACTED_NUMBER}\") is not a number"
         exit 1
     fi
     echo "${EXTRACTED_NUMBER}"
@@ -73,7 +85,7 @@ extract_from_cmake() {
     EXTRACTED_NUMBER=$(gawk -F= "\$1~/$1/{print\$2}" - <<<"${SYSTEM_INFORMATION}")
     REQUIRE_NUMERIC_FORMAT="${2:-true}"
     if [[ "${REQUIRE_NUMERIC_FORMAT}" == true ]] && ! [[ "${EXTRACTED_NUMBER}" =~ ^[0-9]+$ ]]; then
-        errecho "ERROR: could not extract field $1 from ${BUILD_DIR}/CMakeCache.txt. The value that was found (\"${EXTRACTED_NUMBER}\") is not a number. Check your CMakeLists.txt"
+        log_error "could not extract field $1 from ${BUILD_DIR}/CMakeCache.txt. The value that was found (\"${EXTRACTED_NUMBER}\") is not a number. Check your CMakeLists.txt"
         exit 1
     fi
     echo "${EXTRACTED_NUMBER}"
@@ -85,7 +97,7 @@ check_equal() {
     # $3: human-friendly field name (e.g., "MAJOR_VERSION") to use in the
     #     eventual error message
     if [[ "${1}" != "${2}" ]]; then
-        errecho "ERROR: field \"${3}\" in configure.ac (\"${1}\") is different than the one in CMakeLists.txt (\"${2}\")"
+        log_error "field \"${3}\" in configure.ac (\"${1}\") is different than the one in CMakeLists.txt (\"${2}\")"
         exit 1
     fi
 }
@@ -98,7 +110,7 @@ AC_VERSION_MINOR=$(extract_from_configure_ac _PKG_VERSION_MINOR)
 AC_VERSION_PATCH=$(extract_from_configure_ac _PKG_VERSION_PATCH)
 AC_VERSION_FROST=$(extract_from_configure_ac _PKG_VERSION_FROST_BUILD)
 AC_VERSION_FULL="${AC_VERSION_MAJOR}.${AC_VERSION_MINOR}.${AC_VERSION_PATCH}.${AC_VERSION_FROST}"
-errecho "INFO: version found in configure.ac is: \"${AC_VERSION_FULL}\""
+log_info "version found in configure.ac is: \"${AC_VERSION_FULL}\""
 
 # gather version data from CMakeLists.txt
 cmake --log-level=error -S "${BASE_DIR}" -B "${BUILD_DIR}" >/dev/null
@@ -113,7 +125,7 @@ CMAKE_PROJECT_VERSION_MINOR=$(extract_from_cmake "CMAKE_PROJECT_VERSION_MINOR:ST
 CMAKE_PROJECT_VERSION_PATCH=$(extract_from_cmake "CMAKE_PROJECT_VERSION_PATCH:STATIC")
 CMAKE_PROJECT_VERSION_TWEAK=$(extract_from_cmake "CMAKE_PROJECT_VERSION_TWEAK:STATIC")
 CMAKE_PROJECT_VERSION=$(extract_from_cmake "CMAKE_PROJECT_VERSION:STATIC" false)
-errecho "INFO: version found in CMakeLists.txt is: \"${CMAKE_PROJECT_VERSION}\""
+log_info "version found in CMakeLists.txt is: \"${CMAKE_PROJECT_VERSION}\""
 
 # check that configure.ac and CMakeLists.txt contain the same information
 check_equal "${AC_VERSION_MAJOR}" "${CMAKE_PROJECT_VERSION_MAJOR}" "major version"
