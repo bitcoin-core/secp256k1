@@ -14,8 +14,8 @@ set -o pipefail
 MY_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 BASE_DIR=$(realpath "${MY_DIR}/..")
-CONFIGURE_AC=$(realpath --canonicalize-existing "${MY_DIR}/../configure.ac")
 BUILD_DIR=$(mktemp --tmpdir --directory secp256k1-frost-build.XXXX)
+CONFIGURE_AC=$(realpath --canonicalize-existing "${BASE_DIR}/configure.ac")
 
 errecho() {
     # prints to stderr
