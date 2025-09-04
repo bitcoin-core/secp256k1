@@ -6,6 +6,7 @@ on:
       - '**'
     tags-ignore:
       - '**'
+  workflow_dispatch: # FROST_SPECIFIC: needed to manually run the workflow from the Actions tab
 
 concurrency:
   group: ${{ github.event_name != 'pull_request' && github.run_id || github.ref }}
