@@ -7,30 +7,44 @@
 #ifndef SECP256K1_BENCH_H
 #define SECP256K1_BENCH_H
 
+#if defined(_WIN32)
+# include <windows.h>
+#else /* POSIX */
+# include <time.h>
+#endif
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-#if (defined(_MSC_VER) && _MSC_VER >= 1900)
-#  include <time.h>
-#else
-#  include <sys/time.h>
-#endif
+static int64_t gettime_us(void) {
+#if defined(_WIN32)
 
-static int64_t gettime_i64(void) {
-#if (defined(_MSC_VER) && _MSC_VER >= 1900)
-    /* C11 way to get wallclock time */
-    struct timespec tv;
-    if (!timespec_get(&tv, TIME_UTC)) {
-        fputs("timespec_get failed!", stderr);
-        exit(EXIT_FAILURE);
-    }
-    return (int64_t)tv.tv_nsec / 1000 + (int64_t)tv.tv_sec * 1000000LL;
-#else
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_usec + (int64_t)tv.tv_sec * 1000000LL;
+    LARGE_INTEGER freq, counter;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&counter);
+    return (int64_t)(counter.QuadPart * 1000000 / freq.QuadPart);
+
+#else /* POSIX */
+
+# if defined(CLOCK_PROCESS_CPUTIME_ID)
+    /* In theory, CLOCK_PROCESS_CPUTIME_ID is only useful if the process is locked to a core,
+     * see `man clock_gettime` on Linux. In practice, modern CPUs have synchronized TSCs which
+     * address this issue, see https://docs.amd.com/r/en-US/ug1586-onload-user/Timer-TSC-Stability . */
+    const clockid_t clock_type = CLOCK_PROCESS_CPUTIME_ID;
+# elif defined(CLOCK_MONOTONIC)
+    /* fallback to global timer */
+    const clockid_t clock_type = CLOCK_MONOTONIC;
+# else
+    /* fallback to wall-clock timer */
+    const clockid_t clock_type = CLOCK_REALTIME;
+# endif
+
+    struct timespec ts;
+    clock_gettime(clock_type, &ts);
+    return (int64_t)ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
+
 #endif
 }
 
@@ -105,9 +119,9 @@ static void run_benchmark(char *name, void (*benchmark)(void*, int), void (*setu
         if (setup != NULL) {
             setup(data);
         }
-        begin = gettime_i64();
+        begin = gettime_us();
         benchmark(data, iter);
-        total = gettime_i64() - begin;
+        total = gettime_us() - begin;
         if (teardown != NULL) {
             teardown(data, iter);
         }
