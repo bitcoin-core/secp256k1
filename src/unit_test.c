@@ -82,6 +82,7 @@ static void help(void) {
     printf("Run the test suite for the project with optional configuration.\n\n");
     printf("Options:\n");
     printf("    --help, -h                           Show this help message\n");
+    printf("    --print_tests                        Display list of all available tests and modules\n");
     printf("    --jobs=<num>, -j=<num>               Number of parallel worker processes (default: 0 = sequential)\n");
     printf("    --iterations=<num>, -i=<num>         Number of iterations for each test (default: 16)\n");
     printf("    --seed=<hex>                         Set a specific RNG seed (default: random)\n");
@@ -94,6 +95,24 @@ static void help(void) {
     printf("    - Unknown arguments are reported but ignored.\n");
     printf("    - Sequential execution occurs if -jobs=0 or unspecified.\n");
     printf("    - The first two positional arguments (iterations and seed) are also supported for backward compatibility.\n");
+}
+
+/* Print all tests in registry */
+static void print_test_list(struct TestFramework* tf) {
+    int m, t, total = 0;
+    printf("\nAvailable tests (%d modules):\n", tf->num_modules);
+    printf("========================================\n");
+    for (m = 0; m < tf->num_modules; m++) {
+        const struct TestModule* mod = &tf->registry_modules[m];
+        printf("Module: %s (%d tests)\n", mod->name, mod->size);
+        for (t = 0; t < mod->size; t++) {
+            printf("\t[%3d] %s\n", total + 1, mod->data[t].name);
+            total++;
+        }
+        printf("----------------------------------------\n");
+    }
+    printf("\nRun specific module: ./tests -t=<module_name>\n");
+    printf("Run specific test: ./tests -t=<test_name>\n\n");
 }
 
 static int parse_jobs_count(const char* key, const char* value, struct TestFramework* tf) {
@@ -201,6 +220,10 @@ static int read_args(int argc, char** argv, int start, struct TestFramework* tf)
             /* Allowed options without value */
             if (strcmp(key, "h") == 0 || strcmp(key, "help") == 0) {
                 tf->args.help = 1;
+                return 0;
+            }
+            if (strcmp(key, "print_tests") == 0) {
+                tf->args.print_tests = 1;
                 return 0;
             }
             fprintf(stderr, "Invalid arg '%s': must be -k=value or --key=value\n", raw_arg);
@@ -316,6 +339,7 @@ static int tf_init(struct TestFramework* tf, int argc, char** argv)
     tf->args.custom_seed = NULL;
     tf->args.help = 0;
     tf->args.targets.size = 0;
+    tf->args.print_tests = 0;
 
     /* Disable buffering for stdout to improve reliability of getting
      * diagnostic information. Happens right at the start of main because
@@ -350,6 +374,11 @@ static int tf_init(struct TestFramework* tf, int argc, char** argv)
 
         if (tf->args.help) {
             help();
+            exit(EXIT_SUCCESS);
+        }
+
+        if (tf->args.print_tests) {
+            print_test_list(tf);
             exit(EXIT_SUCCESS);
         }
     }
