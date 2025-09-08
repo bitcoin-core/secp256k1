@@ -73,6 +73,7 @@ static void help(void) {
     printf("Run the test suite for the project with optional configuration.\n\n");
     printf("Options:\n");
     printf("    -help, -h                           Show this help message\n");
+    printf("    -print_tests                        Display list of all available tests and modules\n");
     printf("    -j=<num>, -jobs=<num>               Number of parallel worker processes (default: 0 = sequential)\n");
     printf("    -iter=<num>, -iterations=<num>      Number of iterations for each test (default: 16)\n");
     printf("    -seed=<hex>                         Set a specific RNG seed (default: random)\n");
@@ -84,6 +85,24 @@ static void help(void) {
     printf("    - Unknown arguments are reported but ignored.\n");
     printf("    - Sequential execution occurs if -jobs=0 or unspecified.\n");
     printf("    - The first two positional arguments (iterations and seed) are also supported for backward compatibility.\n");
+}
+
+/* Print all tests in registry */
+static void print_test_list(struct TestFramework* tf) {
+    int m, t, total = 0;
+    printf("\nAvailable tests (%d modules):\n", tf->num_modules);
+    printf("========================================\n");
+    for (m = 0; m < tf->num_modules; m++) {
+        const struct TestModule* mod = &tf->registry_modules[m];
+        printf("Module: %s (%d tests)\n", mod->name, mod->size);
+        for (t = 0; t < mod->size; t++) {
+            printf("\t[%3d] %s\n", total + 1, mod->data[t].name);
+            total++;
+        }
+        printf("----------------------------------------\n");
+    }
+    printf("\nRun specific module: ./tests -t=<module_name>\n");
+    printf("Run specific test: ./tests -t=<test_name>\n\n");
 }
 
 static int parse_jobs_count(const char* key, const char* value, struct Args* out) {
@@ -281,6 +300,12 @@ static int tf_init(struct TestFramework* tf, int argc, char** argv)
         /* Check if we need to print help */
         if (argv[1] && (strcmp(argv[1], "-help") == 0 || strcmp(argv[1], "-h") == 0)) {
             help();
+            exit(EXIT_SUCCESS);
+        }
+
+        /* Check if we need to print the available tests */
+        if (argv[1] && strcmp(argv[1], "-print_tests") == 0) {
+            print_test_list(tf);
             exit(EXIT_SUCCESS);
         }
 
