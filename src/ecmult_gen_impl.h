@@ -277,8 +277,8 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     /* Cleanup. */
     secp256k1_fe_clear(&neg);
     secp256k1_ge_clear(&add);
-    secp256k1_memclear(&adds, sizeof(adds));
-    secp256k1_memclear(&recoded, sizeof(recoded));
+    secp256k1_memclear_explicit(&adds, sizeof(adds));
+    secp256k1_memclear_explicit(&recoded, sizeof(recoded));
 }
 
 /* Setup blinding values for secp256k1_ecmult_gen. */
@@ -310,7 +310,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     VERIFY_CHECK(seed32 != NULL);
     memcpy(keydata + 32, seed32, 32);
     secp256k1_rfc6979_hmac_sha256_initialize(&rng, keydata, 64);
-    secp256k1_memclear(keydata, sizeof(keydata));
+    secp256k1_memclear_explicit(keydata, sizeof(keydata));
 
     /* Compute projective blinding factor (cannot be 0). */
     secp256k1_rfc6979_hmac_sha256_generate(&rng, nonce32, 32);
@@ -331,7 +331,7 @@ static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const 
     secp256k1_ge_set_gej(&ctx->ge_offset, &gb);
 
     /* Clean up. */
-    secp256k1_memclear(nonce32, sizeof(nonce32));
+    secp256k1_memclear_explicit(nonce32, sizeof(nonce32));
     secp256k1_scalar_clear(&b);
     secp256k1_gej_clear(&gb);
     secp256k1_fe_clear(&f);
