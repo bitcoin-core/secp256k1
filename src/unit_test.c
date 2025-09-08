@@ -81,6 +81,7 @@ static void help(void) {
     printf("Run the test suite for the project with optional configuration.\n\n");
     printf("Options:\n");
     printf("    --help, -h                           Show this help message\n");
+    printf("    --list_tests, -l                     Display list of all available tests and modules\n");
     printf("    --jobs=<num>, -j=<num>               Number of parallel worker processes (default: 0 = sequential)\n");
     printf("    --iterations=<num>, -i=<num>         Number of iterations for each test (default: 16)\n");
     printf("    --seed=<hex>                         Set a specific RNG seed (default: random)\n");
@@ -93,6 +94,24 @@ static void help(void) {
     printf("    - Unknown arguments are reported but ignored.\n");
     printf("    - Sequential execution occurs if -jobs=0 or unspecified.\n");
     printf("    - Iterations and seed can also be passed as positional arguments before any other argument for backward compatibility.\n");
+}
+
+/* Print all tests in registry */
+static void print_test_list(struct tf_framework* tf) {
+    int m, t, total = 0;
+    printf("\nAvailable tests (%d modules):\n", tf->num_modules);
+    printf("========================================\n");
+    for (m = 0; m < tf->num_modules; m++) {
+        const struct tf_test_module* mod = &tf->registry_modules[m];
+        printf("Module: %s (%d tests)\n", mod->name, mod->size);
+        for (t = 0; t < mod->size; t++) {
+            printf("\t[%3d] %s\n", total + 1, mod->data[t].name);
+            total++;
+        }
+        printf("----------------------------------------\n");
+    }
+    printf("\nRun specific module: ./tests -t=<module_name>\n");
+    printf("Run specific test: ./tests -t=<test_name>\n\n");
 }
 
 static int parse_jobs_count(const char* key, const char* value, struct tf_framework* tf) {
@@ -180,7 +199,7 @@ static int parse_target(const char* key, const char* value, struct tf_framework*
         if (add_all) return 0;
     }
     fprintf(stderr, "Error: target '%s' not found (missing or module disabled).\n"
-                    "Run program with -print_tests option to display available tests and modules.\n", value);
+                    "Run program with -list_tests option to display available tests and modules.\n", value);
     return -1;
 }
 
@@ -209,6 +228,10 @@ static int read_args(int argc, char** argv, int start, struct tf_framework* tf) 
             /* Allowed options without value */
             if (strcmp(key, "h") == 0 || strcmp(key, "help") == 0) {
                 tf->args.help = 1;
+                return 0;
+            }
+            if (strcmp(key, "l") == 0 || strcmp(key, "list_tests") == 0) {
+                tf->args.list_tests = 1;
                 return 0;
             }
             fprintf(stderr, "Invalid arg '%s': must be -k=value or --key=value\n", raw_arg);
@@ -324,6 +347,7 @@ static int tf_init(struct tf_framework* tf, int argc, char** argv)
     tf->args.custom_seed = NULL;
     tf->args.help = 0;
     tf->args.targets.size = 0;
+    tf->args.list_tests = 0;
 
     /* Disable buffering for stdout to improve reliability of getting
      * diagnostic information. Happens right at the start of main because
@@ -358,6 +382,11 @@ static int tf_init(struct tf_framework* tf, int argc, char** argv)
 
         if (tf->args.help) {
             help();
+            exit(EXIT_SUCCESS);
+        }
+
+        if (tf->args.list_tests) {
+            print_test_list(tf);
             exit(EXIT_SUCCESS);
         }
     }
