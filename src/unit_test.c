@@ -53,6 +53,11 @@ static int parse_arg(const char* key, const char* value, struct TestFramework* t
     if (strcmp(key, "t") == 0 || strcmp(key, "target") == 0) {
         return parse_target(value, tf);
     }
+    /* Logging */
+    if (strcmp(key, "log") == 0) {
+        tf->args.logging = value && strcmp(value, "1") == 0;
+        return 0;
+    }
 
     /* Unknown key: report just so typos don’t silently pass. */
     printf("Unknown argument '-%s=%s'\n", key, value);
@@ -79,6 +84,7 @@ static void help(void) {
     printf("    -seed=<hex>                         Set a specific RNG seed (default: random)\n");
     printf("    -target=<test name>, -t=<name>      Run a specific test (can be provided multiple times)\n");
     printf("    -target=<module name>, -t=<module>  Run all tests within a specific module (can be provided multiple times)\n");
+    printf("    -log=<0|1>                          Enable or disable test execution logging (default: 0 = disabled)\n");
     printf("\n");
     printf("Notes:\n");
     printf("    - All arguments must be provided in the form '-key=value'.\n");
@@ -181,18 +187,21 @@ static int read_args(int argc, char** argv, int start, struct TestFramework* tf)
     return 0;
 }
 
-static void run_test(const struct TestEntry* t) {
+static void run_test_log(const struct TestEntry* t) {
+    int64_t start_time = gettime_i64();
     printf("Running %s..\n", t->name);
     t->func();
-    printf("%s PASSED\n", t->name);
+    printf("Test %s PASSED (%.3f sec)\n", t->name, (double)(gettime_i64() - start_time) / 1000000);
 }
+
+static void run_test(const struct TestEntry* t) { t->func(); }
 
 /* Process tests in sequential order */
 static int run_sequential(struct TestFramework* tf) {
     int it;
     for (it = 0; it < tf->args.targets.size; it++) {
         TestRef* index = &tf->args.targets.slots[it];
-        run_test(&tf->registry_modules[index->group].data[index->idx]);
+        tf->fn_run_test(&tf->registry_modules[index->group].data[index->idx]);
     }
     return EXIT_SUCCESS;
 }
@@ -230,7 +239,7 @@ static int run_concurrent(struct TestFramework* tf) {
             TestRef tref;
             close(pipes[it][1]); /* Close write end */
             while (read(pipes[it][0], &tref, sizeof(tref)) == sizeof(tref)) {
-                run_test(&tf->registry_modules[tref.group].data[tref.idx]);
+                tf->fn_run_test(&tf->registry_modules[tref.group].data[tref.idx]);
             }
             _exit(EXIT_SUCCESS); /* finish child process */
         } else {
@@ -277,6 +286,7 @@ static int tf_init(struct TestFramework* tf, int argc, char** argv)
     tf->args.num_processes = 0;
     tf->args.custom_seed = NULL;
     tf->args.targets.size = 0;
+    tf->args.logging = 0;
 
     /* Disable buffering for stdout to improve reliability of getting
      * diagnostic information. Happens right at the start of main because
@@ -322,6 +332,7 @@ static int tf_init(struct TestFramework* tf, int argc, char** argv)
         }
     }
 
+    tf->fn_run_test = tf->args.logging ? run_test_log : run_test;
     return EXIT_SUCCESS;
 }
 
@@ -334,6 +345,12 @@ static int tf_run(struct TestFramework* tf) {
     int it;
     /* Initial test time */
     int64_t start_time = gettime_i64(); /* maybe move this after the slots set */
+    /* Verify 'tf_init' has been called */
+    if (!tf->fn_run_test) {
+        fprintf(stderr, "Error: No test runner set. You must call 'tf_init' first to initialize the framework "
+                        "or manually assign 'fn_run_test' before calling 'tf_run'.\n");
+        return EXIT_FAILURE;
+    }
 
     /* Populate targets with all tests if none were explicitly specified */
     run_all = tf->args.targets.size == 0;
@@ -352,12 +369,14 @@ static int tf_run(struct TestFramework* tf) {
         }
     }
 
+    if (!tf->args.logging) printf("Tests running silently. Use '-log=1' to enable detailed logging\n");
+
     /* Run test RNG tests (must run before we really initialize the test RNG) */
     /* Note: currently, these tests are executed sequentially because there */
     /* is really only one test. */
     for (it = 0; tf->registry_no_rng && it < tf->registry_no_rng->size; it++) {
         if (run_all) { /* future: support filtering */
-            run_test(&tf->registry_no_rng->data[it]);
+            tf->fn_run_test(&tf->registry_no_rng->data[it]);
         }
     }
 
