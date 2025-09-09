@@ -23,12 +23,25 @@
 /* --------------------------------------------------------- */
 
 #define CASE(name) { #name, run_##name }
+#define CASE1(name) { #name, name }
 
 #define MAKE_TEST_MODULE(name) {\
     #name, \
     tests_##name, \
     sizeof(tests_##name) / sizeof(tests_##name[0]) \
 }
+
+/* Macro to wrap a test internal function with a COUNT loop (iterations number) */
+#define REPEAT_TEST(fn) REPEAT_TEST_MULT(fn, 1)
+#define REPEAT_TEST_MULT(fn, multiplier)            \
+    static void fn(void) {                          \
+        int i;                                      \
+        int repeat = COUNT * (multiplier);          \
+        for (i = 0; i < repeat; i++)                \
+            fn##_internal();                        \
+    }
+
+
 
 /* --------------------------------------------------------- */
 /* Test Framework API                                        */

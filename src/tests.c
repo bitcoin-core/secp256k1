@@ -7755,12 +7755,6 @@ static struct TestEntry tests_ec[] = {
     CASE(eckey_negate_test),
 };
 
-#ifdef ENABLE_MODULE_ECDH
-static struct TestEntry tests_ecdh[] = {
-    CASE(ecdh_tests),
-};
-#endif
-
 static struct TestEntry tests_ecdsa[] = {
     CASE(ec_illegal_argument_tests),
     CASE(pubkey_comparison),
@@ -7772,37 +7766,6 @@ static struct TestEntry tests_ecdsa[] = {
     CASE(ecdsa_edge_cases),
     CASE(ecdsa_wycheproof),
 };
-
-#ifdef ENABLE_MODULE_RECOVERY
-static struct TestEntry tests_recovery[] = {
-    /* ECDSA pubkey recovery tests */
-    CASE(recovery_tests),
-};
-#endif
-
-#ifdef ENABLE_MODULE_EXTRAKEYS
-static struct TestEntry tests_extrakeys[] = {
-    CASE(extrakeys_tests),
-};
-#endif
-
-#ifdef ENABLE_MODULE_SCHNORRSIG
-static struct TestEntry tests_schnorrsig[] = {
-    CASE(schnorrsig_tests),
-};
-#endif
-
-#ifdef ENABLE_MODULE_MUSIG
-static struct TestEntry tests_musig[] = {
-    CASE(musig_tests),
-};
-#endif
-
-#ifdef ENABLE_MODULE_ELLSWIFT
-static struct TestEntry tests_ellswift[] = {
-    CASE(ellswift_tests),
-};
-#endif
 
 static struct TestEntry tests_utils[] = {
     CASE(hsort_tests),
@@ -7827,6 +7790,7 @@ static const struct TestModule registry_modules[] = {
 #endif
     MAKE_TEST_MODULE(ecdsa),
 #ifdef ENABLE_MODULE_RECOVERY
+    /* ECDSA pubkey recovery tests */
     MAKE_TEST_MODULE(recovery),
 #endif
 #ifdef ENABLE_MODULE_EXTRAKEYS
