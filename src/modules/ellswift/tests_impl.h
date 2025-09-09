@@ -7,6 +7,7 @@
 #define SECP256K1_MODULE_ELLSWIFT_TESTS_H
 
 #include "../../../include/secp256k1_ellswift.h"
+#include "../../unit_test.h"
 
 struct ellswift_xswiftec_inv_test {
     int enc_bitmap;
@@ -432,5 +433,11 @@ void run_ellswift_tests(void) {
         test_sha256_tag_midstate(&sha_optimized, bip324_tag, sizeof(bip324_tag));
     }
 }
+
+/* --- Test registry --- */
+/* TODO: subdivide test in cases */
+static const struct tf_test_entry tests_ellswift[] = {
+    CASE(ellswift_tests),
+};
 
 #endif
