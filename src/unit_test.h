@@ -61,6 +61,7 @@ struct tf_test_module {
 
 typedef int (*setup_ctx_fn)(void);
 typedef int (*teardown_fn)(void);
+typedef void (*run_test_fn)(const struct tf_test_entry*);
 
 struct tf_targets {
     /* Target tests indexes */
@@ -81,6 +82,8 @@ struct tf_args {
     int list_tests;
     /* Target tests indexes */
     struct tf_targets targets;
+    /* Enable test execution logging */
+    int logging;
 };
 
 /* --------------------------------------------------------- */
@@ -99,6 +102,8 @@ struct tf_framework {
     /* Specific context setup and teardown functions */
     setup_ctx_fn fn_setup;
     teardown_fn fn_teardown;
+    /* Test runner function (can be customized) */
+    run_test_fn fn_run_test;
 };
 
 /*

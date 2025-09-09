@@ -26,6 +26,7 @@ static int parse_jobs_count(const char* key, const char* value, struct tf_framew
 static int parse_iterations(const char* key, const char* value, struct tf_framework* tf);
 static int parse_seed(const char* key, const char* value, struct tf_framework* tf);
 static int parse_target(const char* key, const char* value, struct tf_framework* tf);
+static int parse_logging(const char* key, const char* value, struct tf_framework* tf);
 
 /* Mapping table: key -> handler */
 typedef int (*ArgHandler)(const char* key, const char* value, struct tf_framework* tf);
@@ -46,6 +47,7 @@ static struct ArgMap arg_map[] = {
     { "j", parse_jobs_count }, { "jobs", parse_jobs_count },
     { "i", parse_iterations }, { "iterations", parse_iterations },
     { "seed", parse_seed },
+    { "log", parse_logging },
     { NULL, NULL } /* sentinel */
 };
 
@@ -87,6 +89,7 @@ static void help(void) {
     printf("    --seed=<hex>                         Set a specific RNG seed (default: random)\n");
     printf("    --target=<test name>, -t=<name>      Run a specific test (can be provided multiple times)\n");
     printf("    --target=<module name>, -t=<module>  Run all tests within a specific module (can be provided multiple times)\n");
+    printf("    --log=<0|1>                          Enable or disable test execution logging (default: 0 = disabled)\n");
     printf("\n");
     printf("Notes:\n");
     printf("    - All arguments must be provided in the form '--key=value', '-key=value' or '-k=value'.\n");
@@ -143,6 +146,12 @@ static int parse_iterations(const char* key, const char* value, struct tf_framew
 static int parse_seed(const char* key, const char* value, struct tf_framework* tf) {
     UNUSED(key);
     tf->args.custom_seed = (!value || strcmp(value, "NULL") == 0) ? NULL : value;
+    return 0;
+}
+
+static int parse_logging(const char* key, const char* value, struct tf_framework* tf) {
+    UNUSED(key);
+    tf->args.logging = value && strcmp(value, "1") == 0;
     return 0;
 }
 
@@ -250,17 +259,20 @@ static int read_args(int argc, char** argv, int start, struct tf_framework* tf) 
     return 0;
 }
 
-static void run_test(const struct tf_test_entry* t) {
+static void run_test_log(const struct tf_test_entry* t) {
+    int64_t start_time = gettime_i64();
     printf("Running %s..\n", t->name);
     t->func();
-    printf("%s PASSED\n", t->name);
+    printf("Test %s PASSED (%.3f sec)\n", t->name, (double)(gettime_i64() - start_time) / 1000000);
 }
+
+static void run_test(const struct tf_test_entry* t) { t->func(); }
 
 /* Process tests in sequential order */
 static int run_sequential(struct tf_framework* tf) {
     int it;
     for (it = 0; it < tf->args.targets.size; it++) {
-        run_test(tf->args.targets.slots[it]);
+        tf->fn_run_test(tf->args.targets.slots[it]);
     }
     return EXIT_SUCCESS;
 }
@@ -301,7 +313,7 @@ static int run_concurrent(struct tf_framework* tf) {
             /* Child worker: read jobs from the shared pipe */
             close(pipefd[1]); /* children never write */
             while (read(pipefd[0], &idx, sizeof(idx)) == sizeof(idx)) {
-                run_test(tf->args.targets.slots[(int)idx]);
+                tf->fn_run_test(tf->args.targets.slots[(int)idx]);
             }
             _exit(EXIT_SUCCESS); /* finish child process */
         } else {
@@ -348,6 +360,7 @@ static int tf_init(struct tf_framework* tf, int argc, char** argv)
     tf->args.help = 0;
     tf->args.targets.size = 0;
     tf->args.list_tests = 0;
+    tf->args.logging = 0;
 
     /* Disable buffering for stdout to improve reliability of getting
      * diagnostic information. Happens right at the start of main because
@@ -391,6 +404,7 @@ static int tf_init(struct tf_framework* tf, int argc, char** argv)
         }
     }
 
+    tf->fn_run_test = tf->args.logging ? run_test_log : run_test;
     return EXIT_SUCCESS;
 }
 
@@ -403,6 +417,12 @@ static int tf_run(struct tf_framework* tf) {
     int it;
     /* Initial test time */
     int64_t start_time = gettime_i64();
+    /* Verify 'tf_init' has been called */
+    if (!tf->fn_run_test) {
+        fprintf(stderr, "Error: No test runner set. You must call 'tf_init' first to initialize the framework "
+                        "or manually assign 'fn_run_test' before calling 'tf_run'.\n");
+        return EXIT_FAILURE;
+    }
 
     /* Populate targets with all tests if none were explicitly specified */
     run_all = tf->args.targets.size == 0;
@@ -421,6 +441,8 @@ static int tf_run(struct tf_framework* tf) {
         }
     }
 
+    if (!tf->args.logging) printf("Tests running silently. Use '-log=1' to enable detailed logging\n");
+
     /* Log configuration */
     print_args(&tf->args);
 
@@ -429,7 +451,7 @@ static int tf_run(struct tf_framework* tf) {
     /* is really only one test. */
     for (it = 0; tf->registry_no_rng && it < tf->registry_no_rng->size; it++) {
         if (run_all) { /* future: support filtering */
-            run_test(&tf->registry_no_rng->data[it]);
+            tf->fn_run_test(&tf->registry_no_rng->data[it]);
         }
     }
 
