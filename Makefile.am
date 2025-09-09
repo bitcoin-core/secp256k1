@@ -45,6 +45,7 @@ noinst_HEADERS += src/precomputed_ecmult.h
 noinst_HEADERS += src/precomputed_ecmult_gen.h
 noinst_HEADERS += src/assumptions.h
 noinst_HEADERS += src/checkmem.h
+noinst_HEADERS += src/tests_common.h
 noinst_HEADERS += src/testutil.h
 noinst_HEADERS += src/util.h
 noinst_HEADERS += src/util_local_visibility.h
