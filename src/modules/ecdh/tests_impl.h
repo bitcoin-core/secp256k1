@@ -7,6 +7,8 @@
 #ifndef SECP256K1_MODULE_ECDH_TESTS_H
 #define SECP256K1_MODULE_ECDH_TESTS_H
 
+#include "../../unit_test.h"
+
 static int ecdh_hash_function_test_xpassthru(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
     (void)y;
     (void)data;
@@ -182,12 +184,13 @@ static void test_ecdh_wycheproof(void) {
     }
 }
 
-static void run_ecdh_tests(void) {
-    test_ecdh_api();
-    test_ecdh_generator_basepoint();
-    test_bad_scalar();
-    test_result_basepoint();
-    test_ecdh_wycheproof();
-}
+/* --- Test registry --- */
+static struct TestEntry tests_ecdh[] = {
+    CASE1(test_ecdh_api),
+    CASE1(test_ecdh_generator_basepoint),
+    CASE1(test_bad_scalar),
+    CASE1(test_result_basepoint),
+    CASE1(test_ecdh_wycheproof),
+};
 
 #endif /* SECP256K1_MODULE_ECDH_TESTS_H */
