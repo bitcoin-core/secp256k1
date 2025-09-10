@@ -852,7 +852,7 @@ static SECP256K1_WARN_UNUSED_RESULT int compute_group_commitment(/* out */ secp2
     secp256k1_gej_set_infinity(group_commitment);
 
     for (index = 0; index < num_signers; index++) {
-        secp256k1_scalar *rho_i;
+        secp256k1_scalar *rho_i = NULL;
         secp256k1_gej partial;
         int found;
         const secp256k1_frost_nonce_commitment *commitment;
@@ -1249,7 +1249,7 @@ static SECP256K1_WARN_UNUSED_RESULT int verify_signature_share(const secp256k1_c
     secp256k1_gej signer_pubkey;
     secp256k1_gej partial, commitment_i, hiding_cmt, binding_cmt;
     secp256k1_scalar lambda_i;
-    secp256k1_scalar *matching_rho_i;
+    secp256k1_scalar *matching_rho_i = NULL;
     uint32_t index;
     int found;
 
