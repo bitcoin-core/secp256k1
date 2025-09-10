@@ -398,6 +398,7 @@ int main(int argc, char **argv) {
         }
     }
 
+    print_clock_info();
     print_output_table_header_row();
 
     if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "half")) run_benchmark("scalar_half", bench_scalar_half, bench_setup, NULL, &data, 10, iters*100);

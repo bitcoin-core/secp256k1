@@ -156,6 +156,14 @@ static int get_iters(int default_iters) {
     }
 }
 
+static void print_clock_info(void) {
+#if defined(CLOCK_PROCESS_CPUTIME_ID)
+    printf("INFO: Using per-process CPU timer\n\n");
+#else
+    printf("WARN: Using global timer instead of per-process CPU timer.\n\n");
+#endif
+}
+
 static void print_output_table_header_row(void) {
     char* bench_str = "Benchmark";     /* left justified */
     char* min_str = "    Min(us)    "; /* center alignment */
