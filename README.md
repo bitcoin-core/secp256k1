@@ -159,6 +159,8 @@ Benchmark
 ------------
 If configured with `--enable-benchmark` (which is the default), binaries for benchmarking the libsecp256k1 functions will be present in the root directory after the build.
 
+For reliable benchmarks, it is strongly recommended to pin the process to a single CPU core and to disable CPU frequency scaling.
+
 To print the benchmark result to the command line:
 
     $ ./bench_name
