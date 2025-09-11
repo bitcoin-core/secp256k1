@@ -10,9 +10,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include "testrand.h"
-#include "hash.h"
+#include "hash_impl.h"
 #include "util.h"
 
 static uint64_t secp256k1_test_state[4];
