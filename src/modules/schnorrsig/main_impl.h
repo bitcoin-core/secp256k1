@@ -94,7 +94,7 @@ static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *ms
     secp256k1_sha256_write(&sha, msg, msglen);
     secp256k1_sha256_finalize(&sha, nonce32);
     secp256k1_sha256_clear(&sha);
-    secp256k1_memclear(masked_key, sizeof(masked_key));
+    secp256k1_memclear_explicit(masked_key, sizeof(masked_key));
 
     return 1;
 }
@@ -190,8 +190,8 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
     secp256k1_memczero(sig64, 64, !ret);
     secp256k1_scalar_clear(&k);
     secp256k1_scalar_clear(&sk);
-    secp256k1_memclear(seckey, sizeof(seckey));
-    secp256k1_memclear(nonce32, sizeof(nonce32));
+    secp256k1_memclear_explicit(seckey, sizeof(seckey));
+    secp256k1_memclear_explicit(nonce32, sizeof(nonce32));
     secp256k1_gej_clear(&rj);
 
     return ret;
