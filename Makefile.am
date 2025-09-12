@@ -221,6 +221,18 @@ silentpayments_example_LDFLAGS += -lbcrypt
 endif
 TESTS += silentpayments_example
 endif
+
+if ENABLE_MODULE_FULLAGG
+noinst_PROGRAMS += fullagg_example
+fullagg_example_SOURCES = examples/fullagg.c
+fullagg_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+fullagg_example_LDADD = libsecp256k1.la
+fullagg_example_LDFLAGS = -static
+if BUILD_WINDOWS
+fullagg_example_LDFLAGS += -lbcrypt
+endif
+TESTS += fullagg_example
+endif
 endif
 
 ### Precomputed tables
@@ -330,6 +342,10 @@ endif
 
 if ENABLE_MODULE_MUSIG
 include src/modules/musig/Makefile.am.include
+endif
+
+if ENABLE_MODULE_FULLAGG
+include src/modules/fullagg/Makefile.am.include
 endif
 
 if ENABLE_MODULE_ELLSWIFT
