@@ -17,6 +17,14 @@
 
 #include "examples_util.h"
 
+/* Identity hash function for ECDH, returns x coordinate directly */
+int ecdh_hash(unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data) {
+    (void)y32;
+    (void)data;
+    memcpy(output, x32, 32);
+    return 1;
+}
+
 int main(void) {
     unsigned char seckey1[32];
     unsigned char seckey2[32];
@@ -79,12 +87,12 @@ int main(void) {
 
     /* Perform ECDH with seckey1 and pubkey2. Should never fail with a verified
      * seckey and valid pubkey */
-    return_val = secp256k1_ecdh(ctx, shared_secret1, &pubkey2, seckey1, NULL, NULL);
+    return_val = secp256k1_ecdh(ctx, shared_secret1, &pubkey2, seckey1, ecdh_hash, NULL);
     assert(return_val);
 
     /* Perform ECDH with seckey2 and pubkey1. Should never fail with a verified
      * seckey and valid pubkey */
-    return_val = secp256k1_ecdh(ctx, shared_secret2, &pubkey1, seckey2, NULL, NULL);
+    return_val = secp256k1_ecdh(ctx, shared_secret2, &pubkey1, seckey2, ecdh_hash, NULL);
     assert(return_val);
 
     /* Both parties should end up with the same shared secret */
