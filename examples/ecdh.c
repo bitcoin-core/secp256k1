@@ -17,11 +17,14 @@
 
 #include "examples_util.h"
 
-/* Identity hash function for ECDH, returns x coordinate directly */
-int ecdh_hash(unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data) {
-    (void)y32;
-    (void)data;
-    memcpy(output, x32, 32);
+int extract_x_coordinate(const secp256k1_context* ctx, const secp256k1_pubkey* pubkey, unsigned char x[32]) {
+    unsigned char serialized[33];
+    size_t len = sizeof(serialized);
+
+    if (!secp256k1_ec_pubkey_serialize(ctx, serialized, &len, pubkey, SECP256K1_EC_COMPRESSED))
+        return 0;
+
+    memcpy(x, serialized + 1, 32);
     return 1;
 }
 
@@ -32,6 +35,7 @@ int main(void) {
     unsigned char compressed_pubkey2[33];
     unsigned char shared_secret1[32];
     unsigned char shared_secret2[32];
+    unsigned char x1[32], x2[32];
     unsigned char randomize[32];
     int return_val;
     size_t len;
@@ -55,71 +59,59 @@ int main(void) {
         printf("Failed to generate randomness\n");
         return EXIT_FAILURE;
     }
-    /* If the secret key is zero or out of range (greater than secp256k1's
-    * order), we fail. Note that the probability of this occurring is negligible
-    * with a properly functioning random number generator. */
     if (!secp256k1_ec_seckey_verify(ctx, seckey1) || !secp256k1_ec_seckey_verify(ctx, seckey2)) {
         printf("Generated secret key is invalid. This indicates an issue with the random number generator.\n");
         return EXIT_FAILURE;
     }
 
-    /* Public key creation using a valid context with a verified secret key should never fail */
     return_val = secp256k1_ec_pubkey_create(ctx, &pubkey1, seckey1);
     assert(return_val);
     return_val = secp256k1_ec_pubkey_create(ctx, &pubkey2, seckey2);
     assert(return_val);
 
-    /* Serialize pubkey1 in a compressed form (33 bytes), should always return 1 */
     len = sizeof(compressed_pubkey1);
     return_val = secp256k1_ec_pubkey_serialize(ctx, compressed_pubkey1, &len, &pubkey1, SECP256K1_EC_COMPRESSED);
     assert(return_val);
-    /* Should be the same size as the size of the output, because we passed a 33 byte array. */
     assert(len == sizeof(compressed_pubkey1));
 
-    /* Serialize pubkey2 in a compressed form (33 bytes) */
     len = sizeof(compressed_pubkey2);
     return_val = secp256k1_ec_pubkey_serialize(ctx, compressed_pubkey2, &len, &pubkey2, SECP256K1_EC_COMPRESSED);
     assert(return_val);
-    /* Should be the same size as the size of the output, because we passed a 33 byte array. */
     assert(len == sizeof(compressed_pubkey2));
 
     /*** Creating the shared secret ***/
-
-    /* Perform ECDH with seckey1 and pubkey2. Should never fail with a verified
-     * seckey and valid pubkey */
-    return_val = secp256k1_ecdh(ctx, shared_secret1, &pubkey2, seckey1, ecdh_hash, NULL);
+    return_val = secp256k1_ecdh(ctx, shared_secret1, &pubkey2, seckey1, NULL, NULL);
     assert(return_val);
 
-    /* Perform ECDH with seckey2 and pubkey1. Should never fail with a verified
-     * seckey and valid pubkey */
-    return_val = secp256k1_ecdh(ctx, shared_secret2, &pubkey1, seckey2, ecdh_hash, NULL);
+    return_val = secp256k1_ecdh(ctx, shared_secret2, &pubkey1, seckey2, NULL, NULL);
     assert(return_val);
 
-    /* Both parties should end up with the same shared secret */
     return_val = memcmp(shared_secret1, shared_secret2, sizeof(shared_secret1));
     assert(return_val == 0);
+
+    /* Извлекаем X-координату */
+    assert(extract_x_coordinate(ctx, &pubkey1, x1));
+    assert(extract_x_coordinate(ctx, &pubkey2, x2));
 
     printf("Secret Key1: ");
     print_hex(seckey1, sizeof(seckey1));
     printf("Compressed Pubkey1: ");
     print_hex(compressed_pubkey1, sizeof(compressed_pubkey1));
+    printf("X-coordinate Pubkey1: ");
+    print_hex(x1, sizeof(x1));
+
     printf("\nSecret Key2: ");
     print_hex(seckey2, sizeof(seckey2));
     printf("Compressed Pubkey2: ");
     print_hex(compressed_pubkey2, sizeof(compressed_pubkey2));
+    printf("X-coordinate Pubkey2: ");
+    print_hex(x2, sizeof(x2));
+
     printf("\nShared Secret: ");
     print_hex(shared_secret1, sizeof(shared_secret1));
 
-    /* This will clear everything from the context and free the memory */
     secp256k1_context_destroy(ctx);
 
-    /* It's best practice to try to clear secrets from memory after using them.
-     * This is done because some bugs can allow an attacker to leak memory, for
-     * example through "out of bounds" array access (see Heartbleed), or the OS
-     * swapping them to disk. Hence, we overwrite the secret key buffer with zeros.
-     *
-     * Here we are preventing these writes from being optimized out, as any good compiler
-     * will remove any writes that aren't used. */
     secure_erase(seckey1, sizeof(seckey1));
     secure_erase(seckey2, sizeof(seckey2));
     secure_erase(shared_secret1, sizeof(shared_secret1));
