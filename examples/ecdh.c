@@ -89,7 +89,6 @@ int main(void) {
     return_val = memcmp(shared_secret1, shared_secret2, sizeof(shared_secret1));
     assert(return_val == 0);
 
-    /* Извлекаем X-координату */
     assert(extract_x_coordinate(ctx, &pubkey1, x1));
     assert(extract_x_coordinate(ctx, &pubkey2, x2));
 
