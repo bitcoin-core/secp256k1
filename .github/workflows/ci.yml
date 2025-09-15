@@ -750,6 +750,8 @@ jobs:
         run: |
           ./tools/check-headers.sh \
             src/field.h \
+            src/field_5x52.h \
+            src/field_10x26.h \
             src/hash.h \
             src/hash_impl.h
 
