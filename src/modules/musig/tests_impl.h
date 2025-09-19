@@ -20,6 +20,7 @@
 #include "../../group.h"
 #include "../../hash.h"
 #include "../../util.h"
+#include "../../unit_test.h"
 
 #include "vectors.h"
 
@@ -36,7 +37,7 @@ static int create_keypair_and_pk(secp256k1_keypair *keypair, secp256k1_pubkey *p
 
 /* Just a simple (non-tweaked) 2-of-2 MuSig aggregate, sign, verify
  * test. */
-static void musig_simple_test(void) {
+static void musig_simple_test_internal(void) {
     unsigned char sk[2][32];
     secp256k1_keypair keypair[2];
     secp256k1_musig_pubnonce pubnonce[2];
@@ -629,7 +630,7 @@ static void musig_tweak_test_helper(const secp256k1_xonly_pubkey* agg_pk, const 
 
 /* Create aggregate public key P[0], tweak multiple times (using xonly and
  * plain tweaking) and test signing. */
-static void musig_tweak_test(void) {
+static void musig_tweak_test_internal(void) {
     unsigned char sk[2][32];
     secp256k1_pubkey pk[2];
     const secp256k1_pubkey *pk_ptr[2];
@@ -1114,28 +1115,24 @@ static void musig_test_static_nonce_gen_counter(void) {
     CHECK(secp256k1_memcmp_var(pubnonce66, expected_pubnonce, sizeof(pubnonce66)) == 0);
 }
 
-static void run_musig_tests(void) {
-    int i;
+/* --- Test registry --- */
+REPEAT_TEST(musig_simple_test)
+/* Run multiple times to ensure that pk and nonce have different y parities */
+REPEAT_TEST(musig_tweak_test)
 
-    for (i = 0; i < COUNT; i++) {
-        musig_simple_test();
-    }
-    musig_api_tests();
-    musig_nonce_test();
-    for (i = 0; i < COUNT; i++) {
-        /* Run multiple times to ensure that pk and nonce have different y
-         * parities */
-        musig_tweak_test();
-    }
-    sha256_tag_test();
-    musig_test_vectors_keyagg();
-    musig_test_vectors_noncegen();
-    musig_test_vectors_nonceagg();
-    musig_test_vectors_signverify();
-    musig_test_vectors_tweak();
-    musig_test_vectors_sigagg();
-
-    musig_test_static_nonce_gen_counter();
-}
+static struct TestEntry tests_musig[] = {
+    CASE1(musig_simple_test),
+    CASE1(musig_api_tests),
+    CASE1(musig_nonce_test),
+    CASE1(musig_tweak_test),
+    CASE1(sha256_tag_test),
+    CASE1(musig_test_vectors_keyagg),
+    CASE1(musig_test_vectors_noncegen),
+    CASE1(musig_test_vectors_nonceagg),
+    CASE1(musig_test_vectors_signverify),
+    CASE1(musig_test_vectors_tweak),
+    CASE1(musig_test_vectors_sigagg),
+    CASE1(musig_test_static_nonce_gen_counter),
+};
 
 #endif
