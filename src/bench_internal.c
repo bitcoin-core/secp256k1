@@ -3,6 +3,9 @@
  * Distributed under the MIT software license, see the accompanying    *
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
+
+#define _POSIX_C_SOURCE 200112L /* for clock_gettime() */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -398,6 +401,7 @@ int main(int argc, char **argv) {
         }
     }
 
+    print_clock_info();
     print_output_table_header_row();
 
     if (d || have_flag(argc, argv, "scalar") || have_flag(argc, argv, "half")) run_benchmark("scalar_half", bench_scalar_half, bench_setup, NULL, &data, 10, iters*100);

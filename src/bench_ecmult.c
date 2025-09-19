@@ -3,6 +3,9 @@
  * Distributed under the MIT software license, see the accompanying    *
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
+
+#define _POSIX_C_SOURCE 200112L /* for clock_gettime() */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -362,7 +365,7 @@ int main(int argc, char **argv) {
     }
     secp256k1_ge_set_all_gej_var(data.pubkeys, data.pubkeys_gej, POINTS);
 
-
+    print_clock_info();
     print_output_table_header_row();
     /* Initialize offset1 and offset2 */
     hash_into_offset(&data, 0);
