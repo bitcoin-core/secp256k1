@@ -192,8 +192,8 @@ AC_ARG_ENABLE(module_ellswift,
     [SECP_SET_DEFAULT([enable_module_ellswift], [yes], [yes])])
 
 AC_ARG_ENABLE(module_batch,
-    AS_HELP_STRING([--enable-module-batch],[enable batch verification module (experimental) [default=no]]), [],
-    [SECP_SET_DEFAULT([enable_module_batch], [no], [yes])])
+    AS_HELP_STRING([--enable-module-batch],[enable batch verification module [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_module_batch], [yes], [yes])])
 
 AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]), [],
@@ -448,9 +448,6 @@ fi
 if test x"$enable_experimental" = x"no"; then
   if test x"$set_asm" = x"arm32"; then
     AC_MSG_ERROR([ARM32 assembly is experimental. Use --enable-experimental to allow.])
-  fi
-  if test x"$enable_module_batch" = x"yes"; then
-    AC_MSG_ERROR([batch verification module is experimental. Use --enable-experimental to allow.])
   fi
 fi
 

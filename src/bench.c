@@ -251,7 +251,7 @@ int main(int argc, char** argv) {
 #ifndef ENABLE_MODULE_BATCH
     if (have_flag(argc, argv, "batch") || have_flag(argc, argv, "batch_schnorrsigs") || have_flag(argc, argv, "batch_tweak_checks")) {
         fprintf(stderr, "./bench: Batch module not enabled.\n");
-        fprintf(stderr, "Use ./configure --enable-module-batch --enable-experimental.\n\n");
+        fprintf(stderr, "Use ./configure --enable-module-batch.\n\n");
         return EXIT_FAILURE;
     }
 #endif
