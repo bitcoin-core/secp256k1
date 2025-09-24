@@ -7,6 +7,10 @@
 #ifndef SECP256K1_SCRATCH_H
 #define SECP256K1_SCRATCH_H
 
+#include "secp256k1_internal.h"
+
+#include <stdlib.h>
+
 /* The typedef is used internally; the struct name is used in the public API
  * (where it is exposed as a different typedef) */
 typedef struct secp256k1_scratch_space_struct {

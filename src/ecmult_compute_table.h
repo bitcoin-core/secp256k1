@@ -7,6 +7,8 @@
 #ifndef SECP256K1_ECMULT_COMPUTE_TABLE_H
 #define SECP256K1_ECMULT_COMPUTE_TABLE_H
 
+#include "group.h"
+
 /* Construct table of all odd multiples of gen in range 1..(2**(window_g-1)-1). */
 static void secp256k1_ecmult_compute_table(secp256k1_ge_storage* table, int window_g, const secp256k1_gej* gen);
 
