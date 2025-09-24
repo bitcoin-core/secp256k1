@@ -70,7 +70,7 @@ RUN \
     # Determine the version number of the LLVM development branch
     LLVM_VERSION=$(apt-cache search --names-only '^clang-[0-9]+$' | sort -V | tail -1 | cut -f1 -d" " | cut -f2 -d"-" ) && \
     # Install
-    apt-get install --no-install-recommends -y "clang-${LLVM_VERSION}" && \
+    apt-get install --no-install-recommends -y "clang-${LLVM_VERSION}" "libclang-rt-${LLVM_VERSION}-dev" && \
     # Create symlink
     ln -s "/usr/bin/clang-${LLVM_VERSION}" /usr/bin/clang-snapshot && \
     # Clean up
