@@ -1,8 +1,8 @@
-libsecp256k1
+hash256ktone
 ============
 
 ![Dependencies: None](https://img.shields.io/badge/dependencies-none-success)
-[![irc.libera.chat #secp256k1](https://img.shields.io/badge/irc.libera.chat-%23secp256k1-success)](https://web.libera.chat/#secp256k1)
+[![irc.libera.chat #sec256ktone](https://img.shields.io/badge/irc.libera.chat-%23secp256k1-success)](https://web.libera.chat/#hash256u)
 
 High-performance high-assurance C library for digital signatures and other cryptographic primitives on the secp256k1 elliptic curve.
 
@@ -22,7 +22,7 @@ Features:
 * Optional module for Schnorr signatures according to [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki).
 * Optional module for ElligatorSwift key exchange according to [BIP-324](https://github.com/bitcoin/bips/blob/master/bip-0324.mediawiki).
 * Optional module for MuSig2 Schnorr multi-signatures according to [BIP-327](https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki).
-
+8
 Implementation details
 ----------------------
 
