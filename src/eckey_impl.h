@@ -55,6 +55,39 @@ static int secp256k1_eckey_pubkey_serialize(secp256k1_ge *elem, unsigned char *p
     return 1;
 }
 
+/* Outputs 33 zero bytes if the given group element is the point at infinity,
+ * otherwise outputs the compressed serialization */
+static void secp256k1_eckey_serialize_ext(unsigned char *out33, secp256k1_ge* ge) {
+    if (secp256k1_ge_is_infinity(ge)) {
+        memset(out33, 0, 33);
+    } else {
+        int ret;
+        size_t size = 33;
+        ret = secp256k1_eckey_pubkey_serialize(ge, out33, &size, 1);
+#ifdef VERIFY
+        /* Serialize must succeed because the point is not at infinity */
+        VERIFY_CHECK(ret && size == 33);
+#else
+        (void) ret;
+#endif
+    }
+}
+
+/* Outputs the point at infinity if the given byte array is all zero,
+ * otherwise attempts to parse compressed point serialization */
+static int secp256k1_eckey_parse_ext(secp256k1_ge* ge, const unsigned char *in33) {
+    unsigned char zeros[33] = { 0 };
+    
+    if (secp256k1_memcmp_var(in33, zeros, sizeof(zeros)) == 0) {
+        secp256k1_ge_set_infinity(ge);
+        return 1;
+    }
+    if (!secp256k1_eckey_pubkey_parse(ge, in33, 33)) {
+        return 0;
+    }
+    return secp256k1_ge_is_in_correct_subgroup(ge);
+}
+
 static int secp256k1_eckey_privkey_tweak_add(secp256k1_scalar *key, const secp256k1_scalar *tweak) {
     secp256k1_scalar_add(key, key, tweak);
     return !secp256k1_scalar_is_zero(key);
