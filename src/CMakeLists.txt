@@ -126,10 +126,10 @@ unset(${PROJECT_NAME}_soversion)
 
 if(SECP256K1_BUILD_BENCHMARK)
   add_executable(bench bench.c)
-  target_link_libraries(bench secp256k1)
   add_executable(bench_internal bench_internal.c)
-  target_link_libraries(bench_internal secp256k1_precomputed secp256k1_asm)
   add_executable(bench_ecmult bench_ecmult.c)
+  target_link_libraries(bench secp256k1)
+  target_link_libraries(bench_internal secp256k1_precomputed secp256k1_asm)
   target_link_libraries(bench_ecmult secp256k1_precomputed secp256k1_asm)
 endif()
 
