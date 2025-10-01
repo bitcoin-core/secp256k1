@@ -136,6 +136,15 @@ if(SECP256K1_BUILD_BENCHMARK)
   target_link_libraries(secp256k1_bench secp256k1 optional_rt)
   target_link_libraries(secp256k1_bench_internal secp256k1_precomputed secp256k1_asm optional_rt)
   target_link_libraries(secp256k1_bench_ecmult secp256k1_precomputed secp256k1_asm optional_rt)
+  add_test(NAME secp256k1_bench COMMAND secp256k1_bench)
+  add_test(NAME secp256k1_bench_internal COMMAND secp256k1_bench_internal)
+  add_test(NAME secp256k1_bench_ecmult COMMAND secp256k1_bench_ecmult)
+  set_tests_properties(secp256k1_bench secp256k1_bench_internal secp256k1_bench_ecmult
+    PROPERTIES
+      PROCESSORS 1
+      PROCESSOR_AFFINITY ON
+      RUN_SERIAL ON
+  )
 endif()
 
 if(SECP256K1_BUILD_TESTS)
