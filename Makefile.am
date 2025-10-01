@@ -106,109 +106,109 @@ libsecp256k1_la_LDFLAGS = -no-undefined -version-info $(LIB_VERSION_CURRENT):$(L
 
 noinst_PROGRAMS =
 if USE_BENCHMARK
-noinst_PROGRAMS += bench bench_internal bench_ecmult
-bench_SOURCES = src/bench.c
-bench_LDADD = libsecp256k1.la
-bench_CPPFLAGS = $(SECP_CONFIG_DEFINES)
-bench_internal_SOURCES = src/bench_internal.c
-bench_internal_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
-bench_internal_CPPFLAGS = $(SECP_CONFIG_DEFINES)
-bench_ecmult_SOURCES = src/bench_ecmult.c
-bench_ecmult_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
-bench_ecmult_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+noinst_PROGRAMS += secp256k1_bench secp256k1_bench_internal secp256k1_bench_ecmult
+secp256k1_bench_SOURCES = src/bench.c
+secp256k1_bench_LDADD = libsecp256k1.la
+secp256k1_bench_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+secp256k1_bench_internal_SOURCES = src/bench_internal.c
+secp256k1_bench_internal_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
+secp256k1_bench_internal_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+secp256k1_bench_ecmult_SOURCES = src/bench_ecmult.c
+secp256k1_bench_ecmult_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
+secp256k1_bench_ecmult_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 endif
 
 TESTS =
 if USE_TESTS
-TESTS += noverify_tests
-noinst_PROGRAMS += noverify_tests
-noverify_tests_SOURCES = src/tests.c
-noverify_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES) $(TEST_DEFINES)
-noverify_tests_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
-noverify_tests_LDFLAGS = -static
+TESTS += secp256k1_noverify_tests
+noinst_PROGRAMS += secp256k1_noverify_tests
+secp256k1_noverify_tests_SOURCES = src/tests.c
+secp256k1_noverify_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES) $(TEST_DEFINES)
+secp256k1_noverify_tests_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
+secp256k1_noverify_tests_LDFLAGS = -static
 if !ENABLE_COVERAGE
-TESTS += tests
-noinst_PROGRAMS += tests
-tests_SOURCES  = $(noverify_tests_SOURCES)
-tests_CPPFLAGS = $(noverify_tests_CPPFLAGS) -DVERIFY
-tests_LDADD    = $(noverify_tests_LDADD)
-tests_LDFLAGS  = $(noverify_tests_LDFLAGS)
+TESTS += secp256k1_tests
+noinst_PROGRAMS += secp256k1_tests
+secp256k1_tests_SOURCES  = $(secp256k1_noverify_tests_SOURCES)
+secp256k1_tests_CPPFLAGS = $(secp256k1_noverify_tests_CPPFLAGS) -DVERIFY
+secp256k1_tests_LDADD    = $(secp256k1_noverify_tests_LDADD)
+secp256k1_tests_LDFLAGS  = $(secp256k1_noverify_tests_LDFLAGS)
 endif
 endif
 
 if USE_CTIME_TESTS
-noinst_PROGRAMS += ctime_tests
-ctime_tests_SOURCES = src/ctime_tests.c
-ctime_tests_LDADD = libsecp256k1.la
-ctime_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+noinst_PROGRAMS += secp256k1_ctime_tests
+secp256k1_ctime_tests_SOURCES = src/ctime_tests.c
+secp256k1_ctime_tests_LDADD = libsecp256k1.la
+secp256k1_ctime_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 endif
 
 if USE_EXHAUSTIVE_TESTS
-noinst_PROGRAMS += exhaustive_tests
-exhaustive_tests_SOURCES = src/tests_exhaustive.c
-exhaustive_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+noinst_PROGRAMS += secp256k1_exhaustive_tests
+secp256k1_exhaustive_tests_SOURCES = src/tests_exhaustive.c
+secp256k1_exhaustive_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 if !ENABLE_COVERAGE
-exhaustive_tests_CPPFLAGS += -DVERIFY
+secp256k1_exhaustive_tests_CPPFLAGS += -DVERIFY
 endif
 # Note: do not include $(PRECOMPUTED_LIB) in exhaustive_tests (it uses runtime-generated tables).
-exhaustive_tests_LDADD = $(COMMON_LIB)
-exhaustive_tests_LDFLAGS = -static
-TESTS += exhaustive_tests
+secp256k1_exhaustive_tests_LDADD = $(COMMON_LIB)
+secp256k1_exhaustive_tests_LDFLAGS = -static
+TESTS += secp256k1_exhaustive_tests
 endif
 
 if USE_EXAMPLES
-noinst_PROGRAMS += ecdsa_example
-ecdsa_example_SOURCES = examples/ecdsa.c
-ecdsa_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
-ecdsa_example_LDADD = libsecp256k1.la
-ecdsa_example_LDFLAGS = -static
+noinst_PROGRAMS += secp256k1_ecdsa_example
+secp256k1_ecdsa_example_SOURCES = examples/ecdsa.c
+secp256k1_ecdsa_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+secp256k1_ecdsa_example_LDADD = libsecp256k1.la
+secp256k1_ecdsa_example_LDFLAGS = -static
 if BUILD_WINDOWS
-ecdsa_example_LDFLAGS += -lbcrypt
+secp256k1_ecdsa_example_LDFLAGS += -lbcrypt
 endif
-TESTS += ecdsa_example
+TESTS += secp256k1_ecdsa_example
 if ENABLE_MODULE_ECDH
-noinst_PROGRAMS += ecdh_example
-ecdh_example_SOURCES = examples/ecdh.c
-ecdh_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
-ecdh_example_LDADD = libsecp256k1.la
-ecdh_example_LDFLAGS = -static
+noinst_PROGRAMS += secp256k1_ecdh_example
+secp256k1_ecdh_example_SOURCES = examples/ecdh.c
+secp256k1_ecdh_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+secp256k1_ecdh_example_LDADD = libsecp256k1.la
+secp256k1_ecdh_example_LDFLAGS = -static
 if BUILD_WINDOWS
-ecdh_example_LDFLAGS += -lbcrypt
+secp256k1_ecdh_example_LDFLAGS += -lbcrypt
 endif
-TESTS += ecdh_example
+TESTS += secp256k1_ecdh_example
 endif
 if ENABLE_MODULE_SCHNORRSIG
-noinst_PROGRAMS += schnorr_example
-schnorr_example_SOURCES = examples/schnorr.c
-schnorr_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
-schnorr_example_LDADD = libsecp256k1.la
-schnorr_example_LDFLAGS = -static
+noinst_PROGRAMS += secp256k1_schnorr_example
+secp256k1_schnorr_example_SOURCES = examples/schnorr.c
+secp256k1_schnorr_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+secp256k1_schnorr_example_LDADD = libsecp256k1.la
+secp256k1_schnorr_example_LDFLAGS = -static
 if BUILD_WINDOWS
-schnorr_example_LDFLAGS += -lbcrypt
+secp256k1_schnorr_example_LDFLAGS += -lbcrypt
 endif
-TESTS += schnorr_example
+TESTS += secp256k1_schnorr_example
 endif
 if ENABLE_MODULE_ELLSWIFT
-noinst_PROGRAMS += ellswift_example
-ellswift_example_SOURCES = examples/ellswift.c
-ellswift_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
-ellswift_example_LDADD = libsecp256k1.la
-ellswift_example_LDFLAGS = -static
+noinst_PROGRAMS += secp256k1_ellswift_example
+secp256k1_ellswift_example_SOURCES = examples/ellswift.c
+secp256k1_ellswift_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+secp256k1_ellswift_example_LDADD = libsecp256k1.la
+secp256k1_ellswift_example_LDFLAGS = -static
 if BUILD_WINDOWS
-ellswift_example_LDFLAGS += -lbcrypt
+secp256k1_ellswift_example_LDFLAGS += -lbcrypt
 endif
-TESTS += ellswift_example
+TESTS += secp256k1_ellswift_example
 endif
 if ENABLE_MODULE_MUSIG
-noinst_PROGRAMS += musig_example
-musig_example_SOURCES = examples/musig.c
-musig_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
-musig_example_LDADD = libsecp256k1.la
-musig_example_LDFLAGS = -static
+noinst_PROGRAMS += secp256k1_musig_example
+secp256k1_musig_example_SOURCES = examples/musig.c
+secp256k1_musig_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+secp256k1_musig_example_LDADD = libsecp256k1.la
+secp256k1_musig_example_LDFLAGS = -static
 if BUILD_WINDOWS
-musig_example_LDFLAGS += -lbcrypt
+secp256k1_musig_example_LDFLAGS += -lbcrypt
 endif
-TESTS += musig_example
+TESTS += secp256k1_musig_example
 endif
 endif
 
