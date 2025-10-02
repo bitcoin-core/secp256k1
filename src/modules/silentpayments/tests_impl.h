@@ -359,11 +359,160 @@ static void test_label_api(void) {
     }
 }
 
+static void test_recipient_api(void) {
+    secp256k1_silentpayments_prevouts_summary ps; /* prevouts_summary */
+    secp256k1_silentpayments_prevouts_summary md; /* malformed prevouts_summary */
+    secp256k1_silentpayments_found_output f;      /* a silent payment found output */
+    secp256k1_silentpayments_found_output *fp[1]; /* array of pointers to found outputs */
+    secp256k1_silentpayments_label_entry le[1];   /* label entries */
+    const secp256k1_silentpayments_label_entry *lep[1]; /* array of pointers to label entries */
+    secp256k1_xonly_pubkey t;                     /* taproot x-only public key */
+    unsigned char t_ser[32];                      /* serialized taproot x-only public key */
+    secp256k1_xonly_pubkey malformed_t;           /* malformed x-only public key */
+    secp256k1_xonly_pubkey const *tp[1];          /* array of pointers to xonly pks */
+    const unsigned char *tp_ser[1];                     /* array of pointers to serialized xonly pks */
+    secp256k1_pubkey p;                           /* plain public key */
+    secp256k1_pubkey malformed_p;                 /* malformed public key */
+    secp256k1_pubkey const *pp[1];                /* array of pointers to plain pks */
+    uint32_t n_f;                                 /* number of found outputs */
+
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &p, BOB_ADDRESS[0], 33));
+    memset(&malformed_p, 0, sizeof(malformed_p));
+    memset(&malformed_t, 0, sizeof(malformed_t));
+    memset(&md, 0, sizeof(md));
+    md.data[4] = 1;
+    CHECK(secp256k1_xonly_pubkey_parse(CTX, &t, &BOB_ADDRESS[0][1]));
+    memcpy(t_ser, &BOB_ADDRESS[0][1], 32);
+    tp[0] = &t;
+    tp_ser[0] = &t_ser[0];
+    pp[0] = &p;
+    fp[0] = &f;
+    /* create label entry */
+    CHECK(secp256k1_silentpayments_recipient_label_create(CTX, &le[0].label, &le[0].label_tweak[0], ALICE_SECKEY, 0));
+    lep[0] = &le[0];
+    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
+    /* Check that malformed input public keys are caught. Input public keys summing to zero is tested later,
+     * in the BIP0352 test vectors.
+     */
+    pp[0] = &malformed_p;
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
+    pp[0] = &p;
+    /* Check that malformed x-only input public keys are caught. */
+    tp[0] = &malformed_t;
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
+    tp[0] = &t;
+
+    /* Check that NULL in "array of pointers" arguments is not allowed */
+    {
+        secp256k1_xonly_pubkey const *original_ptr = tp[0];
+        tp[0] = NULL;
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
+        tp[0] = original_ptr;
+    }
+    {
+        secp256k1_pubkey const *original_ptr = pp[0];
+        pp[0] = NULL;
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
+        pp[0] = original_ptr;
+    }
+
+    /* Check null values are handled */
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, NULL, SMALLEST_OUTPOINT, tp, 1, pp, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, NULL, tp, 1, pp, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, NULL, 1, pp, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, NULL, 1));
+
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 0, pp, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 0));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, NULL, 0, pp, 0));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, NULL, 0, NULL, 0));
+
+    /* check the _recipient_scan_outputs cornercase where internal tweaking would fail;
+       this is the case if the recipient spend public key is P = -(create_output_tweak(shared_secret, k))*G */
+    {
+        unsigned char output_tweak[32] = {
+            0x96, 0x32, 0xb4, 0x06, 0xeb, 0x56, 0xcc, 0xb2,
+            0x0f, 0xc6, 0xe5, 0x2c, 0x41, 0xd5, 0x73, 0xb2,
+            0xae, 0xa0, 0x45, 0x07, 0x63, 0xf1, 0xf6, 0x22,
+            0xfa, 0x87, 0xc2, 0x4c, 0x7d, 0x80, 0x58, 0x62,
+        };
+        secp256k1_pubkey neg_spend_pubkey;
+        CHECK(secp256k1_ec_pubkey_create(CTX, &neg_spend_pubkey, output_tweak));
+        CHECK(secp256k1_ec_pubkey_negate(CTX, &neg_spend_pubkey));
+        CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, &neg_spend_pubkey, lep, 1) == 0);
+    }
+    /* check the _recipients_scan_outputs cornercase where the output_tweak is the negation of the label_tweak */
+    {
+        unsigned char output_tweak[32] = {
+            0x96, 0x32, 0xb4, 0x06, 0xeb, 0x56, 0xcc, 0xb2,
+            0x0f, 0xc6, 0xe5, 0x2c, 0x41, 0xd5, 0x73, 0xb2,
+            0xae, 0xa0, 0x45, 0x07, 0x63, 0xf1, 0xf6, 0x22,
+            0xfa, 0x87, 0xc2, 0x4c, 0x7d, 0x80, 0x58, 0x62,
+        };
+        unsigned char label_ser[33];
+        static const unsigned char zero[32] = {0};
+        secp256k1_pubkey spk, neg_label_pubkey;
+        secp256k1_xonly_pubkey output_xonly;
+        unsigned char output_xonly_ser[32];
+        const unsigned char *output_xonly_ser_ptrs[1];
+        size_t len = 33;
+        uint32_t found;
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &spk, BOB_ADDRESS[0], 33));
+        CHECK(secp256k1_xonly_pubkey_from_pubkey(CTX, &output_xonly, NULL, &spk));
+        CHECK(secp256k1_xonly_pubkey_serialize(CTX, output_xonly_ser, &output_xonly));
+        output_xonly_ser_ptrs[0] = &output_xonly_ser[0];
+        CHECK(secp256k1_ec_seckey_negate(CTX, output_tweak));
+        CHECK(secp256k1_ec_pubkey_create(CTX, &neg_label_pubkey, output_tweak));
+        CHECK(secp256k1_ec_pubkey_serialize(CTX, label_ser, &len, &neg_label_pubkey, SECP256K1_EC_COMPRESSED));
+        CHECK(secp256k1_silentpayments_recipient_label_parse(CTX, &le[0].label, label_ser));
+        memcpy(le[0].label_tweak, output_tweak, 32);
+        found = 0;
+        CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &found, output_xonly_ser_ptrs, 1, ALICE_SECKEY, &ps, &spk, lep, 1));
+        CHECK(found == 1);
+        CHECK(secp256k1_memcmp_var(fp[0]->tweak, zero, 32) == 0);
+    }
+
+    n_f = 0;
+    CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, &p, NULL, 0));
+    CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, &p, lep, 1));
+
+    /* Check that NULL in "array of pointers" arguments is not allowed */
+    {
+        secp256k1_silentpayments_found_output *original_ptr = fp[0];
+        fp[0] = NULL;
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, &p, lep, 1));
+        fp[0] = original_ptr;
+    }
+    {
+        const unsigned char *original_ptr = tp_ser[0];
+        tp_ser[0] = NULL;
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, &p, lep, 1));
+        tp_ser[0] = original_ptr;
+    }
+
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, NULL, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, &p, lep, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, NULL, tp_ser, 1, ALICE_SECKEY, &ps, &p, lep, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, NULL, 1, ALICE_SECKEY, &ps, &p, lep, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, NULL, &ps, &p, lep, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, NULL, &p, lep, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, NULL, lep, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 0, ALICE_SECKEY, &ps, &p, lep, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, &p, NULL, 1));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, &p, lep, SECP256K1_SILENTPAYMENTS_MAX_LABELS + 1));
+
+    /* Check that malformed secret key, public key, and prevouts_summary arguments are handled */
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, &malformed_p, NULL, 0));
+    CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, MALFORMED_SECKEY, &ps, &p, NULL, 0) == 0);
+    memset(&ps, 0, sizeof(ps));
+    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp_ser, 1, ALICE_SECKEY, &ps, &p, NULL, 0));
+}
+
 /* --- Test registry --- */
 static const struct tf_test_entry tests_silentpayments[] = {
     CASE1(test_recipient_sort),
     CASE1(test_send_api),
     CASE1(test_label_api),
+    CASE1(test_recipient_api),
 };
 
 #endif
