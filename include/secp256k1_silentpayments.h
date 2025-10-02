@@ -384,6 +384,44 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipien
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4)
     SECP256K1_ARG_NONNULL(6) SECP256K1_ARG_NONNULL(7) SECP256K1_ARG_NONNULL(8);
 
+/** Create Silent Payment output public keys.
+ *
+ *  Given a scan key, a prevouts_summary, and array of recipient spend public keys,
+ *  create the silent payments output public keys.
+ *
+ *  This function is used by the recipient when scanning for outputs without
+ *  access to the transaction outputs (e.g., using BIP158 block filters). It will
+ *  create an output (the first output) for each of the spend public keys provided.
+ *  It is the caller's responsibility to determine if the created outputs exist.
+ *
+ *  If a match is found, the caller must download the full transaction and call
+ *  `secp256k1_silentpayments_scan_outputs` to check if there are additional outputs
+ *  for the recipient and get the full output tweak needed to spend the outputs.
+ *
+ *  Returns: 1 if output creation was successful.
+ *           0 if the transaction is not a silent payments transaction.
+ *
+ *  Args:                   ctx: pointer to a context object
+ *  Out:          outputs_xonly: pointer to an array of pointers to the resulting
+ *                               output x-only public keys. The outputs_xonly array
+ *                               MUST have the same size as the spend_pubkeys array.
+ *  In:              scan_key32: pointer to the recipient's 32 byte scan key.
+ *                               The scan key is valid if it passes secp256k1_ec_seckey_verify.
+ *             prevouts_summary: pointer to the transaction prevouts summary data
+ *                               (see `_recipient_prevouts_summary_create`).
+ *                spend_pubkeys: pointer to an array of pointers to the recipient's spend public keys
+ *                               (labeled or unlabeled).
+ *              n_spend_pubkeys: the size of the spend_pubkeys array.
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipient_create_output_pubkeys(
+    const secp256k1_context *ctx,
+    secp256k1_xonly_pubkey **outputs_xonly,
+    const unsigned char *scan_key32,
+    const secp256k1_silentpayments_prevouts_summary *prevouts_summary,
+    const secp256k1_pubkey **spend_pubkeys,
+    size_t n_spend_pubkeys
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
+
 #ifdef __cplusplus
 }
 #endif
