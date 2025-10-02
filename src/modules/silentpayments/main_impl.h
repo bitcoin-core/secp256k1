@@ -18,6 +18,9 @@
 #include "../../hash.h"
 #include "../../hsort.h"
 
+/** magic bytes for ensuring prevouts_summary objects were initialized correctly. */
+static const unsigned char secp256k1_silentpayments_prevouts_summary_magic[4] = { 0xa7, 0x1c, 0xd3, 0x5e };
+
 /** Sort an array of Silent Payments recipients. This is used to group recipients by scan pubkey to
  *  ensure the correct values of k are used when creating multiple outputs for a recipient.
  *  Since heap sort is unstable, we use the recipient's index as tie-breaker to have a well-defined
@@ -449,6 +452,296 @@ int secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(const secp256
     secp256k1_ge_set_gej_var(&result_ge, &result_gej);
     secp256k1_pubkey_save(labeled_spend_pubkey, &result_ge);
 
+    return 1;
+}
+
+/** An explanation of the prevouts_summary object and its usage:
+ *
+ *  The prevouts_summary object contains:
+ *
+ *  [magic: 4 bytes][boolean: 1 byte][prevouts_pubkey_sum: 64 bytes][input_hash: 32 bytes]
+ *
+ *  The magic bytes are checked by functions using the prevouts_summary object to
+ *  check that the prevouts_summary object was initialized correctly.
+ *
+ *  The boolean (combined) indicates whether or not the summed prevout public keys and the
+ *  input_hash scalar have already been combined or are both included. The reason
+ *  for keeping input_hash and the summed prevout public keys separate is so that an elliptic
+ *  curve multiplication can be avoided when creating the shared secret, i.e.,
+ *  (recipient_scan_key * input_hash) * prevouts_pubkey_sum.
+ *
+ *  But when storing the prevouts_summary object (not supported yet), either to send to
+ *  light clients or for wallet rescans, we can save 32-bytes by combining the input_hash
+ *  and prevouts_pubkey_sum and saving the resulting point serialized as a compressed
+ *  public key, i.e., input_hash * prevouts_pubkey_sum.
+ *
+ *  For each function:
+ *
+ *  - `_recipient_prevouts_summary_create` always creates a prevouts_summary object with combined = false
+ */
+
+int secp256k1_silentpayments_recipient_prevouts_summary_create(
+    const secp256k1_context *ctx,
+    secp256k1_silentpayments_prevouts_summary *prevouts_summary,
+    const unsigned char *outpoint_smallest36,
+    const secp256k1_xonly_pubkey * const *xonly_pubkeys,
+    size_t n_xonly_pubkeys,
+    const secp256k1_pubkey * const *plain_pubkeys,
+    size_t n_plain_pubkeys
+) {
+    size_t i;
+    secp256k1_ge prevouts_pubkey_sum_ge, addend;
+    secp256k1_gej prevouts_pubkey_sum_gej;
+    secp256k1_scalar input_hash_scalar;
+
+    /* Sanity check inputs */
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(prevouts_summary != NULL);
+    ARG_CHECK(outpoint_smallest36 != NULL);
+    ARG_CHECK((plain_pubkeys != NULL) || (xonly_pubkeys != NULL));
+    if (xonly_pubkeys != NULL) {
+        ARG_CHECK(n_xonly_pubkeys > 0);
+        for (i = 0; i < n_xonly_pubkeys; i++) {
+            ARG_CHECK(xonly_pubkeys[i] != NULL);
+        }
+    } else {
+        ARG_CHECK(n_xonly_pubkeys == 0);
+    }
+    if (plain_pubkeys != NULL) {
+        ARG_CHECK(n_plain_pubkeys > 0);
+        for (i = 0; i < n_plain_pubkeys; i++) {
+            ARG_CHECK(plain_pubkeys[i] != NULL);
+        }
+    } else {
+        ARG_CHECK(n_plain_pubkeys == 0);
+    }
+
+    /* Compute prevouts_pubkey_sum = A_1 + A_2 + ... + A_n.
+     *
+     * Since an attacker can maliciously craft transactions where the public keys sum to zero, fail early here
+     * to avoid making the caller do extra work, e.g., when building an index or scanning a malicious transaction.
+     *
+     * This will also fail if any of the provided prevout public keys are malformed.
+     */
+    secp256k1_gej_set_infinity(&prevouts_pubkey_sum_gej);
+    for (i = 0; i < n_plain_pubkeys; i++) {
+        if (!secp256k1_pubkey_load(ctx, &addend, plain_pubkeys[i])) {
+            return 0;
+        }
+        secp256k1_gej_add_ge_var(&prevouts_pubkey_sum_gej, &prevouts_pubkey_sum_gej, &addend, NULL);
+    }
+    for (i = 0; i < n_xonly_pubkeys; i++) {
+        if (!secp256k1_xonly_pubkey_load(ctx, &addend, xonly_pubkeys[i])) {
+            return 0;
+        }
+        secp256k1_gej_add_ge_var(&prevouts_pubkey_sum_gej, &prevouts_pubkey_sum_gej, &addend, NULL);
+    }
+    if (secp256k1_gej_is_infinity(&prevouts_pubkey_sum_gej)) {
+        return 0;
+    }
+    secp256k1_ge_set_gej_var(&prevouts_pubkey_sum_ge, &prevouts_pubkey_sum_gej);
+    /* Calculate the input_hash and convert it to a scalar.
+     *
+     * Note: _input_hash_scalar can only fail if the output of the hash function is zero or greater than or equal to the
+     * curve order, which is statistically improbable. Returning an error here results in an untestable branch in the
+     * code, but we do this anyways to ensure strict compliance with BIP0352.
+     */
+    if (!secp256k1_silentpayments_calculate_input_hash_scalar(&input_hash_scalar, outpoint_smallest36, &prevouts_pubkey_sum_ge)) {
+        return 0;
+    }
+    memcpy(&prevouts_summary->data[0], secp256k1_silentpayments_prevouts_summary_magic, 4);
+    prevouts_summary->data[4] = 0;
+    secp256k1_ge_to_bytes(&prevouts_summary->data[5], &prevouts_pubkey_sum_ge);
+    secp256k1_scalar_get_b32(&prevouts_summary->data[5 + 64], &input_hash_scalar);
+    return 1;
+}
+
+int secp256k1_silentpayments_recipient_scan_outputs(
+    const secp256k1_context *ctx,
+    secp256k1_silentpayments_found_output **found_outputs, uint32_t *n_found_outputs,
+    const secp256k1_xonly_pubkey **tx_outputs, uint32_t n_tx_outputs,
+    const unsigned char *scan_key32,
+    const secp256k1_silentpayments_prevouts_summary *prevouts_summary,
+    const secp256k1_pubkey *spend_pubkey,
+    const secp256k1_silentpayments_label_lookup label_lookup,
+    const void *label_context
+) {
+    secp256k1_scalar output_tweak_scalar, scan_key_scalar;
+    secp256k1_ge label_ge, spend_pubkey_ge, prevouts_pubkey_sum_ge;
+    secp256k1_xonly_pubkey output_xonly;
+    unsigned char shared_secret[33];
+    const unsigned char *label_tweak = NULL;
+    uint32_t k, j, found_idx;
+    int found, combined, valid_scan_key, ret;
+
+    /* Sanity check inputs */
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(found_outputs != NULL);
+    ARG_CHECK(n_found_outputs != NULL);
+    ARG_CHECK(tx_outputs != NULL);
+    ARG_CHECK(n_tx_outputs > 0);
+    for (j = 0; j < n_tx_outputs; j++) {
+        ARG_CHECK(found_outputs[j] != NULL);
+        ARG_CHECK(tx_outputs[j] != NULL);
+    }
+    ARG_CHECK(scan_key32 != NULL);
+    ARG_CHECK(prevouts_summary != NULL);
+    ARG_CHECK(secp256k1_memcmp_var(&prevouts_summary->data[0], secp256k1_silentpayments_prevouts_summary_magic, 4) == 0);
+    ARG_CHECK(spend_pubkey != NULL);
+    /* Passing a context without a lookup function is non-sensical */
+    if (label_context != NULL) {
+        ARG_CHECK(label_lookup != NULL);
+    }
+    valid_scan_key = secp256k1_scalar_set_b32_seckey(&scan_key_scalar, scan_key32);
+    secp256k1_declassify(ctx, &valid_scan_key, sizeof(valid_scan_key));
+    if (!valid_scan_key) {
+        secp256k1_scalar_clear(&scan_key_scalar);
+        return 0;
+    }
+    secp256k1_ge_from_bytes(&prevouts_pubkey_sum_ge, &prevouts_summary->data[5]);
+    combined = (int)prevouts_summary->data[4];
+    if (!combined) {
+        secp256k1_scalar input_hash_scalar;
+        secp256k1_scalar_set_b32(&input_hash_scalar, &prevouts_summary->data[5 + 64], NULL);
+        secp256k1_scalar_mul(&scan_key_scalar, &scan_key_scalar, &input_hash_scalar);
+    }
+    ret = secp256k1_pubkey_load(ctx, &spend_pubkey_ge, spend_pubkey);
+    if (!ret) {
+        secp256k1_scalar_clear(&scan_key_scalar);
+        return 0;
+    }
+    /* Creating the shared secret requires that the public and secret components are
+     * non-infinity and non-zero, respectively. Note that the involved parts (input hash,
+     * scan secret key, and prevouts public key sum) have all been verified at this point,
+     * assuming that the user hasn't tampered the `prevouts_summary` object manually. */
+    secp256k1_silentpayments_create_shared_secret(ctx, shared_secret, &prevouts_pubkey_sum_ge, &scan_key_scalar);
+    /* Clear the scan_key_scalar since we no longer need it and leaking this value would break indistinguishability of the transaction. */
+    secp256k1_scalar_clear(&scan_key_scalar);
+
+    found_idx = 0;
+    for (k = 0; k < n_tx_outputs; k++) {
+        secp256k1_ge output_ge = spend_pubkey_ge;
+        /* Calculate the output_tweak and convert it to a scalar.
+         *
+         * Note: _create_output_tweak can only fail if the output of the hash function is zero or greater than or equal
+         * to the curve order, which is statistically improbable. Returning an error here results in an untestable
+         * branch in the code, but we do this anyways to ensure strict compliance with BIP0352.
+         */
+        if (!secp256k1_silentpayments_create_output_tweak(&output_tweak_scalar, shared_secret, k)) {
+            secp256k1_scalar_clear(&output_tweak_scalar);
+            secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
+            return 0;
+        }
+
+        /* Calculate output = spend_pubkey + output_tweak * G.
+         * This can fail if output_tweak * G is the negation of spend_pubkey, but this happens only
+         * with negligible probability for honestly created spend_pubkey as output_tweak is the output of a hash function. */
+        if (!secp256k1_eckey_pubkey_tweak_add(&output_ge, &output_tweak_scalar)) {
+            /* Leaking these values would break indistinguishability of the transaction, so clear them. */
+            secp256k1_scalar_clear(&output_tweak_scalar);
+            secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
+            return 0;
+        }
+        found = 0;
+        secp256k1_xonly_pubkey_save(&output_xonly, &output_ge);
+        for (j = 0; j < n_tx_outputs; j++) {
+            if (tx_outputs[j] == NULL) continue; /* skip already-matched outputs */
+            if (secp256k1_xonly_pubkey_cmp(ctx, &output_xonly, tx_outputs[j]) == 0) {
+                label_tweak = NULL;
+                found = 1;
+                found_idx = j;
+                break;
+            }
+
+            /* If not found, proceed to check for labels (if a label lookup function is provided). */
+            if (label_lookup != NULL) {
+                secp256k1_ge output_negated_ge, tx_output_ge;
+                secp256k1_gej tx_output_gej, label_gej;
+                unsigned char label33[33];
+
+                secp256k1_xonly_pubkey_load(ctx, &tx_output_ge, tx_outputs[j]);
+                secp256k1_gej_set_ge(&tx_output_gej, &tx_output_ge);
+                /* Negate the generated output and calculate first scan label candidate:
+                 *     label1 = tx_output - generated_output
+                 */
+                secp256k1_ge_neg(&output_negated_ge, &output_ge);
+                secp256k1_gej_add_ge_var(&label_gej, &tx_output_gej, &output_negated_ge, NULL);
+                secp256k1_ge_set_gej_var(&label_ge, &label_gej);
+                /* Serialize must succeed because the point was just loaded.
+                 *
+                 * Note: serialize will also fail if label_ge is the point at infinity, but we know
+                 * this cannot happen since we only hit this branch if tx_output != output_xonly.
+                 * Thus, we know that label_ge = tx_output_gej + output_negated_ge cannot be the
+                 * point at infinity.
+                 */
+                secp256k1_eckey_pubkey_serialize33(&label_ge, label33);
+                label_tweak = label_lookup(label33, label_context);
+                if (label_tweak != NULL) {
+                    found = 1;
+                    found_idx = j;
+                    break;
+                }
+
+                /* If not found, negate the tx_output and calculate second scan label candidate:
+                 *     label2 = -tx_output - generated_output
+                 */
+                secp256k1_gej_neg(&label_gej, &tx_output_gej);
+                secp256k1_gej_add_ge_var(&label_gej, &label_gej, &output_negated_ge, NULL);
+                secp256k1_ge_set_gej_var(&label_ge, &label_gej);
+                /* Serialize must succeed because the point was just loaded.
+                 *
+                 * Note: serialize will also fail if label_ge is the point at infinity, but we know
+                 * this cannot happen since we only hit this branch if tx_output != output_xonly.
+                 * Thus, we know that label_ge = -tx_output_gej + output_negated_ge cannot be the
+                 * point at infinity.
+                 */
+                secp256k1_eckey_pubkey_serialize33(&label_ge, label33);
+                label_tweak = label_lookup(label33, label_context);
+                if (label_tweak != NULL) {
+                    found = 1;
+                    found_idx = j;
+                    break;
+                }
+            }
+        }
+        if (found) {
+            found_outputs[k]->output = *tx_outputs[found_idx];
+            tx_outputs[found_idx] = NULL; /* mark this output as matched */
+            secp256k1_scalar_get_b32(found_outputs[k]->tweak, &output_tweak_scalar);
+            /* Clear the output_tweak_scalar since we no longer need it and leaking this value would
+             * break indistinguishability of the transaction. */
+            secp256k1_scalar_clear(&output_tweak_scalar);
+            if (label_tweak != NULL) {
+                found_outputs[k]->found_with_label = 1;
+                /* This is extremely unlikely to fail in that it can only really fail if label_tweak
+                 * is the negation of the shared secret tweak. But since both tweak and label_tweak are
+                 * created by hashing data, practically speaking this would only happen if an attacker
+                 * tricked us into using a particular label_tweak (deviating from the protocol).
+                 *
+                 * Furthermore, although technically a failure for ec_seckey_tweak_add, this is not treated
+                 * as a failure for Silent Payments because the output is still spendable with just the
+                 * spend secret key. We set `tweak = 0` for this case.
+                 */
+                if (!secp256k1_ec_seckey_tweak_add(ctx, found_outputs[k]->tweak, label_tweak)) {
+                    memset(found_outputs[k]->tweak, 0, 32);
+                }
+                secp256k1_silentpayments_label_save(&found_outputs[k]->label, &label_ge);
+            } else {
+                found_outputs[k]->found_with_label = 0;
+                /* Set the label public key with an invalid public key value. */
+                memset(&found_outputs[k]->label, 0, sizeof(secp256k1_pubkey));
+            }
+            /* Reset everything for the next round of scanning. */
+            label_tweak = NULL;
+        } else {
+            secp256k1_scalar_clear(&output_tweak_scalar);
+            break;
+        }
+    }
+    *n_found_outputs = k;
+
+    /* Leaking the shared_secret would break indistinguishability of the transaction, so clear it. */
+    secp256k1_memclear_explicit(shared_secret, sizeof(shared_secret));
     return 1;
 }
 
