@@ -428,56 +428,6 @@ jobs:
       - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
-  x86_64-macos-native:
-    name: "x86_64: macOS Ventura, Valgrind"
-    # See: https://github.com/actions/runner-images#available-images.
-    runs-on: macos-13
-
-    env:
-      CC: 'clang'
-      HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_INSTALL_CLEANUP: 1
-      SYMBOL_CHECK: 'no'
-
-    strategy:
-      fail-fast: false
-      matrix:
-        env_vars:
-          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128_struct', ECMULTGENKB: 2, ECMULTWINDOW: 4 }
-          - { WIDEMUL: 'int128',                  ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes',            WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2 }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc', WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2 }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY', CTIMETESTS: 'no' }
-          - BUILD: 'distcheck'
-
-    steps:
-      - *CHECKOUT
-
-      - name: Install Homebrew packages
-        run: |
-          brew install --quiet automake libtool gcc
-          ln -s $(brew --prefix gcc)/bin/gcc-?? /usr/local/bin/gcc
-
-      - name: Install and cache Valgrind
-        uses: ./.github/actions/install-homebrew-valgrind
-
-      - &CI_SCRIPT_ON_HOST
-        name: CI script
-        env: ${{ matrix.env_vars }}
-        run: ./ci/ci.sh
-
-      - name: Symbol check
-        run: |
-          python3 --version
-          python3 -m pip install lief
-          python3 ./tools/symbol-check.py .libs/libsecp256k1.dylib
-
-      - *PRINT_LOGS
-
   arm64-macos-native:
     name: "ARM64: macOS Sonoma"
     # See: https://github.com/actions/runner-images#available-images.
@@ -512,7 +462,9 @@ jobs:
           brew install --quiet automake libtool gcc
           ln -s $(brew --prefix gcc)/bin/gcc-?? /usr/local/bin/gcc
 
-      - *CI_SCRIPT_ON_HOST
+      - name: CI script
+        env: ${{ matrix.env_vars }}
+        run: ./ci/ci.sh
 
       - name: Symbol check
         env:
