@@ -4,9 +4,6 @@ inputs:
   dockerfile:
     description: 'A Dockerfile that defines an image'
     required: true
-  tag:
-    description: 'A tag of an image'
-    required: true
   scope:
     description: 'A cached image scope'
     required: false
@@ -26,7 +23,6 @@ runs:
       with:
         context: .
         file: ${{ inputs.dockerfile }}
-        tags: ${{ inputs.tag }}
         load: true
         cache-from: type=gha,scope=${{ inputs.scope }}
 
@@ -36,7 +32,6 @@ runs:
       with:
         context: .
         file: ${{ inputs.dockerfile }}
-        tags: ${{ inputs.tag }}
         load: true
         cache-from: type=gha,scope=${{ inputs.scope }}
 
@@ -51,7 +46,8 @@ runs:
           $(echo '${{ toJSON(env) }}' | jq -r 'keys[] | "--env \(.) "') \
           --volume ${{ github.workspace }}:${{ github.workspace }} \
           --workdir ${{ github.workspace }} \
-          ${{ inputs.tag }} bash -c "
+          $(docker images -q | head -n1) \
+          bash -c "
             git config --global --add safe.directory ${{ github.workspace }}
             ${{ inputs.command }}
           "
