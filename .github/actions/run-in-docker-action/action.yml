@@ -7,6 +7,10 @@ inputs:
   tag:
     description: 'A tag of an image'
     required: true
+  scope:
+    description: 'A cached image scope'
+    required: false
+    default: ${{ runner.arch }}
   command:
     description: 'A command to run in a container'
     required: false
@@ -24,7 +28,7 @@ runs:
         file: ${{ inputs.dockerfile }}
         tags: ${{ inputs.tag }}
         load: true
-        cache-from: type=gha
+        cache-from: type=gha,scope=${{ inputs.scope }}
 
     - uses: docker/build-push-action@v5
       id: retry_builder
@@ -34,7 +38,7 @@ runs:
         file: ${{ inputs.dockerfile }}
         tags: ${{ inputs.tag }}
         load: true
-        cache-from: type=gha
+        cache-from: type=gha,scope=${{ inputs.scope }}
 
     - # Workaround for https://github.com/google/sanitizers/issues/1614 .
       # The underlying issue has been fixed in clang 18.1.3.

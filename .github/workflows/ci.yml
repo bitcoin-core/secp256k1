@@ -71,8 +71,8 @@ jobs:
         with:
           file: ./ci/linux-debian.Dockerfile
           tags: ${{ matrix.arch }}-debian-image
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
+          cache-from: type=gha,scope=${{ runner.arch }}
+          cache-to: type=gha,scope=${{ runner.arch }},mode=min
 
   x86_64-debian:
     name: "x86_64: Linux (Debian stable)"
