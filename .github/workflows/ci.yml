@@ -67,7 +67,7 @@ jobs:
             network=host
 
       - name: Build container
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           file: ./ci/linux-debian.Dockerfile
           cache-from: type=gha,scope=${{ runner.arch }}
