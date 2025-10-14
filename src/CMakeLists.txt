@@ -143,6 +143,7 @@ if(SECP256K1_BUILD_TESTS)
     target_link_libraries(tests secp256k1_precomputed secp256k1_asm)
     add_test(NAME secp256k1_tests COMMAND tests)
   endif()
+  add_subdirectory(test)
 endif()
 
 if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
