@@ -109,7 +109,7 @@ jobs:
     steps:
       - &CHECKOUT
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: CI script
         env: ${{ matrix.configuration.env_vars }}
