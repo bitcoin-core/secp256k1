@@ -107,7 +107,8 @@ jobs:
       CC: ${{ matrix.cc }}
 
     steps:
-      - name: Checkout
+      - &CHECKOUT
+        name: Checkout
         uses: actions/checkout@v4
 
       - name: CI script
@@ -143,8 +144,7 @@ jobs:
       CC: ${{ matrix.cc }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         uses: ./.github/actions/run-in-docker-action
@@ -174,8 +174,7 @@ jobs:
       CTIMETESTS: 'no'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         uses: ./.github/actions/run-in-docker-action
@@ -213,8 +212,7 @@ jobs:
       CTIMETESTS: 'no'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         env: ${{ matrix.configuration.env_vars }}
@@ -253,8 +251,7 @@ jobs:
           - 'clang-snapshot'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         uses: ./.github/actions/run-in-docker-action
@@ -284,8 +281,7 @@ jobs:
       CTIMETESTS: 'no'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         uses: ./.github/actions/run-in-docker-action
@@ -339,8 +335,7 @@ jobs:
       SECP256K1_TEST_ITERS: 2
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         env: ${{ matrix.env_vars }}
@@ -382,8 +377,7 @@ jobs:
       SYMBOL_CHECK: 'no'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         env: ${{ matrix.configuration.env_vars }}
@@ -432,8 +426,7 @@ jobs:
       SYMBOL_CHECK: 'no'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         env: ${{ matrix.configuration.env_vars }}
@@ -474,8 +467,7 @@ jobs:
               HOST: 'i686-w64-mingw32'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         env: ${{ matrix.configuration.env_vars }}
@@ -514,8 +506,7 @@ jobs:
           - BUILD: 'distcheck'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: Install Homebrew packages
         run: |
@@ -566,8 +557,7 @@ jobs:
           - BUILD: 'distcheck'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: Install Homebrew packages
         run: |
@@ -626,8 +616,7 @@ jobs:
             cpp_flags: '/DSECP256K1_MSVC_MULH_TEST_OVERRIDE'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: Generate buildsystem
         run: cmake -E env CFLAGS="/WX ${{ matrix.configuration.cpp_flags }}" cmake -B build -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON ${{ matrix.configuration.cmake_options }}
@@ -662,8 +651,7 @@ jobs:
     runs-on: windows-2022
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: Add cl.exe to PATH
         uses: ilammy/msvc-dev-cmd@v1
@@ -690,8 +678,7 @@ jobs:
       ELLSWIFT: 'yes'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         uses: ./.github/actions/run-in-docker-action
@@ -708,8 +695,7 @@ jobs:
     needs: docker_cache
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         uses: ./.github/actions/run-in-docker-action
@@ -727,8 +713,7 @@ jobs:
       options: --user root
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - name: CI script
         run: |
@@ -739,8 +724,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - *CHECKOUT
 
       - run: ./autogen.sh && ./configure --enable-dev-mode && make distcheck
 
