@@ -111,7 +111,8 @@ jobs:
         name: Checkout
         uses: actions/checkout@v5
 
-      - name: CI script
+      - &CI_SCRIPT_IN_DOCKER
+        name: CI script
         env: ${{ matrix.configuration.env_vars }}
         uses: ./.github/actions/run-in-docker-action
         with:
@@ -148,13 +149,7 @@ jobs:
 
     steps:
       - *CHECKOUT
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-
+      - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
   s390x_debian:
@@ -182,13 +177,7 @@ jobs:
 
     steps:
       - *CHECKOUT
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-
+      - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
   arm32_debian:
@@ -218,13 +207,7 @@ jobs:
 
     steps:
       - *CHECKOUT
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-
+      - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
   arm64-debian:
@@ -257,13 +240,7 @@ jobs:
 
     steps:
       - *CHECKOUT
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-
+      - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
   ppc64le_debian:
@@ -291,13 +268,7 @@ jobs:
 
     steps:
       - *CHECKOUT
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-
+      - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
   valgrind_debian:
@@ -343,13 +314,7 @@ jobs:
 
     steps:
       - *CHECKOUT
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-
+      - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
   sanitizers_debian:
@@ -383,13 +348,7 @@ jobs:
 
     steps:
       - *CHECKOUT
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-
+      - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
   msan_debian:
@@ -430,13 +389,7 @@ jobs:
 
     steps:
       - *CHECKOUT
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-
+      - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
   mingw_debian:
@@ -468,13 +421,7 @@ jobs:
 
     steps:
       - *CHECKOUT
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-
+      - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
   x86_64-macos-native:
@@ -514,7 +461,8 @@ jobs:
       - name: Install and cache Valgrind
         uses: ./.github/actions/install-homebrew-valgrind
 
-      - name: CI script
+      - &CI_SCRIPT_ON_HOST
+        name: CI script
         env: ${{ matrix.env_vars }}
         run: ./ci/ci.sh
 
@@ -560,9 +508,7 @@ jobs:
           brew install --quiet automake libtool gcc
           ln -s $(brew --prefix gcc)/bin/gcc-?? /usr/local/bin/gcc
 
-      - name: CI script
-        env: ${{ matrix.env_vars }}
-        run: ./ci/ci.sh
+      - *CI_SCRIPT_ON_HOST
 
       - name: Symbol check
         env:
@@ -677,13 +623,7 @@ jobs:
 
     steps:
       - *CHECKOUT
-
-      - name: CI script
-        env: ${{ matrix.configuration.env_vars }}
-        uses: ./.github/actions/run-in-docker-action
-        with:
-          dockerfile: ./ci/linux-debian.Dockerfile
-
+      - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
   cxx_headers_debian:
