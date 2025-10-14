@@ -10,8 +10,7 @@ inputs:
     default: ${{ runner.arch }}
   command:
     description: 'A command to run in a container'
-    required: false
-    default: ./ci/ci.sh
+    required: true
 runs:
   using: "composite"
   steps:
