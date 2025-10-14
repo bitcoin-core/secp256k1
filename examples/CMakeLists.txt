@@ -29,3 +29,7 @@ endif()
 if(SECP256K1_ENABLE_MODULE_MUSIG)
   add_example(musig)
 endif()
+
+if(SECP256K1_ENABLE_MODULE_SCHNORRSIG_FULLAGG)
+  add_example(fullagg)
+endif()
