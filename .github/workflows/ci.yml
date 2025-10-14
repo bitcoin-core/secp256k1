@@ -117,6 +117,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
+          command: ./ci/ci.sh
 
       - &PRINT_LOGS
         name: Print logs
