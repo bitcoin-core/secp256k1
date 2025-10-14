@@ -417,6 +417,9 @@ jobs:
               # when ctime_tests when enabled.
               CFLAGS: '-fsanitize=memory -fsanitize-recover=memory -fsanitize-memory-param-retval -g'
               CTIMETESTS: 'no'
+        cc:
+          - 'clang'
+          - 'clang-snapshot'
 
     env:
       ECDH: 'yes'
@@ -425,7 +428,7 @@ jobs:
       SCHNORRSIG: 'yes'
       MUSIG: 'yes'
       ELLSWIFT: 'yes'
-      CC: 'clang'
+      CC: ${{ matrix.cc }}
       SECP256K1_TEST_ITERS: 32
       ASM: 'no'
       WITH_VALGRIND: 'no'
