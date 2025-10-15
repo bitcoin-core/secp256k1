@@ -429,9 +429,8 @@ jobs:
       - *PRINT_LOGS
 
   x86_64-macos-native:
-    name: "x86_64: macOS Ventura, Valgrind"
-    # See: https://github.com/actions/runner-images#available-images.
-    runs-on: macos-13
+    name: "x86_64: macOS Sequoia, Valgrind"
+    runs-on: macos-15-intel
 
     env:
       CC: 'clang'
