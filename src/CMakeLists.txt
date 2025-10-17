@@ -144,15 +144,52 @@ if(SECP256K1_BUILD_TESTS)
     list(APPEND TEST_DEFINITIONS SUPPORTS_CONCURRENCY=1)
   endif()
 
-  add_executable(noverify_tests tests.c)
-  target_link_libraries(noverify_tests secp256k1_precomputed secp256k1_asm)
-  target_compile_definitions(noverify_tests PRIVATE ${TEST_DEFINITIONS})
-  add_test(NAME secp256k1_noverify_tests COMMAND noverify_tests)
+  set(test_targets "")
+  set(test_names "")
+  # Start with the longest-running tests.
+  list(APPEND test_targets ellswift)
+  list(APPEND test_names   ellswift)
+  list(APPEND test_targets ecmult_constants)
+  list(APPEND test_names   ecmult_constants)
+  list(APPEND test_targets "ecmult_pre_g wnaf point_times_order ecmult_near_split_bound ecmult_chain ecmult_gen_blind ecmult_const_tests ecmult_multi_tests ec_combine")
+  list(APPEND test_names   ecmult)
+  # Continue with the remaining tests.
+  list(APPEND test_targets integer scalar field group ec ecdh ecdsa recovery extrakeys schnorrsig musig)
+  list(APPEND test_names   integer scalar field group ec ecdh ecdsa recovery extrakeys schnorrsig musig)
+  # Combine short, trivial tests for log brevity.
+  list(APPEND test_targets "general hash utils")
+  list(APPEND test_names   "general,hash,utils")
+
+  function(add_executable_and_tests verify)
+    if(verify)
+      set(verify_definition VERIFY)
+      set(exe_name tests)
+      set(label secp256k1_verify)
+    else()
+      set(verify_definition "")
+      set(exe_name noverify_tests)
+      set(label secp256k1_noverify)
+    endif()
+    add_executable(${exe_name} tests.c)
+    target_link_libraries(${exe_name} secp256k1_precomputed secp256k1_asm)
+    target_compile_definitions(${exe_name} PRIVATE ${verify_definition} ${TEST_DEFINITIONS})
+    foreach(test_target test_name IN ZIP_LISTS test_targets test_names)
+      string(REPLACE " " ";" test_target "${test_target}")
+      list(TRANSFORM test_target PREPEND "--target=")
+      add_test(NAME ${label}::${test_name}
+        COMMAND ${exe_name} ${test_target} --log=1
+        COMMAND_EXPAND_LISTS
+      )
+      set_tests_properties(${label}::${test_name} PROPERTIES
+        LABELS ${label}
+        SKIP_REGULAR_EXPRESSION "module disabled"
+      )
+    endforeach()
+  endfunction()
+
+  add_executable_and_tests(NO)
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Coverage")
-    add_executable(tests tests.c)
-    target_compile_definitions(tests PRIVATE VERIFY ${TEST_DEFINITIONS})
-    target_link_libraries(tests secp256k1_precomputed secp256k1_asm)
-    add_test(NAME secp256k1_tests COMMAND tests)
+    add_executable_and_tests(YES)
   endif()
   unset(TEST_DEFINITIONS)
 endif()
@@ -162,7 +199,10 @@ if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
   add_executable(exhaustive_tests tests_exhaustive.c)
   target_link_libraries(exhaustive_tests secp256k1_asm)
   target_compile_definitions(exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
-  add_test(NAME secp256k1_exhaustive_tests COMMAND exhaustive_tests)
+  add_test(NAME secp256k1_exhaustive COMMAND exhaustive_tests)
+  set_tests_properties(secp256k1_exhaustive PROPERTIES
+    LABELS secp256k1_exhaustive
+  )
 endif()
 
 if(SECP256K1_BUILD_CTIME_TESTS)
