@@ -88,7 +88,7 @@ fi
 
 # Print information about binaries so that we can see that the architecture is correct
 file *tests* || true
-file bench* || true
+file *bench* || true
 file .libs/* || true
 
 if [ "$SYMBOL_CHECK" = "yes" ]
@@ -120,18 +120,18 @@ fi
 if [ "$BENCH" = "yes" ]
 then
     {
-        $EXEC ./bench_ecmult
-        $EXEC ./bench_internal
-        $EXEC ./bench
+        $EXEC ./secp256k1_bench_ecmult
+        $EXEC ./secp256k1_bench_internal
+        $EXEC ./secp256k1_bench
     } >> bench.log 2>&1
 fi
 
 if [ "$CTIMETESTS" = "yes" ]
 then
     if [ "$WITH_VALGRIND" = "yes" ]; then
-        ./libtool --mode=execute valgrind --error-exitcode=42 ./ctime_tests > ctime_tests.log 2>&1
+        ./libtool --mode=execute valgrind --error-exitcode=42 ./secp256k1_ctime_tests > secp256k1_ctime_tests.log 2>&1
     else
-        $EXEC ./ctime_tests > ctime_tests.log 2>&1
+        $EXEC ./secp256k1_ctime_tests > secp256k1_ctime_tests.log 2>&1
     fi
 fi
 
