@@ -174,3 +174,5 @@ Contributing to libsecp256k1
 ------------
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)
+<br>## Welcome to Elliptic Curve Crypto<br>secp256k1 powers Bitcoin signatures—new contributors, start with the libsecp256k1 tutorial for your first key gen. Tip: Use for ECDSA verification! <br>
+
