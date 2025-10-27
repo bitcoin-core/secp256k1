@@ -42,6 +42,7 @@ typedef struct {
     secp256k1_fe fe[4];
     secp256k1_ge ge[2];
     secp256k1_gej gej[2];
+    secp256k1_geh geh[2];
     unsigned char data[64];
     int wnaf[256];
 } bench_inv;
@@ -94,6 +95,8 @@ static void bench_setup(void* arg) {
     secp256k1_gej_rescale(&data->gej[0], &data->fe[2]);
     secp256k1_gej_set_ge(&data->gej[1], &data->ge[1]);
     secp256k1_gej_rescale(&data->gej[1], &data->fe[3]);
+    secp256k1_geh_set_gej_var(&data->geh[0], &data->gej[0]);
+    secp256k1_geh_set_gej_var(&data->geh[1], &data->gej[1]);
     memcpy(data->data, init[0], 32);
     memcpy(data->data + 32, init[1], 32);
 }
@@ -272,12 +275,41 @@ static void bench_group_double_var(void* arg, int iters) {
     }
 }
 
+static void bench_group_doubleh(void* arg, int iters) {
+    int i;
+    bench_inv *data = (bench_inv*)arg;
+
+    for (i = 0; i < iters; i++) {
+        secp256k1_geh_double_var(&data->geh[0], &data->geh[0]);
+    }
+}
+
+static void bench_group_geh_gej_roundtrip(void* arg, int iters) {
+    int i;
+    bench_inv *data = (bench_inv*)arg;
+
+    for (i = 0; i < iters; i++) {
+        secp256k1_gej tmpj;
+        secp256k1_gej_set_geh_var(&tmpj, &data->geh[0]);
+        secp256k1_geh_set_gej_var(&data->geh[0], &tmpj);
+    }
+}
+
 static void bench_group_add_var(void* arg, int iters) {
     int i;
     bench_inv *data = (bench_inv*)arg;
 
     for (i = 0; i < iters; i++) {
         secp256k1_gej_add_var(&data->gej[0], &data->gej[0], &data->gej[1], NULL);
+    }
+}
+
+static void bench_group_addh(void* arg, int iters) {
+    int i;
+    bench_inv *data = (bench_inv*)arg;
+
+    for (i = 0; i < iters; i++) {
+        secp256k1_geh_add_var(&data->geh[0], &data->geh[0], &data->geh[1]);
     }
 }
 
@@ -419,7 +451,10 @@ int main(int argc, char **argv) {
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "sqrt")) run_benchmark("field_sqrt", bench_field_sqrt, bench_setup, NULL, &data, 10, iters);
 
     if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "double")) run_benchmark("group_double_var", bench_group_double_var, bench_setup, NULL, &data, 10, iters*10);
+    if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "double")) run_benchmark("group_doubleh", bench_group_doubleh, bench_setup, NULL, &data, 10, iters*10);
+    if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "double")) run_benchmark("group_rt", bench_group_geh_gej_roundtrip, bench_setup, NULL, &data, 10, iters*10);
     if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "add")) run_benchmark("group_add_var", bench_group_add_var, bench_setup, NULL, &data, 10, iters*10);
+    if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "add")) run_benchmark("group_addh", bench_group_addh, bench_setup, NULL, &data, 10, iters*10);
     if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "add")) run_benchmark("group_add_affine", bench_group_add_affine, bench_setup, NULL, &data, 10, iters*10);
     if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "add")) run_benchmark("group_add_affine_var", bench_group_add_affine_var, bench_setup, NULL, &data, 10, iters*10);
     if (d || have_flag(argc, argv, "group") || have_flag(argc, argv, "add")) run_benchmark("group_add_zinv_var", bench_group_add_zinv_var, bench_setup, NULL, &data, 10, iters*10);
