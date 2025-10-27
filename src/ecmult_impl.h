@@ -497,12 +497,13 @@ struct secp256k1_pippenger_state {
  * to the point's wnaf[i]. Second, the buckets are added together such that
  * r += 1*bucket[0] + 3*bucket[1] + 5*bucket[2] + ...
  */
-static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_window, struct secp256k1_pippenger_state *state, secp256k1_gej *r, const secp256k1_scalar *sc, const secp256k1_ge *pt, size_t num) {
+static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_window, struct secp256k1_pippenger_state *state, secp256k1_gej *rj, const secp256k1_scalar *sc, const secp256k1_ge *pt, size_t num) {
     size_t n_wnaf = WNAF_SIZE(bucket_window+1);
     size_t np;
     size_t no = 0;
     int i;
     int j;
+    secp256k1_geh r;
 
     for (np = 0; np < num; ++np) {
         if (secp256k1_scalar_is_zero(&sc[np]) || secp256k1_ge_is_infinity(&pt[np])) {
@@ -512,17 +513,15 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
         state->ps[no].skew_na = secp256k1_wnaf_fixed(&state->wnaf_na[no*n_wnaf], &sc[np], bucket_window+1);
         no++;
     }
-    secp256k1_gej_set_infinity(r);
+    secp256k1_geh_set_infinity(&r);
 
     if (no == 0) {
         return 1;
     }
 
     for (i = n_wnaf - 1; i >= 0; i--) {
-        secp256k1_geh running_sumh;
-        secp256k1_geh rh;
-        secp256k1_gej running_sum;
-        secp256k1_gej rj;
+        secp256k1_geh running_sum;
+        secp256k1_geh tmph;
 
         for(j = 0; j < ECMULT_TABLE_SIZE(bucket_window+2); j++) {
             secp256k1_gej_set_infinity(&buckets[j]);
@@ -553,11 +552,10 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
         }
 
         for(j = 0; j < bucket_window; j++) {
-            secp256k1_gej_double_var(r, r, NULL);
+            secp256k1_geh_double_var(&r, &r);
         }
 
-        secp256k1_geh_set_infinity(&running_sumh);
-        secp256k1_geh_set_infinity(&rh);
+        secp256k1_geh_set_infinity(&running_sum);
         /* Accumulate the sum: bucket[0] + 3*bucket[1] + 5*bucket[2] + 7*bucket[3] + ...
          *                   = bucket[0] +   bucket[1] +   bucket[2] +   bucket[3] + ...
          *                   +         2 *  (bucket[1] + 2*bucket[2] + 3*bucket[3] + ...)
@@ -567,19 +565,18 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
          * The doubling is done implicitly by deferring the final window doubling (of 'r').
          */
         for(j = ECMULT_TABLE_SIZE(bucket_window+2) - 1; j > 0; j--) {
-            secp256k1_geh tmp;
-            secp256k1_geh_set_gej_var(&tmp, &buckets[j]);
-            secp256k1_geh_add_var(&running_sumh, &running_sumh, &tmp);
-            secp256k1_geh_add_var(&rh, &rh, &running_sumh);
+            secp256k1_geh_set_gej_var(&tmph, &buckets[j]);
+            secp256k1_geh_add_var(&running_sum, &running_sum, &tmph);
+            secp256k1_geh_add_var(&r, &r, &running_sum);
         }
-        secp256k1_gej_set_geh_var(&running_sum, &running_sumh);
-        secp256k1_gej_add_var(&running_sum, &running_sum, &buckets[0], NULL);
+        secp256k1_geh_set_gej_var(&tmph, &buckets[0]);
+        secp256k1_geh_add_var(&running_sum, &running_sum, &tmph);
 
-        secp256k1_gej_set_geh_var(&rj, &rh);
-        secp256k1_gej_add_var(r, r, &rj, NULL);
-        secp256k1_gej_double_var(r, r, NULL);
-        secp256k1_gej_add_var(r, r, &running_sum, NULL);
+        secp256k1_geh_double_var(&r, &r);
+        secp256k1_geh_add_var(&r, &r, &running_sum);
     }
+    /* TODO Return geh instead */
+    secp256k1_gej_set_geh_var(rj, &r);
     return 1;
 }
 
