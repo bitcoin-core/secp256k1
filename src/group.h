@@ -32,6 +32,16 @@ typedef struct {
     int infinity; /* whether this represents the point at infinity */
 } secp256k1_gej;
 
+/** A group element of the secp256k1 curve, in homogeneous coordinates.
+ *  FIXME Note: For exhastive test mode, secp256k1 is replaced by a small subgroup of a different curve.
+ */
+typedef struct {
+    secp256k1_fe x; /* actual X: x/z */
+    secp256k1_fe y; /* actual Y: y/z */
+    secp256k1_fe z;
+    int infinity; /* whether this represents the point at infinity */
+} secp256k1_geh;
+
 #define SECP256K1_GEJ_CONST(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) {SECP256K1_FE_CONST((a),(b),(c),(d),(e),(f),(g),(h)), SECP256K1_FE_CONST((i),(j),(k),(l),(m),(n),(o),(p)), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1), 0}
 #define SECP256K1_GEJ_CONST_INFINITY {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), 1}
 
@@ -50,7 +60,11 @@ typedef struct {
 #define SECP256K1_GE_Y_MAGNITUDE_MAX  3
 #define SECP256K1_GEJ_X_MAGNITUDE_MAX 4
 #define SECP256K1_GEJ_Y_MAGNITUDE_MAX 4
-#define SECP256K1_GEJ_Z_MAGNITUDE_MAX 1
+#define SECP256K1_GEJ_Z_MAGNITUDE_MAX 2 /* This would be 1 if it wasn't for secp256k1_gej_set_geh_var.  */
+/* FIXME Figure out reasonable values here: */
+#define SECP256K1_GEH_X_MAGNITUDE_MAX 3
+#define SECP256K1_GEH_Y_MAGNITUDE_MAX 4 /* This would be 2 if it wasn't for secp256k1_geh_set_gej_var.  */
+#define SECP256K1_GEH_Z_MAGNITUDE_MAX 2
 
 /** Set a group element equal to the point with given X and Y coordinates */
 static void secp256k1_ge_set_xy(secp256k1_ge *r, const secp256k1_fe *x, const secp256k1_fe *y);
@@ -212,5 +226,9 @@ static void secp256k1_ge_verify(const secp256k1_ge *a);
 /** Check invariants on a Jacobian group element (no-op unless VERIFY is enabled). */
 static void secp256k1_gej_verify(const secp256k1_gej *a);
 #define SECP256K1_GEJ_VERIFY(a) secp256k1_gej_verify(a)
+
+/** Check invariants on a homogeneous group element (no-op unless VERIFY is enabled). */
+static void secp256k1_geh_verify(const secp256k1_geh *a);
+#define SECP256K1_GEH_VERIFY(a) secp256k1_geh_verify(a)
 
 #endif /* SECP256K1_GROUP_H */
