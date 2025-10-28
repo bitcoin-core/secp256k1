@@ -551,9 +551,23 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
             }
         }
 
-        for(j = 0; j < bucket_window; j++) {
-            secp256k1_geh_double_var(&r, &r);
+        /* TODO these tricks seem to make things slower in practice. */
+        /* if ((size_t)i != n_wnaf - 1) { /\* No reason to double infinity *\/ */
+        /*     if (bucket_window >= 3) { /\* Switch to gej for many doublings *\/ */
+        {
+                secp256k1_gej rj_tmp;
+                secp256k1_gej_set_geh_var(&rj_tmp, &r);
+                for (j = 0; j < bucket_window; j++) {
+                    secp256k1_gej_double_var(&rj_tmp, &rj_tmp, NULL);
+                }
+                secp256k1_geh_set_gej_var(&r, &rj_tmp);
         }
+        /*     } else { */
+        /*         for (j = 0; j < bucket_window; j++) { */
+        /*             secp256k1_geh_double_var(&r, &r); */
+        /*         } */
+        /*     } */
+        /* } */
 
         secp256k1_geh_set_infinity(&running_sum);
         /* Accumulate the sum: bucket[0] + 3*bucket[1] + 5*bucket[2] + 7*bucket[3] + ...
