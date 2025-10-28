@@ -201,7 +201,7 @@ jobs:
       matrix:
         configuration:
           - env_vars: {}
-          - env_vars: { EXPERIMENTAL: 'yes', ASM: 'arm32' }
+          - env_vars: { ASM: 'arm32' }
 
     env:
       WRAPPER_CMD: 'qemu-arm'

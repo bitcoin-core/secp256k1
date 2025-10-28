@@ -87,7 +87,7 @@ if(SECP256K1_TEST_OVERRIDE_WIDE_MULTIPLY)
 endif()
 mark_as_advanced(FORCE SECP256K1_TEST_OVERRIDE_WIDE_MULTIPLY)
 
-set(SECP256K1_ASM "AUTO" CACHE STRING "Assembly to use: \"AUTO\", \"OFF\", \"x86_64\" or \"arm32\" (experimental). [default=AUTO]")
+set(SECP256K1_ASM "AUTO" CACHE STRING "Assembly to use: \"AUTO\", \"OFF\", \"x86_64\" or \"arm32\". [default=AUTO]")
 set_property(CACHE SECP256K1_ASM PROPERTY STRINGS "AUTO" "OFF" "x86_64" "arm32")
 check_string_option_value(SECP256K1_ASM)
 if(NOT SECP256K1_ASM STREQUAL "OFF")
@@ -111,9 +111,6 @@ endif()
 
 option(SECP256K1_EXPERIMENTAL "Allow experimental configuration options." OFF)
 if(NOT SECP256K1_EXPERIMENTAL)
-  if(SECP256K1_ASM STREQUAL "arm32")
-    message(FATAL_ERROR "ARM32 assembly is experimental. Use -DSECP256K1_EXPERIMENTAL=ON to allow.")
-  endif()
 endif()
 
 set(SECP256K1_VALGRIND "AUTO" CACHE STRING "Build with extra checks for running inside Valgrind. [default=AUTO]")
