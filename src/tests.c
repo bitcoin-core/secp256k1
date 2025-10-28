@@ -4152,8 +4152,8 @@ static void test_group_decompress(const secp256k1_fe* x) {
         secp256k1_fe_normalize_var(&ge_even.y);
 
         /* No infinity allowed. */
-        CHECK(!ge_even.infinity);
-        CHECK(!ge_odd.infinity);
+        CHECK(!secp256k1_ge_is_infinity(&ge_even));
+        CHECK(!secp256k1_ge_is_infinity(&ge_odd));
 
         /* Check that the x coordinates check out. */
         CHECK(secp256k1_fe_equal(&ge_even.x, x));
