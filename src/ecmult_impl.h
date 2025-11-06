@@ -516,6 +516,7 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
     secp256k1_geh_set_infinity(&r);
 
     if (no == 0) {
+        /* FIXME value of rj */
         return 1;
     }
 

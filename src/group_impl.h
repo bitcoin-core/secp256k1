@@ -1101,6 +1101,10 @@ static void secp256k1_geh_add_var(secp256k1_geh *r, const secp256k1_geh *a, cons
     SECP256K1_GEH_VERIFY(a);
     SECP256K1_GEH_VERIFY(b);
 
+    /* TODO VERIFY_CHECK(a != b); because otherwise steps 1, 2, 3 violate
+     *      the calling convention of _fe_mul. Or we need to create local copies
+     *      of b->x, b->y, and b->z first. */
+
     if (secp256k1_geh_is_infinity(a)) {
         *r = *b;
         return;
