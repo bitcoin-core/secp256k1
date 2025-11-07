@@ -4098,6 +4098,92 @@ static void run_gej(void) {
     }
 }
 
+static void test_geh_gej_roundtrip(secp256k1_gej *a) {
+    secp256k1_geh h;
+    secp256k1_gej r;
+    secp256k1_fe s;
+
+    /* gej -> geh -> rescale -> gej */
+    secp256k1_geh_set_gej_var(&h, a);
+    testutil_random_fe_non_zero_test(&s);
+    secp256k1_geh_rescale(&h, &s);
+    secp256k1_gej_set_geh_var(&r, &h);
+
+    CHECK(secp256k1_gej_eq_var(a, &r));
+}
+
+static void run_geh_gej_roundtrip(void) {
+    int i;
+    secp256k1_gej a;
+
+    /* Test infinity */
+    secp256k1_gej_set_infinity(&a);
+    test_geh_gej_roundtrip(&a);
+
+    /* Test random points */
+    for (i = 0; i < COUNT; i++) {
+        testutil_random_gej_test(&a);
+        test_geh_gej_roundtrip(&a);
+    }
+}
+
+static void test_geh_gej_add_consistency(secp256k1_gej *a, secp256k1_gej *b) {
+    secp256k1_geh a_h, b_h, sum_h;
+    secp256k1_gej sum_gej, sum_from_h;
+
+    secp256k1_geh_set_gej_var(&a_h, a);
+    secp256k1_geh_set_gej_var(&b_h, b);
+
+    secp256k1_geh_add_var(&sum_h, &a_h, &b_h);
+    secp256k1_gej_add_var(&sum_gej, a, b, NULL);
+
+    secp256k1_gej_set_geh_var(&sum_from_h, &sum_h);
+
+    CHECK(secp256k1_gej_eq_var(&sum_gej, &sum_from_h));
+}
+
+static void test_geh_gej_double_consistency(secp256k1_gej *a) {
+    secp256k1_geh a_h, dbl_h;
+    secp256k1_gej dbl_gej, dbl_from_h;
+
+    secp256k1_geh_set_gej_var(&a_h, a);
+
+    secp256k1_geh_double_var(&dbl_h, &a_h);
+    secp256k1_gej_double_var(&dbl_gej, a, NULL);
+
+    secp256k1_gej_set_geh_var(&dbl_from_h, &dbl_h);
+
+    CHECK(secp256k1_gej_eq_var(&dbl_gej, &dbl_from_h));
+}
+
+static void run_geh_gej_consistency(void) {
+    int i;
+    secp256k1_gej a, b;
+
+    /* Test infinity cases */
+    testutil_random_gej_test(&a);
+    secp256k1_gej_set_infinity(&b);
+
+    test_geh_gej_add_consistency(&a, &b);
+    test_geh_gej_add_consistency(&b, &a);
+
+    secp256k1_gej_set_infinity(&a);
+    test_geh_gej_add_consistency(&a, &b);
+
+    test_geh_gej_double_consistency(&a);
+
+    for (i = 0; i < COUNT; i++) {
+        testutil_random_gej_test(&a);
+        testutil_random_gej_test(&b);
+
+        test_geh_gej_add_consistency(&a, &b);
+        test_geh_gej_add_consistency(&b, &a);
+
+        test_geh_gej_double_consistency(&a);
+        test_geh_gej_double_consistency(&b);
+    }
+}
+
 static void test_ec_combine(void) {
     secp256k1_scalar sum = secp256k1_scalar_zero;
     secp256k1_pubkey data[6];
@@ -7716,6 +7802,9 @@ static const struct tf_test_entry tests_field[] = {
 static const struct tf_test_entry tests_group[] = {
     CASE(ge),
     CASE(gej),
+    /* TODO CASE(geh), */
+    CASE(geh_gej_roundtrip),
+    CASE(geh_gej_consistency),
     CASE(group_decompress),
 };
 
