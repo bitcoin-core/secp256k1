@@ -5271,7 +5271,7 @@ static void run_ecmult_multi_tests(void) {
 
 static void test_wnaf(const secp256k1_scalar *number, int w) {
     secp256k1_scalar x, two, t;
-    int wnaf[256];
+    int32_t wnaf[256];
     int zeroes = -1;
     int i;
     int bits;
@@ -5280,7 +5280,7 @@ static void test_wnaf(const secp256k1_scalar *number, int w) {
     bits = secp256k1_ecmult_wnaf(wnaf, 256, number, w);
     CHECK(bits <= 256);
     for (i = bits-1; i >= 0; i--) {
-        int v = wnaf[i];
+        int32_t v = wnaf[i];
         secp256k1_scalar_mul(&x, &x, &two);
         if (v) {
             CHECK(zeroes == -1 || zeroes >= w-1); /* check that distance between non-zero elements is at least w-1 */
@@ -5305,7 +5305,7 @@ static void test_wnaf(const secp256k1_scalar *number, int w) {
 
 static void test_fixed_wnaf(const secp256k1_scalar *number, int w) {
     secp256k1_scalar x, shift;
-    int wnaf[256] = {0};
+    int32_t wnaf[256] = {0};
     int i;
     int skew;
     secp256k1_scalar num, unused;
@@ -5351,7 +5351,7 @@ static void test_fixed_wnaf_small_helper(int *wnaf, int *wnaf_expected, int w) {
 
 static void test_fixed_wnaf_small(void) {
     int w = 4;
-    int wnaf[256] = {0};
+    int32_t wnaf[256] = {0};
     int i;
     int skew;
     secp256k1_scalar num;
@@ -5359,7 +5359,7 @@ static void test_fixed_wnaf_small(void) {
     secp256k1_scalar_set_int(&num, 0);
     skew = secp256k1_wnaf_fixed(wnaf, &num, w);
     for (i = WNAF_SIZE(w)-1; i >= 0; --i) {
-        int v = wnaf[i];
+        int32_t v = wnaf[i];
         CHECK(v == 0);
     }
     CHECK(skew == 0);

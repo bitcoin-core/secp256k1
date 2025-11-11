@@ -43,7 +43,7 @@ typedef struct {
     secp256k1_ge ge[2];
     secp256k1_gej gej[2];
     unsigned char data[64];
-    int wnaf[256];
+    int32_t wnaf[256];
 } bench_inv;
 
 static void bench_setup(void* arg) {
