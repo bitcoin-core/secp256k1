@@ -69,3 +69,5 @@ libsecp256k1.pc
 ### Python
 __pycache__/
 *.py[oc]
+_codeql_build_dir/
+_codeql_detected_source_root
