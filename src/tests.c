@@ -5339,7 +5339,7 @@ static void test_fixed_wnaf(const secp256k1_scalar *number, int w) {
 
 /* Checks that the first 8 elements of wnaf are equal to wnaf_expected and the
  * rest is 0.*/
-static void test_fixed_wnaf_small_helper(int *wnaf, int *wnaf_expected, int w) {
+static void test_fixed_wnaf_small_helper(int32_t *wnaf, int32_t *wnaf_expected, int w) {
     int i;
     for (i = WNAF_SIZE(w)-1; i >= 8; --i) {
         CHECK(wnaf[i] == 0);
@@ -5374,28 +5374,28 @@ static void test_fixed_wnaf_small(void) {
     CHECK(skew == 0);
 
     {
-        int wnaf_expected[8] = { 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf };
+        int32_t wnaf_expected[8] = { 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf, 0xf };
         secp256k1_scalar_set_int(&num, 0xffffffff);
         skew = secp256k1_wnaf_fixed(wnaf, &num, w);
         test_fixed_wnaf_small_helper(wnaf, wnaf_expected, w);
         CHECK(skew == 0);
     }
     {
-        int wnaf_expected[8] = { -1, -1, -1, -1, -1, -1, -1, 0xf };
+        int32_t wnaf_expected[8] = { -1, -1, -1, -1, -1, -1, -1, 0xf };
         secp256k1_scalar_set_int(&num, 0xeeeeeeee);
         skew = secp256k1_wnaf_fixed(wnaf, &num, w);
         test_fixed_wnaf_small_helper(wnaf, wnaf_expected, w);
         CHECK(skew == 1);
     }
     {
-        int wnaf_expected[8] = { 1, 0, 1, 0, 1, 0, 1, 0 };
+        int32_t wnaf_expected[8] = { 1, 0, 1, 0, 1, 0, 1, 0 };
         secp256k1_scalar_set_int(&num, 0x01010101);
         skew = secp256k1_wnaf_fixed(wnaf, &num, w);
         test_fixed_wnaf_small_helper(wnaf, wnaf_expected, w);
         CHECK(skew == 0);
     }
     {
-        int wnaf_expected[8] = { -0xf, 0, 0xf, -0xf, 0, 0xf, 1, 0 };
+        int32_t wnaf_expected[8] = { -0xf, 0, 0xf, -0xf, 0, 0xf, 1, 0 };
         secp256k1_scalar_set_int(&num, 0x01ef1ef1);
         skew = secp256k1_wnaf_fixed(wnaf, &num, w);
         test_fixed_wnaf_small_helper(wnaf, wnaf_expected, w);

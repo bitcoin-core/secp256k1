@@ -1,0 +1,1 @@
+/home/runner/work/secp256k1/.codeql-scratch/dbs/cpp/working/autobuild/bin/cc -O2  -Wl,--dependency-file=CMakeFiles/bench_internal.dir/link.d CMakeFiles/bench_internal.dir/bench_internal.c.o CMakeFiles/secp256k1_precomputed.dir/precomputed_ecmult.c.o CMakeFiles/secp256k1_precomputed.dir/precomputed_ecmult_gen.c.o -o ../bin/bench_internal

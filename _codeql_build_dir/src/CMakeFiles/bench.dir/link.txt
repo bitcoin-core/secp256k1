@@ -1,0 +1,1 @@
+/home/runner/work/secp256k1/.codeql-scratch/dbs/cpp/working/autobuild/bin/cc -O2  -Wl,--dependency-file=CMakeFiles/bench.dir/link.d CMakeFiles/bench.dir/bench.c.o -o ../bin/bench  -Wl,-rpath,/home/runner/work/secp256k1/secp256k1/_codeql_build_dir/lib ../lib/libsecp256k1.so.6.0.1

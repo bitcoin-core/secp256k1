@@ -1,0 +1,1 @@
+/home/runner/work/secp256k1/.codeql-scratch/dbs/cpp/working/autobuild/bin/cc -O2  -Wl,--dependency-file=CMakeFiles/exhaustive_tests.dir/link.d CMakeFiles/exhaustive_tests.dir/tests_exhaustive.c.o -o ../bin/exhaustive_tests
