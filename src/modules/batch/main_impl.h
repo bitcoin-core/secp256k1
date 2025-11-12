@@ -28,9 +28,6 @@ enum batch_add_type {schnorrsig = 1, tweak_check = 2};
  *     sha256: contains hash of all the inputs (schnorrsig/tweaks) present in
  *             the batch object, expect the first input. Used for generating a random secp256k1_scalar
  *             for each term added by secp256k1_batch_add_*.
- *     sha256: contains hash of all inputs (except the first one) present in the batch.
- *             `secp256k1_batch_add_` APIs use these for randomizing the scalar (i.e., multiplying
- *             it with a newly generated scalar) before adding it to the batch.
  *        len: number of scalar-point pairs present in the batch.
  *   capacity: max number of scalar-point pairs that the batch can hold.
  *     result: tells whether the given set of inputs (schnorrsigs or tweak checks) is valid
@@ -123,7 +120,7 @@ secp256k1_batch* secp256k1_batch_create(const secp256k1_context* ctx, size_t max
         if (batch->data == NULL) {
             return NULL;
         }
-        /* allocate memeory for `max_terms` number of scalars and points on scratch space */
+        /* allocate memory for `max_terms` number of scalars and points on scratch space */
         batch->capacity = max_terms;
         if (!secp256k1_batch_scratch_alloc(&ctx->error_callback, batch)) {
             /* if scratch memory allocation fails, free all the previous the allocated memory

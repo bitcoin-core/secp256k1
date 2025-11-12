@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 output_file=$1
 cur_dir=$(pwd)
