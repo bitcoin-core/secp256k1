@@ -15,7 +15,7 @@
 /* Tests for the equality of two sha256 structs. This function only produces a
  * correct result if an integer multiple of 64 many bytes have been written
  * into the hash functions. */
-void test_batch_sha256_eq(const secp256k1_sha256 *sha1, const secp256k1_sha256 *sha2) {
+static void test_batch_sha256_eq(const secp256k1_sha256 *sha1, const secp256k1_sha256 *sha2) {
     /* Is buffer fully consumed? */
     CHECK((sha1->bytes & 0x3F) == 0);
 
@@ -25,7 +25,7 @@ void test_batch_sha256_eq(const secp256k1_sha256 *sha1, const secp256k1_sha256 *
 
 /* Checks that hash initialized by secp256k1_batch_sha256_tagged has the
  * expected state. */
-void test_batch_sha256_tagged(void) {
+static void test_batch_sha256_tagged(void) {
     unsigned char tag[] = {'B', 'I', 'P', '0', '3', '4', '0', '/', 'b', 'a', 't', 'c', 'h'};
     secp256k1_sha256 sha;
     secp256k1_sha256 sha_optimized;
@@ -38,7 +38,7 @@ void test_batch_sha256_tagged(void) {
 #define N_SIGS 10
 #define N_TWK_CHECKS 10
 #define N_TERMS (N_TWK_CHECKS + 2*N_SIGS)
-void test_batch_api(void) {
+static void test_batch_api(void) {
 
 #ifdef ENABLE_MODULE_EXTRAKEYS
     unsigned char sk[32];

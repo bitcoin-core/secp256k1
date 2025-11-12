@@ -4,10 +4,11 @@
 #include "../../../include/secp256k1_schnorrsig.h"
 #include "../../../include/secp256k1_batch.h"
 #include "../../../include/secp256k1_schnorrsig_batch.h"
+#include "../../unit_test.h"
 
 /* Checks that a bit flip in the n_flip-th argument (that has n_bytes many
  * bytes) changes the hash function */
-void batch_schnorrsig_randomizer_gen_bitflip(secp256k1_sha256 *sha, unsigned char **args, size_t n_flip, size_t n_bytes, size_t msglen) {
+static void batch_schnorrsig_randomizer_gen_bitflip(secp256k1_sha256 *sha, unsigned char **args, size_t n_flip, size_t n_bytes, size_t msglen) {
     unsigned char randomizers[2][32];
     secp256k1_sha256 sha_cpy;
     sha_cpy = *sha;
@@ -18,7 +19,7 @@ void batch_schnorrsig_randomizer_gen_bitflip(secp256k1_sha256 *sha, unsigned cha
     CHECK(secp256k1_memcmp_var(randomizers[0], randomizers[1], 32) != 0);
 }
 
-void run_batch_schnorrsig_randomizer_gen_tests(void) {
+static void run_batch_schnorrsig_randomizer_gen_tests(void) {
     secp256k1_sha256 sha;
     size_t n_sigs = 20;
     unsigned char msg[32];
@@ -80,9 +81,9 @@ void run_batch_schnorrsig_randomizer_gen_tests(void) {
 
 }
 
-/* Helper for function test_schnorrsig_sign_batch_verify
+/* Helper for function test_schnorrsig_sign_batch_verify_internal
  * Checks that batch_verify fails after flipping random byte. */
-void test_schnorrsig_sign_verify_check_batch(secp256k1_batch *batch, unsigned char *sig64, unsigned char *msg, size_t msglen, secp256k1_xonly_pubkey *pk) {
+static void test_schnorrsig_sign_verify_check_batch(secp256k1_batch *batch, unsigned char *sig64, unsigned char *msg, size_t msglen, secp256k1_xonly_pubkey *pk) {
     int ret;
 
     CHECK(secp256k1_batch_usable(CTX, batch));
@@ -103,7 +104,7 @@ void test_schnorrsig_sign_verify_check_batch(secp256k1_batch *batch, unsigned ch
 /* Creates N_SIGS valid signatures and verifies them with batch_verify.
  * Then flips some bits and checks that verification now fails. This is a
  * variation of `test_schnorrsig_sign_verify` (in schnorrsig/tests_impl.h) */
-void test_schnorrsig_sign_batch_verify(void) {
+static void test_schnorrsig_sign_batch_verify_internal(void) {
     unsigned char sk[32];
     unsigned char msg[N_SIGS][32];
     unsigned char sig[N_SIGS][64];
@@ -210,7 +211,7 @@ void test_schnorrsig_sign_batch_verify(void) {
 #undef N_SIGS
 /* ONE_SIG is undefined after `test_batch_add_schnorrsig_api` */
 
-void test_batch_add_schnorrsig_api(void) {
+static void test_batch_add_schnorrsig_api(void) {
     unsigned char sk[32];
     secp256k1_keypair keypair;
     secp256k1_xonly_pubkey pk;
