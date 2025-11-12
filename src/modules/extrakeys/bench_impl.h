@@ -36,16 +36,16 @@ static void bench_xonly_pubkey_tweak_add_check(void* arg, int iters) {
 }
 
 #ifdef ENABLE_MODULE_BATCH
-static void bench_xonly_pubkey_tweak_add_check_n(void* arg, int iters) {
+static void bench_xonly_pubkey_tweak_add_check_n(void* arg, int divisible_iters) {
     bench_tweak_check_data *data = (bench_tweak_check_data *)arg;
     int i, j;
 
-    for (j = 0; j < iters/data->n; j++) {
+    for (j = 0; j < divisible_iters/data->n; j++) {
         for (i = 0; i < data->n; i++) {
             secp256k1_xonly_pubkey pk;
-            CHECK(secp256k1_xonly_pubkey_parse(data->ctx, &pk, data->pks[j+i]) == 1);
+            CHECK(secp256k1_xonly_pubkey_parse(data->ctx, &pk, data->pks[j*data->n + i]) == 1);
             CHECK(secp256k1_batch_usable(data->ctx, data->batch) == 1);
-            CHECK(secp256k1_batch_add_xonlypub_tweak_check(data->ctx, data->batch, data->tweaked_pks[j+i], *data->tweaked_pk_parities[j+i], &pk, data->tweaks[j+i]) == 1);
+            CHECK(secp256k1_batch_add_xonlypub_tweak_check(data->ctx, data->batch, data->tweaked_pks[j*data->n + i], *data->tweaked_pk_parities[j*data->n + i], &pk, data->tweaks[j*data->n + i]) == 1);
         }
         CHECK(secp256k1_batch_verify(data->ctx, data->batch) == 1);
     }

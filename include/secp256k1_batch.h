@@ -91,7 +91,7 @@ SECP256K1_API int secp256k1_batch_usable(
 /** Verify the set of schnorr signatures or tweaked pubkeys present in the secp256k1_batch.
  *
  *  Returns: 1: every schnorrsig/tweak (in batch) is valid
- *           0: atleaset one of the schnorrsig/tweak (in batch) is invalid
+ *           0: at leaset one of the schnorrsig/tweak (in batch) is invalid
  *
  *  In particular, returns 1 if the batch object is empty (does not contain any schnorrsigs/tweaks).
  *

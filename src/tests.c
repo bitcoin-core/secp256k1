@@ -5029,7 +5029,7 @@ static void ecmult_multi_random_generate_inp(secp256k1_gej *expected, secp256k1_
     *nonzero_inp_len = num_nonzero;
     /* ptr to g_scalar*/
     g_scalar = g_scalar_ptr;
-    /* is mulciplicand of g nonzero? */
+    /* is multiplicand of g nonzero? */
     *is_g_nonzero = g_nonzero;
     /* number of mults performed in this function */
     *mults_performed += mults;

@@ -1,8 +1,12 @@
+.PHONY: all clean
+
 schnorrsig_data = schnorrsig_batch.dat schnorrsig_single.dat
 tweak_data = tweak_batch.dat tweak_single.dat
 
+all: bench_output.txt speedup-batch.png
+
 bench_output.txt: bench.sh
-	SECP256K1_BENCH_ITERS=500000 ./bench.sh bench_output.txt
+	SECP256K1_BENCH_ITERS=1000000 ./bench.sh bench_output.txt
 
 schnorrsig_batch.dat: bench_output.txt
 	cat bench_output.txt | grep -v "batchverify_schnorrsigs_1 " | awk '{ gsub(/ /,""); print }' | gawk -F, 'match($$0, /batchverify_schnorrsigs_([0-9]+)/, arr) {print arr[1] " " $$3}' > schnorrsig_batch.dat
