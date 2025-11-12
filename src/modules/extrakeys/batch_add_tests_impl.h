@@ -4,10 +4,11 @@
 #include "../../../include/secp256k1_extrakeys.h"
 #include "../../../include/secp256k1_batch.h"
 #include "../../../include/secp256k1_tweak_check_batch.h"
+#include "../../unit_test.h"
 
 /* Checks that a bit flip in the n_flip-th argument (that has n_bytes many
  * bytes) changes the hash function */
-void batch_xonlypub_tweak_randomizer_gen_bitflip(secp256k1_sha256 *sha, unsigned char **args, size_t n_flip, size_t n_bytes) {
+static void batch_xonlypub_tweak_randomizer_gen_bitflip(secp256k1_sha256 *sha, unsigned char **args, size_t n_flip, size_t n_bytes) {
     unsigned char randomizers[2][32];
     secp256k1_sha256 sha_cpy;
     sha_cpy = *sha;
@@ -18,7 +19,7 @@ void batch_xonlypub_tweak_randomizer_gen_bitflip(secp256k1_sha256 *sha, unsigned
     CHECK(secp256k1_memcmp_var(randomizers[0], randomizers[1], 32) != 0);
 }
 
-void run_batch_xonlypub_tweak_randomizer_gen_tests(void) {
+static void run_batch_xonlypub_tweak_randomizer_gen_tests(void) {
     secp256k1_sha256 sha;
     size_t n_checks = 20;
     unsigned char tweaked_pk[32];
@@ -65,7 +66,7 @@ void run_batch_xonlypub_tweak_randomizer_gen_tests(void) {
 
 }
 
-void test_batch_add_xonlypub_tweak_api(void) {
+static void test_batch_add_xonlypub_tweak_api(void) {
     unsigned char sk[32];
     secp256k1_keypair keypair;
     secp256k1_xonly_pubkey pk;
