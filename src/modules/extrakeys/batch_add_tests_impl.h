@@ -109,12 +109,10 @@ static void test_batch_add_xonlypub_tweak_api(void) {
     CHECK(secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, overflows, tweaked_pk_parity, &pk, tweak) == 0);
 
     /** batch_verify should fail for incorrect tweak **/
-    CHECK(secp256k1_batch_usable(CTX, batch));
     CHECK(secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, !tweaked_pk_parity, &pk, tweak) == 1);
     CHECK(secp256k1_batch_verify(CTX, batch) == 0);
 
     /** batch_add_ should ignore unusable batch object (i.e, batch->result = 0) **/
-    CHECK(secp256k1_batch_usable(CTX, batch) == 0);
     CHECK(secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, tweaked_pk_parity, &pk, tweak) == 0);
 
     secp256k1_batch_destroy(CTX, batch);

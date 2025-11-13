@@ -63,7 +63,6 @@ static void bench_schnorrsig_verify_n(void* arg, int divisible_iters) {
         for (i = 0; i < data->n; i++) {
             secp256k1_xonly_pubkey pk;
             CHECK(secp256k1_xonly_pubkey_parse(data->ctx, &pk, data->pk[j*data->n + i]) == 1);
-            CHECK(secp256k1_batch_usable(data->ctx, data->batch) == 1);
             CHECK(secp256k1_batch_add_schnorrsig(data->ctx, data->batch, data->sigs[j*data->n + i], data->msgs[j*data->n + i], MSGLEN, &pk) == 1);
         }
         CHECK(secp256k1_batch_verify(data->ctx, data->batch) == 1);
