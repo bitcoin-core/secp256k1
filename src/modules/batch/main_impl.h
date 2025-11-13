@@ -159,13 +159,6 @@ void secp256k1_batch_destroy(const secp256k1_context *ctx, secp256k1_batch *batc
     }
 }
 
-int secp256k1_batch_usable(const secp256k1_context *ctx, const secp256k1_batch *batch) {
-    VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(batch != NULL);
-
-    return batch->result;
-}
-
 /** verifies the inputs (schnorrsig or tweak_check) by performing multi-scalar point
  *  multiplication on the scalars (`batch->scalars`) and points (`batch->points`)
  *  present in the batch. Uses `secp256k1_ecmult_strauss_batch_internal` to perform

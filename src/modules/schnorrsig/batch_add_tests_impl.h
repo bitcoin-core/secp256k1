@@ -86,7 +86,6 @@ static void run_batch_schnorrsig_randomizer_gen_tests(void) {
 static void test_schnorrsig_sign_verify_check_batch(secp256k1_batch *batch, unsigned char *sig64, unsigned char *msg, size_t msglen, secp256k1_xonly_pubkey *pk) {
     int ret;
 
-    CHECK(secp256k1_batch_usable(CTX, batch));
     /* filling a random byte (in msg or sig) can cause the following:
      *     1. unparsable msg or sig - here, batch_add_schnorrsig fails and batch_verify passes
      *     2. invalid schnorr eqn   - here, batch_verify fails and batch_add_schnorrsig passes
@@ -132,7 +131,6 @@ static void test_schnorrsig_sign_batch_verify_internal(void) {
     for (i = 0; i < N_SIGS; i++) {
         testrand256(msg[i]);
         CHECK(secp256k1_schnorrsig_sign32(CTX, sig[i], msg[i], &keypair, NULL));
-        CHECK(secp256k1_batch_usable(CTX, batch[0]));
         CHECK(secp256k1_batch_add_schnorrsig(CTX, batch[0], sig[i], msg[i], sizeof(msg[i]), &pk));
     }
     CHECK(secp256k1_batch_verify(CTX, batch[0]));
@@ -179,7 +177,6 @@ static void test_schnorrsig_sign_batch_verify_internal(void) {
 
     /* The empty message can be signed & verified */
     CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig[0], NULL, 0, &keypair, NULL) == 1);
-    CHECK(secp256k1_batch_usable(CTX, batch[0]) == 1);
     CHECK(secp256k1_batch_add_schnorrsig(CTX, batch[0], sig[0], NULL, 0, &pk) == 1);
     CHECK(secp256k1_batch_verify(CTX, batch[0]) == 1);
 
@@ -191,12 +188,10 @@ static void test_schnorrsig_sign_batch_verify_internal(void) {
             testrand256(&msg_large[i]);
         }
         CHECK(secp256k1_schnorrsig_sign_custom(CTX, sig[0], msg_large, msglen, &keypair, NULL) == 1);
-        CHECK(secp256k1_batch_usable(CTX, batch[0]) == 1);
         CHECK(secp256k1_batch_add_schnorrsig(CTX, batch[0], sig[0], msg_large, msglen, &pk) == 1);
         CHECK(secp256k1_batch_verify(CTX, batch[0]) == 1);
         /* batch_add fails for a random wrong message length */
         msglen = (msglen + (sizeof(msg_large) - 1)) % sizeof(msg_large);
-        CHECK(secp256k1_batch_usable(CTX, batch_fail2) == 1);
         CHECK(secp256k1_batch_add_schnorrsig(CTX, batch_fail2, sig[0], msg_large, msglen, &pk) == 1);
         CHECK(secp256k1_batch_verify(CTX, batch_fail2) == 0);
     }
@@ -251,17 +246,14 @@ static void test_batch_add_schnorrsig_api(void) {
 
     /** NULL msg with valid signature **/
     CHECK(secp256k1_schnorrsig_sign_custom(CTX, nullmsg_sig, NULL, 0, &keypair, NULL) == 1);
-    CHECK(secp256k1_batch_usable(CTX, batch1) == 1);
     CHECK(secp256k1_batch_add_schnorrsig(CTX, batch1, nullmsg_sig, NULL, 0, &pk) == 1);
     CHECK(secp256k1_batch_verify(CTX, batch1) == 1);
 
     /** NULL msg with invalid signature **/
-    CHECK(secp256k1_batch_usable(CTX, batch2) == 1);
     CHECK(secp256k1_batch_add_schnorrsig(CTX, batch2, sig, NULL, 0, &pk) == 1);
     CHECK(secp256k1_batch_verify(CTX, batch2) == 0);
 
     /** batch_add_ should ignore unusable batch object (i.e, batch->result = 0) **/
-    CHECK(secp256k1_batch_usable(CTX, batch2) == 0);
     CHECK(secp256k1_batch_add_schnorrsig(CTX, batch2, sig, msg, sizeof(msg), &pk) == 0);
 
     secp256k1_batch_destroy(CTX, batch1);

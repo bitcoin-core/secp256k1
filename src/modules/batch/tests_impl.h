@@ -89,7 +89,6 @@ static void test_batch_api(void) {
     }
     /* add tweak checks to the batch object */
     for (i = 0; i < N_TWK_CHECKS; i++) {
-        CHECK(secp256k1_batch_usable(CTX, batch));
         CHECK(secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk[i], tweaked_pk_parity[i], &pk, tweak[i]));
     }
 #endif
@@ -103,7 +102,6 @@ static void test_batch_api(void) {
     }
     /* add schnorrsigs to the batch object */
     for (i = 0; i < N_SIGS; i++) {
-        CHECK(secp256k1_batch_usable(CTX, batch) == 1);
         CHECK(secp256k1_batch_add_schnorrsig(CTX, batch, sig[i], msg[i], sizeof(msg[i]), &pk) == 1);
     }
 #endif
