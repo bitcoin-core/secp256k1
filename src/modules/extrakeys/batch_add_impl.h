@@ -56,26 +56,15 @@ static int secp256k1_batch_xonlypub_tweak_randomizer_set(const secp256k1_context
     return 1;
 }
 
-/** Adds the given x-only tweaked public key check to the batch.
+/** Extracts randomized scalar-point pairs from the tweaked pubkey check and adds
+ *  them to the batch context.
  *
- *  Updates the batch object by:
- *     1. adding the point P-Q to the scratch space
- *          -> the point is of type `secp256k1_gej`
- *     2. adding the scalar ai to the scratch space
- *          -> ai is the scalar coefficient of P-Q (in multi multiplication)
- *     3. incrementing sc_g (scalar of G) by ai.tweak
- *
- *  Conventions used above:
- *     -> Q (tweaked pubkey)   = EC point where parity(y) = tweaked_pk_parity
- *                               and x = tweaked_pubkey32
- *     -> P (internal pubkey)  = internal pubkey
- *     -> ai (randomizer)      = sha256_tagged(batch_add_tag || tweaked_pubkey32  ||
- *                                             tweaked_pk_parity || tweak32 || pubkey)
- *     -> tweak (challenge)    = tweak32
- *
- * This function is based on `secp256k1_xonly_pubkey_tweak_add_check`.
+ *  For the tweak check equation Q ?= t * G + P with randomizer a_i, the following
+ *  scalar-point pairs are added:
+ *      1. (a_i, P - Q)
+ *      2. (a_i * t, G)
  */
-int secp256k1_batch_add_xonlypub_tweak_check(const secp256k1_context* ctx, secp256k1_batch *batch, const unsigned char *tweaked_pubkey32, int tweaked_pk_parity, const secp256k1_xonly_pubkey *internal_pubkey,const unsigned char *tweak32) {
+void secp256k1_batch_add_xonlypub_tweak_check(const secp256k1_context* ctx, secp256k1_batch *batch, const unsigned char *tweaked_pubkey32, int tweaked_pk_parity, const secp256k1_xonly_pubkey *internal_pubkey,const unsigned char *tweak32) {
     secp256k1_scalar tweak;
     secp256k1_scalar ai;
     secp256k1_ge pk;
@@ -83,45 +72,53 @@ int secp256k1_batch_add_xonlypub_tweak_check(const secp256k1_context* ctx, secp2
     secp256k1_gej tmpj;
     secp256k1_fe qx;
     int overflow;
+    int tverify;
     size_t i;
 
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(batch != NULL);
-    ARG_CHECK(internal_pubkey != NULL);
-    ARG_CHECK(tweaked_pubkey32 != NULL);
-    ARG_CHECK(tweak32 != NULL);
+    ARG_CHECK_VOID(batch != NULL);
+    ARG_CHECK_VOID(batch->len <= batch->capacity);
+    ARG_CHECK_VOID(internal_pubkey != NULL);
+    ARG_CHECK_VOID(tweaked_pubkey32 != NULL);
+    ARG_CHECK_VOID(tweak32 != NULL);
 
     if(batch->result == 0) {
-        return 0;
+        return;
     }
 
     if (!secp256k1_fe_set_b32_limit(&qx, tweaked_pubkey32)) {
-        return 0;
+        batch->result = 0;
+        return;
     }
 
     secp256k1_scalar_set_b32(&tweak, tweak32, &overflow);
     if (overflow) {
-        return 0;
+        batch->result = 0;
+        return;
     }
 
     if (!secp256k1_xonly_pubkey_load(ctx, &pk, internal_pubkey)) {
-        return 0;
+        batch->result = 0;
+        return;
     }
 
-    /* if insufficient space in batch, verify the inputs (stored in curr batch) and
-     * save the result. This extends the batch capacity since `secp256k1_batch_verify`
-     * clears the batch after verification. */
+    /* if insufficient space in batch, verify the batch context immediately.
+    This extends the batch capacity as verifying the context clears it. */
     if (batch->capacity - batch->len < BATCH_TWEAK_CHECK_SCRATCH_OBJS) {
-        secp256k1_batch_verify(ctx, batch);
+        tverify = secp256k1_batch_verify(ctx, batch);
+        /* fail if the above transparent verification call fails */
+        if (tverify == 0) return;
     }
 
     i = batch->len;
     /* append point P-Q to the scratch space */
     if (!secp256k1_ge_set_xo_var(&q, &qx, tweaked_pk_parity)) {
-        return 0;
+        batch->result = 0;
+        return;
     }
     if (!secp256k1_ge_is_in_correct_subgroup(&q)) {
-        return 0;
+        batch->result = 0;
+        return;
     }
     secp256k1_ge_neg(&q, &q);
     secp256k1_gej_set_ge(&tmpj, &q);
@@ -130,22 +127,21 @@ int secp256k1_batch_add_xonlypub_tweak_check(const secp256k1_context* ctx, secp2
 
     /* Compute ai (randomizer) */
     if (batch->len == 0) {
-        /* set randomizer as 1 for the first term in batch */
+        /* don't generate a randomizer for the first term in the batch to improve
+         * the computation speed, set it to 1. */
         ai = secp256k1_scalar_one;
     } else if(!secp256k1_batch_xonlypub_tweak_randomizer_set(ctx, batch, &ai, tweaked_pubkey32, tweaked_pk_parity, internal_pubkey, tweak32)) {
-        return 0;
+        batch->result = 0;
+        return;
     }
 
     /* append scalar ai to scratch space */
     batch->scalars[i] = ai;
-
     /* increment scalar of G by ai.tweak */
     secp256k1_scalar_mul(&tweak, &tweak, &ai);
     secp256k1_scalar_add(&batch->sc_g, &batch->sc_g, &tweak);
 
     batch->len += 1;
-
-    return 1;
 }
 
 #endif /* SECP256K1_MODULE_EXTRAKEYS_BATCH_ADD_IMPL_H */

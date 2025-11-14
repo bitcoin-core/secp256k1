@@ -9,32 +9,27 @@
 extern "C" {
 #endif
 
-/** This header file implements batch verification functionality for
- *  x-only tweaked public key check (see include/secp256k1_extrakeys.h).
+ /** Implements batch verification for BIP-341 xonly tweaked public keys.
+ *
+ *  See include/secp256k1_extrakeys.h for the more details.
  */
 
-/** Adds a x-only tweaked pubkey check to the batch object (secp256k1_batch)
- *  defined in the Batch module (see include/secp256k1_batch.h).
+/** Adds an x-only tweaked public key verification to the batch context.
  *
- *  The tweaked pubkey is represented by its 32-byte x-only serialization and
- *  its pk_parity, which can both be obtained by converting the result of
- *  tweak_add to a secp256k1_xonly_pubkey.
+ *  The tweaked public key is represented by its 32-byte x-only serialization
+ *  and its pk_parity, both obtained by converting the result of tweak_add to
+ *  a secp256k1_xonly_pubkey.
  *
- *  Returns: 1: successfully added the tweaked pubkey check to the batch
- *           0: unparseable tweaked pubkey check or unusable batch (according to
- *              secp256k1_batch_usable).
- *  Args:            ctx: pointer to a context object initialized for verification.
- *                 batch: a secp256k1 batch object created using `secp256k1_batch_create`.
- *  In: tweaked_pubkey32: pointer to a serialized xonly_pubkey.
- *     tweaked_pk_parity: the parity of the tweaked pubkey (whose serialization
- *                        is passed in as tweaked_pubkey32). This must match the
- *                        pk_parity value that is returned when calling
- *                        secp256k1_xonly_pubkey_from_pubkey with the tweaked pubkey, or
- *                        the final secp256k1_batch_verify on this batch will fail.
+ *  Args:            ctx: pointer to a secp256k1 context object.
+ *                 batch: pointer to a batch verification context object.
+ *  In: tweaked_pubkey32: pointer to a serialized xonly tweaked pubkey (cannot be NULL).
+ *     tweaked_pk_parity: parity of the xonly tweaked public key. Must match the pk_parity returned by
+ *                        secp256k1_xonly_pubkey_from_pubkey when called with the tweaked public key,
+ *                        or batch verification will fail.
  *       internal_pubkey: pointer to an x-only public key object to apply the tweak to.
  *               tweak32: pointer to a 32-byte tweak.
  */
-SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_batch_add_xonlypub_tweak_check(
+SECP256K1_API void secp256k1_batch_add_xonlypub_tweak_check(
     const secp256k1_context* ctx,
     secp256k1_batch *batch,
     const unsigned char *tweaked_pubkey32,
