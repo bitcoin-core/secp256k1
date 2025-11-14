@@ -66,6 +66,14 @@ static void run_batch_xonlypub_tweak_randomizer_gen_tests(void) {
 
 }
 
+/* Helper function that adds a schnorrsig to the batch context and
+ * checks if it fails. Resets the batch at the end. */
+static void check_batch_add_xonlypub_tweak_verify_fails(secp256k1_batch *batch, const unsigned char *tweaked_pk, int tweaked_pk_parity, const secp256k1_xonly_pubkey *pk, const unsigned char *tweak) {
+    secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, tweaked_pk_parity, pk, tweak);
+    CHECK(secp256k1_batch_verify(CTX, batch) == 0);
+    secp256k1_batch_reset(CTX, batch);
+}
+
 static void test_batch_add_xonlypub_tweak_api(void) {
     unsigned char sk[32];
     secp256k1_keypair keypair;
@@ -97,23 +105,20 @@ static void test_batch_add_xonlypub_tweak_api(void) {
     CHECK(batch != NULL);
 
     /** main test body **/
-    CHECK(secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, tweaked_pk_parity, &pk, tweak) == 1);
+    secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, tweaked_pk_parity, &pk, tweak);
     CHECK(secp256k1_batch_verify(CTX, batch) == 1);
-    CHECK_ILLEGAL(CTX, secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, NULL, tweaked_pk_parity, &pk, tweak));
-    CHECK_ILLEGAL(CTX, secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, tweaked_pk_parity, NULL, tweak));
-    CHECK_ILLEGAL(CTX, secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, tweaked_pk_parity, &pk, NULL));
-    CHECK_ILLEGAL(CTX, secp256k1_batch_add_xonlypub_tweak_check(CTX, NULL, tweaked_pk, tweaked_pk_parity, &pk, tweak));
+    CHECK_ILLEGAL_VOID(CTX, secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, NULL, tweaked_pk_parity, &pk, tweak));
+    CHECK_ILLEGAL_VOID(CTX, secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, tweaked_pk_parity, NULL, tweak));
+    CHECK_ILLEGAL_VOID(CTX, secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, tweaked_pk_parity, &pk, NULL));
+    CHECK_ILLEGAL_VOID(CTX, secp256k1_batch_add_xonlypub_tweak_check(CTX, NULL, tweaked_pk, tweaked_pk_parity, &pk, tweak));
+    secp256k1_batch_reset(CTX, batch);
     /** overflowing tweak not allowed **/
-    CHECK(secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, tweaked_pk_parity, &pk, overflows) == 0);
+    check_batch_add_xonlypub_tweak_verify_fails(batch, tweaked_pk, tweaked_pk_parity, &pk, overflows);
     /** x-coordinate of tweaked pubkey should be less than prime order **/
-    CHECK(secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, overflows, tweaked_pk_parity, &pk, tweak) == 0);
+    check_batch_add_xonlypub_tweak_verify_fails(batch, overflows, tweaked_pk_parity, &pk, tweak);
 
     /** batch_verify should fail for incorrect tweak **/
-    CHECK(secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, !tweaked_pk_parity, &pk, tweak) == 1);
-    CHECK(secp256k1_batch_verify(CTX, batch) == 0);
-
-    /** batch_add_ should ignore unusable batch object (i.e, batch->result = 0) **/
-    CHECK(secp256k1_batch_add_xonlypub_tweak_check(CTX, batch, tweaked_pk, tweaked_pk_parity, &pk, tweak) == 0);
+    check_batch_add_xonlypub_tweak_verify_fails(batch, tweaked_pk, !tweaked_pk_parity, &pk, tweak);
 
     secp256k1_batch_destroy(CTX, batch);
 }

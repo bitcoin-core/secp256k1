@@ -44,7 +44,7 @@ static void bench_xonly_pubkey_tweak_add_check_n(void* arg, int divisible_iters)
         for (i = 0; i < data->n; i++) {
             secp256k1_xonly_pubkey pk;
             CHECK(secp256k1_xonly_pubkey_parse(data->ctx, &pk, data->pks[j*data->n + i]) == 1);
-            CHECK(secp256k1_batch_add_xonlypub_tweak_check(data->ctx, data->batch, data->tweaked_pks[j*data->n + i], *data->tweaked_pk_parities[j*data->n + i], &pk, data->tweaks[j*data->n + i]) == 1);
+            secp256k1_batch_add_xonlypub_tweak_check(data->ctx, data->batch, data->tweaked_pks[j*data->n + i], *data->tweaked_pk_parities[j*data->n + i], &pk, data->tweaks[j*data->n + i]);
         }
         CHECK(secp256k1_batch_verify(data->ctx, data->batch) == 1);
     }

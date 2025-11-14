@@ -7,34 +7,36 @@
  * for which `secp256k1_batch_verify` remains efficient */
 #define STRAUSS_MAX_TERMS_PER_BATCH 106
 
-/* Assume two batch objects (batch1 and batch2) and we call
- * `batch_add_tweak_check` on batch1 and `batch_add_schnorrsig` on batch2.
- * In this case, the same randomizer will be generated if the input bytes to
- * batch1 and batch2 are the same (even though we use different `batch_add_` funcs).
- * Including this tag during randomizer generation (to differentiate btw
- * `batch_add_` funcs) will prevent such mishaps. */
+/* Ensures unique randomizers across different batch_add_* functions.
+ *
+ * Without this tag, two batch contexts could generate identical randomizers
+ * if given the same input bytes, even when using different batch_add_*
+ * functions (e.g., batch_add_tweak_check vs batch_add_schnorrsig).
+ *
+ * Including this tag in randomizer generation prevents such collisions by
+ * differentiating between the different batch_add_* function types.
+ */
 enum batch_add_type {schnorrsig = 1, tweak_check = 2};
 
-/** Opaque data structure that holds information required for the batch verification.
+/** Opaque data structure for batch verification context.
  *
  *  Members:
- *       data: scratch space object that contains points (_gej) and their
- *             respective scalars. To be used in Multi-Scalar Multiplication
- *             algorithms such as Strauss and Pippenger.
- *    scalars: pointer to scalars allocated on the scratch space.
- *     points: pointer to points allocated on the scratch space.
- *       sc_g: scalar corresponding to the generator point (G) in Multi-Scalar
- *             Multiplication equation.
- *     sha256: contains hash of all the inputs (schnorrsig/tweaks) present in
- *             the batch object, expect the first input. Used for generating a random secp256k1_scalar
- *             for each term added by secp256k1_batch_add_*.
- *        len: number of scalar-point pairs present in the batch.
- *   capacity: max number of scalar-point pairs that the batch can hold.
- *     result: tells whether the given set of inputs (schnorrsigs or tweak checks) is valid
- *             or invalid. 1 = valid and 0 = invalid. By default, this is set to 1
- *             during batch object creation (i.e., `secp256k1_batch_create`).
+ *       data: scratch space containing points (secp256k1_gej) and their
+ *             corresponding scalars for use in multi-scalar multiplication
+ *             algorithms (Strauss, Pippenger).
+ *    scalars: pointer to scalars allocated in the scratch space.
+ *     points: pointer to points allocated in the scratch space.
+ *       sc_g: scalar corresponding to the generator point (G) in the
+ *             multi-scalar multiplication equation.
+ *     sha256: hash of all inputs (signatures/tweaks) in the batch except the first.
+ *             Used to generate a random secp256k1_scalar for each term added by
+ *             secp256k1_batch_add_*.
+ *        len: number of scalar-point pairs currently in the batch.
+ *   capacity: maximum number of scalar-point pairs the batch can hold.
+ *     result: indicates whether all inputs (signatures or tweak checks) are valid.
+ *             1 = valid, 0 = invalid. Initialized to 1 by secp256k1_batch_create.
  *
- *  The following struct name is typedef as secp256k1_batch (in include/secp256k1_batch.h).
+ *  This struct is typedef'd as secp256k1_batch in include/secp256k1_batch.h.
  */
 struct secp256k1_batch_struct{
     secp256k1_scratch *data;
@@ -146,8 +148,18 @@ secp256k1_batch* secp256k1_batch_create(const secp256k1_context* ctx, size_t max
     return batch;
 }
 
+void secp256k1_batch_reset(const secp256k1_context *ctx, secp256k1_batch *batch) {
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK_VOID(batch != NULL);
+
+    secp256k1_batch_scratch_clear(batch);
+    secp256k1_batch_sha256_tagged(&batch->sha256);
+    batch->result = 1;
+}
+
 void secp256k1_batch_destroy(const secp256k1_context *ctx, secp256k1_batch *batch) {
     VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK_VOID(batch != NULL);
 
     if (batch != NULL) {
         if(batch->data != NULL) {
@@ -159,20 +171,12 @@ void secp256k1_batch_destroy(const secp256k1_context *ctx, secp256k1_batch *batc
     }
 }
 
-/** verifies the inputs (schnorrsig or tweak_check) by performing multi-scalar point
- *  multiplication on the scalars (`batch->scalars`) and points (`batch->points`)
- *  present in the batch. Uses `secp256k1_ecmult_strauss_batch_internal` to perform
- *  the multi-multiplication.
- *
- * Fails if:
- * 0 != -(s1 + a2*s2 + ... + au*su)G
- *      + R1 + a2*R2 + ... + au*Ru + e1*P1 + (a2*e2)P2 + ... + (au*eu)Pu.
- */
 int secp256k1_batch_verify(const secp256k1_context *ctx, secp256k1_batch *batch) {
     secp256k1_gej resj;
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(batch != NULL);
+    ARG_CHECK(batch->len <= batch->capacity);
 
     if(batch->result == 0) {
         return 0;

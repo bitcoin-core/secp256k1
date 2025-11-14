@@ -84,7 +84,6 @@ int generate_xonlypub_tweak_checks(secp256k1_context *ctx) {
 }
 
 int main(void) {
-    int ret;
     size_t i;
     /* batch object uses secp256k1_context only for the error callback function
      * here, we create secp256k1_context that can sign and verify, only to generate
@@ -122,12 +121,7 @@ int main(void) {
 
     printf("Adding signatures to the batch object.......");
     for (i = 0; i < N_SIGS; i++) {
-        ret = secp256k1_batch_add_schnorrsig(ctx, batch, sig[i], msg[i], sizeof(msg[i]), &pk);
-
-        if(!ret) {
-            printf("FAILED\n");
-            return 1;
-        }
+        secp256k1_batch_add_schnorrsig(ctx, batch, sig[i], msg[i], sizeof(msg[i]), &pk);
     }
     printf("ok\n");
 
@@ -140,12 +134,7 @@ int main(void) {
 
     printf("Adding tweak checks to the batch object.....");
     for (i = 0; i < N_CHECKS; i++) {
-        ret = secp256k1_batch_add_xonlypub_tweak_check(ctx, batch, tweaked_pubkey[i], tweaked_pk_parity[i], &pk, tweak[i]);
-
-        if(!ret) {
-            printf("FAILED\n");
-            return 1;
-        }
+        secp256k1_batch_add_xonlypub_tweak_check(ctx, batch, tweaked_pubkey[i], tweaked_pk_parity[i], &pk, tweak[i]);
     }
     printf("ok\n");
 
