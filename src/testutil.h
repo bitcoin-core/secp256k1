@@ -115,6 +115,21 @@ static void testutil_random_gej_test(secp256k1_gej *gej) {
     testutil_random_ge_jacobian_test(gej, &ge);
 }
 
+static void testutil_random_ge_homogeneous_test(secp256k1_geh *geh, const secp256k1_ge *ge) {
+    secp256k1_fe z;
+    testutil_random_fe_non_zero_test(&z);
+    secp256k1_fe_mul(&geh->x, &ge->x, &z);
+    secp256k1_fe_mul(&geh->y, &ge->y, &z);
+    geh->z = z;
+    geh->infinity = ge->infinity;
+}
+
+static void testutil_random_geh_test(secp256k1_geh *geh) {
+    secp256k1_ge ge;
+    testutil_random_ge_test(&ge);
+    testutil_random_ge_homogeneous_test(geh, &ge);
+}
+
 static void testutil_random_pubkey_test(secp256k1_pubkey *pk) {
     secp256k1_ge ge;
     testutil_random_ge_test(&ge);
