@@ -4315,8 +4315,6 @@ static void test_point_times_order(const secp256k1_gej *point) {
     secp256k1_scalar nx;
     secp256k1_gej res1, res2;
     secp256k1_ge res3;
-    unsigned char pub[65];
-    size_t psize = 65;
     testutil_random_scalar_order_test(&x);
     secp256k1_scalar_negate(&nx, &x);
     secp256k1_ecmult(&res1, point, &x, &x); /* calc res1 = x * point + x * G; */
@@ -4326,9 +4324,6 @@ static void test_point_times_order(const secp256k1_gej *point) {
     secp256k1_ge_set_gej(&res3, &res1);
     CHECK(secp256k1_ge_is_infinity(&res3));
     CHECK(secp256k1_ge_is_valid_var(&res3) == 0);
-    CHECK(secp256k1_eckey_pubkey_serialize(&res3, pub, &psize, 0) == 0);
-    psize = 65;
-    CHECK(secp256k1_eckey_pubkey_serialize(&res3, pub, &psize, 1) == 0);
     /* check zero/one edge cases */
     secp256k1_ecmult(&res1, point, &secp256k1_scalar_zero, &secp256k1_scalar_zero);
     secp256k1_ge_set_gej(&res3, &res1);
@@ -5435,7 +5430,6 @@ static void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar
     secp256k1_gej rj1, rj2, rj3, rj4, rj5, rj6, gj, infj;
     secp256k1_ge r;
     unsigned char bytes[65];
-    size_t size = 65;
     secp256k1_gej_set_ge(&gj, &secp256k1_ge_const_g);
     secp256k1_gej_set_infinity(&infj);
     secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &rj1, x);
@@ -5456,9 +5450,8 @@ static void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar
         secp256k1_sha256_write(acc, zerobyte, 1);
     } else {
         /* Store other points using their uncompressed serialization. */
-        secp256k1_eckey_pubkey_serialize(&r, bytes, &size, 0);
-        CHECK(size == 65);
-        secp256k1_sha256_write(acc, bytes, size);
+        secp256k1_eckey_pubkey_serialize65(&r, bytes);
+        secp256k1_sha256_write(acc, bytes, sizeof(bytes));
     }
 }
 
@@ -6543,16 +6536,18 @@ static void test_random_pubkeys(void) {
         size_t size = len;
         firstb = in[0];
         /* If the pubkey can be parsed, it should round-trip... */
-        CHECK(secp256k1_eckey_pubkey_serialize(&elem, out, &size, len == 33));
-        CHECK(size == len);
+        if (len == 33) {
+            secp256k1_eckey_pubkey_serialize33(&elem, out);
+        } else {
+            secp256k1_eckey_pubkey_serialize65(&elem, out);
+        }
         CHECK(secp256k1_memcmp_var(&in[1], &out[1], len-1) == 0);
         /* ... except for the type of hybrid inputs. */
         if ((in[0] != 6) && (in[0] != 7)) {
             CHECK(in[0] == out[0]);
         }
         size = 65;
-        CHECK(secp256k1_eckey_pubkey_serialize(&elem, in, &size, 0));
-        CHECK(size == 65);
+        secp256k1_eckey_pubkey_serialize65(&elem, in);
         CHECK(secp256k1_eckey_pubkey_parse(&elem2, in, size));
         CHECK(secp256k1_ge_eq_var(&elem2, &elem));
         /* Check that the X9.62 hybrid type is checked. */
@@ -6567,7 +6562,7 @@ static void test_random_pubkeys(void) {
         }
         if (res) {
             CHECK(secp256k1_ge_eq_var(&elem, &elem2));
-            CHECK(secp256k1_eckey_pubkey_serialize(&elem, out, &size, 0));
+            secp256k1_eckey_pubkey_serialize65(&elem, out);
             CHECK(secp256k1_memcmp_var(&in[1], &out[1], 64) == 0);
         }
     }
