@@ -75,7 +75,7 @@ static void secp256k1_ecmult_odd_multiples_table(int n, secp256k1_ge *pre_a, sec
     secp256k1_ge d_ge;
     int i;
 
-    VERIFY_CHECK(!a->infinity);
+    VERIFY_CHECK(!secp256k1_gej_is_infinity(a));
 
     secp256k1_gej_double_var(&d, a, NULL);
 
@@ -356,7 +356,7 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
         }
     }
 
-    if (!r->infinity) {
+    if (!secp256k1_gej_is_infinity(r)) {
         secp256k1_fe_mul(&r->z, &r->z, &Z);
     }
 }
