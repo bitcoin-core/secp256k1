@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Removed
+- Removed previously deprecated function alias `secp256k1_schnorrsig_sign`. Use `secp256k1_schnorrsig_sign32` instead.
+
 ## [0.7.0] - 2025-07-21
 
 #### Added
