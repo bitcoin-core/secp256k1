@@ -129,32 +129,10 @@ static void secp256k1_musig_keyaggcoef(const secp256k1_hash_ctx *hash_ctx, secp2
     secp256k1_musig_keyaggcoef_internal(hash_ctx, r, cache_i->pks_hash, pk, &cache_i->second_pk);
 }
 
-typedef struct {
-    const secp256k1_context *ctx;
+int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pubkey *agg_pk, secp256k1_musig_keyagg_cache *keyagg_cache, const secp256k1_pubkey * const* pubkeys, size_t n_pubkeys) {
     /* pks_hash is the hash of the public keys */
     unsigned char pks_hash[32];
-    const secp256k1_pubkey * const* pks;
     secp256k1_ge second_pk;
-} secp256k1_musig_pubkey_agg_ecmult_data;
-
-/* Callback for batch EC multiplication to compute keyaggcoef_0*P0 + keyaggcoef_1*P1 + ...  */
-static int secp256k1_musig_pubkey_agg_callback(secp256k1_scalar *sc, secp256k1_ge *pt, size_t idx, void *data) {
-    secp256k1_musig_pubkey_agg_ecmult_data *ctx = (secp256k1_musig_pubkey_agg_ecmult_data *) data;
-    int ret;
-    ret = secp256k1_pubkey_load(ctx->ctx, pt, ctx->pks[idx]);
-#ifdef VERIFY
-    /* pubkey_load can't fail because the same pks have already been loaded in
-     * `musig_compute_pks_hash` (and we test this). */
-    VERIFY_CHECK(ret);
-#else
-    (void) ret;
-#endif
-    secp256k1_musig_keyaggcoef_internal(&ctx->ctx->hash_ctx, sc, ctx->pks_hash, pt, &ctx->second_pk);
-    return 1;
-}
-
-int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pubkey *agg_pk, secp256k1_musig_keyagg_cache *keyagg_cache, const secp256k1_pubkey * const* pubkeys, size_t n_pubkeys) {
-    secp256k1_musig_pubkey_agg_ecmult_data ecmult_data;
     secp256k1_gej pkj;
     secp256k1_ge pkp;
     size_t i;
@@ -169,32 +147,47 @@ int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pub
         ARG_CHECK(pubkeys[i] != NULL);
     }
 
-    ecmult_data.ctx = ctx;
-    ecmult_data.pks = pubkeys;
-
-    secp256k1_ge_set_infinity(&ecmult_data.second_pk);
+    secp256k1_ge_set_infinity(&second_pk);
     for (i = 1; i < n_pubkeys; i++) {
         if (secp256k1_memcmp_var(pubkeys[0], pubkeys[i], sizeof(*pubkeys[0])) != 0) {
             secp256k1_ge pk;
             if (!secp256k1_pubkey_load(ctx, &pk, pubkeys[i])) {
                 return 0;
             }
-            ecmult_data.second_pk = pk;
+            second_pk = pk;
             break;
         }
     }
 
-    if (!secp256k1_musig_compute_pks_hash(ctx, ecmult_data.pks_hash, pubkeys, n_pubkeys)) {
+    if (!secp256k1_musig_compute_pks_hash(ctx, pks_hash, pubkeys, n_pubkeys)) {
         return 0;
     }
-    /* TODO: actually use optimized ecmult_multi algorithms by providing a
-     * scratch space */
-    if (!secp256k1_ecmult_multi_var(&ctx->error_callback, NULL, &pkj, NULL, secp256k1_musig_pubkey_agg_callback, (void *) &ecmult_data, n_pubkeys)) {
-        /* In order to reach this line with the current implementation of
-         * ecmult_multi_var one would need to provide a callback that can
-         * fail. */
-        return 0;
+
+    /* Compute keyaggcoef_0*P0 + keyaggcoef_1*P1 + ... without heap allocation.
+     * TODO: use the optimized secp256k1_ecmult_multi algorithms if memory is
+     * available. */
+    secp256k1_gej_set_infinity(&pkj);
+    for (i = 0; i < n_pubkeys; i++) {
+        secp256k1_ge pk;
+        secp256k1_gej pkj_i;
+        secp256k1_gej tmpj;
+        secp256k1_scalar keyaggcoef;
+        int ret;
+
+        ret = secp256k1_pubkey_load(ctx, &pk, pubkeys[i]);
+#ifdef VERIFY
+        /* pubkey_load can't fail because the same pks have already been loaded
+         * in `musig_compute_pks_hash` (and we test this). */
+        VERIFY_CHECK(ret);
+#else
+        (void) ret;
+#endif
+        secp256k1_musig_keyaggcoef_internal(&ctx->hash_ctx, &keyaggcoef, pks_hash, &pk, &second_pk);
+        secp256k1_gej_set_ge(&pkj_i, &pk);
+        secp256k1_ecmult(&tmpj, &pkj_i, &keyaggcoef, NULL);
+        secp256k1_gej_add_var(&pkj, &pkj, &tmpj, NULL);
     }
+
     secp256k1_ge_set_gej(&pkp, &pkj);
     secp256k1_fe_normalize_var(&pkp.y);
     /* The resulting public key is infinity with negligible probability */
@@ -202,8 +195,8 @@ int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pub
     if (keyagg_cache != NULL) {
         secp256k1_keyagg_cache_internal cache_i = { 0 };
         cache_i.pk = pkp;
-        cache_i.second_pk = ecmult_data.second_pk;
-        memcpy(cache_i.pks_hash, ecmult_data.pks_hash, sizeof(cache_i.pks_hash));
+        cache_i.second_pk = second_pk;
+        memcpy(cache_i.pks_hash, pks_hash, sizeof(cache_i.pks_hash));
         secp256k1_keyagg_cache_save(keyagg_cache, &cache_i);
     }
 
