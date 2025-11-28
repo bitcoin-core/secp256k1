@@ -149,26 +149,13 @@ typedef struct {
     secp256k1_ge second_pk;
 } secp256k1_musig_pubkey_agg_ecmult_data;
 
-/* Callback for batch EC multiplication to compute keyaggcoef_0*P0 + keyaggcoef_1*P1 + ...  */
-static int secp256k1_musig_pubkey_agg_callback(secp256k1_scalar *sc, secp256k1_ge *pt, size_t idx, void *data) {
-    secp256k1_musig_pubkey_agg_ecmult_data *ctx = (secp256k1_musig_pubkey_agg_ecmult_data *) data;
-    int ret;
-    ret = secp256k1_pubkey_load(ctx->ctx, pt, ctx->pks[idx]);
-#ifdef VERIFY
-    /* pubkey_load can't fail because the same pks have already been loaded in
-     * `musig_compute_pks_hash` (and we test this). */
-    VERIFY_CHECK(ret);
-#else
-    (void) ret;
-#endif
-    secp256k1_musig_keyaggcoef_internal(sc, ctx->pks_hash, pt, &ctx->second_pk);
-    return 1;
-}
-
 int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pubkey *agg_pk, secp256k1_musig_keyagg_cache *keyagg_cache, const secp256k1_pubkey * const* pubkeys, size_t n_pubkeys) {
     secp256k1_musig_pubkey_agg_ecmult_data ecmult_data;
     secp256k1_gej pkj;
     secp256k1_ge pkp;
+    secp256k1_ge *points = NULL;
+    secp256k1_scalar *scalars = NULL;
+    size_t mem_limit;
     size_t i;
 
     VERIFY_CHECK(ctx != NULL);
@@ -199,14 +186,37 @@ int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pub
     if (!secp256k1_musig_compute_pks_hash(ctx, ecmult_data.pks_hash, pubkeys, n_pubkeys)) {
         return 0;
     }
-    /* TODO: actually use optimized ecmult_multi algorithms by providing a
-     * scratch space */
-    if (!secp256k1_ecmult_multi_var(&ctx->error_callback, NULL, &pkj, NULL, secp256k1_musig_pubkey_agg_callback, (void *) &ecmult_data, n_pubkeys)) {
-        /* In order to reach this line with the current implementation of
-         * ecmult_multi_var one would need to provide a callback that can
-         * fail. */
+
+    /* TODO: This follows the discussed approach of letting the users use
+     * malloc instead of scratch space. However there could also be a simple
+     * wrapper that abstracts the malloc stuff away. This could be cleaner. */
+    points = (secp256k1_ge *)checked_malloc(&ctx->error_callback, n_pubkeys * sizeof(secp256k1_ge));
+    scalars = (secp256k1_scalar *)checked_malloc(&ctx->error_callback, n_pubkeys * sizeof(secp256k1_scalar));
+
+    for (i = 0; i < n_pubkeys; i++) {
+#ifdef VERIFY
+        /* pubkey_load can't fail because the same pks have already been loaded
+         * in `musig_compute_pks_hash` (and we test this). */
+        VERIFY_CHECK(secp256k1_pubkey_load(ctx, &points[i], pubkeys[i]));
+#else
+        (void) secp256k1_pubkey_load(ctx, &points[i], pubkeys[i]);
+#endif
+        secp256k1_musig_keyaggcoef_internal(&scalars[i], ecmult_data.pks_hash, &points[i], &ecmult_data.second_pk);
+    }
+
+    /* TODO: Assumes that Strauss will be the optimal algorithm almost every
+     * time. Previously this just used TRIVIAL algorithm by not providing
+     * scratch space. To be discussed if this should be changed. */
+    mem_limit = SECP256K1_STRAUSS_POINT_SIZE * n_pubkeys;
+    if (!secp256k1_ecmult_multi(&ctx->error_callback, &pkj, n_pubkeys, points, scalars, NULL, mem_limit)) {
+        free(points);
+        free(scalars);
         return 0;
     }
+
+    free(points);
+    free(scalars);
+
     secp256k1_ge_set_gej(&pkp, &pkj);
     secp256k1_fe_normalize_var(&pkp.y);
     /* The resulting public key is infinity with negligible probability */
