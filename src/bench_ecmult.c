@@ -19,6 +19,11 @@
 
 #define POINTS 32768
 
+/* Default memory limit (64 MB) */
+#define DEFAULT_MEM_LIMIT (64 * 1024 * 1024)
+/* Select bench algorithm automatically */
+#define BENCH_ALGO_AUTO (-1)
+
 static void help(char **argv, int default_iters) {
     printf("Benchmark EC multiplication algorithms\n");
     printf("\n");
@@ -30,23 +35,25 @@ static void help(char **argv, int default_iters) {
     printf("function name. The letter 'g' indicates that one of the points is the generator.\n");
     printf("The benchmarks are divided by the number of points.\n");
     printf("\n");
-    printf("default (ecmult_multi): picks pippenger_wnaf or strauss_wnaf depending on the\n");
-    printf("                        batch size\n");
-    printf("pippenger_wnaf:         for all batch sizes\n");
-    printf("strauss_wnaf:           for all batch sizes\n");
-    printf("simple:                 multiply and sum each point individually\n");
+    printf("default (auto):   automatically select best algorithm\n");
+    printf("pippenger_wnaf:   for all batch sizes\n");
+    printf("strauss_wnaf:     for all batch sizes\n");
+    printf("simple:           multiply and sum each point individually\n");
+    printf("\n");
 }
 
 typedef struct {
     /* Setup once in advance */
     secp256k1_context* ctx;
-    secp256k1_scratch_space* scratch;
     secp256k1_scalar* scalars;
     secp256k1_ge* pubkeys;
     secp256k1_gej* pubkeys_gej;
     secp256k1_scalar* seckeys;
     secp256k1_gej* expected_output;
-    secp256k1_ecmult_multi_func ecmult_multi;
+
+    /* Algorithm selection */
+    int forced_algo;
+    size_t mem_limit;
 
     /* Changes per benchmark */
     size_t count;
@@ -214,32 +221,54 @@ static void run_ecmult_bench(bench_data* data, int iters) {
     run_benchmark(str, bench_ecmult_1p_g, bench_ecmult_setup, bench_ecmult_1p_g_teardown, data, 10, 2*iters);
 }
 
-static int bench_ecmult_multi_callback(secp256k1_scalar* sc, secp256k1_ge* ge, size_t idx, void* arg) {
-    bench_data* data = (bench_data*)arg;
-    if (data->includes_g) ++idx;
-    if (idx == 0) {
-        *sc = data->scalars[data->offset1];
-        *ge = secp256k1_ge_const_g;
-    } else {
-        *sc = data->scalars[(data->offset1 + idx) % POINTS];
-        *ge = data->pubkeys[(data->offset2 + idx - 1) % POINTS];
-    }
-    return 1;
-}
-
 static void bench_ecmult_multi(void* arg, int iters) {
     bench_data* data = (bench_data*)arg;
 
     int includes_g = data->includes_g;
     int iter;
     int count = data->count;
+    size_t n_points = count - includes_g;
+    secp256k1_ecmult_multi_algo algo;
+    secp256k1_ge *points = NULL;
+    secp256k1_scalar *scalars = NULL;
+    size_t i;
     iters = iters / data->count;
 
+    if (n_points > 0) {
+        points = (secp256k1_ge *)malloc(n_points * sizeof(secp256k1_ge));
+        scalars = (secp256k1_scalar *)malloc(n_points * sizeof(secp256k1_scalar));
+        CHECK(points != NULL);
+        CHECK(scalars != NULL);
+    }
+
     for (iter = 0; iter < iters; ++iter) {
-        data->ecmult_multi(&data->ctx->error_callback, data->scratch, &data->output[iter], data->includes_g ? &data->scalars[data->offset1] : NULL, bench_ecmult_multi_callback, arg, count - includes_g);
+        const secp256k1_scalar *g_scalar_ptr = NULL;
+
+        if (includes_g) {
+            g_scalar_ptr = &data->scalars[data->offset1];
+        }
+
+        for (i = 0; i < n_points; ++i) {
+            size_t idx = includes_g ? i + 1 : i;
+            scalars[i] = data->scalars[(data->offset1 + idx) % POINTS];
+            points[i] = data->pubkeys[(data->offset2 + i) % POINTS];
+        }
+
+        if (data->forced_algo >= 0) {
+            algo = data->forced_algo;
+        } else {
+            algo = secp256k1_ecmult_multi_select(data->mem_limit, n_points);
+        }
+
+        CHECK(secp256k1_ecmult_multi_internal(&data->ctx->error_callback, algo, &data->output[iter],
+                                              n_points, points, scalars, g_scalar_ptr));
+
         data->offset1 = (data->offset1 + count) % POINTS;
         data->offset2 = (data->offset2 + count - 1) % POINTS;
     }
+
+    free(points);
+    free(scalars);
 }
 
 static void bench_ecmult_multi_setup(void* arg) {
@@ -309,7 +338,6 @@ static void run_ecmult_multi_bench(bench_data* data, size_t count, int includes_
 int main(int argc, char **argv) {
     bench_data data;
     int i, p;
-    size_t scratch_size;
 
     int default_iters = 10000;
     int iters = get_iters(default_iters);
@@ -318,7 +346,8 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    data.ecmult_multi = secp256k1_ecmult_multi_var;
+    data.forced_algo = BENCH_ALGO_AUTO;
+    data.mem_limit = DEFAULT_MEM_LIMIT;
 
     if (argc > 1) {
         if(have_flag(argc, argv, "-h")
@@ -328,12 +357,17 @@ int main(int argc, char **argv) {
             return EXIT_SUCCESS;
         } else if(have_flag(argc, argv, "pippenger_wnaf")) {
             printf("Using pippenger_wnaf:\n");
-            data.ecmult_multi = secp256k1_ecmult_pippenger_batch_single;
+            /* TODO: Make this a dynamic selection again */
+            data.forced_algo = SECP256K1_ECMULT_MULTI_ALGO_PIPPENGER_4;
         } else if(have_flag(argc, argv, "strauss_wnaf")) {
             printf("Using strauss_wnaf:\n");
-            data.ecmult_multi = secp256k1_ecmult_strauss_batch_single;
+            data.forced_algo = SECP256K1_ECMULT_MULTI_ALGO_STRAUSS;
         } else if(have_flag(argc, argv, "simple")) {
             printf("Using simple algorithm:\n");
+            data.forced_algo = SECP256K1_ECMULT_MULTI_ALGO_TRIVIAL;
+        } else if(have_flag(argc, argv, "auto")) {
+            printf("Using automatic algorithm selection:\n");
+            data.forced_algo = BENCH_ALGO_AUTO;
         } else {
             fprintf(stderr, "%s: unrecognized argument '%s'.\n\n", argv[0], argv[1]);
             help(argv, default_iters);
@@ -342,12 +376,6 @@ int main(int argc, char **argv) {
     }
 
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-    scratch_size = secp256k1_strauss_scratch_size(POINTS) + STRAUSS_SCRATCH_OBJECTS*ALIGNMENT;
-    if (!have_flag(argc, argv, "simple")) {
-        data.scratch = secp256k1_scratch_space_create(data.ctx, scratch_size);
-    } else {
-        data.scratch = NULL;
-    }
 
     /* Allocate stuff */
     data.scalars = malloc(sizeof(secp256k1_scalar) * POINTS);
@@ -393,9 +421,6 @@ int main(int argc, char **argv) {
         printf("Skipping some benchmarks due to SECP256K1_BENCH_ITERS <= 2\n");
     }
 
-    if (data.scratch != NULL) {
-        secp256k1_scratch_space_destroy(data.ctx, data.scratch);
-    }
     secp256k1_context_destroy(data.ctx);
     free(data.scalars);
     free(data.pubkeys);
