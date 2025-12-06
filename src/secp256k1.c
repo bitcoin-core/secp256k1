@@ -325,8 +325,13 @@ static int secp256k1_ec_pubkey_sort_cmp(const void* pk1, const void* pk2, void *
 }
 
 int secp256k1_ec_pubkey_sort(const secp256k1_context* ctx, const secp256k1_pubkey **pubkeys, size_t n_pubkeys) {
+    size_t i;
+
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(pubkeys != NULL);
+    for (i = 0; i < n_pubkeys; i++) {
+        ARG_CHECK(pubkeys[i] != NULL);
+    }
 
     /* Suppress wrong warning (fixed in MSVC 19.33) */
     #if defined(_MSC_VER) && (_MSC_VER < 1933)

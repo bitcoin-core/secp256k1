@@ -177,6 +177,9 @@ int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pub
     }
     ARG_CHECK(pubkeys != NULL);
     ARG_CHECK(n_pubkeys > 0);
+    for (i = 0; i < n_pubkeys; i++) {
+        ARG_CHECK(pubkeys[i] != NULL);
+    }
 
     ecmult_data.ctx = ctx;
     ecmult_data.pks = pubkeys;
