@@ -366,18 +366,20 @@ int main(int argc, char **argv) {
     print_output_table_header_row();
     /* Initialize offset1 and offset2 */
     hash_into_offset(&data, 0);
+/*
     run_ecmult_bench(&data, iters);
 
     for (i = 1; i <= 8; ++i) {
         run_ecmult_multi_bench(&data, i, 1, iters);
     }
+*/
 
     /* This is disabled with low count of iterations because the loop runs 77 times even with iters=1
     * and the higher it goes the longer the computation takes(more points)
     * So we don't run this benchmark with low iterations to prevent slow down */
      if (iters > 2) {
-        for (p = 0; p <= 11; ++p) {
-            for (i = 9; i <= 16; ++i) {
+        for (p = 3; p <= 11; ++p) {
+            for (i = 10; i <= 16; i += 2) {
                 run_ecmult_multi_bench(&data, i << p, 1, iters);
             }
         }
