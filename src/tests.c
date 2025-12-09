@@ -6052,6 +6052,7 @@ static void run_eckey_edge_case_test(void) {
     secp256k1_pubkey pubkey_negone;
     const secp256k1_pubkey *pubkeys[3];
     size_t len;
+    int i;
     /* Group order is too large, reject. */
     CHECK(secp256k1_ec_seckey_verify(CTX, orderc) == 0);
     SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
@@ -6245,6 +6246,14 @@ static void run_eckey_edge_case_test(void) {
     CHECK(secp256k1_ec_pubkey_combine(CTX, &pubkey, pubkeys, 3) == 1);
     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(secp256k1_pubkey));
     CHECK(secp256k1_memcmp_var(&pubkey, zeros, sizeof(secp256k1_pubkey)) > 0);
+    /* check that NULL in array of pubkey pointers is not allowed */
+    for (i = 0; i < 3; i++) {
+        const secp256k1_pubkey *original_ptr = pubkeys[i];
+        secp256k1_pubkey result;
+        pubkeys[i] = NULL;
+        CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_combine(CTX, &result, pubkeys, 3));
+        pubkeys[i] = original_ptr;
+    }
     len = 33;
     CHECK(secp256k1_ec_pubkey_serialize(CTX, ctmp, &len, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
     CHECK(secp256k1_ec_pubkey_serialize(CTX, ctmp2, &len, &pubkey_one, SECP256K1_EC_COMPRESSED) == 1);
@@ -6640,6 +6649,7 @@ static void permute(size_t *arr, size_t n) {
 static void test_sort_api(void) {
     secp256k1_pubkey pks[2];
     const secp256k1_pubkey *pks_ptr[2];
+    int i;
 
     pks_ptr[0] = &pks[0];
     pks_ptr[1] = &pks[1];
@@ -6648,6 +6658,13 @@ static void test_sort_api(void) {
     testutil_random_pubkey_test(&pks[1]);
 
     CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, 2) == 1);
+    /* check that NULL in array of public key pointers is not allowed */
+    for (i = 0; i < 2; i++) {
+        const secp256k1_pubkey *original_ptr = pks_ptr[i];
+        pks_ptr[i] = NULL;
+        CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_sort(CTX, pks_ptr, 2));
+        pks_ptr[i] = original_ptr;
+    }
     CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_sort(CTX, NULL, 2));
     CHECK(secp256k1_ec_pubkey_sort(CTX, pks_ptr, 0) == 1);
     /* Test illegal public keys */
