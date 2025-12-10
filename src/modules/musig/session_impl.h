@@ -521,10 +521,15 @@ static int secp256k1_musig_sum_pubnonces(const secp256k1_context* ctx, secp256k1
 int secp256k1_musig_nonce_agg(const secp256k1_context* ctx, secp256k1_musig_aggnonce  *aggnonce, const secp256k1_musig_pubnonce * const* pubnonces, size_t n_pubnonces) {
     secp256k1_gej aggnonce_ptsj[2];
     secp256k1_ge aggnonce_pts[2];
+    size_t i;
+
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(aggnonce != NULL);
     ARG_CHECK(pubnonces != NULL);
     ARG_CHECK(n_pubnonces > 0);
+    for (i = 0; i < n_pubnonces; i++) {
+        ARG_CHECK(pubnonces[i] != NULL);
+    }
 
     if (!secp256k1_musig_sum_pubnonces(ctx, aggnonce_ptsj, pubnonces, n_pubnonces)) {
         return 0;
@@ -782,6 +787,9 @@ int secp256k1_musig_partial_sig_agg(const secp256k1_context* ctx, unsigned char 
     ARG_CHECK(session != NULL);
     ARG_CHECK(partial_sigs != NULL);
     ARG_CHECK(n_sigs > 0);
+    for (i = 0; i < n_sigs; i++) {
+        ARG_CHECK(partial_sigs[i] != NULL);
+    }
 
     if (!secp256k1_musig_session_load(ctx, &session_i, session)) {
         return 0;
