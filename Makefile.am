@@ -62,6 +62,9 @@ noinst_HEADERS += src/scratch_impl.h
 noinst_HEADERS += src/selftest.h
 noinst_HEADERS += src/testrand.h
 noinst_HEADERS += src/testrand_impl.h
+if !SECP256K1_EXTERNAL_SHA256
+noinst_HEADERS += src/modules/sha/main_impl.h
+endif
 noinst_HEADERS += src/hash.h
 noinst_HEADERS += src/hash_impl.h
 noinst_HEADERS += src/field.h
@@ -314,3 +317,6 @@ endif
 if ENABLE_MODULE_ELLSWIFT
 include src/modules/ellswift/Makefile.am.include
 endif
+
+# Always include SHA module files, but they conditionally compile
+include src/modules/sha/Makefile.am.include

@@ -307,8 +307,8 @@ static void secp256k1_nonce_function_musig_helper(secp256k1_sha256 *sha, unsigne
 
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("MuSig/aux")||SHA256("MuSig/aux"). */
-static void secp256k1_nonce_function_musig_sha256_tagged_aux(secp256k1_sha256 *sha) {
-    secp256k1_sha256_initialize(sha);
+static void secp256k1_nonce_function_musig_sha256_tagged_aux(const secp256k1_context *ctx, secp256k1_sha256 *sha) {
+    secp256k1_sha256_initialize(sha, ctx->hash_context.fn_sha256_transform);
     sha->s[0] = 0xa19e884bul;
     sha->s[1] = 0xf463fe7eul;
     sha->s[2] = 0x2f18f9a2ul;
@@ -322,8 +322,8 @@ static void secp256k1_nonce_function_musig_sha256_tagged_aux(secp256k1_sha256 *s
 
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("MuSig/nonce")||SHA256("MuSig/nonce"). */
-static void secp256k1_nonce_function_musig_sha256_tagged(secp256k1_sha256 *sha) {
-    secp256k1_sha256_initialize(sha);
+static void secp256k1_nonce_function_musig_sha256_tagged(const secp256k1_context *ctx, secp256k1_sha256 *sha) {
+    secp256k1_sha256_initialize(sha, ctx->hash_context.fn_sha256_transform);
     sha->s[0] = 0x07101b64ul;
     sha->s[1] = 0x18003414ul;
     sha->s[2] = 0x0391bc43ul;
@@ -335,14 +335,14 @@ static void secp256k1_nonce_function_musig_sha256_tagged(secp256k1_sha256 *sha) 
     sha->bytes = 64;
 }
 
-static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned char *session_secrand, const unsigned char *msg32, const unsigned char *seckey32, const unsigned char *pk33, const unsigned char *agg_pk32, const unsigned char *extra_input32) {
+static void secp256k1_nonce_function_musig(const secp256k1_context *ctx, secp256k1_scalar *k, const unsigned char *session_secrand, const unsigned char *msg32, const unsigned char *seckey32, const unsigned char *pk33, const unsigned char *agg_pk32, const unsigned char *extra_input32) {
     secp256k1_sha256 sha;
     unsigned char rand[32];
     unsigned char i;
     unsigned char msg_present;
 
     if (seckey32 != NULL) {
-        secp256k1_nonce_function_musig_sha256_tagged_aux(&sha);
+        secp256k1_nonce_function_musig_sha256_tagged_aux(ctx, &sha);
         secp256k1_sha256_write(&sha, session_secrand, 32);
         secp256k1_sha256_finalize(&sha, rand);
         for (i = 0; i < 32; i++) {
@@ -352,7 +352,7 @@ static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned c
         memcpy(rand, session_secrand, sizeof(rand));
     }
 
-    secp256k1_nonce_function_musig_sha256_tagged(&sha);
+    secp256k1_nonce_function_musig_sha256_tagged(ctx, &sha);
     secp256k1_sha256_write(&sha, rand, sizeof(rand));
     secp256k1_nonce_function_musig_helper(&sha, 1, pk33, 33);
     secp256k1_nonce_function_musig_helper(&sha, 1, agg_pk32, 32);
@@ -416,7 +416,7 @@ static int secp256k1_musig_nonce_gen_internal(const secp256k1_context* ctx, secp
     /* A pubkey cannot be the point at infinity */
     secp256k1_eckey_pubkey_serialize33(&pk, pk_ser);
 
-    secp256k1_nonce_function_musig(k, input_nonce, msg32, seckey, pk_ser, aggpk_ser_ptr, extra_input32);
+    secp256k1_nonce_function_musig(ctx, k, input_nonce, msg32, seckey, pk_ser, aggpk_ser_ptr, extra_input32);
     VERIFY_CHECK(!secp256k1_scalar_is_zero(&k[0]));
     VERIFY_CHECK(!secp256k1_scalar_is_zero(&k[1]));
     secp256k1_musig_secnonce_save(secnonce, k, &pk);
@@ -541,8 +541,8 @@ int secp256k1_musig_nonce_agg(const secp256k1_context* ctx, secp256k1_musig_aggn
 
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("MuSig/noncecoef")||SHA256("MuSig/noncecoef"). */
-static void secp256k1_musig_compute_noncehash_sha256_tagged(secp256k1_sha256 *sha) {
-    secp256k1_sha256_initialize(sha);
+static void secp256k1_musig_compute_noncehash_sha256_tagged(const secp256k1_context *ctx, secp256k1_sha256 *sha) {
+    secp256k1_sha256_initialize(sha, ctx->hash_context.fn_sha256_transform);
     sha->s[0] = 0x2c7d5a45ul;
     sha->s[1] = 0x06bf7e53ul;
     sha->s[2] = 0x89be68a6ul;
@@ -555,12 +555,12 @@ static void secp256k1_musig_compute_noncehash_sha256_tagged(secp256k1_sha256 *sh
 }
 
 /* tagged_hash(aggnonce[0], aggnonce[1], agg_pk, msg) */
-static void secp256k1_musig_compute_noncehash(unsigned char *noncehash, secp256k1_ge *aggnonce, const unsigned char *agg_pk32, const unsigned char *msg) {
+static void secp256k1_musig_compute_noncehash(const secp256k1_context *ctx, unsigned char *noncehash, secp256k1_ge *aggnonce, const unsigned char *agg_pk32, const unsigned char *msg) {
     unsigned char buf[33];
     secp256k1_sha256 sha;
     int i;
 
-    secp256k1_musig_compute_noncehash_sha256_tagged(&sha);
+    secp256k1_musig_compute_noncehash_sha256_tagged(ctx, &sha);
     for (i = 0; i < 2; i++) {
         secp256k1_musig_ge_serialize_ext(buf, &aggnonce[i]);
         secp256k1_sha256_write(&sha, buf, sizeof(buf));
@@ -579,12 +579,12 @@ static void secp256k1_effective_nonce(secp256k1_gej *out_nonce, const secp256k1_
     secp256k1_gej_add_ge_var(out_nonce, out_nonce, &nonce_pts[0], NULL);
 }
 
-static void secp256k1_musig_nonce_process_internal(int *fin_nonce_parity, unsigned char *fin_nonce, secp256k1_scalar *b, secp256k1_ge *aggnonce_pts, const unsigned char *agg_pk32, const unsigned char *msg) {
+static void secp256k1_musig_nonce_process_internal(const secp256k1_context *ctx, int *fin_nonce_parity, unsigned char *fin_nonce, secp256k1_scalar *b, secp256k1_ge *aggnonce_pts, const unsigned char *agg_pk32, const unsigned char *msg) {
     unsigned char noncehash[32];
     secp256k1_ge fin_nonce_pt;
     secp256k1_gej fin_nonce_ptj;
 
-    secp256k1_musig_compute_noncehash(noncehash, aggnonce_pts, agg_pk32, msg);
+    secp256k1_musig_compute_noncehash(ctx, noncehash, aggnonce_pts, agg_pk32, msg);
     secp256k1_scalar_set_b32(b, noncehash, NULL);
     /* fin_nonce = aggnonce_pts[0] + b*aggnonce_pts[1] */
     secp256k1_effective_nonce(&fin_nonce_ptj, aggnonce_pts, b);
@@ -621,8 +621,8 @@ int secp256k1_musig_nonce_process(const secp256k1_context* ctx, secp256k1_musig_
         return 0;
     }
 
-    secp256k1_musig_nonce_process_internal(&session_i.fin_nonce_parity, fin_nonce, &session_i.noncecoef, aggnonce_pts, agg_pk32, msg32);
-    secp256k1_schnorrsig_challenge(&session_i.challenge, fin_nonce, msg32, 32, agg_pk32);
+    secp256k1_musig_nonce_process_internal(ctx, &session_i.fin_nonce_parity, fin_nonce, &session_i.noncecoef, aggnonce_pts, agg_pk32, msg32);
+    secp256k1_schnorrsig_challenge(ctx, &session_i.challenge, fin_nonce, msg32, 32, agg_pk32);
 
     /* If there is a tweak then set `challenge` times `tweak` to the `s`-part.*/
     secp256k1_scalar_set_int(&session_i.s_part, 0);
@@ -692,7 +692,7 @@ int secp256k1_musig_partial_sign(const secp256k1_context* ctx, secp256k1_musig_p
     }
 
     /* Multiply KeyAgg coefficient */
-    secp256k1_musig_keyaggcoef(&mu, &cache_i, &pk);
+    secp256k1_musig_keyaggcoef(ctx, &mu, &cache_i, &pk);
     secp256k1_scalar_mul(&sk, &sk, &mu);
 
     if (!secp256k1_musig_session_load(ctx, &session_i, session)) {
@@ -752,7 +752,7 @@ int secp256k1_musig_partial_sig_verify(const secp256k1_context* ctx, const secp2
     /* Multiplying the challenge by the KeyAgg coefficient is equivalent
      * to multiplying the signer's public key by the coefficient, except
      * much easier to do. */
-    secp256k1_musig_keyaggcoef(&mu, &cache_i, &pkp);
+    secp256k1_musig_keyaggcoef(ctx, &mu, &cache_i, &pkp);
     secp256k1_scalar_mul(&e, &session_i.challenge, &mu);
 
     /* Negate e if secp256k1_fe_is_odd(&cache_i.pk.y)) XOR cache_i.parity_acc.

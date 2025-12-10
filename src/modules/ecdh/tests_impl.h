@@ -9,14 +9,16 @@
 
 #include "../../unit_test.h"
 
-static int ecdh_hash_function_test_xpassthru(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
+static int ecdh_hash_function_test_xpassthru(const secp256k1_context *ctx, unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
+    (void)ctx;
     (void)y;
     (void)data;
     memcpy(output, x, 32);
     return 1;
 }
 
-static int ecdh_hash_function_test_fail(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
+static int ecdh_hash_function_test_fail(const secp256k1_context *ctx, unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
+    (void)ctx;
     (void)output;
     (void)x;
     (void)y;
@@ -24,7 +26,8 @@ static int ecdh_hash_function_test_fail(unsigned char *output, const unsigned ch
     return 0;
 }
 
-static int ecdh_hash_function_custom(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
+static int ecdh_hash_function_custom(const secp256k1_context *ctx, unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
+    (void)ctx;
     (void)data;
     /* Save x and y as uncompressed public key */
     output[0] = 0x04;
@@ -53,6 +56,7 @@ static void test_ecdh_generator_basepoint(void) {
     unsigned char s_one[32] = { 0 };
     secp256k1_pubkey point[2];
     int i;
+    const secp256k1_context *ctx = secp256k1_context_static;
 
     s_one[31] = 1;
     /* Check against pubkey creation when the basepoint is the generator */
@@ -82,7 +86,7 @@ static void test_ecdh_generator_basepoint(void) {
         CHECK(secp256k1_ecdh(CTX, output_ecdh, &point[0], s_b32, NULL, NULL) == 1);
         /* compute "explicitly" */
         CHECK(secp256k1_ec_pubkey_serialize(CTX, point_ser, &point_ser_len, &point[1], SECP256K1_EC_COMPRESSED) == 1);
-        secp256k1_sha256_initialize(&sha);
+        secp256k1_sha256_initialize(&sha, ctx->hash_context.fn_sha256_transform);
         secp256k1_sha256_write(&sha, point_ser, point_ser_len);
         secp256k1_sha256_finalize(&sha, output_ser);
         /* compare */

@@ -3,10 +3,26 @@ add_library(secp256k1)
 set_property(TARGET secp256k1 PROPERTY PUBLIC_HEADER
   ${PROJECT_SOURCE_DIR}/include/secp256k1.h
   ${PROJECT_SOURCE_DIR}/include/secp256k1_preallocated.h
+  ${PROJECT_SOURCE_DIR}/include/secp256k1_sha.h
 )
 
 # Processing must be done in a topological sorting of the dependency graph
 # (dependent module first).
+
+if(SECP256K1_EXTERNAL_SHA256_PATH)
+  if(EXISTS "${SECP256K1_EXTERNAL_SHA256_PATH}")
+    add_compile_definitions(SECP256K1_EXTERNAL_SHA256=1)
+    add_compile_definitions(SECP256K1_EXTERNAL_SHA256_HEADER="${SECP256K1_EXTERNAL_SHA256_PATH}")
+  else()
+    message(FATAL_ERROR "SECP256K1_EXTERNAL_SHA256_PATH does not exist: ${SECP256K1_EXTERNAL_SHA256_PATH}")
+  endif()
+else()
+  # No external override. Compile internal implementation
+  target_sources(secp256k1 PRIVATE
+      ${PROJECT_SOURCE_DIR}/src/modules/sha/main_impl.h
+  )
+endif()
+
 if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
   add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
   set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_ellswift.h)

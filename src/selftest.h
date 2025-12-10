@@ -11,7 +11,7 @@
 
 #include <string.h>
 
-static int secp256k1_selftest_sha256(void) {
+static int secp256k1_selftest_sha256(sha256_transform_callback fn_transform) {
     static const char *input63 = "For this sample, this 63-byte string will be used as input data";
     static const unsigned char output32[32] = {
         0xf0, 0x8a, 0x78, 0xcb, 0xba, 0xee, 0x08, 0x2b, 0x05, 0x2a, 0xe0, 0x70, 0x8f, 0x32, 0xfa, 0x1e,
@@ -19,14 +19,15 @@ static int secp256k1_selftest_sha256(void) {
     };
     unsigned char out[32];
     secp256k1_sha256 hasher;
-    secp256k1_sha256_initialize(&hasher);
+    secp256k1_sha256_initialize(&hasher, fn_transform);
     secp256k1_sha256_write(&hasher, (const unsigned char*)input63, 63);
     secp256k1_sha256_finalize(&hasher, out);
     return secp256k1_memcmp_var(out, output32, 32) == 0;
 }
 
 static int secp256k1_selftest_passes(void) {
-    return secp256k1_selftest_sha256();
+    /* Use default sha256 transform */
+    return secp256k1_selftest_sha256(/*fn_transform=*/NULL);
 }
 
 #endif /* SECP256K1_SELFTEST_H */

@@ -10,25 +10,13 @@
 #include "hash.h"
 #include "util.h"
 
+#include "../include/secp256k1_sha.h"
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 
-#define Ch(x,y,z) ((z) ^ ((x) & ((y) ^ (z))))
-#define Maj(x,y,z) (((x) & (y)) | ((z) & ((x) | (y))))
-#define Sigma0(x) (((x) >> 2 | (x) << 30) ^ ((x) >> 13 | (x) << 19) ^ ((x) >> 22 | (x) << 10))
-#define Sigma1(x) (((x) >> 6 | (x) << 26) ^ ((x) >> 11 | (x) << 21) ^ ((x) >> 25 | (x) << 7))
-#define sigma0(x) (((x) >> 7 | (x) << 25) ^ ((x) >> 18 | (x) << 14) ^ ((x) >> 3))
-#define sigma1(x) (((x) >> 17 | (x) << 15) ^ ((x) >> 19 | (x) << 13) ^ ((x) >> 10))
-
-#define Round(a,b,c,d,e,f,g,h,k,w) do { \
-    uint32_t t1 = (h) + Sigma1(e) + Ch((e), (f), (g)) + (k) + (w); \
-    uint32_t t2 = Sigma0(a) + Maj((a), (b), (c)); \
-    (d) += t1; \
-    (h) = t1 + t2; \
-} while(0)
-
-static void secp256k1_sha256_initialize(secp256k1_sha256 *hash) {
+static void secp256k1_sha256_initialize(secp256k1_sha256 *hash, sha256_transform_callback fn_transform) {
     hash->s[0] = 0x6a09e667ul;
     hash->s[1] = 0xbb67ae85ul;
     hash->s[2] = 0x3c6ef372ul;
@@ -38,89 +26,7 @@ static void secp256k1_sha256_initialize(secp256k1_sha256 *hash) {
     hash->s[6] = 0x1f83d9abul;
     hash->s[7] = 0x5be0cd19ul;
     hash->bytes = 0;
-}
-
-/** Perform one SHA-256 transformation, processing 16 big endian 32-bit words. */
-static void secp256k1_sha256_transform(uint32_t* s, const unsigned char* buf) {
-    uint32_t a = s[0], b = s[1], c = s[2], d = s[3], e = s[4], f = s[5], g = s[6], h = s[7];
-    uint32_t w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15;
-
-    Round(a, b, c, d, e, f, g, h, 0x428a2f98,  w0 = secp256k1_read_be32(&buf[0]));
-    Round(h, a, b, c, d, e, f, g, 0x71374491,  w1 = secp256k1_read_be32(&buf[4]));
-    Round(g, h, a, b, c, d, e, f, 0xb5c0fbcf,  w2 = secp256k1_read_be32(&buf[8]));
-    Round(f, g, h, a, b, c, d, e, 0xe9b5dba5,  w3 = secp256k1_read_be32(&buf[12]));
-    Round(e, f, g, h, a, b, c, d, 0x3956c25b,  w4 = secp256k1_read_be32(&buf[16]));
-    Round(d, e, f, g, h, a, b, c, 0x59f111f1,  w5 = secp256k1_read_be32(&buf[20]));
-    Round(c, d, e, f, g, h, a, b, 0x923f82a4,  w6 = secp256k1_read_be32(&buf[24]));
-    Round(b, c, d, e, f, g, h, a, 0xab1c5ed5,  w7 = secp256k1_read_be32(&buf[28]));
-    Round(a, b, c, d, e, f, g, h, 0xd807aa98,  w8 = secp256k1_read_be32(&buf[32]));
-    Round(h, a, b, c, d, e, f, g, 0x12835b01,  w9 = secp256k1_read_be32(&buf[36]));
-    Round(g, h, a, b, c, d, e, f, 0x243185be, w10 = secp256k1_read_be32(&buf[40]));
-    Round(f, g, h, a, b, c, d, e, 0x550c7dc3, w11 = secp256k1_read_be32(&buf[44]));
-    Round(e, f, g, h, a, b, c, d, 0x72be5d74, w12 = secp256k1_read_be32(&buf[48]));
-    Round(d, e, f, g, h, a, b, c, 0x80deb1fe, w13 = secp256k1_read_be32(&buf[52]));
-    Round(c, d, e, f, g, h, a, b, 0x9bdc06a7, w14 = secp256k1_read_be32(&buf[56]));
-    Round(b, c, d, e, f, g, h, a, 0xc19bf174, w15 = secp256k1_read_be32(&buf[60]));
-
-    Round(a, b, c, d, e, f, g, h, 0xe49b69c1, w0 += sigma1(w14) + w9 + sigma0(w1));
-    Round(h, a, b, c, d, e, f, g, 0xefbe4786, w1 += sigma1(w15) + w10 + sigma0(w2));
-    Round(g, h, a, b, c, d, e, f, 0x0fc19dc6, w2 += sigma1(w0) + w11 + sigma0(w3));
-    Round(f, g, h, a, b, c, d, e, 0x240ca1cc, w3 += sigma1(w1) + w12 + sigma0(w4));
-    Round(e, f, g, h, a, b, c, d, 0x2de92c6f, w4 += sigma1(w2) + w13 + sigma0(w5));
-    Round(d, e, f, g, h, a, b, c, 0x4a7484aa, w5 += sigma1(w3) + w14 + sigma0(w6));
-    Round(c, d, e, f, g, h, a, b, 0x5cb0a9dc, w6 += sigma1(w4) + w15 + sigma0(w7));
-    Round(b, c, d, e, f, g, h, a, 0x76f988da, w7 += sigma1(w5) + w0 + sigma0(w8));
-    Round(a, b, c, d, e, f, g, h, 0x983e5152, w8 += sigma1(w6) + w1 + sigma0(w9));
-    Round(h, a, b, c, d, e, f, g, 0xa831c66d, w9 += sigma1(w7) + w2 + sigma0(w10));
-    Round(g, h, a, b, c, d, e, f, 0xb00327c8, w10 += sigma1(w8) + w3 + sigma0(w11));
-    Round(f, g, h, a, b, c, d, e, 0xbf597fc7, w11 += sigma1(w9) + w4 + sigma0(w12));
-    Round(e, f, g, h, a, b, c, d, 0xc6e00bf3, w12 += sigma1(w10) + w5 + sigma0(w13));
-    Round(d, e, f, g, h, a, b, c, 0xd5a79147, w13 += sigma1(w11) + w6 + sigma0(w14));
-    Round(c, d, e, f, g, h, a, b, 0x06ca6351, w14 += sigma1(w12) + w7 + sigma0(w15));
-    Round(b, c, d, e, f, g, h, a, 0x14292967, w15 += sigma1(w13) + w8 + sigma0(w0));
-
-    Round(a, b, c, d, e, f, g, h, 0x27b70a85, w0 += sigma1(w14) + w9 + sigma0(w1));
-    Round(h, a, b, c, d, e, f, g, 0x2e1b2138, w1 += sigma1(w15) + w10 + sigma0(w2));
-    Round(g, h, a, b, c, d, e, f, 0x4d2c6dfc, w2 += sigma1(w0) + w11 + sigma0(w3));
-    Round(f, g, h, a, b, c, d, e, 0x53380d13, w3 += sigma1(w1) + w12 + sigma0(w4));
-    Round(e, f, g, h, a, b, c, d, 0x650a7354, w4 += sigma1(w2) + w13 + sigma0(w5));
-    Round(d, e, f, g, h, a, b, c, 0x766a0abb, w5 += sigma1(w3) + w14 + sigma0(w6));
-    Round(c, d, e, f, g, h, a, b, 0x81c2c92e, w6 += sigma1(w4) + w15 + sigma0(w7));
-    Round(b, c, d, e, f, g, h, a, 0x92722c85, w7 += sigma1(w5) + w0 + sigma0(w8));
-    Round(a, b, c, d, e, f, g, h, 0xa2bfe8a1, w8 += sigma1(w6) + w1 + sigma0(w9));
-    Round(h, a, b, c, d, e, f, g, 0xa81a664b, w9 += sigma1(w7) + w2 + sigma0(w10));
-    Round(g, h, a, b, c, d, e, f, 0xc24b8b70, w10 += sigma1(w8) + w3 + sigma0(w11));
-    Round(f, g, h, a, b, c, d, e, 0xc76c51a3, w11 += sigma1(w9) + w4 + sigma0(w12));
-    Round(e, f, g, h, a, b, c, d, 0xd192e819, w12 += sigma1(w10) + w5 + sigma0(w13));
-    Round(d, e, f, g, h, a, b, c, 0xd6990624, w13 += sigma1(w11) + w6 + sigma0(w14));
-    Round(c, d, e, f, g, h, a, b, 0xf40e3585, w14 += sigma1(w12) + w7 + sigma0(w15));
-    Round(b, c, d, e, f, g, h, a, 0x106aa070, w15 += sigma1(w13) + w8 + sigma0(w0));
-
-    Round(a, b, c, d, e, f, g, h, 0x19a4c116, w0 += sigma1(w14) + w9 + sigma0(w1));
-    Round(h, a, b, c, d, e, f, g, 0x1e376c08, w1 += sigma1(w15) + w10 + sigma0(w2));
-    Round(g, h, a, b, c, d, e, f, 0x2748774c, w2 += sigma1(w0) + w11 + sigma0(w3));
-    Round(f, g, h, a, b, c, d, e, 0x34b0bcb5, w3 += sigma1(w1) + w12 + sigma0(w4));
-    Round(e, f, g, h, a, b, c, d, 0x391c0cb3, w4 += sigma1(w2) + w13 + sigma0(w5));
-    Round(d, e, f, g, h, a, b, c, 0x4ed8aa4a, w5 += sigma1(w3) + w14 + sigma0(w6));
-    Round(c, d, e, f, g, h, a, b, 0x5b9cca4f, w6 += sigma1(w4) + w15 + sigma0(w7));
-    Round(b, c, d, e, f, g, h, a, 0x682e6ff3, w7 += sigma1(w5) + w0 + sigma0(w8));
-    Round(a, b, c, d, e, f, g, h, 0x748f82ee, w8 += sigma1(w6) + w1 + sigma0(w9));
-    Round(h, a, b, c, d, e, f, g, 0x78a5636f, w9 += sigma1(w7) + w2 + sigma0(w10));
-    Round(g, h, a, b, c, d, e, f, 0x84c87814, w10 += sigma1(w8) + w3 + sigma0(w11));
-    Round(f, g, h, a, b, c, d, e, 0x8cc70208, w11 += sigma1(w9) + w4 + sigma0(w12));
-    Round(e, f, g, h, a, b, c, d, 0x90befffa, w12 += sigma1(w10) + w5 + sigma0(w13));
-    Round(d, e, f, g, h, a, b, c, 0xa4506ceb, w13 += sigma1(w11) + w6 + sigma0(w14));
-    Round(c, d, e, f, g, h, a, b, 0xbef9a3f7, w14 + sigma1(w12) + w7 + sigma0(w15));
-    Round(b, c, d, e, f, g, h, a, 0xc67178f2, w15 + sigma1(w13) + w8 + sigma0(w0));
-
-    s[0] += a;
-    s[1] += b;
-    s[2] += c;
-    s[3] += d;
-    s[4] += e;
-    s[5] += f;
-    s[6] += g;
-    s[7] += h;
+    hash->fn_transform = fn_transform == NULL ? secp256k1_sha256_transform : fn_transform;
 }
 
 static void secp256k1_sha256_write(secp256k1_sha256 *hash, const unsigned char *data, size_t len) {
@@ -133,7 +39,7 @@ static void secp256k1_sha256_write(secp256k1_sha256 *hash, const unsigned char *
         memcpy(hash->buf + bufsize, data, chunk_len);
         data += chunk_len;
         len -= chunk_len;
-        secp256k1_sha256_transform(hash->s, hash->buf);
+        hash->fn_transform(hash->s, hash->buf, 1);
         bufsize = 0;
     }
     if (len) {
@@ -158,15 +64,56 @@ static void secp256k1_sha256_finalize(secp256k1_sha256 *hash, unsigned char *out
     }
 }
 
+static int secp256k1_sha256_check_transform(sha256_transform_callback fn_transform) {
+    secp256k1_sha256 sha256;
+    unsigned char out[2][32];
+
+    /* Four messages of different sizes: 1, 24, 64 and 81 bytes */
+    unsigned char* msgs[4];
+    size_t lens[4];
+    unsigned char msg_0 = 0;
+    unsigned char msg_1[24] = "secp256k1_verif_round_i";
+    unsigned char msg_2[64] = "For this test, this 63-byte string will be used as input data i";
+    unsigned char msg_3[81] = "Genesis: The Times 03/Jan/2009 Chancellor on brink of second bailout for banks i";
+    msgs[0] = &msg_0;  lens[0] = sizeof(msg_0);
+    msgs[1] = msg_1;   lens[1] = sizeof(msg_1);
+    msgs[2] = msg_2;   lens[2] = sizeof(msg_2);
+    msgs[3] = msg_3;   lens[3] = sizeof(msg_3);
+
+    /* Compare hashes between built-in transform vs the one provided by the user */
+    {
+        unsigned char i, j, k;
+        sha256_transform_callback funcs[2];
+        funcs[0] = secp256k1_sha256_transform; /* Built-in */
+        funcs[1] = fn_transform;               /* User provided */
+
+        for (i = 0; i < 10; i++) {
+            msg_0 = i;
+            msg_1[23] = i;
+            msg_2[63] = i;
+            msg_3[80] = i;
+            for (j = 0; j < 4; j++) {
+                for (k = 0; k < 2; k++) {
+                    secp256k1_sha256_initialize(&sha256, funcs[k]);
+                    secp256k1_sha256_write(&sha256, msgs[j], lens[j]);
+                    secp256k1_sha256_finalize(&sha256, out[k]);
+                }
+                if (memcmp(out[0], out[1], 32) != 0) return 0;
+            }
+        }
+    }
+    return 1;
+}
+
 /* Initializes a sha256 struct and writes the 64 byte string
  * SHA256(tag)||SHA256(tag) into it. */
-static void secp256k1_sha256_initialize_tagged(secp256k1_sha256 *hash, const unsigned char *tag, size_t taglen) {
+static void secp256k1_sha256_initialize_tagged(secp256k1_sha256 *hash, const unsigned char *tag, size_t taglen, sha256_transform_callback fn_sha256_transform) {
     unsigned char buf[32];
-    secp256k1_sha256_initialize(hash);
+    secp256k1_sha256_initialize(hash, fn_sha256_transform);
     secp256k1_sha256_write(hash, tag, taglen);
     secp256k1_sha256_finalize(hash, buf);
 
-    secp256k1_sha256_initialize(hash);
+    secp256k1_sha256_initialize(hash, fn_sha256_transform);
     secp256k1_sha256_write(hash, buf, 32);
     secp256k1_sha256_write(hash, buf, 32);
 }
@@ -175,7 +122,7 @@ static void secp256k1_sha256_clear(secp256k1_sha256 *hash) {
     secp256k1_memclear_explicit(hash, sizeof(*hash));
 }
 
-static void secp256k1_hmac_sha256_initialize(secp256k1_hmac_sha256 *hash, const unsigned char *key, size_t keylen) {
+static void secp256k1_hmac_sha256_initialize(secp256k1_hmac_sha256 *hash, const unsigned char *key, size_t keylen, sha256_transform_callback fn_sha256_transform) {
     size_t n;
     unsigned char rkey[64];
     if (keylen <= sizeof(rkey)) {
@@ -183,19 +130,19 @@ static void secp256k1_hmac_sha256_initialize(secp256k1_hmac_sha256 *hash, const 
         memset(rkey + keylen, 0, sizeof(rkey) - keylen);
     } else {
         secp256k1_sha256 sha256;
-        secp256k1_sha256_initialize(&sha256);
+        secp256k1_sha256_initialize(&sha256, fn_sha256_transform);
         secp256k1_sha256_write(&sha256, key, keylen);
         secp256k1_sha256_finalize(&sha256, rkey);
         memset(rkey + 32, 0, 32);
     }
 
-    secp256k1_sha256_initialize(&hash->outer);
+    secp256k1_sha256_initialize(&hash->outer, fn_sha256_transform);
     for (n = 0; n < sizeof(rkey); n++) {
         rkey[n] ^= 0x5c;
     }
     secp256k1_sha256_write(&hash->outer, rkey, sizeof(rkey));
 
-    secp256k1_sha256_initialize(&hash->inner);
+    secp256k1_sha256_initialize(&hash->inner, fn_sha256_transform);
     for (n = 0; n < sizeof(rkey); n++) {
         rkey[n] ^= 0x5c ^ 0x36;
     }
@@ -219,7 +166,7 @@ static void secp256k1_hmac_sha256_clear(secp256k1_hmac_sha256 *hash) {
     secp256k1_memclear_explicit(hash, sizeof(*hash));
 }
 
-static void secp256k1_rfc6979_hmac_sha256_initialize(secp256k1_rfc6979_hmac_sha256 *rng, const unsigned char *key, size_t keylen) {
+static void secp256k1_rfc6979_hmac_sha256_initialize(secp256k1_rfc6979_hmac_sha256 *rng, const unsigned char *key, size_t keylen, sha256_transform_callback fn_sha256_transform) {
     secp256k1_hmac_sha256 hmac;
     static const unsigned char zero[1] = {0x00};
     static const unsigned char one[1] = {0x01};
@@ -228,37 +175,37 @@ static void secp256k1_rfc6979_hmac_sha256_initialize(secp256k1_rfc6979_hmac_sha2
     memset(rng->k, 0x00, 32); /* RFC6979 3.2.c. */
 
     /* RFC6979 3.2.d. */
-    secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32);
+    secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32, fn_sha256_transform);
     secp256k1_hmac_sha256_write(&hmac, rng->v, 32);
     secp256k1_hmac_sha256_write(&hmac, zero, 1);
     secp256k1_hmac_sha256_write(&hmac, key, keylen);
     secp256k1_hmac_sha256_finalize(&hmac, rng->k);
-    secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32);
+    secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32, fn_sha256_transform);
     secp256k1_hmac_sha256_write(&hmac, rng->v, 32);
     secp256k1_hmac_sha256_finalize(&hmac, rng->v);
 
     /* RFC6979 3.2.f. */
-    secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32);
+    secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32, fn_sha256_transform);
     secp256k1_hmac_sha256_write(&hmac, rng->v, 32);
     secp256k1_hmac_sha256_write(&hmac, one, 1);
     secp256k1_hmac_sha256_write(&hmac, key, keylen);
     secp256k1_hmac_sha256_finalize(&hmac, rng->k);
-    secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32);
+    secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32, fn_sha256_transform);
     secp256k1_hmac_sha256_write(&hmac, rng->v, 32);
     secp256k1_hmac_sha256_finalize(&hmac, rng->v);
     rng->retry = 0;
 }
 
-static void secp256k1_rfc6979_hmac_sha256_generate(secp256k1_rfc6979_hmac_sha256 *rng, unsigned char *out, size_t outlen) {
+static void secp256k1_rfc6979_hmac_sha256_generate(secp256k1_rfc6979_hmac_sha256 *rng, unsigned char *out, size_t outlen, sha256_transform_callback fn_sha256_transform) {
     /* RFC6979 3.2.h. */
     static const unsigned char zero[1] = {0x00};
     if (rng->retry) {
         secp256k1_hmac_sha256 hmac;
-        secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32);
+        secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32, fn_sha256_transform);
         secp256k1_hmac_sha256_write(&hmac, rng->v, 32);
         secp256k1_hmac_sha256_write(&hmac, zero, 1);
         secp256k1_hmac_sha256_finalize(&hmac, rng->k);
-        secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32);
+        secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32, fn_sha256_transform);
         secp256k1_hmac_sha256_write(&hmac, rng->v, 32);
         secp256k1_hmac_sha256_finalize(&hmac, rng->v);
     }
@@ -266,7 +213,7 @@ static void secp256k1_rfc6979_hmac_sha256_generate(secp256k1_rfc6979_hmac_sha256
     while (outlen > 0) {
         secp256k1_hmac_sha256 hmac;
         size_t now = outlen;
-        secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32);
+        secp256k1_hmac_sha256_initialize(&hmac, rng->k, 32, fn_sha256_transform);
         secp256k1_hmac_sha256_write(&hmac, rng->v, 32);
         secp256k1_hmac_sha256_finalize(&hmac, rng->v);
         if (now > 32) {
@@ -287,13 +234,5 @@ static void secp256k1_rfc6979_hmac_sha256_finalize(secp256k1_rfc6979_hmac_sha256
 static void secp256k1_rfc6979_hmac_sha256_clear(secp256k1_rfc6979_hmac_sha256 *rng) {
     secp256k1_memclear_explicit(rng, sizeof(*rng));
 }
-
-#undef Round
-#undef sigma1
-#undef sigma0
-#undef Sigma1
-#undef Sigma0
-#undef Maj
-#undef Ch
 
 #endif /* SECP256K1_HASH_IMPL_H */

@@ -134,6 +134,12 @@ SECP_TRY_APPEND_DEFAULT_CFLAGS(SECP_CFLAGS)
 ### Define config arguments
 ###
 
+AC_ARG_WITH([external-sha256],
+  AS_HELP_STRING([--with-external-sha256=PATH], [use external SHA256 compression implementation]),
+  [external_sha256_path="$withval"],
+  [external_sha256_path=""]
+)
+
 # In dev mode, we enable all binaries and modules by default but individual options can still be overridden explicitly.
 # Check for dev mode first because SECP_SET_DEFAULT needs enable_dev_mode set.
 AC_ARG_ENABLE(dev_mode, [], [],
@@ -397,6 +403,12 @@ SECP_CFLAGS="$SECP_CFLAGS $WERROR_CFLAGS"
 
 # Processing must be done in a reverse topological sorting of the dependency graph
 # (dependent module first).
+
+if test "x$external_sha256_path" != "x"; then
+    SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_EXTERNAL_SHA256=1"
+    SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_EXTERNAL_SHA256_HEADER='\"$external_sha256_path\"'"
+fi
+
 if test x"$enable_module_ellswift" = x"yes"; then
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_ELLSWIFT=1"
 fi
@@ -470,6 +482,7 @@ AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_MUSIG], [test x"$enable_module_musig" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ELLSWIFT], [test x"$enable_module_ellswift" = x"yes"])
+AM_CONDITIONAL([SECP256K1_EXTERNAL_SHA256], [test "x$SHA256_EXTERNAL_SRC" != "x"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$enable_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm32"])
 AM_CONDITIONAL([BUILD_WINDOWS], [test "$build_windows" = "yes"])
@@ -494,6 +507,7 @@ echo "  module extrakeys        = $enable_module_extrakeys"
 echo "  module schnorrsig       = $enable_module_schnorrsig"
 echo "  module musig            = $enable_module_musig"
 echo "  module ellswift         = $enable_module_ellswift"
+echo "  external sha256         = ${external_sha256_path:-none}"
 echo
 echo "  asm                     = $set_asm"
 echo "  ecmult window size      = $set_ecmult_window"

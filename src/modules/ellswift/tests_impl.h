@@ -169,7 +169,8 @@ static const struct ellswift_xdh_test ellswift_xdh_tests_bip324[] = {
  * exchanged public keys do not affect the shared secret. However, it's used here
  * in tests to be able to verify the X coordinate through other means.
  */
-static int ellswift_xdh_hash_x32(unsigned char *output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
+static int ellswift_xdh_hash_x32(const secp256k1_context *ctx, unsigned char *output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
+    (void)ctx;
     (void)ell_a64;
     (void)ell_b64;
     (void)data;
@@ -407,6 +408,7 @@ void run_ellswift_tests(void) {
     /* Test hash initializers. */
     {
         secp256k1_sha256 sha_optimized;
+        const secp256k1_context *ctx = secp256k1_context_static;
         /* "secp256k1_ellswift_encode" */
         static const unsigned char encode_tag[] = {'s', 'e', 'c', 'p', '2', '5', '6', 'k', '1', '_', 'e', 'l', 'l', 's', 'w', 'i', 'f', 't', '_', 'e', 'n', 'c', 'o', 'd', 'e'};
         /* "secp256k1_ellswift_create" */
@@ -417,20 +419,20 @@ void run_ellswift_tests(void) {
         /* Check that hash initialized by
          * secp256k1_ellswift_sha256_init_encode has the expected
          * state. */
-        secp256k1_ellswift_sha256_init_encode(&sha_optimized);
-        test_sha256_tag_midstate(&sha_optimized, encode_tag, sizeof(encode_tag));
+        secp256k1_ellswift_sha256_init_encode(ctx, &sha_optimized);
+        test_sha256_tag_midstate(ctx, &sha_optimized, encode_tag, sizeof(encode_tag));
 
         /* Check that hash initialized by
          * secp256k1_ellswift_sha256_init_create has the expected
          * state. */
-        secp256k1_ellswift_sha256_init_create(&sha_optimized);
-        test_sha256_tag_midstate(&sha_optimized, create_tag, sizeof(create_tag));
+        secp256k1_ellswift_sha256_init_create(ctx, &sha_optimized);
+        test_sha256_tag_midstate(ctx, &sha_optimized, create_tag, sizeof(create_tag));
 
         /* Check that hash initialized by
          * secp256k1_ellswift_sha256_init_bip324 has the expected
          * state. */
-        secp256k1_ellswift_sha256_init_bip324(&sha_optimized);
-        test_sha256_tag_midstate(&sha_optimized, bip324_tag, sizeof(bip324_tag));
+        secp256k1_ellswift_sha256_init_bip324(ctx, &sha_optimized);
+        test_sha256_tag_midstate(ctx, &sha_optimized, bip324_tag, sizeof(bip324_tag));
     }
 }
 

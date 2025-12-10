@@ -19,6 +19,7 @@ extern "C" {
  *           data:       arbitrary data pointer that is passed through
  */
 typedef int (*secp256k1_ecdh_hash_function)(
+  const secp256k1_context *ctx,
   unsigned char *output,
   const unsigned char *x32,
   const unsigned char *y32,

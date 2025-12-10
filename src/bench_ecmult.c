@@ -265,7 +265,7 @@ static void generate_scalar(uint32_t num, secp256k1_scalar* scalar) {
     c[7] = num >> 8;
     c[8] = num >> 16;
     c[9] = num >> 24;
-    secp256k1_sha256_initialize(&sha256);
+    secp256k1_sha256_initialize(&sha256, /*fn_transform=*/NULL);
     secp256k1_sha256_write(&sha256, c, sizeof(c));
     secp256k1_sha256_finalize(&sha256, buf);
     secp256k1_scalar_set_b32(scalar, buf, &overflow);

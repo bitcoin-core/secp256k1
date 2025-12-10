@@ -9,7 +9,8 @@
 
 #include "../../unit_test.h"
 
-static int recovery_test_nonce_function(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+static int recovery_test_nonce_function(const secp256k1_context *ctx, unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+    (void) ctx;
     (void) msg32;
     (void) key32;
     (void) algo16;

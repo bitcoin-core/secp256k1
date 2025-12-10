@@ -39,6 +39,7 @@ extern "C" {
  *  the message, the key, the pubkey, the algorithm description, and data.
  */
 typedef int (*secp256k1_nonce_function_hardened)(
+    const secp256k1_context *ctx,
     unsigned char *nonce32,
     const unsigned char *msg,
     size_t msglen,
