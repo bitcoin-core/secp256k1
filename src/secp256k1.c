@@ -268,7 +268,6 @@ int secp256k1_ec_pubkey_parse(const secp256k1_context* ctx, secp256k1_pubkey* pu
 int secp256k1_ec_pubkey_serialize(const secp256k1_context* ctx, unsigned char *output, size_t *outputlen, const secp256k1_pubkey* pubkey, unsigned int flags) {
     secp256k1_ge Q;
     size_t len;
-    int ret = 0;
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(outputlen != NULL);
@@ -287,9 +286,9 @@ int secp256k1_ec_pubkey_serialize(const secp256k1_context* ctx, unsigned char *o
             secp256k1_eckey_pubkey_serialize65(&Q, output);
             *outputlen = 65;
         }
-        ret = 1;
+        return 1;
     }
-    return ret;
+    return 0;
 }
 
 int secp256k1_ec_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_pubkey* pubkey0, const secp256k1_pubkey* pubkey1) {
