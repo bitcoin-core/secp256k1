@@ -16,6 +16,7 @@
 #include "scalar_impl.h"
 #include "ecmult_impl.h"
 #include "bench.h"
+#include "tests_common.h"
 
 #define POINTS 32768
 
@@ -68,6 +69,142 @@ typedef struct {
     secp256k1_gej* output;
     secp256k1_fe* output_xonly;
 } bench_data;
+
+/*
+ * ABCD Calibration Benchmarks
+ *
+ * Measures the performance of each algorithm at various batch sizes and
+ * outputs. Use tools/ecmult_multi_calib.py to calculate optimal C and D
+ * values from the output.
+ *
+ * Each algorithm is only calibrated within its optimal batch size range
+ * to avoid skewing results with uninteresting results far away from that
+ * range.
+ */
+static void run_ecmult_multi_calib(bench_data* data) {
+    static const size_t batch_sizes[] = {
+        /* Small numbers should help stabilize Strauss intercept */
+        2, 3, 5, 7, 10, 15, 20, 30, 50, 70,
+        /* Crossover region between Strauss and Pippenger */
+        85, 88, 90, 100, 120, 150, 175,
+        /* Pippenger windows, getting progressively larger */
+        200, 300, 500, 750, 1000, 1200, 1500, 2000, 3000, 5000, 7500, 10000, 15000, 20000, 30000
+    };
+    static const size_t n_batch_sizes = sizeof(batch_sizes) / sizeof(batch_sizes[0]);
+
+    static const char* algo_names[] = {
+        "TRIVIAL", "STRAUSS", "PIPPENGER_1", "PIPPENGER_2", "PIPPENGER_3", "PIPPENGER_4", "PIPPENGER_5", "PIPPENGER_6", "PIPPENGER_7", "PIPPENGER_8", "PIPPENGER_9", "PIPPENGER_10", "PIPPENGER_11", "PIPPENGER_12"
+    };
+
+    /* Maximum batch size for Strauss calibration. */
+    static const size_t STRAUSS_MAX_CALIB_BATCH = 500;
+
+    /* Per-window min/max batch sizes for Pippenger calibration. */
+    static const size_t pippenger_min_calib_batch[12] = {
+    /*w=1   2   3   4   5   6    7    8    9     10    11    12 */
+        5,  5,  10, 30, 70, 150, 300, 750, 1500, 3000, 7500, 15000
+    };
+    static const size_t pippenger_max_calib_batch[12] = {
+    /*w=1    2    3    4     5     6     7      8      9      10     11     12 */
+        100, 200, 500, 1000, 2000, 5000, 10000, 20000, 30000, 30000, 30000, 30000
+    };
+
+    secp256k1_ge *points = NULL;
+    secp256k1_scalar *scalars = NULL;
+    secp256k1_gej result;
+    size_t max_points = batch_sizes[n_batch_sizes - 1];
+    int algo;
+    size_t i, j;
+    int base_iters = 1000;
+
+    points = (secp256k1_ge *)malloc(max_points * sizeof(secp256k1_ge));
+    scalars = (secp256k1_scalar *)malloc(max_points * sizeof(secp256k1_scalar));
+    CHECK(points != NULL);
+    CHECK(scalars != NULL);
+
+    for (i = 0; i < max_points; i++) {
+        points[i] = data->pubkeys[i % POINTS];
+        scalars[i] = data->scalars[i % POINTS];
+    }
+
+    printf("# ECMULT_MULTI Calibration Data\n");
+    printf("# Format: ALGO,N,TIME_US (microseconds per batch)\n");
+    printf("# Copy the DATA section below into the Python script\n");
+    printf("#\n");
+    printf("# BEGIN DATA\n");
+
+    /* Measure STRAUSS */
+    algo = SECP256K1_ECMULT_MULTI_ALGO_STRAUSS;
+    for (i = 0; i < n_batch_sizes; i++) {
+        size_t n = batch_sizes[i];
+        int64_t t_start, t_end;
+        double time_us;
+        int iters = base_iters;
+        int iter;
+
+        /* Only run up to the max to not skew result */
+        if (n > STRAUSS_MAX_CALIB_BATCH) continue;
+
+        /* Using many iterations in Strauss since batch sizes are small */
+        if (n >= 300) iters = base_iters / 2;
+        if (iters < 100) iters = 100;
+
+        t_start = gettime_i64();
+        for (iter = 0; iter < iters; iter++) {
+            secp256k1_ecmult_multi_internal(&data->ctx->error_callback, algo,
+                                            &result, n, points, scalars, NULL);
+        }
+        t_end = gettime_i64();
+
+        time_us = (double)(t_end - t_start) / iters;
+        printf("%s,%lu,%.3f\n", algo_names[algo], (unsigned long)n, time_us);
+    }
+
+    /* Measure PIPPENGER variants */
+    for (algo = SECP256K1_ECMULT_MULTI_ALGO_PIPPENGER_1;
+         algo <= SECP256K1_ECMULT_MULTI_ALGO_PIPPENGER_12;
+         algo++) {
+        int window = algo - SECP256K1_ECMULT_MULTI_ALGO_PIPPENGER_1;
+        size_t min_batch = pippenger_min_calib_batch[window];
+        size_t max_batch = pippenger_max_calib_batch[window];
+
+        for (j = 0; j < n_batch_sizes; j++) {
+            size_t n = batch_sizes[j];
+            int64_t t_start, t_end;
+            double time_us;
+            int iters = base_iters;
+            int iter;
+
+            /* Only run for the selected range of each algo */
+            if (n < min_batch || n > max_batch) continue;
+
+            /* Limiting iterations to keep run-time managable */
+            if (n >= 1000) iters = base_iters / 10;
+            if (n >= 5000) iters = base_iters / 50;
+            if (n >= 15000) iters = base_iters / 100;
+            if (iters < 3) iters = 3;
+
+            t_start = gettime_i64();
+            for (iter = 0; iter < iters; iter++) {
+                secp256k1_ecmult_multi_internal(&data->ctx->error_callback, algo,
+                                                &result, n, points, scalars, NULL);
+            }
+            t_end = gettime_i64();
+
+            time_us = (double)(t_end - t_start) / iters;
+            printf("%s,%lu,%.3f\n", algo_names[algo], (unsigned long)n, time_us);
+        }
+    }
+
+    printf("# END DATA\n");
+    printf("#\n");
+    printf("# To calculate ABCD constants, run:\n");
+    printf("#   ./bench_ecmult calib 2>&1 | python3 tools/ecmult_multi_calib.py\n");
+    printf("#\n");
+
+    free(points);
+    free(scalars);
+}
 
 /* Hashes x into [0, POINTS) twice and store the result in offset1 and offset2. */
 static void hash_into_offset(bench_data* data, size_t x) {
@@ -338,6 +475,7 @@ static void run_ecmult_multi_bench(bench_data* data, size_t count, int includes_
 int main(int argc, char **argv) {
     bench_data data;
     int i, p;
+    int run_calib = 0;
 
     int default_iters = 10000;
     int iters = get_iters(default_iters);
@@ -368,6 +506,8 @@ int main(int argc, char **argv) {
         } else if(have_flag(argc, argv, "auto")) {
             printf("Using automatic algorithm selection:\n");
             data.forced_algo = BENCH_ALGO_AUTO;
+        } else if(have_flag(argc, argv, "calib")) {
+            run_calib = 1;
         } else {
             fprintf(stderr, "%s: unrecognized argument '%s'.\n\n", argv[0], argv[1]);
             help(argv, default_iters);
@@ -398,27 +538,30 @@ int main(int argc, char **argv) {
     }
     secp256k1_ge_set_all_gej_var(data.pubkeys, data.pubkeys_gej, POINTS);
 
-
-    print_output_table_header_row();
-    /* Initialize offset1 and offset2 */
-    hash_into_offset(&data, 0);
-    run_ecmult_bench(&data, iters);
-
-    for (i = 1; i <= 8; ++i) {
-        run_ecmult_multi_bench(&data, i, 1, iters);
-    }
-
-    /* This is disabled with low count of iterations because the loop runs 77 times even with iters=1
-    * and the higher it goes the longer the computation takes(more points)
-    * So we don't run this benchmark with low iterations to prevent slow down */
-     if (iters > 2) {
-        for (p = 0; p <= 11; ++p) {
-            for (i = 9; i <= 16; ++i) {
-                run_ecmult_multi_bench(&data, i << p, 1, iters);
-            }
-        }
+    if (run_calib) {
+        run_ecmult_multi_calib(&data);
     } else {
-        printf("Skipping some benchmarks due to SECP256K1_BENCH_ITERS <= 2\n");
+        print_output_table_header_row();
+        /* Initialize offset1 and offset2 */
+        hash_into_offset(&data, 0);
+        run_ecmult_bench(&data, iters);
+
+        for (i = 1; i <= 8; ++i) {
+            run_ecmult_multi_bench(&data, i, 1, iters);
+        }
+
+        /* This is disabled with low count of iterations because the loop runs 77 times even with iters=1
+        * and the higher it goes the longer the computation takes(more points)
+        * So we don't run this benchmark with low iterations to prevent slow down */
+        if (iters > 2) {
+            for (p = 0; p <= 11; ++p) {
+                for (i = 9; i <= 16; ++i) {
+                    run_ecmult_multi_bench(&data, i << p, 1, iters);
+                }
+            }
+        } else {
+            printf("Skipping some benchmarks due to SECP256K1_BENCH_ITERS <= 2\n");
+        }
     }
 
     secp256k1_context_destroy(data.ctx);
