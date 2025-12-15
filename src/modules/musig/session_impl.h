@@ -69,7 +69,8 @@ static int secp256k1_musig_secnonce_load(const secp256k1_context* ctx, secp256k1
     return 1;
 }
 
-/* If flag is true, invalidate the secnonce; otherwise leave it. Constant-time. */
+/* If flag is 1, invalidate the secnonce; if flag is 0, leave it.
+ * Constant-time. Flag must be 0 or 1. */
 static void secp256k1_musig_secnonce_invalidate(const secp256k1_context* ctx, secp256k1_musig_secnonce *secnonce, int flag) {
     secp256k1_memczero(secnonce->data, sizeof(secnonce->data), flag);
     /* The flag argument is usually classified. So, the line above makes the
