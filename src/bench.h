@@ -85,9 +85,9 @@ static void run_benchmark(char *name, void (*benchmark)(void*, int), void (*setu
         if (setup != NULL) {
             setup(data);
         }
-        begin = gettime_i64();
+        begin = gettime_us();
         benchmark(data, iter);
-        total = gettime_i64() - begin;
+        total = gettime_us() - begin;
         if (teardown != NULL) {
             teardown(data, iter);
         }

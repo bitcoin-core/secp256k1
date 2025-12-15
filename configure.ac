@@ -451,6 +451,14 @@ if test "x$enable_tests" != x"no"; then
   AC_SUBST(TEST_DEFINES)
 fi
 
+if test "x$enable_tests" != xno || test "x$enable_benchmark" != xno ; then
+  if test "x$build_windows" != xyes ; then
+    SECP_CHECK_CLOCK_GETTIME()
+    AC_SUBST(CLOCK_GETTIME_CPPFLAGS)
+    AC_SUBST(CLOCK_GETTIME_LIBS)
+  fi
+fi
+
 ###
 ### Generate output
 ###

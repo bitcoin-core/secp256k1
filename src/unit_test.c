@@ -260,10 +260,10 @@ static int read_args(int argc, char** argv, int start, struct tf_framework* tf) 
 }
 
 static void run_test_log(const struct tf_test_entry* t) {
-    int64_t start_time = gettime_i64();
+    int64_t start_time = gettime_us();
     printf("Running %s..\n", t->name);
     t->func();
-    printf("Test %s PASSED (%.3f sec)\n", t->name, (double)(gettime_i64() - start_time) / 1000000);
+    printf("Test %s PASSED (%.3f sec)\n", t->name, (double)(gettime_us() - start_time) / 1000000);
 }
 
 static void run_test(const struct tf_test_entry* t) { t->func(); }
@@ -416,7 +416,7 @@ static int tf_run(struct tf_framework* tf) {
     /* Loop iterator */
     int it;
     /* Initial test time */
-    int64_t start_time = gettime_i64();
+    int64_t start_time = gettime_us();
     /* Verify 'tf_init' has been called */
     if (!tf->fn_run_test) {
         fprintf(stderr, "Error: No test runner set. You must call 'tf_init' first to initialize the framework "
@@ -472,7 +472,7 @@ static int tf_run(struct tf_framework* tf) {
     }
 
     /* Print accumulated time */
-    printf("Total execution time: %.3f seconds\n", (double)(gettime_i64() - start_time) / 1000000);
+    printf("Total execution time: %.3f seconds\n", (double)(gettime_us() - start_time) / 1000000);
     if (tf->fn_teardown && tf->fn_teardown() != 0) return EXIT_FAILURE;
 
     return status;
