@@ -95,7 +95,7 @@ set_target_properties(secp256k1_objs PROPERTIES
 )
 
 # This emulates Libtool to make sure Libtool and CMake agree on the ABI version,
-# see below "Calculate the version variables" in build-aux/ltmain.sh.
+# see below "Calculate the version variables" in autotools-aux/ltmain.sh.
 math(EXPR ${PROJECT_NAME}_soversion "${${PROJECT_NAME}_LIB_VERSION_CURRENT} - ${${PROJECT_NAME}_LIB_VERSION_AGE}")
 set_target_properties(secp256k1 PROPERTIES
   SOVERSION ${${PROJECT_NAME}_soversion}
