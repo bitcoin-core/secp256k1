@@ -38,6 +38,7 @@ static void help(int default_iters) {
 }
 
 typedef struct {
+    const secp256k1_context* ctx;
     secp256k1_scalar scalar[2];
     secp256k1_fe fe[4];
     secp256k1_ge ge[2];
@@ -81,6 +82,9 @@ static void bench_setup(void* arg) {
             0xd7, 0x60, 0xe6, 0xab, 0x90, 0x92, 0xdf, 0xc5
         }
     };
+
+    /* Customize context if needed */
+    data->ctx = secp256k1_context_static;
 
     secp256k1_scalar_set_b32(&data->scalar[0], init[0], NULL);
     secp256k1_scalar_set_b32(&data->scalar[1], init[1], NULL);
@@ -344,11 +348,12 @@ static void bench_sha256(void* arg, int iters) {
     int i;
     bench_inv *data = (bench_inv*)arg;
     secp256k1_sha256 sha;
+    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(data->ctx);
 
     for (i = 0; i < iters; i++) {
         secp256k1_sha256_initialize(&sha);
-        secp256k1_sha256_write(&sha, data->data, 32);
-        secp256k1_sha256_finalize(&sha, data->data);
+        secp256k1_sha256_write(hash_ctx, &sha, data->data, 32);
+        secp256k1_sha256_finalize(hash_ctx, &sha, data->data);
     }
 }
 
@@ -356,11 +361,12 @@ static void bench_hmac_sha256(void* arg, int iters) {
     int i;
     bench_inv *data = (bench_inv*)arg;
     secp256k1_hmac_sha256 hmac;
+    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(data->ctx);
 
     for (i = 0; i < iters; i++) {
-        secp256k1_hmac_sha256_initialize(&hmac, data->data, 32);
-        secp256k1_hmac_sha256_write(&hmac, data->data, 32);
-        secp256k1_hmac_sha256_finalize(&hmac, data->data);
+        secp256k1_hmac_sha256_initialize(hash_ctx, &hmac, data->data, 32);
+        secp256k1_hmac_sha256_write(hash_ctx, &hmac, data->data, 32);
+        secp256k1_hmac_sha256_finalize(hash_ctx, &hmac, data->data);
     }
 }
 
@@ -368,10 +374,11 @@ static void bench_rfc6979_hmac_sha256(void* arg, int iters) {
     int i;
     bench_inv *data = (bench_inv*)arg;
     secp256k1_rfc6979_hmac_sha256 rng;
+    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(data->ctx);
 
     for (i = 0; i < iters; i++) {
-        secp256k1_rfc6979_hmac_sha256_initialize(&rng, data->data, 64);
-        secp256k1_rfc6979_hmac_sha256_generate(&rng, data->data, 32);
+        secp256k1_rfc6979_hmac_sha256_initialize(hash_ctx, &rng, data->data, 64);
+        secp256k1_rfc6979_hmac_sha256_generate(hash_ctx, &rng, data->data, 32);
     }
 }
 

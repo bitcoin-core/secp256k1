@@ -38,18 +38,20 @@ static void run_nonce_function_bip340_tests(void) {
     unsigned char *args[5];
     int i;
 
+    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(CTX);
+
     /* Check that hash initialized by
      * secp256k1_nonce_function_bip340_sha256_tagged has the expected
      * state. */
     secp256k1_nonce_function_bip340_sha256_tagged(&sha_optimized);
-    test_sha256_tag_midstate(&sha_optimized, tag, sizeof(tag));
+    test_sha256_tag_midstate(hash_ctx, &sha_optimized, tag, sizeof(tag));
 
 
    /* Check that hash initialized by
     * secp256k1_nonce_function_bip340_sha256_tagged_aux has the expected
     * state. */
     secp256k1_nonce_function_bip340_sha256_tagged_aux(&sha_optimized);
-    test_sha256_tag_midstate(&sha_optimized, aux_tag, sizeof(aux_tag));
+    test_sha256_tag_midstate(hash_ctx, &sha_optimized, aux_tag, sizeof(aux_tag));
 
     testrand256(msg);
     testrand256(key);
@@ -162,8 +164,9 @@ static void test_schnorrsig_sha256_tagged(void) {
     unsigned char tag[] = {'B', 'I', 'P', '0', '3', '4', '0', '/', 'c', 'h', 'a', 'l', 'l', 'e', 'n', 'g', 'e'};
     secp256k1_sha256 sha;
     secp256k1_sha256 sha_optimized;
+    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(CTX);
 
-    secp256k1_sha256_initialize_tagged(&sha, (unsigned char *) tag, sizeof(tag));
+    secp256k1_sha256_initialize_tagged(hash_ctx, &sha, (unsigned char *) tag, sizeof(tag));
     secp256k1_schnorrsig_sha256_tagged(&sha_optimized);
     test_sha256_eq(&sha, &sha_optimized);
 }
