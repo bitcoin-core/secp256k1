@@ -434,6 +434,7 @@ void ellswift_xdh_correctness_tests(void) {
 /* Test hash initializers */
 void ellswift_hash_init_tests(void) {
     secp256k1_sha256 sha_optimized;
+    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(CTX);
     /* "secp256k1_ellswift_encode" */
     static const unsigned char encode_tag[] = {'s', 'e', 'c', 'p', '2', '5', '6', 'k', '1', '_', 'e', 'l', 'l', 's', 'w', 'i', 'f', 't', '_', 'e', 'n', 'c', 'o', 'd', 'e'};
     /* "secp256k1_ellswift_create" */
@@ -445,19 +446,19 @@ void ellswift_hash_init_tests(void) {
      * secp256k1_ellswift_sha256_init_encode has the expected
      * state. */
     secp256k1_ellswift_sha256_init_encode(&sha_optimized);
-    test_sha256_tag_midstate(&sha_optimized, encode_tag, sizeof(encode_tag));
+    test_sha256_tag_midstate(hash_ctx, &sha_optimized, encode_tag, sizeof(encode_tag));
 
     /* Check that hash initialized by
      * secp256k1_ellswift_sha256_init_create has the expected
      * state. */
     secp256k1_ellswift_sha256_init_create(&sha_optimized);
-    test_sha256_tag_midstate(&sha_optimized, create_tag, sizeof(create_tag));
+    test_sha256_tag_midstate(hash_ctx, &sha_optimized, create_tag, sizeof(create_tag));
 
     /* Check that hash initialized by
      * secp256k1_ellswift_sha256_init_bip324 has the expected
      * state. */
     secp256k1_ellswift_sha256_init_bip324(&sha_optimized);
-    test_sha256_tag_midstate(&sha_optimized, bip324_tag, sizeof(bip324_tag));
+    test_sha256_tag_midstate(hash_ctx, &sha_optimized, bip324_tag, sizeof(bip324_tag));
 }
 
 /* --- Test registry --- */
