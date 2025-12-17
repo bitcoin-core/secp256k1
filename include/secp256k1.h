@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 
 /** Unless explicitly stated all pointer arguments must not be NULL.
  *
@@ -401,6 +402,49 @@ SECP256K1_API void secp256k1_context_set_error_callback(
     secp256k1_context *ctx,
     void (*fun)(const char *message, void *data),
     const void *data
+) SECP256K1_ARG_NONNULL(1);
+
+/**
+ * SHA256 block compression raw primitive.
+ *
+ * This function performs the SHA256 compression on one or more contiguous
+ * 64-byte message blocks. It does **not** perform padding, message scheduling
+ * across blocks, or length encoding.
+ *
+ * Parameters:
+ * - `state`    Pointer to eight 32-bit words representing the current state.
+ *              The state is updated in place.
+ * - `blocks64` Pointer to the first 64-byte block; additional blocks must be
+ *              contiguous in memory.
+ * - `n_blocks` Number of contiguous 64-byte blocks to process.
+ */
+typedef void (*secp256k1_sha256_transform_fn)(
+    uint32_t* state,
+    const unsigned char* blocks64,
+    size_t n_blocks
+);
+
+/**
+ * Set a callback function to override the internal SHA256 transform.
+ *
+ * This installs a function to replace the built-in block-compression
+ * step used by the library's internal SHA256 implementation.
+ * The provided callback must be functionally identical (bit-for-bit)
+ * to the default transform. Any deviation  will cause incorrect results
+ * and undefined behaviour.
+ *
+ * This API exists to support environments that wish to route the
+ * SHA256 compression step through a hardware-accelerated or otherwise
+ * specialized implementation. It is not meant for modifying the
+ * semantics of SHA256.
+ *
+ * Args: ctx:    pointer to a context object.
+ * In: callback: pointer to a function implementing the compression step.
+ *               (passing NULL restores the default implementation)
+ */
+SECP256K1_API void secp256k1_context_set_sha256_transform(
+        secp256k1_context *ctx,
+        secp256k1_sha256_transform_fn fn_transform
 ) SECP256K1_ARG_NONNULL(1);
 
 /** Parse a variable-length public key into the pubkey object.

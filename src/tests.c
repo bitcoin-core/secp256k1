@@ -432,6 +432,53 @@ static void run_scratch_tests(void) {
     secp256k1_scratch_space_destroy(CTX, NULL); /* no-op */
 }
 
+/* A compression function that does nothing */
+static void invalid_sha256_transform(uint32_t *s, const unsigned char *msg, size_t rounds) {
+    (void)s; (void)msg; (void)rounds;
+}
+
+static int own_transform_called = 0;
+static void good_sha256_transform(uint32_t *s, const unsigned char *msg, size_t rounds) {
+    own_transform_called = 1;
+    secp256k1_sha256_transform(s, msg, rounds);
+}
+
+static void run_plug_sha256_transform_tests(void) {
+    secp256k1_context *ctx, *ctx_cloned;
+    secp256k1_sha256 sha;
+    unsigned char sha_out[32];
+    /* 1) Verify the context is initialized with the default compression function */
+    ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+    CHECK(ctx->hash_context.fn_sha256_transform == secp256k1_sha256_transform);
+
+    /* 2) Verify providing a bad Transform fails during set */
+    CHECK_ILLEGAL_VOID(ctx, secp256k1_context_set_sha256_transform(ctx, invalid_sha256_transform));
+    CHECK(ctx->hash_context.fn_sha256_transform == secp256k1_sha256_transform);
+
+    /* 3) Provide sha256 to ctx and verify it is called when provided */
+    own_transform_called = 0;
+    secp256k1_context_set_sha256_transform(ctx, good_sha256_transform);
+    CHECK(own_transform_called);
+
+    /* 4) Verify callback makes it across clone */
+    ctx_cloned = secp256k1_context_clone(ctx);
+    CHECK(ctx_cloned->hash_context.fn_sha256_transform == good_sha256_transform);
+
+    /* 5) A hash operation should invoke the installed callback */
+    own_transform_called = 0;
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&sha, (const unsigned char*)"a", 1, secp256k1_get_hash_context(ctx));
+    secp256k1_sha256_finalize(&sha, sha_out, secp256k1_get_hash_context(ctx));
+    CHECK(own_transform_called);
+
+    /* 6) Unset sha256 and verify the default one is set again */
+    secp256k1_context_set_sha256_transform(ctx, NULL);
+    CHECK(ctx->hash_context.fn_sha256_transform == secp256k1_sha256_transform);
+
+    secp256k1_context_destroy(ctx);
+    secp256k1_context_destroy(ctx_cloned);
+}
+
 static void run_ctz_tests(void) {
     static const uint32_t b32[] = {1, 0xffffffff, 0x5e56968f, 0xe0d63129};
     static const uint64_t b64[] = {1, 0xffffffffffffffff, 0xbcd02462139b3fc3, 0x98b5f80c769693ef};
@@ -454,6 +501,7 @@ static void run_ctz_tests(void) {
 /***** HASH TESTS *****/
 
 static void run_sha256_known_output_tests(void) {
+    const secp256k1_context *ctx = secp256k1_context_static;
     static const char *inputs[] = {
         "", "abc", "message digest", "secure hash algorithm", "SHA256 is considered to be safe",
         "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
@@ -489,10 +537,10 @@ static void run_sha256_known_output_tests(void) {
         j = repeat[i];
         secp256k1_sha256_initialize(&hasher);
         while (j > 0) {
-            secp256k1_sha256_write(&hasher, (const unsigned char*)(inputs[i]), strlen(inputs[i]));
+            secp256k1_sha256_write(&hasher, (const unsigned char*)(inputs[i]), strlen(inputs[i]), secp256k1_get_hash_context(ctx));
             j--;
         }
-        secp256k1_sha256_finalize(&hasher, out);
+        secp256k1_sha256_finalize(&hasher, out, secp256k1_get_hash_context(ctx));
         CHECK(secp256k1_memcmp_var(out, outputs[i], 32) == 0);
         /* 2. Run: split the input bytestrings randomly before writing */
         if (strlen(inputs[i]) > 0) {
@@ -500,11 +548,11 @@ static void run_sha256_known_output_tests(void) {
             secp256k1_sha256_initialize(&hasher);
             j = repeat[i];
             while (j > 0) {
-                secp256k1_sha256_write(&hasher, (const unsigned char*)(inputs[i]), split);
-                secp256k1_sha256_write(&hasher, (const unsigned char*)(inputs[i] + split), strlen(inputs[i]) - split);
+                secp256k1_sha256_write(&hasher, (const unsigned char*)(inputs[i]), split, secp256k1_get_hash_context(ctx));
+                secp256k1_sha256_write(&hasher, (const unsigned char*)(inputs[i] + split), strlen(inputs[i]) - split, secp256k1_get_hash_context(ctx));
                 j--;
             }
-            secp256k1_sha256_finalize(&hasher, out);
+            secp256k1_sha256_finalize(&hasher, out, secp256k1_get_hash_context(ctx));
             CHECK(secp256k1_memcmp_var(out, outputs[i], 32) == 0);
         }
     }
@@ -602,12 +650,13 @@ static void run_sha256_counter_tests(void) {
         {0x2c, 0xf3, 0xa9, 0xf6, 0x15, 0x25, 0x80, 0x70, 0x76, 0x99, 0x7d, 0xf1, 0xc3, 0x2f, 0xa3, 0x31, 0xff, 0x92, 0x35, 0x2e, 0x8d, 0x04, 0x13, 0x33, 0xd8, 0x0d, 0xdb, 0x4a, 0xf6, 0x8c, 0x03, 0x34},
         {0xec, 0x12, 0x24, 0x9f, 0x35, 0xa4, 0x29, 0x8b, 0x9e, 0x4a, 0x95, 0xf8, 0x61, 0xaf, 0x61, 0xc5, 0x66, 0x55, 0x3e, 0x3f, 0x2a, 0x98, 0xea, 0x71, 0x16, 0x6b, 0x1c, 0xd9, 0xe4, 0x09, 0xd2, 0x8e},
     };
+    const secp256k1_context *ctx = secp256k1_context_static;
     unsigned int i;
     for (i = 0; i < sizeof(midstates)/sizeof(midstates[0]); i++) {
         unsigned char out[32];
         secp256k1_sha256 hasher = midstates[i];
-        secp256k1_sha256_write(&hasher, (const unsigned char*)input, strlen(input));
-        secp256k1_sha256_finalize(&hasher, out);
+        secp256k1_sha256_write(&hasher, (const unsigned char*)input, strlen(input), secp256k1_get_hash_context(ctx));
+        secp256k1_sha256_finalize(&hasher, out, secp256k1_get_hash_context(ctx));
         CHECK(secp256k1_memcmp_var(out, outputs[i], 32) == 0);
     }
 }
@@ -624,9 +673,9 @@ static void test_sha256_eq(const secp256k1_sha256 *sha1, const secp256k1_sha256 
 }
 /* Convenience function for using test_sha256_eq to verify the correctness of a
  * tagged hash midstate. This function is used by some module tests. */
-static void test_sha256_tag_midstate(secp256k1_sha256 *sha_tagged, const unsigned char *tag, size_t taglen) {
+static void test_sha256_tag_midstate(const secp256k1_context *ctx, secp256k1_sha256 *sha_tagged, const unsigned char *tag, size_t taglen) {
     secp256k1_sha256 sha;
-    secp256k1_sha256_initialize_tagged(&sha, tag, taglen);
+    secp256k1_sha256_initialize_tagged(&sha, tag, taglen, secp256k1_get_hash_context(ctx));
     test_sha256_eq(&sha, sha_tagged);
 }
 
@@ -656,19 +705,20 @@ static void run_hmac_sha256_tests(void) {
         {0x9b, 0x09, 0xff, 0xa7, 0x1b, 0x94, 0x2f, 0xcb, 0x27, 0x63, 0x5f, 0xbc, 0xd5, 0xb0, 0xe9, 0x44, 0xbf, 0xdc, 0x63, 0x64, 0x4f, 0x07, 0x13, 0x93, 0x8a, 0x7f, 0x51, 0x53, 0x5c, 0x3a, 0x35, 0xe2}
     };
     int i;
+    const secp256k1_context *ctx = secp256k1_context_static;
     for (i = 0; i < 6; i++) {
         secp256k1_hmac_sha256 hasher;
         unsigned char out[32];
-        secp256k1_hmac_sha256_initialize(&hasher, (const unsigned char*)(keys[i]), strlen(keys[i]));
-        secp256k1_hmac_sha256_write(&hasher, (const unsigned char*)(inputs[i]), strlen(inputs[i]));
-        secp256k1_hmac_sha256_finalize(&hasher, out);
+        secp256k1_hmac_sha256_initialize(&hasher, (const unsigned char*)(keys[i]), strlen(keys[i]), secp256k1_get_hash_context(ctx));
+        secp256k1_hmac_sha256_write(&hasher, (const unsigned char*)(inputs[i]), strlen(inputs[i]), secp256k1_get_hash_context(ctx));
+        secp256k1_hmac_sha256_finalize(&hasher, out, secp256k1_get_hash_context(ctx));
         CHECK(secp256k1_memcmp_var(out, outputs[i], 32) == 0);
         if (strlen(inputs[i]) > 0) {
             int split = testrand_int(strlen(inputs[i]));
-            secp256k1_hmac_sha256_initialize(&hasher, (const unsigned char*)(keys[i]), strlen(keys[i]));
-            secp256k1_hmac_sha256_write(&hasher, (const unsigned char*)(inputs[i]), split);
-            secp256k1_hmac_sha256_write(&hasher, (const unsigned char*)(inputs[i] + split), strlen(inputs[i]) - split);
-            secp256k1_hmac_sha256_finalize(&hasher, out);
+            secp256k1_hmac_sha256_initialize(&hasher, (const unsigned char*)(keys[i]), strlen(keys[i]), secp256k1_get_hash_context(ctx));
+            secp256k1_hmac_sha256_write(&hasher, (const unsigned char*)(inputs[i]), split, secp256k1_get_hash_context(ctx));
+            secp256k1_hmac_sha256_write(&hasher, (const unsigned char*)(inputs[i] + split), strlen(inputs[i]) - split, secp256k1_get_hash_context(ctx));
+            secp256k1_hmac_sha256_finalize(&hasher, out, secp256k1_get_hash_context(ctx));
             CHECK(secp256k1_memcmp_var(out, outputs[i], 32) == 0);
         }
     }
@@ -689,27 +739,28 @@ static void run_rfc6979_hmac_sha256_tests(void) {
         {0x75, 0x97, 0x88, 0x7c, 0xbd, 0x76, 0x32, 0x1f, 0x32, 0xe3, 0x04, 0x40, 0x67, 0x9a, 0x22, 0xcf, 0x7f, 0x8d, 0x9d, 0x2e, 0xac, 0x39, 0x0e, 0x58, 0x1f, 0xea, 0x09, 0x1c, 0xe2, 0x02, 0xba, 0x94}
     };
 
+    const secp256k1_context *ctx = secp256k1_context_static;
     secp256k1_rfc6979_hmac_sha256 rng;
     unsigned char out[32];
     int i;
 
-    secp256k1_rfc6979_hmac_sha256_initialize(&rng, key1, 64);
+    secp256k1_rfc6979_hmac_sha256_initialize(&rng, key1, 64, secp256k1_get_hash_context(ctx));
     for (i = 0; i < 3; i++) {
-        secp256k1_rfc6979_hmac_sha256_generate(&rng, out, 32);
+        secp256k1_rfc6979_hmac_sha256_generate(&rng, out, 32, secp256k1_get_hash_context(ctx));
         CHECK(secp256k1_memcmp_var(out, out1[i], 32) == 0);
     }
     secp256k1_rfc6979_hmac_sha256_finalize(&rng);
 
-    secp256k1_rfc6979_hmac_sha256_initialize(&rng, key1, 65);
+    secp256k1_rfc6979_hmac_sha256_initialize(&rng, key1, 65, secp256k1_get_hash_context(ctx));
     for (i = 0; i < 3; i++) {
-        secp256k1_rfc6979_hmac_sha256_generate(&rng, out, 32);
+        secp256k1_rfc6979_hmac_sha256_generate(&rng, out, 32, secp256k1_get_hash_context(ctx));
         CHECK(secp256k1_memcmp_var(out, out1[i], 32) != 0);
     }
     secp256k1_rfc6979_hmac_sha256_finalize(&rng);
 
-    secp256k1_rfc6979_hmac_sha256_initialize(&rng, key2, 64);
+    secp256k1_rfc6979_hmac_sha256_initialize(&rng, key2, 64, secp256k1_get_hash_context(ctx));
     for (i = 0; i < 3; i++) {
-        secp256k1_rfc6979_hmac_sha256_generate(&rng, out, 32);
+        secp256k1_rfc6979_hmac_sha256_generate(&rng, out, 32, secp256k1_get_hash_context(ctx));
         CHECK(secp256k1_memcmp_var(out, out2[i], 32) == 0);
     }
     secp256k1_rfc6979_hmac_sha256_finalize(&rng);
@@ -5425,7 +5476,7 @@ static int test_ecmult_accumulate_cb(secp256k1_scalar* sc, secp256k1_ge* pt, siz
     return 1;
 }
 
-static void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar* x, secp256k1_scratch* scratch) {
+static void test_ecmult_accumulate(const secp256k1_context *ctx, secp256k1_sha256* acc, const secp256k1_scalar* x, secp256k1_scratch* scratch) {
     /* Compute x*G in 6 different ways, serialize it uncompressed, and feed it into acc. */
     secp256k1_gej rj1, rj2, rj3, rj4, rj5, rj6, gj, infj;
     secp256k1_ge r;
@@ -5447,11 +5498,11 @@ static void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar
     if (secp256k1_ge_is_infinity(&r)) {
         /* Store infinity as 0x00 */
         const unsigned char zerobyte[1] = {0};
-        secp256k1_sha256_write(acc, zerobyte, 1);
+        secp256k1_sha256_write(acc, zerobyte, 1, secp256k1_get_hash_context(ctx));
     } else {
         /* Store other points using their uncompressed serialization. */
         secp256k1_eckey_pubkey_serialize65(&r, bytes);
-        secp256k1_sha256_write(acc, bytes, sizeof(bytes));
+        secp256k1_sha256_write(acc, bytes, sizeof(bytes), secp256k1_get_hash_context(ctx));
     }
 }
 
@@ -5468,6 +5519,7 @@ static void test_ecmult_constants_2bit(void) {
     secp256k1_sha256 acc;
     unsigned char b32[32];
     int i, j;
+    const secp256k1_context *ctx = secp256k1_context_static;
     secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(CTX, 65536);
 
     /* Expected hash of all the computed points; created with an independent
@@ -5481,25 +5533,25 @@ static void test_ecmult_constants_2bit(void) {
     secp256k1_sha256_initialize(&acc);
     for (i = 0; i <= 36; ++i) {
         secp256k1_scalar_set_int(&x, i);
-        test_ecmult_accumulate(&acc, &x, scratch);
+        test_ecmult_accumulate(ctx, &acc, &x, scratch);
         secp256k1_scalar_negate(&x, &x);
-        test_ecmult_accumulate(&acc, &x, scratch);
+        test_ecmult_accumulate(ctx, &acc, &x, scratch);
     };
     for (i = 0; i < 256; ++i) {
         for (j = 1; j < 256; j += 2) {
             int k;
             secp256k1_scalar_set_int(&x, j);
             for (k = 0; k < i; ++k) secp256k1_scalar_add(&x, &x, &x);
-            test_ecmult_accumulate(&acc, &x, scratch);
+            test_ecmult_accumulate(ctx, &acc, &x, scratch);
         }
     }
-    secp256k1_sha256_finalize(&acc, b32);
+    secp256k1_sha256_finalize(&acc, b32, secp256k1_get_hash_context(ctx));
     CHECK(secp256k1_memcmp_var(b32, expected32, 32) == 0);
 
     secp256k1_scratch_space_destroy(CTX, scratch);
 }
 
-static void test_ecmult_constants_sha(uint32_t prefix, size_t iter, const unsigned char* expected32) {
+static void test_ecmult_constants_sha(const secp256k1_context *ctx, uint32_t prefix, size_t iter, const unsigned char* expected32) {
     /* Using test_ecmult_accumulate, test ecmult for:
      * - Key 0
      * - Key 1
@@ -5520,23 +5572,23 @@ static void test_ecmult_constants_sha(uint32_t prefix, size_t iter, const unsign
     inp[3] = (prefix >> 24) & 0xFF;
     secp256k1_sha256_initialize(&acc);
     secp256k1_scalar_set_int(&x, 0);
-    test_ecmult_accumulate(&acc, &x, scratch);
+    test_ecmult_accumulate(ctx, &acc, &x, scratch);
     secp256k1_scalar_set_int(&x, 1);
-    test_ecmult_accumulate(&acc, &x, scratch);
+    test_ecmult_accumulate(ctx, &acc, &x, scratch);
     secp256k1_scalar_negate(&x, &x);
-    test_ecmult_accumulate(&acc, &x, scratch);
+    test_ecmult_accumulate(ctx, &acc, &x, scratch);
 
     for (i = 0; i < iter; ++i) {
         secp256k1_sha256 gen;
         inp[4] = i & 0xff;
         inp[5] = (i >> 8) & 0xff;
         secp256k1_sha256_initialize(&gen);
-        secp256k1_sha256_write(&gen, inp, sizeof(inp));
-        secp256k1_sha256_finalize(&gen, b32);
+        secp256k1_sha256_write(&gen, inp, sizeof(inp), secp256k1_get_hash_context(ctx));
+        secp256k1_sha256_finalize(&gen, b32, secp256k1_get_hash_context(ctx));
         secp256k1_scalar_set_b32(&x, b32, NULL);
-        test_ecmult_accumulate(&acc, &x, scratch);
+        test_ecmult_accumulate(ctx, &acc, &x, scratch);
     }
-    secp256k1_sha256_finalize(&acc, b32);
+    secp256k1_sha256_finalize(&acc, b32, secp256k1_get_hash_context(ctx));
     CHECK(secp256k1_memcmp_var(b32, expected32, 32) == 0);
 
     secp256k1_scratch_space_destroy(CTX, scratch);
@@ -5557,18 +5609,19 @@ static void run_ecmult_constants(void) {
         0xf5, 0xab, 0x8a, 0x2f, 0xfd, 0xdb, 0x19, 0x12,
         0x1a, 0xee, 0xe6, 0xb7, 0x6e, 0x05, 0x3f, 0xc6
     };
+    const secp256k1_context *ctx = secp256k1_context_static;
     /* For every combination of 6 bit positions out of 256, restricted to
      * 20-bit windows (i.e., the first and last bit position are no more than
      * 19 bits apart), all 64 bit patterns occur in the input scalars used in
      * this test. */
     CONDITIONAL_TEST(1, "test_ecmult_constants_sha 1024") {
-        test_ecmult_constants_sha(4808378u, 1024, expected32_6bit20);
+        test_ecmult_constants_sha(ctx, 4808378u, 1024, expected32_6bit20);
     }
 
     /* For every combination of 8 consecutive bit positions, all 256 bit
      * patterns occur in the input scalars used in this test. */
     CONDITIONAL_TEST(3, "test_ecmult_constants_sha 2048") {
-        test_ecmult_constants_sha(1607366309u, 2048, expected32_8bit8);
+        test_ecmult_constants_sha(ctx, 1607366309u, 2048, expected32_8bit8);
     }
 
     CONDITIONAL_TEST(16, "test_ecmult_constants_2bit") {
@@ -5590,7 +5643,7 @@ static void test_ecmult_gen_blind(void) {
     testrand256(seed32);
     b = CTX->ecmult_gen_ctx.scalar_offset;
     p = CTX->ecmult_gen_ctx.ge_offset;
-    secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, seed32);
+    secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, seed32, secp256k1_get_hash_context(CTX));
     CHECK(!secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.scalar_offset));
     secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej2, &key);
     CHECK(!gej_xyz_equals_gej(&pgej, &pgej2));
@@ -5603,10 +5656,10 @@ static void test_ecmult_gen_blind_reset(void) {
     /* Test ecmult_gen() blinding reset and confirm that the blinding is consistent. */
     secp256k1_scalar b;
     secp256k1_ge p1, p2;
-    secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, 0);
+    secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, 0, secp256k1_get_hash_context(CTX));
     b = CTX->ecmult_gen_ctx.scalar_offset;
     p1 = CTX->ecmult_gen_ctx.ge_offset;
-    secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, 0);
+    secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, 0, secp256k1_get_hash_context(CTX));
     CHECK(secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.scalar_offset));
     p2 = CTX->ecmult_gen_ctx.ge_offset;
     CHECK(secp256k1_ge_eq_var(&p1, &p2));
@@ -7068,10 +7121,9 @@ static void run_ecdsa_der_parse(void) {
 }
 
 /* Tests several edge cases. */
-static void test_ecdsa_edge_cases(void) {
+static void test_ecdsa_edge_cases(secp256k1_context* ctx) {
     int t;
     secp256k1_ecdsa_signature sig;
-    secp256k1_context* ctx = CTX;
 
     /* Test the case where ECDSA recomputes a point that is infinity. */
     {
@@ -7402,8 +7454,19 @@ static void test_ecdsa_edge_cases(void) {
     }
 }
 
+
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_ecdsa)
 static void run_ecdsa_edge_cases(void) {
-    test_ecdsa_edge_cases();
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    /* Baseline run using the default SHA256 implementation */
+    test_ecdsa_edge_cases(ctx);
+
+    /* Re-run using a context-provided SHA256 transform */
+    secp256k1_context_set_sha256_transform(ctx, sha256_ecdsa);
+    test_ecdsa_edge_cases(ctx);
+    CHECK(sha256_ecdsa_called);
+
+    secp256k1_context_destroy(ctx);
 }
 
 /** Wycheproof tests
@@ -7414,6 +7477,7 @@ static void test_ecdsa_wycheproof(void) {
     #include "wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h"
 
     int t;
+    const secp256k1_context* ctx = secp256k1_context_static;
     for (t = 0; t < SECP256K1_ECDSA_WYCHEPROOF_NUMBER_TESTVECTORS; t++) {
         secp256k1_ecdsa_signature signature;
         secp256k1_sha256 hasher;
@@ -7428,8 +7492,8 @@ static void test_ecdsa_wycheproof(void) {
 
         secp256k1_sha256_initialize(&hasher);
         msg = &wycheproof_ecdsa_messages[testvectors[t].msg_offset];
-        secp256k1_sha256_write(&hasher, msg, testvectors[t].msg_len);
-        secp256k1_sha256_finalize(&hasher, out);
+        secp256k1_sha256_write(&hasher, msg, testvectors[t].msg_len, secp256k1_get_hash_context(ctx));
+        secp256k1_sha256_finalize(&hasher, out, secp256k1_get_hash_context(ctx));
 
         sig = &wycheproof_ecdsa_signatures[testvectors[t].sig_offset];
         if (secp256k1_ecdsa_signature_parse_der(CTX, &signature, sig, testvectors[t].sig_len) == 1) {
@@ -7693,6 +7757,7 @@ static const struct tf_test_entry tests_general[] = {
     CASE(all_static_context_tests),
     CASE(deprecated_context_flags_test),
     CASE(scratch_tests),
+    CASE(plug_sha256_transform_tests),
 };
 
 static const struct tf_test_entry tests_integer[] = {

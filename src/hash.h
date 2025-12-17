@@ -10,6 +10,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+typedef void (*secp256k1_fn_sha256_transform)(uint32_t *state, const unsigned char *blocks64, size_t n_blocks);
+
+typedef struct {
+    secp256k1_fn_sha256_transform fn_sha256_transform;
+} secp256k1_hash_context;
+
+static void secp256k1_hash_context_init(secp256k1_hash_context* hash_ctx);
+
 typedef struct {
     uint32_t s[8];
     unsigned char buf[64];
@@ -17,17 +25,17 @@ typedef struct {
 } secp256k1_sha256;
 
 static void secp256k1_sha256_initialize(secp256k1_sha256 *hash);
-static void secp256k1_sha256_write(secp256k1_sha256 *hash, const unsigned char *data, size_t size);
-static void secp256k1_sha256_finalize(secp256k1_sha256 *hash, unsigned char *out32);
+static void secp256k1_sha256_write(secp256k1_sha256 *hash, const unsigned char *data, size_t size, const secp256k1_hash_context *ctx);
+static void secp256k1_sha256_finalize(secp256k1_sha256 *hash, unsigned char *out32, const secp256k1_hash_context *ctx);
 static void secp256k1_sha256_clear(secp256k1_sha256 *hash);
 
 typedef struct {
     secp256k1_sha256 inner, outer;
 } secp256k1_hmac_sha256;
 
-static void secp256k1_hmac_sha256_initialize(secp256k1_hmac_sha256 *hash, const unsigned char *key, size_t size);
-static void secp256k1_hmac_sha256_write(secp256k1_hmac_sha256 *hash, const unsigned char *data, size_t size);
-static void secp256k1_hmac_sha256_finalize(secp256k1_hmac_sha256 *hash, unsigned char *out32);
+static void secp256k1_hmac_sha256_initialize(secp256k1_hmac_sha256 *hash, const unsigned char *key, size_t size, const secp256k1_hash_context *ctx);
+static void secp256k1_hmac_sha256_write(secp256k1_hmac_sha256 *hash, const unsigned char *data, size_t size, const secp256k1_hash_context *ctx);
+static void secp256k1_hmac_sha256_finalize(secp256k1_hmac_sha256 *hash, unsigned char *out32, const secp256k1_hash_context *ctx);
 static void secp256k1_hmac_sha256_clear(secp256k1_hmac_sha256 *hash);
 
 typedef struct {
@@ -36,8 +44,8 @@ typedef struct {
     int retry;
 } secp256k1_rfc6979_hmac_sha256;
 
-static void secp256k1_rfc6979_hmac_sha256_initialize(secp256k1_rfc6979_hmac_sha256 *rng, const unsigned char *key, size_t keylen);
-static void secp256k1_rfc6979_hmac_sha256_generate(secp256k1_rfc6979_hmac_sha256 *rng, unsigned char *out, size_t outlen);
+static void secp256k1_rfc6979_hmac_sha256_initialize(secp256k1_rfc6979_hmac_sha256 *rng, const unsigned char *key, size_t keylen, const secp256k1_hash_context *ctx);
+static void secp256k1_rfc6979_hmac_sha256_generate(secp256k1_rfc6979_hmac_sha256 *rng, unsigned char *out, size_t outlen, const secp256k1_hash_context *ctx);
 static void secp256k1_rfc6979_hmac_sha256_finalize(secp256k1_rfc6979_hmac_sha256 *rng);
 static void secp256k1_rfc6979_hmac_sha256_clear(secp256k1_rfc6979_hmac_sha256 *rng);
 
