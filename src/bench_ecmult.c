@@ -256,7 +256,7 @@ static void bench_ecmult_multi_teardown(void* arg, int iters) {
     }
 }
 
-static void generate_scalar(uint32_t num, secp256k1_scalar* scalar) {
+static void generate_scalar(const secp256k1_context *ctx, uint32_t num, secp256k1_scalar* scalar) {
     secp256k1_sha256 sha256;
     unsigned char c[10] = {'e', 'c', 'm', 'u', 'l', 't', 0, 0, 0, 0};
     unsigned char buf[32];
@@ -266,8 +266,8 @@ static void generate_scalar(uint32_t num, secp256k1_scalar* scalar) {
     c[8] = num >> 16;
     c[9] = num >> 24;
     secp256k1_sha256_initialize(&sha256);
-    secp256k1_sha256_write(&sha256, c, sizeof(c));
-    secp256k1_sha256_finalize(&sha256, buf);
+    secp256k1_sha256_write(&sha256, c, sizeof(c), secp256k1_get_hash_context(ctx));
+    secp256k1_sha256_finalize(&sha256, buf, secp256k1_get_hash_context(ctx));
     secp256k1_scalar_set_b32(scalar, buf, &overflow);
     CHECK(!overflow);
 }
@@ -354,7 +354,7 @@ int main(int argc, char **argv) {
     secp256k1_gej_set_ge(&data.pubkeys_gej[0], &secp256k1_ge_const_g);
     secp256k1_scalar_set_int(&data.seckeys[0], 1);
     for (i = 0; i < POINTS; ++i) {
-        generate_scalar(i, &data.scalars[i]);
+        generate_scalar(data.ctx, i, &data.scalars[i]);
         if (i) {
             secp256k1_gej_double_var(&data.pubkeys_gej[i], &data.pubkeys_gej[i - 1], NULL);
             secp256k1_scalar_add(&data.seckeys[i], &data.seckeys[i - 1], &data.seckeys[i - 1]);
