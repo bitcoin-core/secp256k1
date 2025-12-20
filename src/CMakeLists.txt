@@ -45,10 +45,41 @@ if(SECP256K1_ENABLE_MODULE_ECDH)
   set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_ecdh.h)
 endif()
 
-add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL
-  precomputed_ecmult.c
-  precomputed_ecmult_gen.c
-)
+add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL)
+if(SECP256K1_BUILD_PRECOMPUTED)
+  add_executable(secp256k1_precompute_ecmult EXCLUDE_FROM_ALL precompute_ecmult.c)
+  target_compile_definitions(secp256k1_precompute_ecmult PRIVATE VERIFY)
+  if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+    # Disable warning C4334 "'operator': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)".
+    target_compile_options(secp256k1_precompute_ecmult PRIVATE /wd4334)
+  endif()
+  add_executable(secp256k1_precompute_ecmult_gen EXCLUDE_FROM_ALL precompute_ecmult_gen.c)
+  target_compile_definitions(secp256k1_precompute_ecmult_gen PRIVATE VERIFY)
+  set_target_properties(secp256k1_precompute_ecmult secp256k1_precompute_ecmult_gen PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+  add_custom_command(
+    OUTPUT
+      ${CMAKE_CURRENT_BINARY_DIR}/precomputed_ecmult.c
+      ${CMAKE_CURRENT_BINARY_DIR}/precomputed_ecmult_gen.c
+    COMMAND secp256k1_precompute_ecmult
+    COMMAND secp256k1_precompute_ecmult_gen
+    DEPENDS secp256k1_precompute_ecmult secp256k1_precompute_ecmult_gen
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+  )
+
+  target_sources(secp256k1_precomputed PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}/precomputed_ecmult.c
+    ${CMAKE_CURRENT_BINARY_DIR}/precomputed_ecmult_gen.c
+  )
+  target_include_directories(secp256k1_precomputed PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+else()
+  target_sources(secp256k1_precomputed PRIVATE
+    precomputed_ecmult.c
+    precomputed_ecmult_gen.c
+  )
+endif()
 
 # Add objects explicitly rather than linking to the object libs to keep them
 # from being exported.
