@@ -141,6 +141,8 @@ option(SECP256K1_BUILD_EXHAUSTIVE_TESTS "Build exhaustive tests." ON)
 option(SECP256K1_BUILD_CTIME_TESTS "Build constant-time tests." ${SECP256K1_VALGRIND})
 option(SECP256K1_BUILD_EXAMPLES "Build examples." OFF)
 
+option(SECP256K1_BUILD_PRECOMPUTED "Recreate the precomputed files." OFF)
+
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
 if(MSVC)
