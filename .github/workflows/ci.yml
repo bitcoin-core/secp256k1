@@ -556,7 +556,13 @@ jobs:
       - *CHECKOUT
 
       - name: Generate buildsystem
-        run: cmake -E env CFLAGS="/WX ${{ matrix.configuration.cpp_flags }}" cmake -B build -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON ${{ matrix.configuration.cmake_options }}
+        run: |
+          cmake -E env CFLAGS="/WX ${{ matrix.configuration.cpp_flags }}" `
+          cmake -B build `
+            -DSECP256K1_BUILD_PRECOMPUTED=ON `
+            -DSECP256K1_ENABLE_MODULE_RECOVERY=ON `
+            -DSECP256K1_BUILD_EXAMPLES=ON `
+            ${{ matrix.configuration.cmake_options }}
 
       - name: Build
         run: cmake --build build --config RelWithDebInfo -- /p:UseMultiToolTask=true /maxCpuCount
