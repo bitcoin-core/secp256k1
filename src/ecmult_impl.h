@@ -70,10 +70,10 @@
  *  Lastly the zr[0] value, which isn't used above, is set so that:
  *  - a.z = z(pre_a[0]) / zr[0]
  */
-static void secp256k1_ecmult_odd_multiples_table(int n, secp256k1_ge *pre_a, secp256k1_fe *zr, secp256k1_fe *z, const secp256k1_gej *a) {
+static void secp256k1_ecmult_odd_multiples_table(size_t n, secp256k1_ge *pre_a, secp256k1_fe *zr, secp256k1_fe *z, const secp256k1_gej *a) {
     secp256k1_gej d, ai;
     secp256k1_ge d_ge;
-    int i;
+    size_t i;
 
     VERIFY_CHECK(!secp256k1_gej_is_infinity(a));
 
