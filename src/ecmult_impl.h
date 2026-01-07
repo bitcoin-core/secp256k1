@@ -169,7 +169,7 @@ static size_t secp256k1_ecmult_wnaf(int32_t *wnaf, size_t len, const secp256k1_s
     VERIFY_CHECK(wnaf != NULL);
     VERIFY_CHECK(len <= 256);
     VERIFY_CHECK(a != NULL);
-    VERIFY_CHECK(2 <= w && w <= 31);
+    VERIFY_CHECK(2 <= w && w <= 30);
 
     for (bit = 0; bit < len; bit++) {
         wnaf[bit] = 0;
