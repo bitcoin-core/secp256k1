@@ -309,6 +309,10 @@ int main(int argc, char **argv) {
     size_t scratch_size;
 
     int iters = get_iters(10000);
+    if (iters == 0) {
+        help(argv);
+        return EXIT_FAILURE;
+    }
 
     data.ecmult_multi = secp256k1_ecmult_multi_var;
 
