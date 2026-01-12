@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "util.h"
 #include "group.h"
@@ -505,6 +506,9 @@ struct secp256k1_pippenger_state {
     struct secp256k1_pippenger_point_state* ps;
 };
 
+#define ENABLE_COZ 1
+#define ENABLE_COZ_CHECK 0
+
 /*
  * pippenger_wnaf computes the result of a multi-point multiplication as
  * follows: The scalars are brought into wnaf with n_wnaf elements each. Then
@@ -513,7 +517,14 @@ struct secp256k1_pippenger_state {
  * r += 1*bucket[0] + 3*bucket[1] + 5*bucket[2] + ...
  */
 static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_window, struct secp256k1_pippenger_state *state, secp256k1_gej *r, const secp256k1_scalar *sc, const secp256k1_ge *pt, size_t num) {
-    size_t n_wnaf = WNAF_SIZE(bucket_window+1);
+#if ENABLE_COZ
+    secp256k1_coz accum_coz;
+#if ENABLE_COZ_CHECK
+    int coz_desync = 0;
+#endif
+#endif
+    int n_wnaf = WNAF_SIZE(bucket_window+1);
+    int n_table = ECMULT_TABLE_SIZE(bucket_window+2);
     size_t np;
     size_t no = 0;
     int i;
@@ -534,9 +545,11 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
     }
 
     for (i = n_wnaf - 1; i >= 0; i--) {
+#if !ENABLE_COZ || ENABLE_COZ_CHECK
         secp256k1_gej running_sum;
+#endif
 
-        for(j = 0; j < ECMULT_TABLE_SIZE(bucket_window+2); j++) {
+        for(j = 0; j < n_table; j++) {
             secp256k1_gej_set_infinity(&buckets[j]);
         }
 
@@ -568,7 +581,21 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
             secp256k1_gej_double_var(r, r, NULL);
         }
 
+#if !ENABLE_COZ || ENABLE_COZ_CHECK
         secp256k1_gej_set_infinity(&running_sum);
+#endif
+
+#if ENABLE_COZ
+	secp256k1_coz_import_var(&accum_coz, r);
+
+#if ENABLE_COZ_CHECK
+        if (!coz_desync && !secp256k1_coz_eq_var(&accum_coz, r, &running_sum)) {
+            coz_desync = 1;
+            printf("CoZ desync at i=%d/%d, after _coz_init\n", i, n_wnaf);
+        }
+#endif
+#endif
+
         /* Accumulate the sum: bucket[0] + 3*bucket[1] + 5*bucket[2] + 7*bucket[3] + ...
          *                   = bucket[0] +   bucket[1] +   bucket[2] +   bucket[3] + ...
          *                   +         2 *  (bucket[1] + 2*bucket[2] + 3*bucket[3] + ...)
@@ -577,14 +604,86 @@ static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_wi
          *
          * The doubling is done implicitly by deferring the final window doubling (of 'r').
          */
-        for(j = ECMULT_TABLE_SIZE(bucket_window+2) - 1; j > 0; j--) {
+        for(j = n_table - 1; j > 0; j--) {
+#if !ENABLE_COZ || ENABLE_COZ_CHECK
             secp256k1_gej_add_var(&running_sum, &running_sum, &buckets[j], NULL);
+#endif
+
+#if ENABLE_COZ
+            secp256k1_coz_add_3_2_var(&accum_coz, &buckets[j]);
+
+#if ENABLE_COZ_CHECK
+            if (!coz_desync && !secp256k1_coz_eq_var(&accum_coz, r, &running_sum)) {
+                coz_desync = 1;
+                printf("CoZ desync at i=%d/%d, j=%d/%d, after coz_add_3_2\n", i, n_wnaf, j, n_table);
+            }
+#endif
+#endif
+
+#if !ENABLE_COZ || ENABLE_COZ_CHECK
             secp256k1_gej_add_var(r, r, &running_sum, NULL);
+#endif
+
+#if ENABLE_COZ
+            secp256k1_coz_add_2_1_var(&accum_coz);
+
+#if ENABLE_COZ_CHECK
+            if (!coz_desync && !secp256k1_coz_eq_var(&accum_coz, r, &running_sum)) {
+                coz_desync = 1;
+                printf("CoZ desync at i=%d/%d, j=%d/%d, after coz_add_2_1\n", i, n_wnaf, j, n_table);
+            }
+#endif
+#endif
         }
 
+#if !ENABLE_COZ || ENABLE_COZ_CHECK
         secp256k1_gej_add_var(&running_sum, &running_sum, &buckets[0], NULL);
+#endif
+
+#if ENABLE_COZ
+        secp256k1_coz_add_3_2_var(&accum_coz, &buckets[0]);
+
+#if ENABLE_COZ_CHECK
+        if (!coz_desync && !secp256k1_coz_eq_var(&accum_coz, r, &running_sum)) {
+            coz_desync = 1;
+            printf("CoZ desync at i=%d/%d, j=0/%d (final), after coz_add_3_2\n", i, n_wnaf, n_table);
+        }
+#endif
+#endif
+
+#if !ENABLE_COZ || ENABLE_COZ_CHECK
         secp256k1_gej_double_var(r, r, NULL);
+#endif
+
+#if ENABLE_COZ
+        secp256k1_coz_double_1_var(&accum_coz);
+
+#if ENABLE_COZ_CHECK
+        if (!coz_desync && !secp256k1_coz_eq_var(&accum_coz, r, &running_sum)) {
+            coz_desync = 1;
+            printf("CoZ desync at i=%d/%d, j=0/%d (final), after coz_double_1\n", i, n_wnaf, n_table);
+        }
+#endif
+#endif
+
+#if !ENABLE_COZ || ENABLE_COZ_CHECK
         secp256k1_gej_add_var(r, r, &running_sum, NULL);
+#endif
+
+#if ENABLE_COZ
+        secp256k1_coz_add_2_1_var(&accum_coz);
+
+#if ENABLE_COZ_CHECK
+        if (!coz_desync && !secp256k1_coz_eq_var(&accum_coz, r, &running_sum)) {
+            coz_desync = 1;
+            printf("CoZ desync at i=%d/%d, j=0/%d (final), after coz_add_2_1\n", i, n_wnaf, n_table);
+        }
+#endif
+#endif
+
+#if ENABLE_COZ
+        secp256k1_coz_export_var(r, &accum_coz);
+#endif
     }
     return 1;
 }
