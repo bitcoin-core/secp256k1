@@ -17,6 +17,7 @@ silentpayments_example
 *.so
 *.a
 *.csv
+!/src/modules/dleq/*.csv
 *.log
 *.trs
 *.sage.py
