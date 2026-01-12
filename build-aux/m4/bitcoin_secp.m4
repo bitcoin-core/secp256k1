@@ -89,3 +89,40 @@ AC_DEFUN([SECP_SET_DEFAULT], [
     $1="$2"
   fi
 ])
+
+m4_define([SECP_CHECK_CLOCK_GETTIME_testbody], [[
+  #include <time.h>
+
+  int main() {
+    struct timespec ts;
+    return clock_gettime(CLOCK_REALTIME, &ts);
+  }
+]])
+
+AC_DEFUN([SECP_CHECK_CLOCK_GETTIME_NEEDS_RT], [
+  AC_MSG_CHECKING([whether clock_gettime can be used without -lrt])
+  AC_LINK_IFELSE([AC_LANG_SOURCE([SECP_CHECK_CLOCK_GETTIME_testbody])], [
+    AC_MSG_RESULT([yes])
+  ],[
+    AC_MSG_RESULT([no])
+    AC_MSG_CHECKING([whether clock_gettime can be used with -lrt])
+    SECP_CHECK_CLOCK_GETTIME_NEEDS_RT_saved_LIBS="$LIBS"
+    CLOCK_GETTIME_LIBS="-lrt"
+    LIBS="$CLOCK_GETTIME_LIBS"
+    AC_LINK_IFELSE([AC_LANG_SOURCE([SECP_CHECK_CLOCK_GETTIME_testbody])], [
+      AC_MSG_RESULT([yes])
+    ],[
+      AC_MSG_RESULT([no])
+      AC_MSG_ERROR([clock_gettime not available])
+    ])
+    LIBS="$SECP_CHECK_CLOCK_GETTIME_NEEDS_RT_saved_LIBS"
+  ])
+])
+
+AC_DEFUN([SECP_CHECK_CLOCK_GETTIME], [
+  SECP_CHECK_CLOCK_GETTIME_saved_CPPFLAGS="$CPPFLAGS"
+  CLOCK_GETTIME_CPPFLAGS="-D_POSIX_C_SOURCE=199309L"
+  CPPFLAGS="$CLOCK_GETTIME_CPPFLAGS"
+  AC_CHECK_DECLS([clock_gettime], [SECP_CHECK_CLOCK_GETTIME_NEEDS_RT], [], [[#include <time.h>]])
+  CPPFLAGS="$SECP_CHECK_CLOCK_GETTIME_saved_CPPFLAGS"
+])
