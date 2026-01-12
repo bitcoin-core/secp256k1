@@ -12,6 +12,11 @@ if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
   set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_ellswift.h)
 endif()
 
+if(SECP256K1_ENABLE_MODULE_DLEQ)
+  add_compile_definitions(ENABLE_MODULE_DLEQ=1)
+  set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_dleq.h)
+endif()
+
 if(SECP256K1_ENABLE_MODULE_MUSIG)
   if(DEFINED SECP256K1_ENABLE_MODULE_SCHNORRSIG AND NOT SECP256K1_ENABLE_MODULE_SCHNORRSIG)
     message(FATAL_ERROR "Module dependency error: You have disabled the schnorrsig module explicitly, but it is required by the musig module.")

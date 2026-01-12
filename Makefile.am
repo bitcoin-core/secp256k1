@@ -339,3 +339,7 @@ endif
 if ENABLE_MODULE_SILENTPAYMENTS
 include src/modules/silentpayments/Makefile.am.include
 endif
+
+if ENABLE_MODULE_DLEQ
+include src/modules/dleq/Makefile.am.include
+endif
