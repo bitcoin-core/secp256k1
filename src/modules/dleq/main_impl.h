@@ -245,4 +245,90 @@ static int secp256k1_dleq_verify_internal(secp256k1_scalar *s, secp256k1_scalar 
     return secp256k1_scalar_is_zero(&e_expected);
 }
 
+int secp256k1_dleq_prove(
+    const secp256k1_context *ctx,
+    unsigned char *proof64,
+    const unsigned char *seckey32,
+    const secp256k1_pubkey *pubkey_B,
+    const unsigned char *aux_rand32,
+    const unsigned char *msg
+) {
+    secp256k1_scalar a, s, e;
+    secp256k1_ge A, B, C;
+    int overflow;
+    int ret;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    ARG_CHECK(proof64 != NULL);
+    ARG_CHECK(seckey32 != NULL);
+    ARG_CHECK(pubkey_B != NULL);
+
+    secp256k1_scalar_set_b32(&a, seckey32, &overflow);
+    if (overflow || secp256k1_scalar_is_zero(&a)) {
+        return 0;
+    }
+
+    if (!secp256k1_pubkey_load(ctx, &B, pubkey_B)) {
+        secp256k1_scalar_clear(&a);
+        return 0;
+    }
+
+    secp256k1_dleq_pair(&ctx->ecmult_gen_ctx, &A, &C, &a, &B);
+
+    ret = secp256k1_dleq_prove_internal(ctx, &s, &e, &a, &B, &A, &C, aux_rand32, msg);
+    if (!ret) {
+        secp256k1_scalar_clear(&a);
+        return 0;
+    }
+
+    secp256k1_scalar_get_b32(&proof64[0], &e);
+    secp256k1_scalar_get_b32(&proof64[32], &s);
+
+    secp256k1_scalar_clear(&a);
+
+    return 1;
+}
+
+int secp256k1_dleq_verify(
+    const secp256k1_context *ctx,
+    const unsigned char *proof64,
+    const secp256k1_pubkey *pubkey_A,
+    const secp256k1_pubkey *pubkey_B,
+    const secp256k1_pubkey *pubkey_C,
+    const unsigned char *msg
+) {
+    secp256k1_scalar s, e;
+    secp256k1_ge A, B, C;
+    int overflow;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(proof64 != NULL);
+    ARG_CHECK(pubkey_A != NULL);
+    ARG_CHECK(pubkey_B != NULL);
+    ARG_CHECK(pubkey_C != NULL);
+
+    secp256k1_scalar_set_b32(&e, &proof64[0], &overflow);
+    if (overflow) {
+        return 0;
+    }
+
+    secp256k1_scalar_set_b32(&s, &proof64[32], &overflow);
+    if (overflow) {
+        return 0;
+    }
+
+    if (!secp256k1_pubkey_load(ctx, &A, pubkey_A)) {
+        return 0;
+    }
+    if (!secp256k1_pubkey_load(ctx, &B, pubkey_B)) {
+        return 0;
+    }
+    if (!secp256k1_pubkey_load(ctx, &C, pubkey_C)) {
+        return 0;
+    }
+
+    return secp256k1_dleq_verify_internal(&s, &e, &A, &B, &C, msg);
+}
+
 #endif /* SECP256K1_MODULE_DLEQ_MAIN_H */
