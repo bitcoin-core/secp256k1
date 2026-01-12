@@ -230,4 +230,92 @@ static int secp256k1_dleq_verify_internal(const secp256k1_hash_ctx *hash_ctx, co
     return secp256k1_scalar_eq(e, &e_expected);
 }
 
+int secp256k1_dleq_prove(
+    const secp256k1_context *ctx,
+    unsigned char *proof64,
+    const unsigned char *seckey32,
+    const secp256k1_pubkey *pubkey_B,
+    const unsigned char *aux_rand32,
+    const unsigned char *msg
+) {
+    secp256k1_scalar a, e, s;
+    secp256k1_ge A, B, C;
+    int is_sec_valid, ret;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    ARG_CHECK(proof64 != NULL);
+    ARG_CHECK(seckey32 != NULL);
+    ARG_CHECK(pubkey_B != NULL);
+
+    if (!secp256k1_pubkey_load(ctx, &B, pubkey_B)) {
+        return 0;
+    }
+
+    is_sec_valid = secp256k1_scalar_set_b32_seckey(&a, seckey32);
+    secp256k1_declassify(ctx, &is_sec_valid, sizeof(is_sec_valid));
+    if (!is_sec_valid) {
+        return 0;
+    }
+
+    secp256k1_dleq_pair(&ctx->ecmult_gen_ctx, &A, &C, &a, &B);
+    /* A and C are the public statement that the proof is about: a verifier
+     * needs both to check it. We declassify them to allow serializing them and
+     * using them as branch points, just like R1 and R2 in prove_internal. */
+    secp256k1_declassify(ctx, &A, sizeof(A));
+    secp256k1_declassify(ctx, &C, sizeof(C));
+
+    ret = secp256k1_dleq_prove_internal(ctx, &e, &s, &a, &B, &A, &C, aux_rand32, msg);
+    secp256k1_scalar_clear(&a);
+    if (!ret) {
+        return 0;
+    }
+
+    secp256k1_scalar_get_b32(&proof64[0], &e);
+    secp256k1_scalar_get_b32(&proof64[32], &s);
+
+    return 1;
+}
+
+int secp256k1_dleq_verify(
+    const secp256k1_context *ctx,
+    const unsigned char *proof64,
+    const secp256k1_pubkey *pubkey_A,
+    const secp256k1_pubkey *pubkey_B,
+    const secp256k1_pubkey *pubkey_C,
+    const unsigned char *msg
+) {
+    secp256k1_scalar e, s;
+    secp256k1_ge A, B, C;
+    int overflow;
+
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(proof64 != NULL);
+    ARG_CHECK(pubkey_A != NULL);
+    ARG_CHECK(pubkey_B != NULL);
+    ARG_CHECK(pubkey_C != NULL);
+
+    secp256k1_scalar_set_b32(&e, &proof64[0], &overflow);
+    if (overflow) {
+        return 0;
+    }
+
+    secp256k1_scalar_set_b32(&s, &proof64[32], &overflow);
+    if (overflow) {
+        return 0;
+    }
+
+    if (!secp256k1_pubkey_load(ctx, &A, pubkey_A)) {
+        return 0;
+    }
+    if (!secp256k1_pubkey_load(ctx, &B, pubkey_B)) {
+        return 0;
+    }
+    if (!secp256k1_pubkey_load(ctx, &C, pubkey_C)) {
+        return 0;
+    }
+
+    return secp256k1_dleq_verify_internal(&ctx->hash_ctx, &e, &s, &A, &B, &C, msg);
+}
+
 #endif /* SECP256K1_MODULE_DLEQ_MAIN_H */
