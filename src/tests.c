@@ -7728,6 +7728,10 @@ static void run_ecdsa_wycheproof(void) {
 # include "modules/silentpayments/tests_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_DLEQ
+#include "modules/dleq/tests_impl.h"
+#endif
+
 static void run_secp256k1_memczero_test(void) {
     unsigned char buf1[6] = {1, 2, 3, 4, 5, 6};
     unsigned char buf2[sizeof(buf1)];
@@ -8071,6 +8075,9 @@ static const struct tf_test_module registry_modules[] = {
 #endif
 #ifdef ENABLE_MODULE_SILENTPAYMENTS
     MAKE_TEST_MODULE(silentpayments),
+#endif
+#ifdef ENABLE_MODULE_DLEQ
+    MAKE_TEST_MODULE(dleq),
 #endif
     MAKE_TEST_MODULE(utils),
 };

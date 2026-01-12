@@ -1,2 +1,3 @@
 include_HEADERS += include/secp256k1_dleq.h
+noinst_HEADERS += src/modules/dleq/dleq_vectors.h
 noinst_HEADERS += src/modules/dleq/main_impl.h
