@@ -197,6 +197,10 @@ AC_ARG_ENABLE(module_silentpayments,
     AS_HELP_STRING([--enable-module-silentpayments],[enable Silent Payments module [default=yes]]), [],
     [SECP_SET_DEFAULT([enable_module_silentpayments], [yes], [yes])])
 
+AC_ARG_ENABLE(module_dleq,
+    AS_HELP_STRING([--enable-module-dleq],[enable DLEQ module [default=no]]), [],
+    [SECP_SET_DEFAULT([enable_module_dleq], [no], [no])])
+
 AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]), [],
     [SECP_SET_DEFAULT([enable_external_default_callbacks], [no], [no])])
@@ -411,6 +415,10 @@ if test x"$enable_module_silentpayments" = x"yes"; then
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_SILENTPAYMENTS=1"
 fi
 
+if test x"$enable_module_dleq" = x"yes"; then
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_DLEQ=1"
+fi
+
 if test x"$enable_module_ellswift" = x"yes"; then
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_ELLSWIFT=1"
 fi
@@ -485,6 +493,7 @@ AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = 
 AM_CONDITIONAL([ENABLE_MODULE_MUSIG], [test x"$enable_module_musig" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ELLSWIFT], [test x"$enable_module_ellswift" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_SILENTPAYMENTS], [test x"$enable_module_silentpayments" = x"yes"])
+AM_CONDITIONAL([ENABLE_MODULE_DLEQ], [test x"$enable_module_dleq" = x"yes"])
 AM_CONDITIONAL([USE_EXTERNAL_ASM], [test x"$enable_external_asm" = x"yes"])
 AM_CONDITIONAL([USE_ASM_ARM], [test x"$set_asm" = x"arm32"])
 AM_CONDITIONAL([BUILD_WINDOWS], [test "$build_windows" = "yes"])
@@ -510,6 +519,7 @@ echo "  module schnorrsig       = $enable_module_schnorrsig"
 echo "  module musig            = $enable_module_musig"
 echo "  module ellswift         = $enable_module_ellswift"
 echo "  module silentpayments   = $enable_module_silentpayments"
+echo "  module dleq             = $enable_module_dleq"
 echo
 echo "  asm                     = $set_asm"
 echo "  ecmult window size      = $set_ecmult_window"
