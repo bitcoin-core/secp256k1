@@ -154,6 +154,8 @@ if(SECP256K1_BUILD_TESTS)
       DISCOVERY_MATCH       "^\\t\\\\[ *[0-9]+\\\\] ([^ ].*)$"
       TEST_NAME_REPLACEMENT "secp256k1.${exe_name}.\\\\1"
       TEST_ARGS_REPLACEMENT "--target=\\\\1 --log=1"
+      PROPERTIES
+        LABELS "secp256k1_${exe_name}"
     )
   endfunction()
 
@@ -170,6 +172,9 @@ if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
   target_link_libraries(exhaustive_tests secp256k1_asm)
   target_compile_definitions(exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
   add_test(NAME secp256k1.exhaustive_tests COMMAND exhaustive_tests)
+  set_tests_properties(secp256k1.exhaustive_tests PROPERTIES
+    LABELS secp256k1_exhaustive
+  )
 endif()
 
 if(SECP256K1_BUILD_CTIME_TESTS)
