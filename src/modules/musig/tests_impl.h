@@ -505,12 +505,12 @@ static void musig_api_tests(void) {
     CHECK(secp256k1_musig_partial_sig_agg(CTX, pre_sig, &session, partial_sig_ptr, 2) == 1);
 }
 
-static void musig_nonce_bitflip(unsigned char **args, size_t n_flip, size_t n_bytes) {
+static void musig_nonce_bitflip(const secp256k1_context *ctx, unsigned char **args, size_t n_flip, size_t n_bytes) {
     secp256k1_scalar k1[2], k2[2];
 
-    secp256k1_nonce_function_musig(k1, args[0], args[1], args[2], args[3], args[4], args[5]);
+    secp256k1_nonce_function_musig(ctx, k1, args[0], args[1], args[2], args[3], args[4], args[5]);
     testrand_flip(args[n_flip], n_bytes);
-    secp256k1_nonce_function_musig(k2, args[0], args[1], args[2], args[3], args[4], args[5]);
+    secp256k1_nonce_function_musig(ctx, k2, args[0], args[1], args[2], args[3], args[4], args[5]);
     CHECK(secp256k1_scalar_eq(&k1[0], &k2[0]) == 0);
     CHECK(secp256k1_scalar_eq(&k1[1], &k2[1]) == 0);
 }
@@ -526,6 +526,7 @@ static void musig_nonce_test(void) {
     int i, j;
     secp256k1_scalar k[6][2];
 
+    const secp256k1_context *ctx = CTX;
     testrand_bytes_test(session_secrand, sizeof(session_secrand));
     testrand_bytes_test(sk, sizeof(sk));
     testrand_bytes_test(pk, sizeof(pk));
@@ -541,12 +542,12 @@ static void musig_nonce_test(void) {
     args[4] = agg_pk;
     args[5] = extra_input;
     for (i = 0; i < COUNT; i++) {
-        musig_nonce_bitflip(args, 0, sizeof(session_secrand));
-        musig_nonce_bitflip(args, 1, sizeof(msg));
-        musig_nonce_bitflip(args, 2, sizeof(sk));
-        musig_nonce_bitflip(args, 3, sizeof(pk));
-        musig_nonce_bitflip(args, 4, sizeof(agg_pk));
-        musig_nonce_bitflip(args, 5, sizeof(extra_input));
+        musig_nonce_bitflip(ctx, args, 0, sizeof(session_secrand));
+        musig_nonce_bitflip(ctx, args, 1, sizeof(msg));
+        musig_nonce_bitflip(ctx, args, 2, sizeof(sk));
+        musig_nonce_bitflip(ctx, args, 3, sizeof(pk));
+        musig_nonce_bitflip(ctx, args, 4, sizeof(agg_pk));
+        musig_nonce_bitflip(ctx, args, 5, sizeof(extra_input));
     }
     /* Check that if any argument is NULL, a different nonce is produced than if
      * any other argument is NULL. */
@@ -555,12 +556,12 @@ static void musig_nonce_test(void) {
     memcpy(pk, session_secrand, sizeof(session_secrand));
     memcpy(agg_pk, session_secrand, sizeof(agg_pk));
     memcpy(extra_input, session_secrand, sizeof(extra_input));
-    secp256k1_nonce_function_musig(k[0], args[0], args[1], args[2], args[3], args[4], args[5]);
-    secp256k1_nonce_function_musig(k[1], args[0], NULL, args[2], args[3], args[4], args[5]);
-    secp256k1_nonce_function_musig(k[2], args[0], args[1], NULL, args[3], args[4], args[5]);
-    secp256k1_nonce_function_musig(k[3], args[0], args[1], args[2], NULL, args[4], args[5]);
-    secp256k1_nonce_function_musig(k[4], args[0], args[1], args[2], args[3], NULL, args[5]);
-    secp256k1_nonce_function_musig(k[5], args[0], args[1], args[2], args[3], args[4], NULL);
+    secp256k1_nonce_function_musig(ctx, k[0], args[0], args[1], args[2], args[3], args[4], args[5]);
+    secp256k1_nonce_function_musig(ctx, k[1], args[0], NULL, args[2], args[3], args[4], args[5]);
+    secp256k1_nonce_function_musig(ctx, k[2], args[0], args[1], NULL, args[3], args[4], args[5]);
+    secp256k1_nonce_function_musig(ctx, k[3], args[0], args[1], args[2], NULL, args[4], args[5]);
+    secp256k1_nonce_function_musig(ctx, k[4], args[0], args[1], args[2], args[3], NULL, args[5]);
+    secp256k1_nonce_function_musig(ctx, k[5], args[0], args[1], args[2], args[3], args[4], NULL);
     for (i = 0; i < 6; i++) {
         CHECK(!secp256k1_scalar_eq(&k[i][0], &k[i][1]));
         for (j = i+1; j < 6; j++) {
@@ -574,35 +575,36 @@ static void musig_nonce_test(void) {
  * state. */
 static void sha256_tag_test(void) {
     secp256k1_sha256 sha;
+    const secp256k1_context *ctx = CTX;
     {
         /* "KeyAgg list" */
         static const unsigned char tag[] = {'K', 'e', 'y', 'A', 'g', 'g', ' ', 'l', 'i', 's', 't'};
         secp256k1_musig_keyagglist_sha256(&sha);
-        test_sha256_tag_midstate(&sha, tag, sizeof(tag));
+        test_sha256_tag_midstate(ctx, &sha, tag, sizeof(tag));
     }
     {
         /* "KeyAgg coefficient" */
         static const unsigned char tag[] = {'K', 'e', 'y', 'A', 'g', 'g', ' ', 'c', 'o', 'e', 'f', 'f', 'i', 'c', 'i', 'e', 'n', 't'};
         secp256k1_musig_keyaggcoef_sha256(&sha);
-        test_sha256_tag_midstate(&sha, tag, sizeof(tag));
+        test_sha256_tag_midstate(ctx, &sha, tag, sizeof(tag));
     }
     {
         /* "MuSig/aux" */
         static const unsigned char tag[] = { 'M', 'u', 'S', 'i', 'g', '/', 'a', 'u', 'x' };
         secp256k1_nonce_function_musig_sha256_tagged_aux(&sha);
-        test_sha256_tag_midstate(&sha, tag, sizeof(tag));
+        test_sha256_tag_midstate(ctx, &sha, tag, sizeof(tag));
     }
     {
         /* "MuSig/nonce" */
         static const unsigned char tag[] = { 'M', 'u', 'S', 'i', 'g', '/', 'n', 'o', 'n', 'c', 'e' };
         secp256k1_nonce_function_musig_sha256_tagged(&sha);
-        test_sha256_tag_midstate(&sha, tag, sizeof(tag));
+        test_sha256_tag_midstate(ctx, &sha, tag, sizeof(tag));
     }
     {
         /* "MuSig/noncecoef" */
         static const unsigned char tag[] = { 'M', 'u', 'S', 'i', 'g', '/', 'n', 'o', 'n', 'c', 'e', 'c', 'o', 'e', 'f' };
         secp256k1_musig_compute_noncehash_sha256_tagged(&sha);
-        test_sha256_tag_midstate(&sha, tag, sizeof(tag));
+        test_sha256_tag_midstate(ctx, &sha, tag, sizeof(tag));
     }
 }
 
