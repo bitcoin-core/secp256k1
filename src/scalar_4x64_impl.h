@@ -9,7 +9,9 @@
 
 #include "checkmem.h"
 #include "int128.h"
-#include "modinv64_impl.h"
+#include "modinv64.h"
+#include "scalar.h"
+#include "scalar_4x64.h"
 #include "util.h"
 
 /* Limbs of the secp256k1 order. */

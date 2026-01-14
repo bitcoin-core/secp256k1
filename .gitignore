@@ -37,6 +37,7 @@ libtool
 *.lo
 *.o
 *~
+*.[gp]ch
 
 coverage/
 coverage.html
