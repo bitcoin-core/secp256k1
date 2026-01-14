@@ -136,22 +136,34 @@ static void secp256k1_hash_ctx_init(secp256k1_hash_ctx *hash_ctx) {
 }
 
 static void secp256k1_sha256_write(const secp256k1_hash_ctx *hash_ctx, secp256k1_sha256 *hash, const unsigned char *data, size_t len) {
+    size_t chunk_len;
     size_t bufsize = hash->bytes & 0x3F;
     hash->bytes += len;
     VERIFY_CHECK(hash->bytes >= len);
     VERIFY_CHECK(hash_ctx != NULL);
     VERIFY_CHECK(hash_ctx->fn_sha256_compression != NULL);
-    while (len >= 64 - bufsize) {
-        /* Fill the buffer, and process it. */
-        size_t chunk_len = 64 - bufsize;
+
+    /* If we exceed the 64-byte block size with this input, process it and wipe the buffer */
+    chunk_len = 64 - bufsize;
+    if (bufsize && len >= chunk_len) {
         memcpy(hash->buf + bufsize, data, chunk_len);
         data += chunk_len;
         len -= chunk_len;
         hash_ctx->fn_sha256_compression(hash->s, hash->buf, 1);
         bufsize = 0;
     }
+
+    /* If we still have data to process, invoke compression directly on the input */
+    if (len >= 64) {
+        const size_t n_blocks = len / 64;
+        const size_t advance = n_blocks * 64;
+        hash_ctx->fn_sha256_compression(hash->s, data, n_blocks);
+        data += advance;
+        len -= advance;
+    }
+
+    /* Fill the buffer with what remains */
     if (len) {
-        /* Fill the buffer with what remains. */
         memcpy(hash->buf + bufsize, data, len);
     }
 }
