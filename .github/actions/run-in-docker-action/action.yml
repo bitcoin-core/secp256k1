@@ -43,12 +43,13 @@ runs:
       shell: bash
       env:
         CMD_TO_RUN: ${{ inputs.command }}
+        ENV_JSON: ${{ toJSON(env) }}
       run: |
         # Use a temporary file to store the environment variables JSON
-        # to avoid potential shell injection via command substitution.
-        echo '${{ toJSON(env) }}' > "$RUNNER_TEMP/env.json"
+        # and pass it via an environment variable to avoid shell injection.
+        echo "$ENV_JSON" > "$RUNNER_TEMP/env.json"
         docker run \
-          $(jq -r 'keys[] | select(. != "CMD_TO_RUN") | "--env \(.) "' "$RUNNER_TEMP/env.json") \
+          $(jq -r 'keys[] | select(. != "CMD_TO_RUN" and . != "ENV_JSON") | "--env \(.) "' "$RUNNER_TEMP/env.json") \
           --volume "$GITHUB_WORKSPACE":"$GITHUB_WORKSPACE" \
           --workdir "$GITHUB_WORKSPACE" \
           $(docker images -q | head -n1) \
