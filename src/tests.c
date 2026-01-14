@@ -480,6 +480,99 @@ static void run_plug_sha256_compression_tests(void) {
     secp256k1_context_destroy(ctx_cloned);
 }
 
+static void run_sha256_multi_block_compression_tests(void) {
+    secp256k1_hash_ctx hash_ctx;
+    secp256k1_sha256 sha256_one;
+    secp256k1_sha256 sha256_two;
+    unsigned char out_one[32], out_two[32];
+
+    hash_ctx.fn_sha256_compression = secp256k1_sha256_transform;
+
+    {   /* 1) Writing one 64-byte full block vs two 32-byte blocks */
+        const unsigned char data[64] = "totally serious test message to hash, definitely no random data";
+        unsigned char data32[32];
+
+        secp256k1_sha256_initialize(&sha256_one);
+        secp256k1_sha256_initialize(&sha256_two);
+
+        /* Write the 64-byte block */
+        secp256k1_sha256_write(&hash_ctx, &sha256_one, data, 64);
+        secp256k1_sha256_finalize(&hash_ctx, &sha256_one, out_one);
+
+        /* Write the two 32-byte blocks */
+        memcpy(data32, data, 32);
+        secp256k1_sha256_write(&hash_ctx, &sha256_two, data32, 32);
+        memcpy(data32, data + 32, 32);
+        secp256k1_sha256_write(&hash_ctx, &sha256_two, data32, 32);
+        secp256k1_sha256_finalize(&hash_ctx, &sha256_two, out_two);
+
+        CHECK(secp256k1_memcmp_var(out_one, out_two, 32) == 0);
+    }
+
+    {   /* 2) Writing one 80-byte block vs two 40-byte blocks */
+        const unsigned char data[80] = "Genesis: The Times 03/Jan/2009 Chancellor on brink of second bailout for banks ";
+        unsigned char data40[40];
+
+        secp256k1_sha256_initialize(&sha256_one);
+        secp256k1_sha256_initialize(&sha256_two);
+
+        /* Write the 80-byte block */
+        secp256k1_sha256_write(&hash_ctx, &sha256_one, data, 80);
+        secp256k1_sha256_finalize(&hash_ctx, &sha256_one, out_one);
+
+        /* Write the two 40-byte blocks */
+        memcpy(data40, data, 40);
+        secp256k1_sha256_write(&hash_ctx, &sha256_two, data40, 40);
+        memcpy(data40, data + 40, 40);
+        secp256k1_sha256_write(&hash_ctx, &sha256_two, data40, 40);
+        secp256k1_sha256_finalize(&hash_ctx, &sha256_two, out_two);
+
+        CHECK(secp256k1_memcmp_var(out_one, out_two, 32) == 0);
+    }
+
+    {   /* 3) Writing multiple consecutive full blocks in one write (128 bytes) */
+        unsigned char data[128];
+        unsigned char i;
+        for (i = 0; i < 128; i++) data[i] = i;
+
+        secp256k1_sha256_initialize(&sha256_one);
+        secp256k1_sha256_initialize(&sha256_two);
+
+        /* Single write of 128 bytes (two full 64-byte blocks) */
+        secp256k1_sha256_write(&hash_ctx, &sha256_one, data, 128);
+        secp256k1_sha256_finalize(&hash_ctx, &sha256_one, out_one);
+
+        /* Two separate writes of 64 bytes each */
+        secp256k1_sha256_write(&hash_ctx, &sha256_two, data, 64);
+        secp256k1_sha256_write(&hash_ctx, &sha256_two, data + 64, 64);
+        secp256k1_sha256_finalize(&hash_ctx, &sha256_two, out_two);
+
+        CHECK(secp256k1_memcmp_var(out_one, out_two, 32) == 0);
+    }
+
+    {   /* 4) Mixed small + large writes in sequence */
+        unsigned char data[150];
+        unsigned char i;
+        for (i = 0; i < 150; i++) data[i] = i;
+
+        secp256k1_sha256_initialize(&sha256_one);
+        secp256k1_sha256_initialize(&sha256_two);
+
+        /* Single write of 150 bytes */
+        secp256k1_sha256_write(&hash_ctx, &sha256_one, data, 150);
+        secp256k1_sha256_finalize(&hash_ctx, &sha256_one, out_one);
+
+        /* Split writes: 10, 64, 64, 12 bytes */
+        secp256k1_sha256_write(&hash_ctx, &sha256_two, data, 10);
+        secp256k1_sha256_write(&hash_ctx, &sha256_two, data + 10, 64);
+        secp256k1_sha256_write(&hash_ctx, &sha256_two, data + 74, 64);
+        secp256k1_sha256_write(&hash_ctx, &sha256_two, data + 138, 12);
+        secp256k1_sha256_finalize(&hash_ctx, &sha256_two, out_two);
+
+        CHECK(secp256k1_memcmp_var(out_one, out_two, 32) == 0);
+    }
+}
+
 static void run_ctz_tests(void) {
     static const uint32_t b32[] = {1, 0xffffffff, 0x5e56968f, 0xe0d63129};
     static const uint64_t b64[] = {1, 0xffffffffffffffff, 0xbcd02462139b3fc3, 0x98b5f80c769693ef};
@@ -7764,6 +7857,7 @@ static const struct tf_test_entry tests_general[] = {
     CASE(deprecated_context_flags_test),
     CASE(scratch_tests),
     CASE(plug_sha256_compression_tests),
+    CASE(sha256_multi_block_compression_tests),
 };
 
 static const struct tf_test_entry tests_integer[] = {
