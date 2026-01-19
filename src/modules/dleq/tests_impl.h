@@ -7,6 +7,7 @@
 #define SECP256K1_MODULE_DLEQ_TESTS_H
 
 #include "dleq_vectors.h"
+#include "../../unit_test.h"
 
 static void dleq_nonce_bitflip(unsigned char **args, size_t n_flip, size_t n_bytes) {
     secp256k1_scalar k1, k2;
@@ -176,7 +177,7 @@ static void run_test_dleq_bip374_vectors(void) {
         if (i > 2 && i < 6) {
             /* Skip tests indices 3-5: proof generation failure cases (a=0, a=N, B=infinity).
             * These contain placeholder data from test_vectors_generate_proof.csv that would
-            * fail to parse. Only indices 0-2 and 6-12 have valid test data. 
+            * fail to parse. Only indices 0-2 and 6-12 have valid test data.
             * */
             continue;
         }
@@ -191,7 +192,7 @@ static void run_test_dleq_bip374_vectors(void) {
         if (is_not_empty(msg_bytes[i])) {
             m = msg_bytes[i];
         }
-        
+
         CHECK(secp256k1_dleq_verify_internal(&s, &e, &A, &B, &C, m) == success[i]);
     }
 }
@@ -231,7 +232,10 @@ static void run_test_dleq_api(void) {
     CHECK_ILLEGAL(CTX, secp256k1_dleq_verify(CTX, proof, NULL, &B, &C, msg));
     CHECK_ILLEGAL(CTX, secp256k1_dleq_verify(CTX, proof, &A, NULL, &C, msg));
     CHECK_ILLEGAL(CTX, secp256k1_dleq_verify(CTX, proof, &A, &B, NULL, msg));
-    
+    /* Verify rejects an invalid (all-zero) proof */
+    memset(proof, 0, sizeof(proof));
+    CHECK(secp256k1_dleq_verify(CTX, proof, &A, &B, &C, msg) == 0);
+
     /* Verify public API prove and verify functions */
     CHECK(secp256k1_dleq_prove(CTX, proof, seckey, &B, aux_rand, msg) == 1);
     CHECK(secp256k1_dleq_verify(CTX, proof, &A, &B, &C, msg) == 1);

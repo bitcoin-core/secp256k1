@@ -8,6 +8,7 @@
 
 #include "../../../include/secp256k1.h"
 #include "../../../include/secp256k1_dleq.h"
+#include "../../hash.h"
 
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("BIP0374/aux")||SHA256("BIP0374/aux"). */
@@ -60,10 +61,6 @@ static void secp256k1_dleq_sha256_tagged(secp256k1_sha256 *sha) {
 static int secp256k1_dleq_hash_point(secp256k1_sha256 *sha, secp256k1_ge *p) {
     unsigned char buf[33];
     size_t size = 33;
-    /* Reject infinity point */
-    if (secp256k1_ge_is_infinity(p)) {
-        return 0;
-    }
     secp256k1_eckey_pubkey_serialize33(p, buf);
     secp256k1_sha256_write(sha, buf, size);
     return 1;
@@ -95,7 +92,8 @@ static void secp256k1_nonce_function_dleq(unsigned char *nonce32, const unsigned
     }
 
     secp256k1_nonce_function_bip374_sha256_tagged(&sha);
-    /* Hash masked-key||msg||m using the tagged hash as per BIP-374 v0.2.0 */
+    /* Hash masked-key||msg||m using the tagged hash as defined in BIP0374
+     * Note: msg contains the serialized points A||C (66 bytes) */
     secp256k1_sha256_write(&sha, masked_key, 32);
     secp256k1_sha256_write(&sha, msg, msglen);
     if (m != NULL) {
@@ -106,7 +104,7 @@ static void secp256k1_nonce_function_dleq(unsigned char *nonce32, const unsigned
     secp256k1_memclear_explicit(masked_key, sizeof(masked_key));
 }
 
-/* Generates a nonce as defined in BIP0374 v0.2.0 */
+/* Generates a nonce as defined in BIP0374 */
 static int secp256k1_dleq_nonce(secp256k1_scalar *k, const unsigned char *a32, const unsigned char *A_33, const unsigned char *C_33, const unsigned char *aux_rand32, const unsigned char *m) {
     unsigned char buf[66];
     unsigned char nonce[32];
@@ -237,6 +235,10 @@ static int secp256k1_dleq_verify_internal(secp256k1_scalar *s, secp256k1_scalar 
     secp256k1_ecmult(&R2j, &Bj, s, &secp256k1_scalar_zero);
     secp256k1_gej_add_var(&R2j, &R2j, &tmpj, NULL);
 
+    /* Fail verification if R1j or R2j are infinity */
+    if (secp256k1_gej_is_infinity(&R1j) || secp256k1_gej_is_infinity(&R2j)) {
+        return 0;
+    }
     secp256k1_ge_set_gej(&R1, &R1j);
     secp256k1_ge_set_gej(&R2, &R2j);
     secp256k1_dleq_challenge(&e_expected, B, &R1, &R2, A, C, m);
@@ -277,15 +279,13 @@ int secp256k1_dleq_prove(
     secp256k1_dleq_pair(&ctx->ecmult_gen_ctx, &A, &C, &a, &B);
 
     ret = secp256k1_dleq_prove_internal(ctx, &s, &e, &a, &B, &A, &C, aux_rand32, msg);
+    secp256k1_scalar_clear(&a);
     if (!ret) {
-        secp256k1_scalar_clear(&a);
         return 0;
     }
 
     secp256k1_scalar_get_b32(&proof64[0], &e);
     secp256k1_scalar_get_b32(&proof64[32], &s);
-
-    secp256k1_scalar_clear(&a);
 
     return 1;
 }
