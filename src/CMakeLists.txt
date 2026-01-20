@@ -148,7 +148,13 @@ if(SECP256K1_BUILD_TESTS)
     add_executable(${exe_name} tests.c)
     target_link_libraries(${exe_name} secp256k1_precomputed secp256k1_asm)
     target_compile_definitions(${exe_name} PRIVATE ${verify_definition} ${TEST_DEFINITIONS})
-    add_test(NAME secp256k1_${exe_name} COMMAND ${exe_name})
+    include(DiscoverTests)
+    discover_tests(${exe_name}
+      DISCOVERY_ARGS        "--list_tests"
+      DISCOVERY_MATCH       "^\\t\\\\[ *[0-9]+\\\\] ([^ ].*)$"
+      TEST_NAME_REPLACEMENT "secp256k1.${exe_name}.\\\\1"
+      TEST_ARGS_REPLACEMENT "--target=\\\\1 --log=1"
+    )
   endfunction()
 
   add_executable_and_tests(noverify_tests "")
@@ -163,7 +169,7 @@ if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
   add_executable(exhaustive_tests tests_exhaustive.c)
   target_link_libraries(exhaustive_tests secp256k1_asm)
   target_compile_definitions(exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
-  add_test(NAME secp256k1_exhaustive_tests COMMAND exhaustive_tests)
+  add_test(NAME secp256k1.exhaustive_tests COMMAND exhaustive_tests)
 endif()
 
 if(SECP256K1_BUILD_CTIME_TESTS)
