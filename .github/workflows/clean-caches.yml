@@ -1,0 +1,31 @@
+name: Clean Caches
+
+on:
+  # Run on the 1st and 15th of each month at 00:00 UTC (approximately every 2 weeks).
+  # This ensures compiler snapshots (gcc-snapshot, clang-snapshot) are refreshed
+  # regularly, as the Docker images will be rebuilt with newer versions.
+  schedule:
+    - cron: '0 0 1,15 * *'
+  # Allow manual trigger.
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  clean:
+    name: "Delete all caches"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set +e
+          cache_count=0
+          for id in $(gh cache list --limit 100 --json id --jq '.[].id'); do
+            gh cache delete "$id" && ((cache_count++))
+          done
+          echo "Deleted $cache_count caches."
