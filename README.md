@@ -142,6 +142,19 @@ In "Developer Command Prompt for VS 2022":
     >cmake -B build -T ClangCL
     >cmake --build build --config RelWithDebInfo
 
+Constant-time tests
+-------------------
+
+This library comes with constant-time tests to verify that secret data does not leak through timing side channels. These tests require Valgrind.
+
+Autotools:
+
+    $ libtool --mode=execute valgrind ./ctime_tests
+
+CMake:
+
+    $ valgrind ./build/bin/ctime_tests
+
 Usage examples
 -----------
 Usage examples can be found in the [examples](examples) directory. To compile them you need to configure with `--enable-examples`.
