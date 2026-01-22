@@ -92,7 +92,7 @@ SECP256K1_INLINE static int secp256k1_scalar_reduce(secp256k1_scalar *r, unsigne
 }
 
 static int secp256k1_scalar_add(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
-    int overflow;
+    uint64_t overflow;
     secp256k1_uint128 t;
     SECP256K1_SCALAR_VERIFY(a);
     SECP256K1_SCALAR_VERIFY(b);
@@ -109,12 +109,12 @@ static int secp256k1_scalar_add(secp256k1_scalar *r, const secp256k1_scalar *a, 
     secp256k1_u128_accum_u64(&t, a->d[3]);
     secp256k1_u128_accum_u64(&t, b->d[3]);
     r->d[3] = secp256k1_u128_to_u64(&t); secp256k1_u128_rshift(&t, 64);
-    overflow = (int)secp256k1_u128_to_u64(&t) + secp256k1_scalar_check_overflow(r);
+    overflow = secp256k1_u128_to_u64(&t) + secp256k1_scalar_check_overflow(r);
     VERIFY_CHECK(overflow == 0 || overflow == 1);
-    secp256k1_scalar_reduce(r, overflow);
+    secp256k1_scalar_reduce(r, (unsigned int)overflow);
 
     SECP256K1_SCALAR_VERIFY(r);
-    return overflow;
+    return (int)overflow;
 }
 
 static void secp256k1_scalar_cadd_bit(secp256k1_scalar *r, unsigned int bit, int flag) {
@@ -654,6 +654,7 @@ static void secp256k1_scalar_reduce_512(secp256k1_scalar *r, const uint64_t *l) 
     muladd_fast(m6, SECP256K1_N_C_1);
     sumadd_fast(m5);
     extract_fast(p3);
+    VERIFY_CHECK(c0 <= 2);
     p4 = (uint32_t)c0 + m6;
     VERIFY_CHECK(p4 <= 2);
 
@@ -674,6 +675,7 @@ static void secp256k1_scalar_reduce_512(secp256k1_scalar *r, const uint64_t *l) 
 #endif
 
     /* Final reduction of r. */
+    VERIFY_CHECK(c <= 1);
     secp256k1_scalar_reduce(r, (unsigned int)c + secp256k1_scalar_check_overflow(r));
 }
 
