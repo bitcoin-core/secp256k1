@@ -433,6 +433,53 @@ static void run_scratch_tests(void) {
     secp256k1_scratch_space_destroy(CTX, NULL); /* no-op */
 }
 
+/* A compression function that does nothing */
+static void invalid_sha256_compression(uint32_t *s, const unsigned char *msg, size_t rounds) {
+    (void)s; (void)msg; (void)rounds;
+}
+
+static int own_transform_called = 0;
+static void good_sha256_compression(uint32_t *s, const unsigned char *msg, size_t rounds) {
+    own_transform_called = 1;
+    secp256k1_sha256_transform(s, msg, rounds);
+}
+
+static void run_plug_sha256_compression_tests(void) {
+    secp256k1_context *ctx, *ctx_cloned;
+    secp256k1_sha256 sha;
+    unsigned char sha_out[32];
+    /* 1) Verify the context is initialized with the default compression function */
+    ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+    CHECK(ctx->hash_ctx.fn_sha256_compression == secp256k1_sha256_transform);
+
+    /* 2) Verify providing a bad compression function fails during set */
+    CHECK_ILLEGAL_VOID(ctx, secp256k1_context_set_sha256_compression(ctx, invalid_sha256_compression));
+    CHECK(ctx->hash_ctx.fn_sha256_compression == secp256k1_sha256_transform);
+
+    /* 3) Provide sha256 to ctx and verify it is called when provided */
+    own_transform_called = 0;
+    secp256k1_context_set_sha256_compression(ctx, good_sha256_compression);
+    CHECK(own_transform_called);
+
+    /* 4) Verify callback makes it across clone */
+    ctx_cloned = secp256k1_context_clone(ctx);
+    CHECK(ctx_cloned->hash_ctx.fn_sha256_compression == good_sha256_compression);
+
+    /* 5) A hash operation should invoke the installed callback */
+    own_transform_called = 0;
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(secp256k1_get_hash_context(ctx), &sha, (const unsigned char*)"a", 1);
+    secp256k1_sha256_finalize(secp256k1_get_hash_context(ctx), &sha, sha_out);
+    CHECK(own_transform_called);
+
+    /* 6) Unset sha256 and verify the default one is set again */
+    secp256k1_context_set_sha256_compression(ctx, NULL);
+    CHECK(ctx->hash_ctx.fn_sha256_compression == secp256k1_sha256_transform);
+
+    secp256k1_context_destroy(ctx);
+    secp256k1_context_destroy(ctx_cloned);
+}
+
 static void run_ctz_tests(void) {
     static const uint32_t b32[] = {1, 0xffffffff, 0x5e56968f, 0xe0d63129};
     static const uint64_t b64[] = {1, 0xffffffffffffffff, 0xbcd02462139b3fc3, 0x98b5f80c769693ef};
@@ -7074,7 +7121,7 @@ static void run_ecdsa_der_parse(void) {
 }
 
 /* Tests several edge cases. */
-static void test_ecdsa_edge_cases(void) {
+static void run_ecdsa_edge_cases(void) {
     int t;
     secp256k1_ecdsa_signature sig;
 
@@ -7407,8 +7454,25 @@ static void test_ecdsa_edge_cases(void) {
     }
 }
 
-static void run_ecdsa_edge_cases(void) {
-    test_ecdsa_edge_cases();
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_ecdsa)
+static void ecdsa_ctx_sha256(void) {
+    /* Check ctx-provided SHA256 compression override takes effect */
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    secp256k1_ecdsa_signature out_default, out_custom;
+    unsigned char sk[32] = {1}, msg32[32] = {1};
+
+    /* Default behavior. No ctx-provided SHA256 compression */
+    CHECK(secp256k1_ecdsa_sign(ctx, &out_default, msg32, sk, NULL, NULL));
+    CHECK(!sha256_ecdsa_called);
+
+    /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
+    ctx->hash_ctx.fn_sha256_compression = sha256_ecdsa;
+    CHECK(secp256k1_ecdsa_sign(ctx, &out_custom, msg32, sk, NULL, NULL));
+    CHECK(sha256_ecdsa_called);
+    /* Outputs must differ if custom compression was used */
+    CHECK(secp256k1_memcmp_var(out_default.data, out_custom.data, 64) != 0);
+
+    secp256k1_context_destroy(ctx);
 }
 
 /** Wycheproof tests
@@ -7699,6 +7763,7 @@ static const struct tf_test_entry tests_general[] = {
     CASE(all_static_context_tests),
     CASE(deprecated_context_flags_test),
     CASE(scratch_tests),
+    CASE(plug_sha256_compression_tests),
 };
 
 static const struct tf_test_entry tests_integer[] = {
@@ -7768,6 +7833,7 @@ static const struct tf_test_entry tests_ecdsa[] = {
     CASE(ecdsa_end_to_end),
     CASE(ecdsa_edge_cases),
     CASE(ecdsa_wycheproof),
+    CASE1(ecdsa_ctx_sha256),
 };
 
 static const struct tf_test_entry tests_utils[] = {

@@ -431,6 +431,40 @@ void ellswift_xdh_correctness_tests(void) {
     }
 }
 
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_ellswift_xdh)
+void ellswift_xdh_ctx_sha256_tests(void) {
+    /* Check ctx-provided SHA256 compression override takes effect */
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    unsigned char out_default[65], out_custom[65];
+    const unsigned char skA[32] = {1}, skB[32] = {2};
+    unsigned char keyA[64], keyB[64], data[64] = {0};
+    const secp256k1_ellswift_xdh_hash_function hash_funcs[2] = {secp256k1_ellswift_xdh_hash_function_bip324, secp256k1_ellswift_xdh_hash_function_prefix};
+    int i;
+
+    CHECK(secp256k1_ellswift_create(ctx, keyA, skA, NULL));
+    CHECK(secp256k1_ellswift_create(ctx, keyB, skB, NULL));
+
+    for (i = 0; i < 2; i++) {
+        const secp256k1_ellswift_xdh_hash_function hash_fn = hash_funcs[i];
+        /* Default behavior. No ctx-provided SHA256 compression */
+        CHECK(secp256k1_ellswift_xdh(ctx, out_default, keyA, keyB, skA, 0, hash_fn, data));
+        CHECK(!sha256_ellswift_xdh_called);
+
+        /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
+        ctx->hash_ctx.fn_sha256_compression = sha256_ellswift_xdh;
+        CHECK(secp256k1_ellswift_xdh(ctx, out_custom, keyA, keyB, skA, 0, hash_fn, data));
+        CHECK(sha256_ellswift_xdh_called);
+        /* Outputs must differ if custom compression was used */
+        CHECK(secp256k1_memcmp_var(out_default, out_custom, 32) != 0);
+
+        /* Restore defaults */
+        sha256_ellswift_xdh_called = 0;
+        secp256k1_context_set_sha256_compression(ctx, NULL);
+    }
+
+    secp256k1_context_destroy(ctx);
+}
+
 /* Test hash initializers */
 void ellswift_hash_init_tests(void) {
     secp256k1_sha256 sha_optimized;
@@ -471,6 +505,7 @@ static const struct tf_test_entry tests_ellswift[] = {
     CASE1(ellswift_compute_shared_secret_tests),
     CASE1(ellswift_xdh_correctness_tests),
     CASE1(ellswift_hash_init_tests),
+    CASE1(ellswift_xdh_ctx_sha256_tests),
 };
 
 #endif

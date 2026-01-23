@@ -154,10 +154,6 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
     ARG_CHECK(msg != NULL || msglen == 0);
     ARG_CHECK(keypair != NULL);
 
-    if (noncefp == NULL) {
-        noncefp = secp256k1_nonce_function_bip340;
-    }
-
     ret &= secp256k1_keypair_load(ctx, &sk, &pk, keypair);
     /* Because we are signing for a x-only pubkey, the secret key is negated
      * before signing if the point corresponding to the secret key does not
@@ -168,7 +164,15 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
 
     secp256k1_scalar_get_b32(seckey, &sk);
     secp256k1_fe_get_b32(pk_buf, &pk.x);
-    ret &= !!noncefp(nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
+
+    /* Compute nonce */
+    if (noncefp == NULL || noncefp == secp256k1_nonce_function_bip340) {
+        /* Use context-aware nonce function by default */
+        ret &= nonce_function_bip340_impl(secp256k1_get_hash_context(ctx), nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
+    } else {
+        ret &= !!noncefp(nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
+    }
+
     secp256k1_scalar_set_b32(&k, nonce32, NULL);
     ret &= !secp256k1_scalar_is_zero(&k);
     secp256k1_scalar_cmov(&k, &secp256k1_scalar_one, !ret);
