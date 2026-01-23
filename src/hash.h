@@ -10,8 +10,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-typedef void (*secp256k1_sha256_compression_function)(uint32_t *state, const unsigned char *blocks64, size_t n_blocks);
-
 typedef struct {
     secp256k1_sha256_compression_function fn_sha256_compression;
 } secp256k1_hash_ctx;

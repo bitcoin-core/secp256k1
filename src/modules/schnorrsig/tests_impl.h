@@ -852,6 +852,29 @@ static void test_schnorrsig_sign_internal(void) {
     CHECK(secp256k1_memcmp_var(sig, sig2, sizeof(sig)) == 0);
 }
 
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_schnorrsig)
+static void test_schnorrsig_ctx_sha256(void) {
+    /* Check ctx-provided SHA256 compression override takes effect */
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    unsigned char out_default[64], out_custom[64];
+    unsigned char sk[32] = {1}, msg32[32] = {1};
+    secp256k1_keypair keypair;
+    CHECK(secp256k1_keypair_create(ctx, &keypair, sk));
+
+    /* Default behavior. No ctx-provided SHA256 compression */
+    CHECK(secp256k1_schnorrsig_sign32(ctx, out_default, msg32, &keypair, NULL));
+    CHECK(!sha256_schnorrsig_called);
+
+    /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
+    ctx->hash_ctx.fn_sha256_compression = sha256_schnorrsig;
+    CHECK(secp256k1_schnorrsig_sign32(ctx, out_custom, msg32, &keypair, NULL));
+    CHECK(sha256_schnorrsig_called);
+    /* Outputs must differ if custom compression was used */
+    CHECK(secp256k1_memcmp_var(out_default, out_custom, 64) != 0);
+
+    secp256k1_context_destroy(ctx);
+}
+
 #define N_SIGS 3
 /* Creates N_SIGS valid signatures and verifies them with verify and
  * verify_batch (TODO). Then flips some bits and checks that verification now
@@ -981,6 +1004,7 @@ static const struct tf_test_entry tests_schnorrsig[] = {
     CASE1(test_schnorrsig_sign),
     CASE1(test_schnorrsig_sign_verify),
     CASE1(test_schnorrsig_taproot),
+    CASE1(test_schnorrsig_ctx_sha256),
 };
 
 #endif

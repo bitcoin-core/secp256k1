@@ -45,10 +45,6 @@ int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *output, const se
     ARG_CHECK(point != NULL);
     ARG_CHECK(scalar != NULL);
 
-    if (hashfp == NULL) {
-        hashfp = secp256k1_ecdh_hash_function_default;
-    }
-
     secp256k1_pubkey_load(ctx, &pt, point);
     secp256k1_scalar_set_b32(&s, scalar, &overflow);
 
@@ -64,7 +60,12 @@ int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *output, const se
     secp256k1_fe_get_b32(x, &pt.x);
     secp256k1_fe_get_b32(y, &pt.y);
 
-    ret = hashfp(output, x, y, data);
+    if (hashfp == NULL) {
+        /* Use ctx-aware function by default */
+        ret = ecdh_hash_function_sha256_impl(secp256k1_get_hash_context(ctx), output, x, y, data);
+    } else {
+        ret = hashfp(output, x, y, data);
+    }
 
     secp256k1_memclear_explicit(x, sizeof(x));
     secp256k1_memclear_explicit(y, sizeof(y));
