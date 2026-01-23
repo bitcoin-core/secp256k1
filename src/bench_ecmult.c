@@ -313,6 +313,10 @@ int main(int argc, char **argv) {
 
     int default_iters = 10000;
     int iters = get_iters(default_iters);
+    if (iters == 0) {
+        help(argv, default_iters);
+        return EXIT_FAILURE;
+    }
 
     data.ecmult_multi = secp256k1_ecmult_multi_var;
 
