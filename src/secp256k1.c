@@ -223,6 +223,17 @@ void secp256k1_context_set_error_callback(secp256k1_context* ctx, void (*fun)(co
     ctx->error_callback.data = data;
 }
 
+void secp256k1_context_set_sha256_compression(secp256k1_context *ctx, secp256k1_fn_sha256_compression fn_compression) {
+    VERIFY_CHECK(ctx != NULL);
+    if (!fn_compression) { /* Reset hash context */
+        secp256k1_hash_ctx_init(&ctx->hash_ctx);
+        return;
+    }
+    /* Check and set */
+    ARG_CHECK_VOID(secp256k1_selftest_sha256(fn_compression));
+    ctx->hash_ctx.fn_sha256_compression = fn_compression;
+}
+
 static SECP256K1_INLINE const secp256k1_hash_ctx* secp256k1_get_hash_context(const secp256k1_context *ctx) {
     return &ctx->hash_ctx;
 }
@@ -538,9 +549,6 @@ static int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_sc
     if (recid) {
         *recid = 0;
     }
-    if (noncefp == NULL) {
-        noncefp = secp256k1_nonce_function_default;
-    }
 
     /* Fail if the secret key is invalid. */
     is_sec_valid = secp256k1_scalar_set_b32_seckey(&sec, seckey);
@@ -548,7 +556,14 @@ static int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_sc
     secp256k1_scalar_set_b32(&msg, msg32, NULL);
     while (1) {
         int is_nonce_valid;
-        ret = !!noncefp(nonce32, msg32, seckey, NULL, (void*)noncedata, count);
+
+        if (noncefp == NULL) {
+            /* Use ctx-aware function by default */
+            ret = nonce_function_rfc6979_impl(secp256k1_get_hash_context(ctx), nonce32, msg32, seckey, NULL, (void*)noncedata, count);
+        } else {
+            ret = !!noncefp(nonce32, msg32, seckey, NULL, (void*)noncedata, count);
+        }
+
         if (!ret) {
             break;
         }

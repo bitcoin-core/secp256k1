@@ -580,8 +580,14 @@ int secp256k1_ellswift_xdh(const secp256k1_context *ctx, unsigned char *output, 
     secp256k1_fe_normalize(&px);
     secp256k1_fe_get_b32(sx, &px);
 
-    /* Invoke hasher */
-    ret = hashfp(output, sx, ell_a64, ell_b64, data);
+    /* Invoke hasher. Use ctx-aware function by default */
+    if (hashfp == secp256k1_ellswift_xdh_hash_function_bip324) {
+        ret = ellswift_xdh_hash_function_bip324_impl(secp256k1_get_hash_context(ctx), output, sx, ell_a64, ell_b64, data);
+    } else if (hashfp == secp256k1_ellswift_xdh_hash_function_prefix) {
+        ret = ellswift_xdh_hash_function_prefix_impl(secp256k1_get_hash_context(ctx), output, sx, ell_a64, ell_b64, data);
+    } else {
+        ret = hashfp(output, sx, ell_a64, ell_b64, data);
+    }
 
     secp256k1_memclear_explicit(sx, sizeof(sx));
     secp256k1_fe_clear(&px);
