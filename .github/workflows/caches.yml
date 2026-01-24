@@ -1,0 +1,18 @@
+name: Delete all GitHub Actions caches
+on:
+  schedule:
+    - cron: '0 0 1,15 * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  clean:
+    name: Delete all GitHub Actions caches
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh cache delete --all --succeed-on-no-caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
