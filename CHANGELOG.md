@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Changed
+ - Tests: Introduced a unit test framework with support for parallel test execution, selective test running, and named command-line arguments. Run `./tests -help` for usage information.
+
+#### Fixed
+ - Increased the number of cases where the library attempts to clear secrets from the stack.
+ - build: Fixed x86_64 assembly feature check that could fail when user-provided `CFLAGS` included `-Werror`. This would cause the build to fall back to the slower C implementation instead of using the optimized x86_64 assembly.
+
 ## [0.7.0] - 2025-07-21
 
 #### Added
