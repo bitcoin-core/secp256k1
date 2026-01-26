@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
 ## [0.7.1] - 2026-01-26
 
 #### Changed
@@ -197,6 +199,7 @@ This version was in fact never released.
 The number was given by the build system since the introduction of autotools in Jan 2014 (ea0fe5a5bf0c04f9cc955b2966b614f5f378c6f6).
 Therefore, this version number does not uniquely identify a set of source files.
 
+[Unreleased]: https://github.com/bitcoin-core/secp256k1/compare/v0.7.1...HEAD
 [0.7.1]: https://github.com/bitcoin-core/secp256k1/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/bitcoin-core/secp256k1/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/bitcoin-core/secp256k1/compare/v0.5.1...v0.6.0
