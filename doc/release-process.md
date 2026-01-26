@@ -41,31 +41,30 @@ Perform these checks when reviewing the release PR (see below):
 
 ## Regular release
 
-1. Open a PR to the master branch with a commit (using message `"release: prepare for $MAJOR.$MINOR.$PATCH"`, for example) that
-   * finalizes the release notes in [CHANGELOG.md](../CHANGELOG.md) by
+1. Open a PR to the master branch (using message , for example) with two commits:
+   * The first, with message `"release: $MAJOR.$MINOR.$PATCH"`:
+     * finalizes the release in [CHANGELOG.md](../CHANGELOG.md) by
        * adding a section for the release (make sure that the version number is a link to a diff between the previous and new version),
        * removing the `[Unreleased]` section header,
        * ensuring that the release notes are not missing entries (check the `needs-changelog` label on github), and
-       * including an entry for `### ABI Compatibility` if it doesn't exist,
-   * sets `_PKG_VERSION_IS_RELEASE` to `true` in `configure.ac`, and,
-   * if this is not a patch release,
-       * updates `_PKG_VERSION_*` and `_LIB_VERSION_*`  in `configure.ac`, and
-       * updates `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_*` in `CMakeLists.txt`.
-2. Perform the [sanity checks](#sanity-checks) on the PR branch.
-3. After the PR is merged, tag the commit, and push the tag:
+       * including an entry for `### ABI Compatibility` if it doesn't exist, and
+     * sets `_PKG_VERSION_IS_RELEASE` to `true` in `configure.ac`, and
+     * if this is not a patch release,
+         * updates `_PKG_VERSION_*` and `_LIB_VERSION_*`  in `configure.ac`, and
+         * updates `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_*` in `CMakeLists.txt`.
+   * The second, with message `"release: bump version after $MAJOR.$MINOR.$PATCH"`:
+     * sets `_PKG_VERSION_IS_RELEASE` to `false` and increments `_PKG_VERSION_PATCH` and `_LIB_VERSION_REVISION` in `configure.ac`,
+     * increments the `$PATCH` component of `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_REVISION` in `CMakeLists.txt`, and
+     * adds an `[Unreleased]` section header to the [CHANGELOG.md](../CHANGELOG.md), with URL `https://github.com/bitcoin-core/secp256k1/compare/v$MAJOR.$MINOR.$PATCH...HEAD`.
+2. Perform the [sanity checks](#sanity-checks) on the first commit of the PR.
+3. After the PR is merged, tag the first commit, and push the tag:
    ```
-   RELEASE_COMMIT=<merge commit of step 1>
+   RELEASE_COMMIT=<first commit of step 1>
    git tag -s v$MAJOR.$MINOR.$PATCH -m "libsecp256k1 $MAJOR.$MINOR.$PATCH" $RELEASE_COMMIT
    git push git@github.com:bitcoin-core/secp256k1.git v$MAJOR.$MINOR.$PATCH
    ```
-4. Open a PR to the master branch with a commit (using message `"release cleanup: bump version after $MAJOR.$MINOR.$PATCH"`, for example) that
-   * sets `_PKG_VERSION_IS_RELEASE` to `false` and increments `_PKG_VERSION_PATCH` and `_LIB_VERSION_REVISION` in `configure.ac`,
-   * increments the `$PATCH` component of `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_REVISION` in `CMakeLists.txt`, and
-   * adds an `[Unreleased]` section header to the [CHANGELOG.md](../CHANGELOG.md).
-
-   If other maintainers are not present to approve the PR, it can be merged without ACKs.
-5. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
-6. Send an announcement email to the bitcoin-dev mailing list.
+4. Create a new GitHub release with a link to the corresponding entry in [CHANGELOG.md](../CHANGELOG.md).
+5. Send an announcement email to the bitcoin-dev mailing list.
 
 ## Maintenance release
 
