@@ -109,13 +109,16 @@ if USE_BENCHMARK
 noinst_PROGRAMS += bench bench_internal bench_ecmult
 bench_SOURCES = src/bench.c
 bench_LDADD = libsecp256k1.la
-bench_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+bench_CPPFLAGS = $(SECP_CONFIG_DEFINES) $(CLOCK_GETTIME_CPPFLAGS)
+bench_LDFLAGS = $(CLOCK_GETTIME_LIBS)
 bench_internal_SOURCES = src/bench_internal.c
 bench_internal_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
-bench_internal_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+bench_internal_CPPFLAGS = $(bench_CPPFLAGS)
+bench_internal_LDFLAGS = $(bench_LDFLAGS)
 bench_ecmult_SOURCES = src/bench_ecmult.c
 bench_ecmult_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
-bench_ecmult_CPPFLAGS = $(SECP_CONFIG_DEFINES)
+bench_ecmult_CPPFLAGS = $(bench_CPPFLAGS)
+bench_ecmult_LDFLAGS = $(bench_LDFLAGS)
 endif
 
 TESTS =
@@ -123,9 +126,9 @@ if USE_TESTS
 TESTS += noverify_tests
 noinst_PROGRAMS += noverify_tests
 noverify_tests_SOURCES = src/tests.c
-noverify_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES) $(TEST_DEFINES)
+noverify_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES) $(TEST_DEFINES) $(CLOCK_GETTIME_CPPFLAGS)
 noverify_tests_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB)
-noverify_tests_LDFLAGS = -static
+noverify_tests_LDFLAGS = -static $(CLOCK_GETTIME_LIBS)
 if !ENABLE_COVERAGE
 TESTS += tests
 noinst_PROGRAMS += tests

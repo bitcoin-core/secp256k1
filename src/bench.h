@@ -85,9 +85,9 @@ static void run_benchmark(char *name, void (*benchmark)(void*, int), void (*setu
         if (setup != NULL) {
             setup(data);
         }
-        begin = gettime_i64();
+        begin = gettime_us();
         benchmark(data, iter);
-        total = gettime_i64() - begin;
+        total = gettime_us() - begin;
         if (teardown != NULL) {
             teardown(data, iter);
         }
@@ -160,6 +160,14 @@ static int get_iters(int default_iters) {
     } else {
         return default_iters;
     }
+}
+
+static void print_clock_info(void) {
+#if defined(CLOCK_PROCESS_CPUTIME_ID)
+    printf("INFO: Using per-process CPU timer\n\n");
+#else
+    printf("WARN: Using global timer instead of per-process CPU timer.\n\n");
+#endif
 }
 
 static void print_output_table_header_row(void) {
