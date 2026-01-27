@@ -40,6 +40,12 @@ typedef struct {
     secp256k1_fe_storage y;
 } secp256k1_ge_storage;
 
+typedef struct {
+    secp256k1_ge p1;
+    secp256k1_ge p2;
+    secp256k1_fe z;
+} secp256k1_coz;
+
 #define SECP256K1_GE_STORAGE_CONST(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) {SECP256K1_FE_STORAGE_CONST((a),(b),(c),(d),(e),(f),(g),(h)), SECP256K1_FE_STORAGE_CONST((i),(j),(k),(l),(m),(n),(o),(p))}
 
 #define SECP256K1_GE_STORAGE_CONST_GET(t) SECP256K1_FE_STORAGE_CONST_GET(t.x), SECP256K1_FE_STORAGE_CONST_GET(t.y)
@@ -214,5 +220,22 @@ static void secp256k1_ge_verify(const secp256k1_ge *a);
 /** Check invariants on a Jacobian group element (no-op unless VERIFY is enabled). */
 static void secp256k1_gej_verify(const secp256k1_gej *a);
 #define SECP256K1_GEJ_VERIFY(a) secp256k1_gej_verify(a)
+
+static void secp256k1_coz_export_var(secp256k1_gej *r, const secp256k1_coz *coz);
+
+static void secp256k1_coz_import_var(secp256k1_coz *r, const secp256k1_gej *p1);
+
+static void secp256k1_coz_add_2_1_var(secp256k1_coz *r);
+
+static void secp256k1_coz_add_3_2_var(secp256k1_coz *r, const secp256k1_gej *p3);
+
+static void secp256k1_coz_double_1_var(secp256k1_coz *r);
+
+static void secp256k1_coz_double_2_1(secp256k1_coz *r);
+
+static int secp256k1_coz_eq_var(const secp256k1_coz *a, const secp256k1_gej *b1, const secp256k1_gej *b2);
+
+static void secp256k1_coz_verify(const secp256k1_coz *a);
+#define SECP256K1_COZ_VERIFY(a) secp256k1_coz_verify(a)
 
 #endif /* SECP256K1_GROUP_H */

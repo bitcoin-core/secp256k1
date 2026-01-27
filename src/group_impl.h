@@ -7,6 +7,7 @@
 #ifndef SECP256K1_GROUP_IMPL_H
 #define SECP256K1_GROUP_IMPL_H
 
+#include <stdio.h>
 #include <string.h>
 
 #include "field.h"
@@ -858,17 +859,21 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
     SECP256K1_GEJ_VERIFY(r);
 }
 
+static SECP256K1_INLINE void secp256k1_xy_rescale(secp256k1_fe *rx, secp256k1_fe *ry, const secp256k1_fe *s) {
+    secp256k1_fe s2;
+    secp256k1_fe_sqr(&s2, s);
+    secp256k1_fe_mul(ry, ry, s);
+    secp256k1_fe_mul(ry, ry, &s2);                    /* *ry *= s^3 */
+    secp256k1_fe_mul(rx, rx, &s2);                    /* *rx *= s^2 */
+}
+
 static void secp256k1_gej_rescale(secp256k1_gej *r, const secp256k1_fe *s) {
     /* Operations: 4 mul, 1 sqr */
-    secp256k1_fe zz;
     SECP256K1_GEJ_VERIFY(r);
     SECP256K1_FE_VERIFY(s);
     VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero_var(s));
 
-    secp256k1_fe_sqr(&zz, s);
-    secp256k1_fe_mul(&r->x, &r->x, &zz);                /* r->x *= s^2 */
-    secp256k1_fe_mul(&r->y, &r->y, &zz);
-    secp256k1_fe_mul(&r->y, &r->y, s);                  /* r->y *= s^3 */
+    secp256k1_xy_rescale(&r->x, &r->y, s);
     secp256k1_fe_mul(&r->z, &r->z, s);                  /* r->z *= s   */
 
     SECP256K1_GEJ_VERIFY(r);
@@ -1009,6 +1014,322 @@ static void secp256k1_ge_from_bytes_ext(secp256k1_ge *ge, const unsigned char *d
     } else {
         secp256k1_ge_from_bytes(ge, data);
     }
+}
+
+#define COZ_OPTIONAL(x)
+
+static void secp256k1_coz_set_gej_var(secp256k1_ge *rp, secp256k1_fe *rz, const secp256k1_gej *a) {
+    rp->infinity = a->infinity;
+    rp->x = a->x;
+    rp->y = a->y;
+    *rz = a->z;
+
+    /* TODO Might be needed if SECP256K1_COZ_{X|Y|Z}_MAGNITUDE_MAX < GEJ equivalents */
+/*
+    secp256k1_fe_normalize_weak(&rp->x);
+    secp256k1_fe_normalize_weak(&rp->y);
+    secp256k1_fe_normalize_weak(rz);
+*/
+}
+
+static void secp256k1_coz_export_var(secp256k1_gej *r, const secp256k1_coz *coz) {
+    SECP256K1_COZ_VERIFY(coz);
+
+    secp256k1_gej_set_ge(r, &coz->p1);
+    r->z = coz->z;
+
+    SECP256K1_GEJ_VERIFY(r);
+}
+
+static void secp256k1_coz_import_var(secp256k1_coz *r, const secp256k1_gej *p1) {
+    SECP256K1_GEJ_VERIFY(p1);
+
+    secp256k1_coz_set_gej_var(&r->p1, &r->z, p1);
+    secp256k1_ge_set_infinity(&r->p2);
+
+    SECP256K1_COZ_VERIFY(r);
+}
+
+static void secp256k1_coz_add_2_1_var(secp256k1_coz *r) {
+    SECP256K1_COZ_VERIFY(r);
+
+    if (secp256k1_ge_is_infinity(&r->p2)) {
+        COZ_OPTIONAL(printf("_coz_add_2_1_var #1\n"));
+        return;
+    }
+
+    if (secp256k1_ge_is_infinity(&r->p1)) {
+        COZ_OPTIONAL(printf("_coz_add_2_1_var #2\n"));
+        r->p1 = r->p2;
+    } else {
+        /* Add p2 into p1, updating p2 for new coz (ZADDU, or DBLU) */
+        /* 5M + 2S, ignoring special cases (which are faster) */
+
+        secp256k1_fe *x1, *x2, *y1, *y2, *zc;
+        secp256k1_fe h, i, A1, C, D, W1, W2;
+
+        /* Reversed 1/2 numbering because usual presentation has P(x1,y1) being updated, but we update p2 */
+        x1 = &r->p2.x;
+        y1 = &r->p2.y;
+        x2 = &r->p1.x;
+        y2 = &r->p1.y;
+        zc = &r->z;
+
+        secp256k1_fe_negate(&h, x2, SECP256K1_GEJ_X_MAGNITUDE_MAX); secp256k1_fe_add(&h, x1);
+        secp256k1_fe_negate(&i, y1, SECP256K1_GEJ_Y_MAGNITUDE_MAX); secp256k1_fe_add(&i, y2);
+
+        /* TODO These suggest that we want e.g. SECP256K1_COZ_{X|Y}_MAGNITUDE_MAX < 4 */
+        secp256k1_fe_normalize_weak(&h);
+        secp256k1_fe_normalize_weak(&i);
+
+        if (secp256k1_fe_normalizes_to_zero_var(&h)) {
+            if (secp256k1_fe_normalizes_to_zero_var(&i)) {
+                COZ_OPTIONAL(printf("_coz_add_2_1_var #3\n"));
+                secp256k1_coz_double_2_1(r);
+            } else {
+                COZ_OPTIONAL(printf("_coz_add_2_1_var #4\n"));
+                r->p1.infinity = 1;
+            }
+            return;
+        }
+
+        COZ_OPTIONAL(printf("_coz_add_2_1_var #5\n"));
+
+        secp256k1_fe_mul(zc, zc, &h);
+
+        secp256k1_fe_sqr(&C, &h);
+        secp256k1_fe_sqr(&D, &i);
+
+        secp256k1_fe_mul(&W1, &C, x1);
+        secp256k1_fe_mul(&W2, &C, x2);
+
+        secp256k1_fe_negate(&W2, &W2, 1);
+
+        A1 = W1;
+        secp256k1_fe_add(&A1, &W2);
+        secp256k1_fe_mul(&A1, &A1, y1);
+
+        /* Update p2 coordinates for new (co)z */
+        *x1 = W1;
+        *y1 = A1;
+
+        secp256k1_fe_negate(&W1, &W1, 1);
+
+        *x2 = D;
+        secp256k1_fe_add(x2, &W1);
+        secp256k1_fe_add(x2, &W2);
+        secp256k1_fe_normalize_weak(x2);
+
+        *y2 = *x2;
+        secp256k1_fe_add(y2, &W1);
+        secp256k1_fe_mul(y2, y2, &i);
+        secp256k1_fe_negate(&A1, &A1, 1);
+        secp256k1_fe_add(y2, &A1);
+        /* secp256k1_fe_normalize_weak(y2); */
+    }
+
+    SECP256K1_COZ_VERIFY(r);
+}
+
+static void secp256k1_coz_add_3_2_var(secp256k1_coz *r, const secp256k1_gej *p3) {
+    SECP256K1_COZ_VERIFY(r);
+    SECP256K1_GEJ_VERIFY(p3);
+
+    if (secp256k1_gej_is_infinity(p3)) {
+        COZ_OPTIONAL(printf("_coz_add_3_2_var #1\n"));
+        return;
+    }
+
+    /* Add p3 into p2, updating p1 for new coz */
+
+    if (secp256k1_ge_is_infinity(&r->p2)) {
+        if (secp256k1_ge_is_infinity(&r->p1)) {
+            COZ_OPTIONAL(printf("_coz_add_3_2_var #2\n"));
+            secp256k1_coz_set_gej_var(&r->p2, &r->z, p3);
+        } else {
+            /* Choose new (co)z as r->z * p3->z and rescale r->p1 and r->p2 */
+            /* 7M + 2S; In pippenger_wnaf, the typical first iteration is one of these + a ZADDU, so
+             * the total is still 12M + 4S i.e. no advantage in the first iteration. */
+            secp256k1_fe *x1, *x2, *y1, *y2, *zc;
+            const secp256k1_fe *x3, *y3, *z3;
+            secp256k1_fe zc_2, z3_2;
+
+            COZ_OPTIONAL(printf("_coz_add_3_2_var #3\n"));
+
+            r->p2.infinity = 0;
+
+            x1 = &r->p1.x;
+            y1 = &r->p1.y;
+            x2 = &r->p2.x;
+            y2 = &r->p2.y;
+            zc = &r->z;
+
+            x3 = &p3->x;
+            y3 = &p3->y;
+            z3 = &p3->z;
+
+            secp256k1_fe_sqr(&zc_2, zc);
+            secp256k1_fe_mul(y2, y3, zc);
+            secp256k1_fe_mul(y2, y2, &zc_2);
+            secp256k1_fe_mul(x2, x3, &zc_2);
+
+            secp256k1_fe_sqr(&z3_2, z3);
+            secp256k1_fe_mul(y1, y1, z3);
+            secp256k1_fe_mul(y1, y1, &z3_2);
+            secp256k1_fe_mul(x1, x1, &z3_2);
+
+            secp256k1_fe_mul(zc, zc, z3);
+        }
+    } else {
+        secp256k1_fe zr;
+        secp256k1_gej t, u;
+
+        t.infinity = 0;
+        t.x = r->p2.x;
+        t.y = r->p2.y;
+        t.z = r->z;
+
+        /* 12M + 4S */
+        secp256k1_gej_add_var(&u, &t, p3, &zr);
+
+        if (secp256k1_gej_is_infinity(&u)) {
+            COZ_OPTIONAL(printf("_coz_add_3_2_var #4\n"));
+            secp256k1_ge_set_infinity(&r->p2);
+        } else {
+            COZ_OPTIONAL(printf("_coz_add_3_2_var #5\n"));
+            /* r->p2.infinity = 0; */
+            r->p2.x = u.x;
+            r->p2.y = u.y;
+            r->z = u.z;
+
+            if (!secp256k1_ge_is_infinity(&r->p1)) {
+                /*
+                 * The overall advantage of using Co-Z in pippenger_wnaf depends on this rescaling
+                 * not being too costly. Here the update of p1 costs 3M + 1S. It's not clear whether
+                 * that can be improved, although note that for an affine p3 the formula naturally
+                 * produces the required update multipliers for p1.x and p1.y, so the cost would be
+                 * only 2M.
+                 */
+                secp256k1_xy_rescale(&r->p1.x, &r->p1.y, &zr);
+            }
+        }
+    }
+
+    SECP256K1_COZ_VERIFY(r);
+}
+
+static void secp256k1_coz_double_1_var(secp256k1_coz *r) {
+    secp256k1_fe *x1, *y1, *zc;
+    secp256k1_fe l, s, t;
+    SECP256K1_COZ_VERIFY(r);
+
+    if (secp256k1_ge_is_infinity(&r->p1)) {
+        COZ_OPTIONAL(printf("_coz_double_1_var #1\n"));
+        return;
+    }
+
+    COZ_OPTIONAL(printf("_coz_double_1_var #2\n"));
+
+    x1 = &r->p1.x;
+    y1 = &r->p1.y;
+    zc = &r->z;
+
+    if (!secp256k1_ge_is_infinity(&r->p2)) {
+        secp256k1_xy_rescale(&r->p2.x, &r->p2.y, y1);
+    }
+
+    secp256k1_fe_mul(zc, zc, y1);          /* Z3 = Y1*Z1 (1) */
+    secp256k1_fe_sqr(&s, y1);              /* S = Y1^2 (1) */
+    secp256k1_fe_sqr(&l, x1);              /* L = X1^2 (1) */
+    secp256k1_fe_mul_int(&l, 3);           /* L = 3*X1^2 (3) */
+    secp256k1_fe_half(&l);                 /* L = 3/2*X1^2 (2) */
+    secp256k1_fe_negate(&t, &s, 1);        /* T = -S (2) */
+    secp256k1_fe_mul(&t, &t, x1);          /* T = -X1*S (1) */
+    secp256k1_fe_sqr(x1, &l);              /* X3 = L^2 (1) */
+    secp256k1_fe_add(x1, &t);              /* X3 = L^2 + T (2) */
+    secp256k1_fe_add(x1, &t);              /* X3 = L^2 + 2*T (3) */
+    secp256k1_fe_sqr(&s, &s);              /* S' = S^2 (1) */
+    secp256k1_fe_add(&t, x1);              /* T' = X3 + T (4) */
+    secp256k1_fe_mul(y1, &t, &l);          /* Y3 = L*(X3 + T) (1) */
+    secp256k1_fe_add(y1, &s);              /* Y3 = L*(X3 + T) + S^2 (2) */
+    secp256k1_fe_negate(y1, y1, 2);        /* Y3 = -(L*(X3 + T) + S^2) (3) */
+
+    SECP256K1_COZ_VERIFY(r);
+}
+
+static void secp256k1_coz_double_2_1(secp256k1_coz *r) {
+    secp256k1_fe *x1, *x2, *y1, *y2, *zc;
+    secp256k1_fe l, s, t;
+    SECP256K1_COZ_VERIFY(r);
+
+    COZ_OPTIONAL(printf("_coz_double_2_1\n"));
+
+    /* Reversed 1/2 numbering because usual presentation has P(x1,y1) being updated, but we update p2 */
+    x1 = &r->p2.x;
+    y1 = &r->p2.y;
+    x2 = &r->p1.x;
+    y2 = &r->p1.y;
+    zc = &r->z;
+
+    r->p1.infinity = r->p2.infinity;
+
+    secp256k1_fe_mul(zc, zc, y1);          /* Z3 = Y1*Z1 (1) */
+    secp256k1_fe_sqr(&s, y1);              /* S = Y1^2 (1) */
+    secp256k1_fe_sqr(&l, x1);              /* L = X1^2 (1) */
+    secp256k1_fe_mul_int(&l, 3);           /* L = 3*X1^2 (3) */
+    secp256k1_fe_half(&l);                 /* L = 3/2*X1^2 (2) */
+
+    /* Update p2 coordinates for new (co)-z */
+    secp256k1_fe_mul(x1, x1, &s);          /* X1U = X1 * S (1) */
+    secp256k1_fe_sqr(y1, &s);              /* Y1U = S^2 (1) */
+
+    secp256k1_fe_negate(&t, x1, 1);        /* T = -X1*S (2) */
+    secp256k1_fe_sqr(x2, &l);              /* X3 = L^2 (1) */
+    secp256k1_fe_add(x2, &t);              /* X3 = L^2 + T (3) */
+    secp256k1_fe_add(x2, &t);              /* X3 = L^2 + 2*T (5) */
+    /* TODO Ideally not needed */
+    secp256k1_fe_normalize_weak(x2);
+
+    secp256k1_fe_add(&t, x2);              /* T' = X3 + T (7) */
+    secp256k1_fe_mul(y2, &t, &l);          /* Y3 = L*(X3 + T) (1) */
+    secp256k1_fe_add(y2, y1);              /* Y3 = L*(X3 + T) + S^2 (2) */
+    secp256k1_fe_negate(y2, y2, 2);        /* Y3 = -(L*(X3 + T) + S^2) (3) */
+
+    SECP256K1_COZ_VERIFY(r);
+}
+
+static int secp256k1_coz_eq_var(const secp256k1_coz *a, const secp256k1_gej *b1, const secp256k1_gej *b2) {
+    secp256k1_gej a1, a2;
+
+    SECP256K1_COZ_VERIFY(a);
+    SECP256K1_GEJ_VERIFY(b1);
+    SECP256K1_GEJ_VERIFY(b2);
+
+    secp256k1_gej_set_ge(&a1, &a->p1);
+    secp256k1_gej_set_ge(&a2, &a->p2);
+
+    a1.z = a->z;
+    a2.z = a->z;
+
+    return secp256k1_gej_eq_var(&a1, b1) && secp256k1_gej_eq_var(&a2, b2);
+}
+
+static void secp256k1_coz_ge_verify(const secp256k1_ge *a) {
+    /* Note that p1 and p2 use the GEJ limits for x, y instead of GE */
+    SECP256K1_FE_VERIFY(&a->x);
+    SECP256K1_FE_VERIFY(&a->y);
+    SECP256K1_FE_VERIFY_MAGNITUDE(&a->x, SECP256K1_GEJ_X_MAGNITUDE_MAX);
+    SECP256K1_FE_VERIFY_MAGNITUDE(&a->y, SECP256K1_GEJ_Y_MAGNITUDE_MAX);
+    VERIFY_CHECK(a->infinity == 0 || a->infinity == 1);
+    (void)a;
+}
+
+static void secp256k1_coz_verify(const secp256k1_coz *a) {
+    secp256k1_coz_ge_verify(&a->p1);
+    secp256k1_coz_ge_verify(&a->p2);
+    SECP256K1_FE_VERIFY(&a->z);
+    SECP256K1_FE_VERIFY_MAGNITUDE(&a->z, SECP256K1_GEJ_Z_MAGNITUDE_MAX);
+    (void)a;
 }
 
 #endif /* SECP256K1_GROUP_IMPL_H */
