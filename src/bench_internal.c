@@ -18,13 +18,13 @@
 #include "ecmult_impl.h"
 #include "bench.h"
 
-static void help(int default_iters) {
+static void help(char **argv, int default_iters) {
     printf("Benchmarks various internal routines.\n");
     printf("\n");
     printf("The default number of iterations for each benchmark is %d. This can be\n", default_iters);
     printf("customized using the SECP256K1_BENCH_ITERS environment variable.\n");
     printf("\n");
-    printf("Usage: ./bench_internal [args]\n");
+    printf("Usage: %s <help|scalar|field|group|ecmult|hash|context>\n", argv[0]);
     printf("By default, all benchmarks will be run.\n");
     printf("args:\n");
     printf("    help       : display this help and exit\n");
@@ -389,7 +389,7 @@ int main(int argc, char **argv) {
     int default_iters = 20000;
     int iters = get_iters(default_iters);
     if (iters == 0) {
-        help(default_iters);
+        help(argv, default_iters);
         return EXIT_FAILURE;
     }
 
@@ -397,7 +397,7 @@ int main(int argc, char **argv) {
         if (have_flag(argc, argv, "-h")
            || have_flag(argc, argv, "--help")
            || have_flag(argc, argv, "help")) {
-            help(default_iters);
+            help(argv, default_iters);
             return EXIT_SUCCESS;
         }
     }
