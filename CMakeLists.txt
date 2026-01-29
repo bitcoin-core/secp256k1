@@ -224,6 +224,7 @@ else()
   try_append_c_flags(-Wreserved-identifier) # Clang >= 13.0 only.
   try_append_c_flags(-Wshadow)
   try_append_c_flags(-Wstrict-prototypes)
+  try_append_c_flags(-Wtrailing-whitespace=any) # GCC >= 15.0
   try_append_c_flags(-Wundef)
 endif()
 
