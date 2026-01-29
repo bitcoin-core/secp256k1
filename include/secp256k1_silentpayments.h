@@ -27,6 +27,10 @@ extern "C" {
  *  any further elliptic-curve operations from the wallet.
  */
 
+/* Maximum number of Silent Payments recipients per group (i.e.
+ * recipients sharing the same scan public key) as per BIP-352 */
+#define SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT 1000
+
 /** The data from a single recipient address
  *
  *  This struct serves as an input argument to `silentpayments_sender_create_outputs`.
@@ -78,6 +82,8 @@ typedef struct secp256k1_silentpayments_recipient {
  *               keys is uniformly random and independent of all other keys)
  *             - A hash output is not a valid scalar (negligible probability
  *               per hash evaluation)
+ *             - Any group (i.e. recipients sharing the same scan public key) exceeds
+ *               the protocol limit SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT
  *
  *  Args:                ctx: pointer to a context object
  *                            (not secp256k1_context_static).
@@ -338,6 +344,11 @@ typedef struct secp256k1_silentpayments_found_output {
  *  For creating the label cache, `secp256k1_silentpayments_recipient_label_create`
  *  and `secp256k1_silentpayments_recipient_label_serialize` can be used.
  *
+ *  Note:
+ *  Scanning is bounded by SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT and may
+ *  miss outputs if a transaction contains more outputs for a single scan public
+ *  key group than this limit.
+ *
  *  Returns: 1 if output scanning was successful.
  *           0 if the transaction is not a Silent Payments transaction,
  *             or if the arguments are invalid.
@@ -349,7 +360,8 @@ typedef struct secp256k1_silentpayments_found_output {
  *              n_found_outputs: pointer to an integer indicating the final
  *                               size of the found outputs array. This number
  *                               represents the number of outputs found while
- *                               scanning (0 if none are found).
+ *                               scanning (0 if none are found). Can't be larger than
+ *                               SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT.
  *  In:              tx_outputs: pointer to the transaction's x-only public key outputs
  *                 n_tx_outputs: the size of the tx_outputs array.
  *                   scan_key32: pointer to the recipient's 32 byte scan key. The scan

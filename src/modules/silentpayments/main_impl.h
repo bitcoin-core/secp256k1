@@ -315,6 +315,13 @@ int secp256k1_silentpayments_sender_create_outputs(
             secp256k1_silentpayments_create_shared_secret(ctx, shared_secret, &pk, &seckey_sum_scalar);
             k = 0;
         }
+        /* If creating another output for the current recipient group exceeded the
+         * protocol limit, fail, as the recipient wouldn't be guaranteed to find it. */
+        if (k >= SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT) {
+            secp256k1_scalar_clear(&seckey_sum_scalar);
+            secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
+            return 0;
+        }
         if (!secp256k1_silentpayments_create_output_pubkey(ctx, generated_outputs[recipients[i]->index], shared_secret, &recipients[i]->spend_pubkey, k)) {
             secp256k1_scalar_clear(&seckey_sum_scalar);
             secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
@@ -322,7 +329,6 @@ int secp256k1_silentpayments_sender_create_outputs(
         }
         current_scan_pubkey = recipients[i]->scan_pubkey;
         k++;
-        /* TODO: limit k, in order to avoid quadratic scaling issue for scanning */
     }
     secp256k1_scalar_clear(&seckey_sum_scalar);
     secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
@@ -570,7 +576,7 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     secp256k1_scalar scan_key_scalar;
     secp256k1_ge unlabeled_spend_pubkey_ge, prevouts_pubkey_sum_ge;
     unsigned char shared_secret[33];
-    uint32_t k;
+    uint32_t k, k_max;
     size_t i;
     int found_idx, combined, valid_scan_key, ret;
 
@@ -619,9 +625,12 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     secp256k1_scalar_clear(&scan_key_scalar);
 
     found_idx = -1;
-    /* TODO: limit number of k iterations, in order to avoid quadratic scaling issue */
+    /* Don't look further than the per-group recipient limit, in order to avoid quadratic scaling issues. */
+    k_max = (n_tx_outputs < SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT) ?
+             n_tx_outputs : SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT;
+    /* TODO: potential optimization: the worst-case run-time can be cut in half by randomizing the outputs */
     /* TODO: improve scanning performance by performing batch inversion for label scanning */
-    for (k = 0; k < n_tx_outputs; k++) {
+    for (k = 0; k < k_max; k++) {
         secp256k1_scalar t_k_scalar;
         secp256k1_xonly_pubkey unlabeled_output_xonly;
         secp256k1_ge unlabeled_output_ge = unlabeled_spend_pubkey_ge;
