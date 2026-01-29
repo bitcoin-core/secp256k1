@@ -112,6 +112,7 @@ AC_DEFUN([SECP_TRY_APPEND_DEFAULT_CFLAGS], [
       SECP_TRY_APPEND_CFLAGS([-Wconditional-uninitialized], $1) # Clang >= 3.0 only
       SECP_TRY_APPEND_CFLAGS([-Wreserved-identifier], $1) # Clang >= 13.0 only
       SECP_TRY_APPEND_CFLAGS([-Wtrailing-whitespace=any], $1) # GCC >= 15.0
+      SECP_TRY_APPEND_CFLAGS([-Wleading-whitespace=spaces], $1) # GCC >= 15.0
 
       CFLAGS="$SECP_TRY_APPEND_DEFAULT_CFLAGS_saved_CFLAGS"
     fi
