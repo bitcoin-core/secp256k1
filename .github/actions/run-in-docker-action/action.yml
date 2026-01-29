@@ -40,14 +40,20 @@ runs:
       shell: bash
 
     - # Tell Docker to pass environment variables in `env` into the container.
-      run: >
-        docker run \
-          $(echo '${{ toJSON(env) }}' | jq -r 'keys[] | "--env \(.) "') \
-          --volume ${{ github.workspace }}:${{ github.workspace }} \
-          --workdir ${{ github.workspace }} \
-          $(docker images -q | head -n1) \
-          bash -c "
-            git config --global --add safe.directory ${{ github.workspace }}
-            ${{ inputs.command }}
-          "
       shell: bash
+      env:
+        CMD_TO_RUN: ${{ inputs.command }}
+        ENV_JSON: ${{ toJSON(env) }}
+      run: |
+        # Use a temporary file to store the environment variables JSON
+        # and pass it via an environment variable to avoid shell injection.
+        echo "$ENV_JSON" > "$RUNNER_TEMP/env.json"
+        docker run \
+          $(jq -r 'keys[] | select(. != "CMD_TO_RUN" and . != "ENV_JSON") | "--env \(.) "' "$RUNNER_TEMP/env.json") \
+          --volume "$GITHUB_WORKSPACE":"$GITHUB_WORKSPACE" \
+          --workdir "$GITHUB_WORKSPACE" \
+          "${{ steps.main_builder.outputs.imageid || steps.retry_builder.outputs.imageid }}" \
+          bash -c '
+            git config --global --add safe.directory "$1"
+            eval "$2"
+          ' -- "$GITHUB_WORKSPACE" "$CMD_TO_RUN"
