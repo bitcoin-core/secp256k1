@@ -49,7 +49,7 @@ static const unsigned char bip340_algo[] = {'B', 'I', 'P', '0', '3', '4', '0', '
 
 static const unsigned char schnorrsig_extraparams_magic[4] = SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC;
 
-static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+static int nonce_function_bip340_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
     secp256k1_sha256 sha;
     unsigned char masked_key[32];
     int i;
@@ -60,8 +60,8 @@ static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *ms
 
     if (data != NULL) {
         secp256k1_nonce_function_bip340_sha256_tagged_aux(&sha);
-        secp256k1_sha256_write(&sha, data, 32);
-        secp256k1_sha256_finalize(&sha, masked_key);
+        secp256k1_sha256_write(hash_ctx, &sha, data, 32);
+        secp256k1_sha256_finalize(hash_ctx, &sha, masked_key);
         for (i = 0; i < 32; i++) {
             masked_key[i] ^= key32[i];
         }
@@ -85,18 +85,22 @@ static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *ms
             && secp256k1_memcmp_var(algo, bip340_algo, algolen) == 0) {
         secp256k1_nonce_function_bip340_sha256_tagged(&sha);
     } else {
-        secp256k1_sha256_initialize_tagged(&sha, algo, algolen);
+        secp256k1_sha256_initialize_tagged(hash_ctx, &sha, algo, algolen);
     }
 
     /* Hash masked-key||pk||msg using the tagged hash as per the spec */
-    secp256k1_sha256_write(&sha, masked_key, 32);
-    secp256k1_sha256_write(&sha, xonly_pk32, 32);
-    secp256k1_sha256_write(&sha, msg, msglen);
-    secp256k1_sha256_finalize(&sha, nonce32);
+    secp256k1_sha256_write(hash_ctx, &sha, masked_key, 32);
+    secp256k1_sha256_write(hash_ctx, &sha, xonly_pk32, 32);
+    secp256k1_sha256_write(hash_ctx, &sha, msg, msglen);
+    secp256k1_sha256_finalize(hash_ctx, &sha, nonce32);
     secp256k1_sha256_clear(&sha);
     secp256k1_memclear_explicit(masked_key, sizeof(masked_key));
 
     return 1;
+}
+
+static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+    return nonce_function_bip340_impl(secp256k1_get_hash_context(secp256k1_context_static), nonce32, msg, msglen, key32, xonly_pk32, algo, algolen, data);
 }
 
 const secp256k1_nonce_function_hardened secp256k1_nonce_function_bip340 = nonce_function_bip340;
@@ -116,17 +120,17 @@ static void secp256k1_schnorrsig_sha256_tagged(secp256k1_sha256 *sha) {
     sha->bytes = 64;
 }
 
-static void secp256k1_schnorrsig_challenge(secp256k1_scalar* e, const unsigned char *r32, const unsigned char *msg, size_t msglen, const unsigned char *pubkey32)
+static void secp256k1_schnorrsig_challenge(const secp256k1_hash_ctx *hash_ctx, secp256k1_scalar* e, const unsigned char *r32, const unsigned char *msg, size_t msglen, const unsigned char *pubkey32)
 {
     unsigned char buf[32];
     secp256k1_sha256 sha;
 
     /* tagged hash(r.x, pk.x, msg) */
     secp256k1_schnorrsig_sha256_tagged(&sha);
-    secp256k1_sha256_write(&sha, r32, 32);
-    secp256k1_sha256_write(&sha, pubkey32, 32);
-    secp256k1_sha256_write(&sha, msg, msglen);
-    secp256k1_sha256_finalize(&sha, buf);
+    secp256k1_sha256_write(hash_ctx, &sha, r32, 32);
+    secp256k1_sha256_write(hash_ctx, &sha, pubkey32, 32);
+    secp256k1_sha256_write(hash_ctx, &sha, msg, msglen);
+    secp256k1_sha256_finalize(hash_ctx, &sha, buf);
     /* Set scalar e to the challenge hash modulo the curve order as per
      * BIP340. */
     secp256k1_scalar_set_b32(e, buf, NULL);
@@ -150,10 +154,6 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
     ARG_CHECK(msg != NULL || msglen == 0);
     ARG_CHECK(keypair != NULL);
 
-    if (noncefp == NULL) {
-        noncefp = secp256k1_nonce_function_bip340;
-    }
-
     ret &= secp256k1_keypair_load(ctx, &sk, &pk, keypair);
     /* Because we are signing for a x-only pubkey, the secret key is negated
      * before signing if the point corresponding to the secret key does not
@@ -164,7 +164,15 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
 
     secp256k1_scalar_get_b32(seckey, &sk);
     secp256k1_fe_get_b32(pk_buf, &pk.x);
-    ret &= !!noncefp(nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
+
+    /* Compute nonce */
+    if (noncefp == NULL || noncefp == secp256k1_nonce_function_bip340) {
+        /* Use context-aware nonce function by default */
+        ret &= nonce_function_bip340_impl(secp256k1_get_hash_context(ctx), nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
+    } else {
+        ret &= !!noncefp(nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
+    }
+
     secp256k1_scalar_set_b32(&k, nonce32, NULL);
     ret &= !secp256k1_scalar_is_zero(&k);
     secp256k1_scalar_cmov(&k, &secp256k1_scalar_one, !ret);
@@ -182,7 +190,7 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
     secp256k1_fe_normalize_var(&r.x);
     secp256k1_fe_get_b32(&sig64[0], &r.x);
 
-    secp256k1_schnorrsig_challenge(&e, &sig64[0], msg, msglen, pk_buf);
+    secp256k1_schnorrsig_challenge(secp256k1_get_hash_context(ctx), &e, &sig64[0], msg, msglen, pk_buf);
     secp256k1_scalar_mul(&e, &e, &sk);
     secp256k1_scalar_add(&e, &e, &k);
     secp256k1_scalar_get_b32(&sig64[32], &e);
@@ -252,7 +260,7 @@ int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned cha
 
     /* Compute e. */
     secp256k1_fe_get_b32(buf, &pk.x);
-    secp256k1_schnorrsig_challenge(&e, &sig64[0], msg, msglen, buf);
+    secp256k1_schnorrsig_challenge(secp256k1_get_hash_context(ctx), &e, &sig64[0], msg, msglen, buf);
 
     /* Compute rj =  s*G + (-e)*pkj */
     secp256k1_scalar_negate(&e, &e);
