@@ -309,6 +309,64 @@ static void test_send_api(void) {
         }
         CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p, 1) == 0);
     }
+
+    /* check that sending API respects the per-group recipient limit (K_max) */
+    {
+        const size_t total_recipients = 10 * SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT;
+        secp256k1_silentpayments_recipient *recipients = malloc(sizeof(*recipients) * total_recipients);
+        const secp256k1_silentpayments_recipient **recipients_ptrs = malloc(sizeof(*recipients_ptrs) * total_recipients);
+        secp256k1_xonly_pubkey *outputs = malloc(sizeof(*outputs) * total_recipients);
+        secp256k1_xonly_pubkey **outputs_ptrs = malloc(sizeof(*outputs_ptrs) * total_recipients);
+        size_t test_num_recipients;
+
+        for (i = 0; i < total_recipients; i++) {
+            /* use the same scan/spend pubkey for every recipient initially; the scan pubkeys
+             * will change later on for each test case to modify the group sizes, while the
+             * spend pubkeys will remain unchanged, as they are not relevant for the scenarios */
+            recipients[i].scan_pubkey = r[1].scan_pubkey;
+            recipients[i].spend_pubkey = r[1].spend_pubkey;
+            recipients[i].index = i;
+            recipients_ptrs[i] = &recipients[i];
+            outputs_ptrs[i] = &outputs[i];
+        }
+
+        /* one group with the number of recipients being just on the limit => succeeds */
+        test_num_recipients = SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT;
+        CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, outputs_ptrs, recipients_ptrs,
+            test_num_recipients, SMALLEST_OUTPOINT, NULL, 0, p, 1) == 1);
+
+        /* one group with the number of recipients exceeding the limit => fails */
+        test_num_recipients = SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT + 1;
+        CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, outputs_ptrs, recipients_ptrs,
+            test_num_recipients, SMALLEST_OUTPOINT, NULL, 0, p, 1) == 0);
+
+        /* multiple groups with each being just on the limit => succeeds */
+        for (i = 0; i < total_recipients; i++) {
+            /* create recipient blocks of K_max size, each with different tweak values */
+            uint32_t tweak_value = i / SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT;
+            unsigned char tweak[32] = {0};
+            secp256k1_write_be32(&tweak[28], tweak_value);
+            CHECK(secp256k1_ec_pubkey_tweak_add(CTX, &recipients[i].scan_pubkey, tweak) == 1);
+        }
+        test_num_recipients = total_recipients;
+        CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, outputs_ptrs, recipients_ptrs,
+            test_num_recipients, SMALLEST_OUTPOINT, NULL, 0, p, 1) == 1);
+
+        /* multiple groups, one of them exceeding the limit => fails */
+        for (i = 0; i < total_recipients; i++) { /* restore original order first */
+            recipients_ptrs[i] = &recipients[i];
+        }
+        recipients[SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT].scan_pubkey =
+            recipients[SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT-1].scan_pubkey;
+        test_num_recipients = total_recipients;
+        CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, outputs_ptrs, recipients_ptrs,
+            test_num_recipients, SMALLEST_OUTPOINT, NULL, 0, p, 1) == 0);
+
+        free(outputs_ptrs);
+        free(outputs);
+        free(recipients_ptrs);
+        free(recipients);
+    }
 }
 
 static void test_label_api(void) {
