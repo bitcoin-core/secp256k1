@@ -6,8 +6,7 @@ inputs:
     required: true
   scope:
     description: 'A cached image scope'
-    required: false
-    default: ${{ runner.arch }}
+    required: true
   command:
     description: 'A command to run in a container'
     required: true
