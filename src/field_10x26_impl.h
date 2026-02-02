@@ -38,16 +38,20 @@ static void secp256k1_fe_impl_verify(const secp256k1_fe *a) {
 #endif
 
 static void secp256k1_fe_impl_get_bounds(secp256k1_fe *r, int m) {
-    r->n[0] = 0x3FFFFFFUL * 2 * m;
-    r->n[1] = 0x3FFFFFFUL * 2 * m;
-    r->n[2] = 0x3FFFFFFUL * 2 * m;
-    r->n[3] = 0x3FFFFFFUL * 2 * m;
-    r->n[4] = 0x3FFFFFFUL * 2 * m;
-    r->n[5] = 0x3FFFFFFUL * 2 * m;
-    r->n[6] = 0x3FFFFFFUL * 2 * m;
-    r->n[7] = 0x3FFFFFFUL * 2 * m;
-    r->n[8] = 0x3FFFFFFUL * 2 * m;
-    r->n[9] = 0x03FFFFFUL * 2 * m;
+    const uint64_t two_m = 2 * m;
+    const uint64_t bound1 = 0x3FFFFFFUL * two_m;
+    const uint64_t bound2 = 0x03FFFFFUL * two_m;
+
+    r->n[0] = bound1;
+    r->n[1] = bound1;
+    r->n[2] = bound1;
+    r->n[3] = bound1;
+    r->n[4] = bound1;
+    r->n[5] = bound1;
+    r->n[6] = bound1;
+    r->n[7] = bound1;
+    r->n[8] = bound1;
+    r->n[9] = bound2;
 }
 
 static void secp256k1_fe_impl_normalize(secp256k1_fe *r) {
@@ -257,8 +261,8 @@ static int secp256k1_fe_impl_normalizes_to_zero_var(const secp256k1_fe *r) {
 }
 
 SECP256K1_INLINE static void secp256k1_fe_impl_set_int(secp256k1_fe *r, int a) {
+    memset(r->n, 0, sizeof(r->n));
     r->n[0] = a;
-    r->n[1] = r->n[2] = r->n[3] = r->n[4] = r->n[5] = r->n[6] = r->n[7] = r->n[8] = r->n[9] = 0;
 }
 
 SECP256K1_INLINE static int secp256k1_fe_impl_is_zero(const secp256k1_fe *a) {
@@ -272,12 +276,11 @@ SECP256K1_INLINE static int secp256k1_fe_impl_is_odd(const secp256k1_fe *a) {
 
 static int secp256k1_fe_impl_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
     int i;
+    int diff;
     for (i = 9; i >= 0; i--) {
-        if (a->n[i] > b->n[i]) {
-            return 1;
-        }
-        if (a->n[i] < b->n[i]) {
-            return -1;
+        diff = (a->n[i] > b->n[i]) - (a->n[i] < b->n[i]);
+        if (diff != 0) {
+            return diff;
         }
     }
     return 0;
@@ -338,24 +341,30 @@ static void secp256k1_fe_impl_get_b32(unsigned char *r, const secp256k1_fe *a) {
 }
 
 SECP256K1_INLINE static void secp256k1_fe_impl_negate_unchecked(secp256k1_fe *r, const secp256k1_fe *a, int m) {
+    const uint32_t two_m1 = 2 * (m + 1);
+    const uint32_t bound1 = 0x3FFFC2FUL * two_m1;
+    const uint32_t bound2 = 0x3FFFFBFUL * two_m1;
+    const uint32_t bound3 = 0x3FFFFFFUL * two_m1;
+    const uint32_t bound4 = 0x03FFFFFUL * two_m1;
+
     /* For all legal values of m (0..31), the following properties hold: */
-    VERIFY_CHECK(0x3FFFC2FUL * 2 * (m + 1) >= 0x3FFFFFFUL * 2 * m);
-    VERIFY_CHECK(0x3FFFFBFUL * 2 * (m + 1) >= 0x3FFFFFFUL * 2 * m);
-    VERIFY_CHECK(0x3FFFFFFUL * 2 * (m + 1) >= 0x3FFFFFFUL * 2 * m);
-    VERIFY_CHECK(0x03FFFFFUL * 2 * (m + 1) >= 0x03FFFFFUL * 2 * m);
+    VERIFY_CHECK(bound1 >= 0x3FFFFFFUL * 2 * m);
+    VERIFY_CHECK(bound2 >= 0x3FFFFFFUL * 2 * m);
+    VERIFY_CHECK(bound3 >= 0x3FFFFFFUL * 2 * m);
+    VERIFY_CHECK(bound4 >= 0x03FFFFFUL * 2 * m);
 
     /* Due to the properties above, the left hand in the subtractions below is never less than
      * the right hand. */
-    r->n[0] = 0x3FFFC2FUL * 2 * (m + 1) - a->n[0];
-    r->n[1] = 0x3FFFFBFUL * 2 * (m + 1) - a->n[1];
-    r->n[2] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[2];
-    r->n[3] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[3];
-    r->n[4] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[4];
-    r->n[5] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[5];
-    r->n[6] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[6];
-    r->n[7] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[7];
-    r->n[8] = 0x3FFFFFFUL * 2 * (m + 1) - a->n[8];
-    r->n[9] = 0x03FFFFFUL * 2 * (m + 1) - a->n[9];
+    r->n[0] = bound1 - a->n[0];
+    r->n[1] = bound2 - a->n[1];
+    r->n[2] = bound3 - a->n[2];
+    r->n[3] = bound3 - a->n[3];
+    r->n[4] = bound3 - a->n[4];
+    r->n[5] = bound3 - a->n[5];
+    r->n[6] = bound3 - a->n[6];
+    r->n[7] = bound3 - a->n[7];
+    r->n[8] = bound3 - a->n[8];
+    r->n[9] = bound4 - a->n[9];
 }
 
 SECP256K1_INLINE static void secp256k1_fe_impl_mul_int_unchecked(secp256k1_fe *r, int a) {
@@ -1113,24 +1122,24 @@ static SECP256K1_INLINE void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, 
 }
 
 static void secp256k1_fe_impl_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a) {
-    r->n[0] = a->n[0] | a->n[1] << 26;
-    r->n[1] = a->n[1] >> 6 | a->n[2] << 20;
+    r->n[0] = a->n[0]       | a->n[1] << 26;
+    r->n[1] = a->n[1] >> 6  | a->n[2] << 20;
     r->n[2] = a->n[2] >> 12 | a->n[3] << 14;
     r->n[3] = a->n[3] >> 18 | a->n[4] << 8;
     r->n[4] = a->n[4] >> 24 | a->n[5] << 2 | a->n[6] << 28;
-    r->n[5] = a->n[6] >> 4 | a->n[7] << 22;
+    r->n[5] = a->n[6] >> 4  | a->n[7] << 22;
     r->n[6] = a->n[7] >> 10 | a->n[8] << 16;
     r->n[7] = a->n[8] >> 16 | a->n[9] << 10;
 }
 
 static SECP256K1_INLINE void secp256k1_fe_impl_from_storage(secp256k1_fe *r, const secp256k1_fe_storage *a) {
     r->n[0] = a->n[0] & 0x3FFFFFFUL;
-    r->n[1] = a->n[0] >> 26 | ((a->n[1] << 6) & 0x3FFFFFFUL);
+    r->n[1] = a->n[0] >> 26 | ((a->n[1] << 6)  & 0x3FFFFFFUL);
     r->n[2] = a->n[1] >> 20 | ((a->n[2] << 12) & 0x3FFFFFFUL);
     r->n[3] = a->n[2] >> 14 | ((a->n[3] << 18) & 0x3FFFFFFUL);
-    r->n[4] = a->n[3] >> 8 | ((a->n[4] << 24) & 0x3FFFFFFUL);
+    r->n[4] = a->n[3] >> 8  | ((a->n[4] << 24) & 0x3FFFFFFUL);
     r->n[5] = (a->n[4] >> 2) & 0x3FFFFFFUL;
-    r->n[6] = a->n[4] >> 28 | ((a->n[5] << 4) & 0x3FFFFFFUL);
+    r->n[6] = a->n[4] >> 28 | ((a->n[5] << 4)  & 0x3FFFFFFUL);
     r->n[7] = a->n[5] >> 22 | ((a->n[6] << 10) & 0x3FFFFFFUL);
     r->n[8] = a->n[6] >> 16 | ((a->n[7] << 16) & 0x3FFFFFFUL);
     r->n[9] = a->n[7] >> 10;
