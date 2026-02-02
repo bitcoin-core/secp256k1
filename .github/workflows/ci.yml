@@ -6,6 +6,10 @@ on:
       - '**'
     tags-ignore:
       - '**'
+  schedule:
+    # Run on the default branch every Monday morning.
+    # This also warms the Docker caches after key rotation.
+    - cron: '22 2 * * 1'
 
 concurrency:
   group: ${{ github.event_name != 'pull_request' && github.run_id || github.ref }}
@@ -48,6 +52,8 @@ jobs:
   docker_cache:
     name: "Build ${{ matrix.arch }} Docker image"
     runs-on: ${{ matrix.runner }}
+    outputs:
+      cache_scope: ${{ steps.cache_timestamp.outputs.period }}
 
     strategy:
       fail-fast: false
@@ -59,6 +65,10 @@ jobs:
             runner: ubuntu-24.04-arm
 
     steps:
+      - name: Get cache validity period
+        id: cache_timestamp
+        run: echo "period=$(($(date +%V) / 4))" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
@@ -70,8 +80,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           file: ./ci/linux-debian.Dockerfile
-          cache-from: type=gha,scope=${{ runner.arch }}
-          cache-to: type=gha,scope=${{ runner.arch }},mode=min
+          cache-from: type=gha,scope=${{ runner.arch }}-${{ steps.cache_timestamp.outputs.period }}
+          cache-to: type=gha,scope=${{ runner.arch }}-${{ steps.cache_timestamp.outputs.period }},mode=min
 
   x86_64-debian:
     name: "x86_64: Linux (Debian stable)"
@@ -117,6 +127,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
+          scope: ${{ runner.arch }}-${{ needs.docker_cache.outputs.cache_scope }}
           command: ./ci/ci.sh
 
       - &PRINT_LOGS
@@ -636,6 +647,7 @@ jobs:
         uses: ./.github/actions/run-in-docker-action
         with:
           dockerfile: ./ci/linux-debian.Dockerfile
+          scope: ${{ runner.arch }}-${{ needs.docker_cache.outputs.cache_scope }}
           command: |
             g++ -Werror include/*.h
             clang -Werror -x c++-header include/*.h
