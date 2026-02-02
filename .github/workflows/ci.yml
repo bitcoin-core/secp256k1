@@ -6,6 +6,10 @@ on:
       - '**'
     tags-ignore:
       - '**'
+  schedule:
+    # Run on the default branch every Monday morning.
+    # This also warms the Docker caches after key rotation.
+    - cron: '22 2 * * 1'
 
 concurrency:
   group: ${{ github.event_name != 'pull_request' && github.run_id || github.ref }}
