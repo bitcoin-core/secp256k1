@@ -67,7 +67,7 @@ jobs:
     steps:
       - name: Get cache validity period
         id: cache_timestamp
-        run: echo "period=$(($(date +%V) / 4))" >> "$GITHUB_OUTPUT"
+        run: echo "period=$((10#$(date +%V) / 4))" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
