@@ -47,6 +47,9 @@ env:
   SYMBOL_CHECK: 'yes'
   # Compile and run the examples.
   EXAMPLES: 'yes'
+  # Disable Docker build summary generation.
+  # See https://github.com/docker/build-push-action/blob/master/README.md#environment-variables.
+  DOCKER_BUILD_SUMMARY: false
 
 jobs:
   docker_cache:
