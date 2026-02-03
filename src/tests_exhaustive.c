@@ -183,22 +183,13 @@ static void test_exhaustive_ecmult(const secp256k1_ge *group, const secp256k1_ge
     }
 }
 
-typedef struct {
-    secp256k1_scalar sc[2];
-    secp256k1_ge pt[2];
-} ecmult_multi_data;
-
-static int ecmult_multi_callback(secp256k1_scalar *sc, secp256k1_ge *pt, size_t idx, void *cbdata) {
-    ecmult_multi_data *data = (ecmult_multi_data*) cbdata;
-    *sc = data->sc[idx];
-    *pt = data->pt[idx];
-    return 1;
-}
-
 static void test_exhaustive_ecmult_multi(const secp256k1_context *ctx, const secp256k1_ge *group) {
     int i, j, k, x, y;
     uint64_t iter = 0;
-    secp256k1_scratch *scratch = secp256k1_scratch_create(&ctx->error_callback, 4096);
+    secp256k1_scalar scalars[2];
+    secp256k1_ge points[2];
+    size_t mem_limit = 4096;
+
     for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++) {
         for (j = 0; j < EXHAUSTIVE_TEST_ORDER; j++) {
             for (k = 0; k < EXHAUSTIVE_TEST_ORDER; k++) {
@@ -207,22 +198,20 @@ static void test_exhaustive_ecmult_multi(const secp256k1_context *ctx, const sec
                     for (y = 0; y < EXHAUSTIVE_TEST_ORDER; y++) {
                         secp256k1_gej tmp;
                         secp256k1_scalar g_sc;
-                        ecmult_multi_data data;
 
-                        secp256k1_scalar_set_int(&data.sc[0], i);
-                        secp256k1_scalar_set_int(&data.sc[1], j);
+                        secp256k1_scalar_set_int(&scalars[0], i);
+                        secp256k1_scalar_set_int(&scalars[1], j);
                         secp256k1_scalar_set_int(&g_sc, k);
-                        data.pt[0] = group[x];
-                        data.pt[1] = group[y];
+                        points[0] = group[x];
+                        points[1] = group[y];
 
-                        secp256k1_ecmult_multi_var(&ctx->error_callback, scratch, &tmp, &g_sc, ecmult_multi_callback, &data, 2);
+                        CHECK(secp256k1_ecmult_multi(&ctx->error_callback, &tmp, 2, points, scalars, &g_sc, mem_limit));
                         CHECK(secp256k1_gej_eq_ge_var(&tmp, &group[(i * x + j * y + k) % EXHAUSTIVE_TEST_ORDER]));
                     }
                 }
             }
         }
     }
-    secp256k1_scratch_destroy(&ctx->error_callback, scratch);
 }
 
 static void r_from_k(secp256k1_scalar *r, const secp256k1_ge *group, int k, int* overflow) {
