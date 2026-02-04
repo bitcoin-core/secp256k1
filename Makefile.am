@@ -257,6 +257,10 @@ if ENABLE_MODULE_ECDH
 TESTVECTORS += src/wycheproof/ecdh_secp256k1_test.h
 endif
 
+if ENABLE_MODULE_MUSIG
+TESTVECTORS += src/modules/musig/vectors.h
+endif
+
 src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
 	mkdir -p $(@D)
 	python3 $(top_srcdir)/tools/tests_wycheproof_generate_ecdsa.py $(top_srcdir)/src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json > $@
@@ -264,6 +268,10 @@ src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
 src/wycheproof/ecdh_secp256k1_test.h:
 	mkdir -p $(@D)
 	python3 $(top_srcdir)/tools/tests_wycheproof_generate_ecdh.py $(top_srcdir)/src/wycheproof/ecdh_secp256k1_test.json > $@
+
+src/modules/musig/vectors.h:
+	mkdir -p $(@D)
+	python3 $(top_srcdir)/tools/test_vectors_musig2_generate.py $(top_srcdir)/src/modules/musig/vectors/ > $@
 
 testvectors: $(TESTVECTORS)
 
