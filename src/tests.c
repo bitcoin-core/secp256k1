@@ -2193,8 +2193,58 @@ static void run_scalar_set_b32_seckey_tests(void) {
     CHECK(secp256k1_scalar_set_b32_seckey(&s2, b32) == 0);
 }
 
+static void test_scalar_check_overflow(void) {
+    secp256k1_scalar s;
+    const secp256k1_scalar n_minus_1 = SECP256K1_SCALAR_CONST(
+        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL,
+        0xBAAEDCE6UL, 0xAF48A03BUL, 0xBFD25E8CUL, 0xD0364140UL
+    );
+    const secp256k1_scalar n = SECP256K1_SCALAR_CONST(
+        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL,
+        0xBAAEDCE6UL, 0xAF48A03BUL, 0xBFD25E8CUL, 0xD0364141UL
+    );
+    const secp256k1_scalar n_plus_1 = SECP256K1_SCALAR_CONST(
+        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL,
+        0xBAAEDCE6UL, 0xAF48A03BUL, 0xBFD25E8CUL, 0xD0364142UL
+    );
+    const secp256k1_scalar max = SECP256K1_SCALAR_CONST(
+        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL,
+        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL
+    );
+
+    int i;
+
+    secp256k1_scalar_set_int(&s, 0);
+    CHECK(secp256k1_scalar_check_overflow(&s) == 0);
+    CHECK(secp256k1_scalar_check_overflow(&n_minus_1) == 0);
+    CHECK(secp256k1_scalar_check_overflow(&n) == 1);
+    CHECK(secp256k1_scalar_check_overflow(&n_plus_1) == 1);
+    CHECK(secp256k1_scalar_check_overflow(&max) == 1);
+
+    for (i = 0; i < 2 * COUNT; i++) {
+        int expected_overflow;
+        int overflow = 0;
+        unsigned char b32[32];
+
+        testrand256(b32);
+
+        /* Force top bits to be 0xFF sometimes to ensure we hit overflows */
+        if (i % 2 == 0) {
+            memset(b32, 0xFF, 16);
+        }
+
+        expected_overflow = (secp256k1_memcmp_var(b32, secp256k1_group_order_bytes, 32) >= 0);
+
+        secp256k1_scalar_set_b32(&s, b32, &overflow);
+        CHECK(overflow == expected_overflow);
+    }
+}
+
 static void run_scalar_tests(void) {
     int i;
+
+    test_scalar_check_overflow();
+
     for (i = 0; i < 128 * COUNT; i++) {
         scalar_test();
     }
@@ -2256,15 +2306,6 @@ static void run_scalar_tests(void) {
             secp256k1_scalar_half(&s, &s);
             CHECK(secp256k1_scalar_eq(&s, &HALF_TESTS[n]));
         }
-    }
-
-    {
-        /* Does check_overflow check catch all ones? */
-        static const secp256k1_scalar overflowed = SECP256K1_SCALAR_CONST(
-            0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL,
-            0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL
-        );
-        CHECK(secp256k1_scalar_check_overflow(&overflowed));
     }
 
     {
