@@ -496,6 +496,7 @@ int secp256k1_ellswift_decode(const secp256k1_context *ctx, secp256k1_pubkey *pu
 
 static int ellswift_xdh_hash_function_prefix(unsigned char *output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
     secp256k1_sha256 sha;
+    VERIFY_CHECK(data != NULL);
 
     secp256k1_sha256_initialize(&sha);
     secp256k1_sha256_write(&sha, data, 64);
