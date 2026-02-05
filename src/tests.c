@@ -42,6 +42,20 @@
 static secp256k1_context *CTX = NULL;
 static secp256k1_context *STATIC_CTX = NULL;
 
+/* The group order n minus 1. This is the maximum valid scalar value. */
+#define EX_SCALAR_N_M1 SECP256K1_SCALAR_CONST( \
+    0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL, \
+    0xBAAEDCE6UL, 0xAF48A03BUL, 0xBFD25E8CUL, 0xD0364140UL \
+)
+
+/* The field order p minus 1. */
+#define EX_FE_P_M1 SECP256K1_FE_CONST( \
+    0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, \
+    0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL, 0xFFFFFC2EUL \
+)
+
+static const secp256k1_scalar scalar_n_m1 = EX_SCALAR_N_M1;
+
 static int all_bytes_equal(const void* s, unsigned char value, size_t n) {
     const unsigned char *p = s;
     size_t i;
@@ -2195,10 +2209,7 @@ static void run_scalar_set_b32_seckey_tests(void) {
 
 static void test_scalar_check_overflow(void) {
     secp256k1_scalar s;
-    const secp256k1_scalar n_minus_1 = SECP256K1_SCALAR_CONST(
-        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL,
-        0xBAAEDCE6UL, 0xAF48A03BUL, 0xBFD25E8CUL, 0xD0364140UL
-    );
+    const secp256k1_scalar n_minus_1 = scalar_n_m1;
     const secp256k1_scalar n = SECP256K1_SCALAR_CONST(
         0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL,
         0xBAAEDCE6UL, 0xAF48A03BUL, 0xBFD25E8CUL, 0xD0364141UL
@@ -2284,7 +2295,7 @@ static void run_scalar_tests(void) {
             /* 1 */
             SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1),
             /* -1 */
-            SECP256K1_SCALAR_CONST(0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffeul, 0xbaaedce6ul, 0xaf48a03bul, 0xbfd25e8cul, 0xd0364140ul),
+            EX_SCALAR_N_M1,
             /* -2 (largest odd value) */
             SECP256K1_SCALAR_CONST(0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffeul, 0xbaaedce6ul, 0xaf48a03bul, 0xbfd25e8cul, 0xd036413Ful),
             /* Half the secp256k1 order */
@@ -3302,15 +3313,9 @@ static void run_sqrt(void) {
 
 /***** FIELD/SCALAR INVERSE TESTS *****/
 
-static const secp256k1_scalar scalar_minus_one = SECP256K1_SCALAR_CONST(
-    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE,
-    0xBAAEDCE6, 0xAF48A03B, 0xBFD25E8C, 0xD0364140
-);
+static const secp256k1_scalar scalar_minus_one = EX_SCALAR_N_M1;
 
-static const secp256k1_fe fe_minus_one = SECP256K1_FE_CONST(
-    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
-    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0xFFFFFC2E
-);
+static const secp256k1_fe fe_minus_one = EX_FE_P_M1;
 
 /* These tests test the following identities:
  *
@@ -3377,8 +3382,7 @@ static void run_inverse_tests(void)
         {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1),
          SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1)},
         /* -1 */
-        {SECP256K1_FE_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xfffffc2e),
-         SECP256K1_FE_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xfffffc2e)},
+        {EX_FE_P_M1, EX_FE_P_M1},
         /* 2 */
         {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 2),
          SECP256K1_FE_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x7ffffe18)},
@@ -3482,8 +3486,7 @@ static void run_inverse_tests(void)
         {SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1),
          SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1)},
         /* -1 */
-        {SECP256K1_SCALAR_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xbaaedce6, 0xaf48a03b, 0xbfd25e8c, 0xd0364140),
-         SECP256K1_SCALAR_CONST(0xffffffff, 0xffffffff, 0xffffffff, 0xfffffffe, 0xbaaedce6, 0xaf48a03b, 0xbfd25e8c, 0xd0364140)},
+        {EX_SCALAR_N_M1, EX_SCALAR_N_M1},
         /* 2 */
         {SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 2),
          SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x5d576e73, 0x57a4501d, 0xdfe92f46, 0x681b20a1)},
@@ -7649,10 +7652,7 @@ static void fe_storage_cmov_test(void) {
 }
 
 static void scalar_cmov_test(void) {
-    static const secp256k1_scalar max = SECP256K1_SCALAR_CONST(
-        0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFFUL, 0xFFFFFFFEUL,
-        0xBAAEDCE6UL, 0xAF48A03BUL, 0xBFD25E8CUL, 0xD0364140UL
-    );
+    const secp256k1_scalar max = scalar_n_m1;
     secp256k1_scalar r = max;
     secp256k1_scalar a = secp256k1_scalar_zero;
 
