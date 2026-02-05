@@ -209,8 +209,12 @@ int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pub
     }
     secp256k1_ge_set_gej(&pkp, &pkj);
     secp256k1_fe_normalize_var(&pkp.y);
+#if defined(EXHAUSTIVE_TEST_ORDER)
+    if (secp256k1_ge_is_infinity(&pkp)) return 0;
+#else
     /* The resulting public key is infinity with negligible probability */
     VERIFY_CHECK(!secp256k1_ge_is_infinity(&pkp));
+#endif
     if (keyagg_cache != NULL) {
         secp256k1_keyagg_cache_internal cache_i = { 0 };
         cache_i.pk = pkp;
