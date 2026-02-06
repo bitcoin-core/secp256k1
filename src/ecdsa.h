@@ -12,6 +12,7 @@
 #include "scalar.h"
 #include "group.h"
 #include "ecmult.h"
+#include "ecmult_gen.h"
 
 static int secp256k1_ecdsa_sig_parse(secp256k1_scalar *r, secp256k1_scalar *s, const unsigned char *sig, size_t size);
 static int secp256k1_ecdsa_sig_serialize(unsigned char *sig, size_t *size, const secp256k1_scalar *r, const secp256k1_scalar *s);
