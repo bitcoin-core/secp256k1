@@ -564,7 +564,7 @@ int secp256k1_ellswift_xdh(const secp256k1_context *ctx, unsigned char *output, 
 
     /* Load private key (using one if invalid). */
     secp256k1_scalar_set_b32(&s, seckey32, &overflow);
-    overflow = secp256k1_scalar_is_zero(&s);
+    overflow |= secp256k1_scalar_is_zero(&s);
     secp256k1_scalar_cmov(&s, &secp256k1_scalar_one, overflow);
 
     /* Compute shared X coordinate. */
