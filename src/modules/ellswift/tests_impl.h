@@ -460,6 +460,35 @@ void ellswift_hash_init_tests(void) {
     test_sha256_tag_midstate(&sha_optimized, bip324_tag, sizeof(bip324_tag));
 }
 
+void ellswift_xdh_bad_scalar_tests(void) {
+    unsigned char s_zero[32] = { 0 };
+    unsigned char s_overflow[32] = { 0 };
+    unsigned char s_overflow_plus1[32] = { 0 };
+    unsigned char s_good[32] = { 0 };
+    unsigned char ell_a64[64], ell_b64[64];
+    unsigned char output[32];
+    secp256k1_scalar rand_scalar;
+    int ret;
+
+    testutil_random_scalar_order(&rand_scalar);
+    secp256k1_scalar_get_b32(s_good, &rand_scalar);
+
+    ret = secp256k1_ellswift_create(CTX, ell_a64, s_good, NULL);
+    CHECK(ret);
+
+    testrand256_test(ell_b64);
+    testrand256_test(ell_b64 + 32);
+
+    memcpy(s_overflow, secp256k1_group_order_bytes, 32);
+    memcpy(s_overflow_plus1, secp256k1_group_order_bytes, 32);
+    s_overflow_plus1[31] += 1;
+    CHECK(secp256k1_ellswift_xdh(CTX, output, ell_a64, ell_b64, s_zero, 0, &ellswift_xdh_hash_x32, NULL) == 0);
+    CHECK(secp256k1_ellswift_xdh(CTX, output, ell_a64, ell_b64, s_overflow, 0, &ellswift_xdh_hash_x32, NULL) == 0);
+    CHECK(secp256k1_ellswift_xdh(CTX, output, ell_a64, ell_b64, s_overflow_plus1, 0, &ellswift_xdh_hash_x32, NULL) == 0);
+    s_overflow[31] -= 1;
+    CHECK(secp256k1_ellswift_xdh(CTX, output, ell_a64, ell_b64, s_overflow, 0, &ellswift_xdh_hash_x32, NULL) == 1);
+}
+
 /* --- Test registry --- */
 static const struct tf_test_entry tests_ellswift[] = {
     CASE1(ellswift_encoding_test_vectors_tests),
@@ -470,6 +499,7 @@ static const struct tf_test_entry tests_ellswift[] = {
     CASE1(ellswift_compute_shared_secret_tests),
     CASE1(ellswift_xdh_correctness_tests),
     CASE1(ellswift_hash_init_tests),
+    CASE1(ellswift_xdh_bad_scalar_tests),
 };
 
 #endif
