@@ -629,12 +629,19 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     k_max = (n_tx_outputs < SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT) ?
              n_tx_outputs : SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT;
     /* TODO: potential optimization: the worst-case run-time can be cut in half by randomizing the outputs */
-    /* TODO: improve scanning performance by performing batch inversion for label scanning */
     for (k = 0; k < k_max; k++) {
         secp256k1_scalar t_k_scalar;
         secp256k1_xonly_pubkey unlabeled_output_xonly;
         secp256k1_ge unlabeled_output_ge = unlabeled_spend_pubkey_ge;
         secp256k1_ge unlabeled_output_negated_ge;
+        /* Label scanning involves the transformation from Jacobian (gej) to affine (ge) coordinates
+         * for serializing label candidates. As this is an expensive operation involving modular
+         * inversion, we don't do this one by one for each tx output, but collect multiple label
+         * candidates in Jacobian in order to apply Montgomery's trick for batch inversion (using
+         * the function `secp256k1_ge_set_all_gej_var`). This speeds up scanning significantly (>2x). */
+        enum { LABEL_BATCH_SIZE = 8 }; /* batch size expressed in number of tx outputs */
+        secp256k1_gej label_candidates_gej[2 * LABEL_BATCH_SIZE]; /* two candidates per tx output (one per y-parity) */
+        size_t label_batch_idx = 0; /* current index within a batch */
         const unsigned char *label_tweak = NULL;
         secp256k1_ge label_ge;
         size_t j;
@@ -676,35 +683,50 @@ int secp256k1_silentpayments_recipient_scan_outputs(
             if (label_lookup != NULL) {
                 secp256k1_ge tx_output_ge;
                 secp256k1_gej tx_output_gej;
-                secp256k1_gej label_candidates_gej[2];
-                secp256k1_ge label_candidates_ge[2];
+                secp256k1_gej *label_candidate1 = &label_candidates_gej[2 * label_batch_idx];
+                secp256k1_gej *label_candidate2 = &label_candidates_gej[2 * label_batch_idx + 1];
 
-                secp256k1_xonly_pubkey_load(ctx, &tx_output_ge, tx_outputs[j]);
-                secp256k1_gej_set_ge(&tx_output_gej, &tx_output_ge);
                 /* Calculate scan label candidates:
                  *     label_candidate1 =  tx_output - unlabeled_output
                  *     label_candidate2 = -tx_output - unlabeled_output
-                 */
-                secp256k1_gej_add_ge_var(&label_candidates_gej[0], &tx_output_gej, &unlabeled_output_negated_ge, NULL);
+                 * and store them in the batch */
+                secp256k1_xonly_pubkey_load(ctx, &tx_output_ge, tx_outputs[j]);
+                secp256k1_gej_set_ge(&tx_output_gej, &tx_output_ge);
+                secp256k1_gej_add_ge_var(label_candidate1, &tx_output_gej, &unlabeled_output_negated_ge, NULL);
                 secp256k1_gej_neg(&tx_output_gej, &tx_output_gej);
-                secp256k1_gej_add_ge_var(&label_candidates_gej[1], &tx_output_gej, &unlabeled_output_negated_ge, NULL);
-                secp256k1_ge_set_all_gej_var(label_candidates_ge, label_candidates_gej, 2);
-
-                /* Check if either of the label candidates is in the label cache */
-                for (i = 0; i < 2; i++) {
+                secp256k1_gej_add_ge_var(label_candidate2, &tx_output_gej, &unlabeled_output_negated_ge, NULL);
+                label_batch_idx++;
+                /* If the batch is filled or we have reached the last transaction, perform batch
+                 * inversion and check the label cache for each label candidate entry in the batch */
+                if (label_batch_idx == LABEL_BATCH_SIZE || j == (n_tx_outputs-1)) {
+                    secp256k1_ge label_candidates_ge[2 * LABEL_BATCH_SIZE];
                     unsigned char label33[33];
-                    /* Note: serialize will only fail if label_ge is the point at infinity, but we know this
-                     * cannot happen since we only hit this branch if tx_output != unlabeled_output_xonly.
-                     * Thus, we know that label_ge = tx_output_gej + unlabeled_output_negated_ge cannot be the
-                     * point at infinity.
-                     */
-                    secp256k1_eckey_pubkey_serialize33(&label_candidates_ge[i], label33);
-                    label_tweak = label_lookup(label33, label_context);
-                    if (label_tweak != NULL) {
-                        found_idx = j;
-                        label_ge = label_candidates_ge[i];
-                        break;
+                    size_t j_start = j + 1 - label_batch_idx; /* tx outputs index that matches the first batch entry */
+
+                    secp256k1_ge_set_all_gej_var(label_candidates_ge, label_candidates_gej, 2 * label_batch_idx);
+                    for (i = 0; i < label_batch_idx; i++) {
+                        /* Note: serialize will only fail if label_ge is the point at infinity, but we know this
+                         * cannot happen since we only hit this branch if tx_output != unlabeled_output_xonly.
+                         Thus, we know that label_ge = tx_output_gej + unlabeled_output_negated_ge cannot be the
+                         point at infinity.
+                        */
+                        secp256k1_eckey_pubkey_serialize33(&label_candidates_ge[2 * i], label33);
+                        label_tweak = label_lookup(label33, label_context);
+                        if (label_tweak != NULL) {
+                            found_idx = j_start + i;
+                            label_ge = label_candidates_ge[2 * i];
+                            break;
+                        }
+
+                        secp256k1_eckey_pubkey_serialize33(&label_candidates_ge[2 * i + 1], label33);
+                        label_tweak = label_lookup(label33, label_context);
+                        if (label_tweak != NULL) {
+                            found_idx = j_start + i;
+                            label_ge = label_candidates_ge[2 * i + 1];
+                            break;
+                        }
                     }
+                    label_batch_idx = 0;
                 }
                 if (found_idx != -1) {
                     break;
