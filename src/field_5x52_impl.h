@@ -14,6 +14,10 @@
 
 #include "field_5x52_int128_impl.h"
 
+#ifdef X86
+# include <immintrin.h>
+#endif
+
 #ifdef VERIFY
 static void secp256k1_fe_impl_verify(const secp256k1_fe *a) {
     const uint64_t *d = a->n;
@@ -33,11 +37,20 @@ static void secp256k1_fe_impl_verify(const secp256k1_fe *a) {
 #endif
 
 static void secp256k1_fe_impl_get_bounds(secp256k1_fe *r, int m) {
-    r->n[0] = 0xFFFFFFFFFFFFFULL * 2 * m;
-    r->n[1] = 0xFFFFFFFFFFFFFULL * 2 * m;
-    r->n[2] = 0xFFFFFFFFFFFFFULL * 2 * m;
-    r->n[3] = 0xFFFFFFFFFFFFFULL * 2 * m;
-    r->n[4] = 0x0FFFFFFFFFFFFULL * 2 * m;
+    const uint64_t two_m = 2 * m;
+    const uint64_t bound1 = 0xFFFFFFFFFFFFFULL * two_m;
+    const uint64_t bound2 = 0x0FFFFFFFFFFFFULL * two_m;
+
+#ifdef __AVX__
+    __m256i vec = _mm256_set1_epi64x(bound1);
+    _mm256_storeu_si256((__m256i *)r->n, vec);
+#else
+    r->n[0] = bound1;
+    r->n[1] = bound1;
+    r->n[2] = bound1;
+    r->n[3] = bound1;
+#endif
+    r->n[4] = bound2;
 }
 
 static void secp256k1_fe_impl_normalize(secp256k1_fe *r) {
@@ -199,8 +212,8 @@ static int secp256k1_fe_impl_normalizes_to_zero_var(const secp256k1_fe *r) {
 }
 
 SECP256K1_INLINE static void secp256k1_fe_impl_set_int(secp256k1_fe *r, int a) {
+    memset(r->n, 0, sizeof(r->n));
     r->n[0] = a;
-    r->n[1] = r->n[2] = r->n[3] = r->n[4] = 0;
 }
 
 SECP256K1_INLINE static int secp256k1_fe_impl_is_zero(const secp256k1_fe *a) {
@@ -214,52 +227,35 @@ SECP256K1_INLINE static int secp256k1_fe_impl_is_odd(const secp256k1_fe *a) {
 
 static int secp256k1_fe_impl_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
     int i;
+    int8_t diff;
     for (i = 4; i >= 0; i--) {
-        if (a->n[i] > b->n[i]) {
-            return 1;
-        }
-        if (a->n[i] < b->n[i]) {
-            return -1;
+        diff = (a->n[i] > b->n[i]) - (a->n[i] < b->n[i]);
+        if (diff != 0) {
+            return diff;
         }
     }
     return 0;
 }
 
 static void secp256k1_fe_impl_set_b32_mod(secp256k1_fe *r, const unsigned char *a) {
-    r->n[0] = (uint64_t)a[31]
-            | ((uint64_t)a[30] << 8)
-            | ((uint64_t)a[29] << 16)
-            | ((uint64_t)a[28] << 24)
-            | ((uint64_t)a[27] << 32)
-            | ((uint64_t)a[26] << 40)
-            | ((uint64_t)(a[25] & 0xF)  << 48);
-    r->n[1] = (uint64_t)((a[25] >> 4) & 0xF)
-            | ((uint64_t)a[24] << 4)
-            | ((uint64_t)a[23] << 12)
-            | ((uint64_t)a[22] << 20)
-            | ((uint64_t)a[21] << 28)
-            | ((uint64_t)a[20] << 36)
-            | ((uint64_t)a[19] << 44);
-    r->n[2] = (uint64_t)a[18]
-            | ((uint64_t)a[17] << 8)
-            | ((uint64_t)a[16] << 16)
-            | ((uint64_t)a[15] << 24)
-            | ((uint64_t)a[14] << 32)
-            | ((uint64_t)a[13] << 40)
-            | ((uint64_t)(a[12] & 0xF) << 48);
-    r->n[3] = (uint64_t)((a[12] >> 4) & 0xF)
-            | ((uint64_t)a[11] << 4)
-            | ((uint64_t)a[10] << 12)
-            | ((uint64_t)a[9]  << 20)
-            | ((uint64_t)a[8]  << 28)
-            | ((uint64_t)a[7]  << 36)
-            | ((uint64_t)a[6]  << 44);
-    r->n[4] = (uint64_t)a[5]
-            | ((uint64_t)a[4] << 8)
-            | ((uint64_t)a[3] << 16)
-            | ((uint64_t)a[2] << 24)
-            | ((uint64_t)a[1] << 32)
-            | ((uint64_t)a[0] << 40);
+    uint64_t limbs[4];
+    memcpy(limbs, a, 32);
+
+#ifdef SECP256K1_LITTLE_ENDIAN
+    limbs[0] = BYTESWAP_64(limbs[0]);
+    limbs[1] = BYTESWAP_64(limbs[1]);
+    limbs[2] = BYTESWAP_64(limbs[2]);
+    limbs[3] = BYTESWAP_64(limbs[3]);
+#endif
+
+    /* TODO: parallelize avx2 */
+
+    r->n[0] =                     (limbs[3] & 0xFFFFFFFFFFFFFULL);
+    r->n[1] = (limbs[3] >> 52) | ((limbs[2] & 0xFFFFFFFFFFULL) << 12);
+    r->n[2] = (limbs[2] >> 40) | ((limbs[1] & 0xFFFFFFFULL) << 24);
+    r->n[3] = (limbs[1] >> 28) | ((limbs[0] & 0xFFFFULL) << 36);
+
+    r->n[4] = (limbs[0] >> 16) & 0xFFFFFFFFFFFFULL;
 }
 
 static int secp256k1_fe_impl_set_b32_limit(secp256k1_fe *r, const unsigned char *a) {
@@ -269,53 +265,72 @@ static int secp256k1_fe_impl_set_b32_limit(secp256k1_fe *r, const unsigned char 
 
 /** Convert a field element to a 32-byte big endian value. Requires the input to be normalized */
 static void secp256k1_fe_impl_get_b32(unsigned char *r, const secp256k1_fe *a) {
-    r[0] = (a->n[4] >> 40) & 0xFF;
-    r[1] = (a->n[4] >> 32) & 0xFF;
-    r[2] = (a->n[4] >> 24) & 0xFF;
-    r[3] = (a->n[4] >> 16) & 0xFF;
-    r[4] = (a->n[4] >> 8) & 0xFF;
-    r[5] = a->n[4] & 0xFF;
-    r[6] = (a->n[3] >> 44) & 0xFF;
-    r[7] = (a->n[3] >> 36) & 0xFF;
-    r[8] = (a->n[3] >> 28) & 0xFF;
-    r[9] = (a->n[3] >> 20) & 0xFF;
-    r[10] = (a->n[3] >> 12) & 0xFF;
-    r[11] = (a->n[3] >> 4) & 0xFF;
-    r[12] = ((a->n[2] >> 48) & 0xF) | ((a->n[3] & 0xF) << 4);
-    r[13] = (a->n[2] >> 40) & 0xFF;
-    r[14] = (a->n[2] >> 32) & 0xFF;
-    r[15] = (a->n[2] >> 24) & 0xFF;
-    r[16] = (a->n[2] >> 16) & 0xFF;
-    r[17] = (a->n[2] >> 8) & 0xFF;
-    r[18] = a->n[2] & 0xFF;
-    r[19] = (a->n[1] >> 44) & 0xFF;
-    r[20] = (a->n[1] >> 36) & 0xFF;
-    r[21] = (a->n[1] >> 28) & 0xFF;
-    r[22] = (a->n[1] >> 20) & 0xFF;
-    r[23] = (a->n[1] >> 12) & 0xFF;
-    r[24] = (a->n[1] >> 4) & 0xFF;
-    r[25] = ((a->n[0] >> 48) & 0xF) | ((a->n[1] & 0xF) << 4);
-    r[26] = (a->n[0] >> 40) & 0xFF;
-    r[27] = (a->n[0] >> 32) & 0xFF;
-    r[28] = (a->n[0] >> 24) & 0xFF;
-    r[29] = (a->n[0] >> 16) & 0xFF;
-    r[30] = (a->n[0] >> 8) & 0xFF;
-    r[31] = a->n[0] & 0xFF;
+    const uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4];
+
+    r[0] = (a4 >> 40) & 0xFF;
+    r[1] = (a4 >> 32) & 0xFF;
+    r[2] = (a4 >> 24) & 0xFF;
+    r[3] = (a4 >> 16) & 0xFF;
+    r[4] = (a4 >> 8) & 0xFF;
+    r[5] = a4 & 0xFF;
+    r[6] = (a3 >> 44) & 0xFF;
+    r[7] = (a3 >> 36) & 0xFF;
+    r[8] = (a3 >> 28) & 0xFF;
+    r[9] = (a3 >> 20) & 0xFF;
+    r[10] = (a3 >> 12) & 0xFF;
+    r[11] = (a3 >> 4) & 0xFF;
+    r[12] = ((a2 >> 48) & 0xF) | ((a3 & 0xF) << 4);
+    r[13] = (a2 >> 40) & 0xFF;
+    r[14] = (a2 >> 32) & 0xFF;
+    r[15] = (a2 >> 24) & 0xFF;
+    r[16] = (a2 >> 16) & 0xFF;
+    r[17] = (a2 >> 8) & 0xFF;
+    r[18] = a2 & 0xFF;
+    r[19] = (a1 >> 44) & 0xFF;
+    r[20] = (a1 >> 36) & 0xFF;
+    r[21] = (a1 >> 28) & 0xFF;
+    r[22] = (a1 >> 20) & 0xFF;
+    r[23] = (a1 >> 12) & 0xFF;
+    r[24] = (a1 >> 4) & 0xFF;
+    r[25] = ((a0 >> 48) & 0xF) | ((a1 & 0xF) << 4);
+    r[26] = (a0 >> 40) & 0xFF;
+    r[27] = (a0 >> 32) & 0xFF;
+    r[28] = (a0 >> 24) & 0xFF;
+    r[29] = (a0 >> 16) & 0xFF;
+    r[30] = (a0 >> 8) & 0xFF;
+    r[31] = a0 & 0xFF;
 }
 
 SECP256K1_INLINE static void secp256k1_fe_impl_negate_unchecked(secp256k1_fe *r, const secp256k1_fe *a, int m) {
+#if defined(__AVX__) && defined(__AVX2__)
+    /* load here to mitigate load latency */
+    __m256i vec_a = _mm256_loadu_si256((__m256i *)a->n);
+#endif
+    const uint32_t two_m1 = 2 * (m + 1);
+    const uint64_t bound1 = 0xFFFFEFFFFFC2FULL * two_m1;
+    const uint64_t bound2 = 0xFFFFFFFFFFFFFULL * two_m1;
+    const uint64_t bound3 = 0x0FFFFFFFFFFFFULL * two_m1;
+    
     /* For all legal values of m (0..31), the following properties hold: */
-    VERIFY_CHECK(0xFFFFEFFFFFC2FULL * 2 * (m + 1) >= 0xFFFFFFFFFFFFFULL * 2 * m);
-    VERIFY_CHECK(0xFFFFFFFFFFFFFULL * 2 * (m + 1) >= 0xFFFFFFFFFFFFFULL * 2 * m);
-    VERIFY_CHECK(0x0FFFFFFFFFFFFULL * 2 * (m + 1) >= 0x0FFFFFFFFFFFFULL * 2 * m);
+    VERIFY_CHECK(bound1 >= 0xFFFFFFFFFFFFFULL * 2 * m);
+    VERIFY_CHECK(bound2 >= 0xFFFFFFFFFFFFFULL * 2 * m);
+    VERIFY_CHECK(bound3 >= 0x0FFFFFFFFFFFFULL * 2 * m);
 
     /* Due to the properties above, the left hand in the subtractions below is never less than
      * the right hand. */
-    r->n[0] = 0xFFFFEFFFFFC2FULL * 2 * (m + 1) - a->n[0];
-    r->n[1] = 0xFFFFFFFFFFFFFULL * 2 * (m + 1) - a->n[1];
-    r->n[2] = 0xFFFFFFFFFFFFFULL * 2 * (m + 1) - a->n[2];
-    r->n[3] = 0xFFFFFFFFFFFFFULL * 2 * (m + 1) - a->n[3];
-    r->n[4] = 0x0FFFFFFFFFFFFULL * 2 * (m + 1) - a->n[4];
+#if defined(__AVX__) && defined(__AVX2__)
+    {
+        __m256i vec_bounds = _mm256_setr_epi64x(bound1, bound2, bound2, bound2);
+        __m256i out = _mm256_sub_epi64(vec_bounds, vec_a);
+        _mm256_storeu_si256((__m256i *)r->n, out);
+    }
+#else
+    r->n[0] = bound1 - a->n[0];
+    r->n[1] = bound2 - a->n[1];
+    r->n[2] = bound2 - a->n[2];
+    r->n[3] = bound2 - a->n[3];
+#endif
+    r->n[4] = bound3 - a->n[4];
 }
 
 SECP256K1_INLINE static void secp256k1_fe_impl_mul_int_unchecked(secp256k1_fe *r, int a) {
@@ -347,16 +362,33 @@ SECP256K1_INLINE static void secp256k1_fe_impl_sqr(secp256k1_fe *r, const secp25
 }
 
 SECP256K1_INLINE static void secp256k1_fe_impl_cmov(secp256k1_fe *r, const secp256k1_fe *a, int flag) {
+#if defined(__AVX__) && defined(__AVX2__)
+    /* load here to mitigate load latency */
+    __m256i vec_r = _mm256_loadu_si256((__m256i *)(r->n));
+    __m256i vec_a = _mm256_loadu_si256((__m256i *)(a->n));
+#endif
+
     uint64_t mask0, mask1;
     volatile int vflag = flag;
     VERIFY_CHECK(flag == 0 || flag == 1);
     SECP256K1_CHECKMEM_CHECK_VERIFY(r->n, sizeof(r->n));
     mask0 = vflag + ~((uint64_t)0);
     mask1 = ~mask0;
+
+#if defined(__AVX__) && defined(__AVX2__)
+    {
+        __m256i vec_mask0 = _mm256_set1_epi64x(mask0);
+        __m256i vec_mask1 = _mm256_set1_epi64x(mask1);
+        vec_r = _mm256_and_si256(vec_r, vec_mask0);
+        vec_a = _mm256_and_si256(vec_a, vec_mask1);
+        _mm256_storeu_si256((__m256i *)r->n, _mm256_or_si256(vec_r, vec_a));
+    }
+#else
     r->n[0] = (r->n[0] & mask0) | (a->n[0] & mask1);
     r->n[1] = (r->n[1] & mask0) | (a->n[1] & mask1);
     r->n[2] = (r->n[2] & mask0) | (a->n[2] & mask1);
     r->n[3] = (r->n[3] & mask0) | (a->n[3] & mask1);
+#endif
     r->n[4] = (r->n[4] & mask0) | (a->n[4] & mask1);
 }
 
@@ -428,18 +460,43 @@ static SECP256K1_INLINE void secp256k1_fe_storage_cmov(secp256k1_fe_storage *r, 
 }
 
 static void secp256k1_fe_impl_to_storage(secp256k1_fe_storage *r, const secp256k1_fe *a) {
-    r->n[0] = a->n[0] | a->n[1] << 52;
+#if defined(__AVX__) && defined(__AVX2__)
+    __m256i limbs_0123 = _mm256_loadu_si256((__m256i *)a->n);
+    __m256i limbs_1234 = _mm256_loadu_si256((__m256i *)(a->n + 1));
+    const __m256i shift_lhs = _mm256_setr_epi64x(0, 12, 24, 36); /* TODO: precompute */
+    const __m256i shift_rhs = _mm256_setr_epi64x(52, 40, 28, 16); /* TODO: precompute */
+    __m256i rhs = _mm256_sllv_epi64(limbs_1234, shift_rhs);
+    __m256i lhs = _mm256_srlv_epi64(limbs_0123, shift_lhs);
+    _mm256_storeu_si256((__m256i *)r->n, _mm256_or_si256(lhs, rhs));
+#else
+    r->n[0] = a->n[0]       | a->n[1] << 52;
     r->n[1] = a->n[1] >> 12 | a->n[2] << 40;
     r->n[2] = a->n[2] >> 24 | a->n[3] << 28;
     r->n[3] = a->n[3] >> 36 | a->n[4] << 16;
+#endif
 }
 
 static SECP256K1_INLINE void secp256k1_fe_impl_from_storage(secp256k1_fe *r, const secp256k1_fe_storage *a) {
-    r->n[0] = a->n[0] & 0xFFFFFFFFFFFFFULL;
-    r->n[1] = a->n[0] >> 52 | ((a->n[1] << 12) & 0xFFFFFFFFFFFFFULL);
-    r->n[2] = a->n[1] >> 40 | ((a->n[2] << 24) & 0xFFFFFFFFFFFFFULL);
-    r->n[3] = a->n[2] >> 28 | ((a->n[3] << 36) & 0xFFFFFFFFFFFFFULL);
-    r->n[4] = a->n[3] >> 16;
+    const uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3];
+
+#if defined(__AVX__) && defined(__AVX2__)
+    {
+        __m256i limbs_0123 = _mm256_setr_epi64x(a0, a1, a2, a3);
+        __m256i limbs_0012 = _mm256_setr_epi64x(a0, a0, a1, a2);
+        const __m256i shift_lhs = _mm256_setr_epi64x(64, 52, 40, 28); /* TODO: precompute */
+        const __m256i shift_rhs = _mm256_setr_epi64x(0, 12, 24, 36); /* TODO: precompute */
+        const __m256i mask52 = _mm256_set1_epi64x(0xFFFFFFFFFFFFFULL); /* TODO: precompute */
+        __m256i rhs = _mm256_and_si256(_mm256_sllv_epi64(limbs_0123, shift_rhs), mask52);
+        __m256i lhs = _mm256_srlv_epi64(limbs_0012, shift_lhs);
+        _mm256_storeu_si256((__m256i*)r->n, _mm256_or_si256(lhs, rhs));
+    }
+#else
+    r->n[0] = a0 & 0xFFFFFFFFFFFFFULL;
+    r->n[1] = a0 >> 52 | ((a1 << 12) & 0xFFFFFFFFFFFFFULL);
+    r->n[2] = a1 >> 40 | ((a2 << 24) & 0xFFFFFFFFFFFFFULL);
+    r->n[3] = a2 >> 28 | ((a3 << 36) & 0xFFFFFFFFFFFFFULL);
+#endif
+    r->n[4] = a3 >> 16;
 }
 
 static void secp256k1_fe_from_signed62(secp256k1_fe *r, const secp256k1_modinv64_signed62 *a) {
@@ -455,10 +512,24 @@ static void secp256k1_fe_from_signed62(secp256k1_fe *r, const secp256k1_modinv64
     VERIFY_CHECK(a3 >> 62 == 0);
     VERIFY_CHECK(a4 >> 8 == 0);
 
+#if defined(__AVX__) && defined(__AVX2__)
+    {
+        __m256i limbs_0123 = _mm256_setr_epi64x(a0, a1, a2, a3);
+        __m256i limbs_0012 = _mm256_setr_epi64x(a0, a0, a1, a2);
+        const __m256i shift_lhs = _mm256_setr_epi64x(64, 52, 42, 32); /*TODO: precompute */
+        const __m256i shift_rhs = _mm256_setr_epi64x(0, 10, 20, 30); /*TODO: precompute */
+        const __m256i mask52 = _mm256_set1_epi64x(M52); /*TODO: precompute */
+        __m256i rhs = _mm256_sllv_epi64(limbs_0123, shift_rhs);
+        __m256i lhs = _mm256_srlv_epi64(limbs_0012, shift_lhs);
+        __m256i out = _mm256_or_si256(lhs, rhs);
+        _mm256_storeu_si256((__m256i*)r->n, _mm256_and_si256(out, mask52));
+    }
+#else
     r->n[0] =  a0                   & M52;
     r->n[1] = (a0 >> 52 | a1 << 10) & M52;
     r->n[2] = (a1 >> 42 | a2 << 20) & M52;
     r->n[3] = (a2 >> 32 | a3 << 30) & M52;
+#endif
     r->n[4] = (a3 >> 22 | a4 << 40);
 }
 
@@ -466,10 +537,24 @@ static void secp256k1_fe_to_signed62(secp256k1_modinv64_signed62 *r, const secp2
     const uint64_t M62 = UINT64_MAX >> 2;
     const uint64_t a0 = a->n[0], a1 = a->n[1], a2 = a->n[2], a3 = a->n[3], a4 = a->n[4];
 
+#if defined(__AVX__) && defined(__AVX2__)
+    {
+        __m256i limbs_0123 = _mm256_setr_epi64x(a0, a1, a2, a3);
+        __m256i limbs_1234 = _mm256_setr_epi64x(a1, a2, a3, a4);
+        const __m256i shift_lhs = _mm256_setr_epi64x(0, 10, 20, 30); /*TODO: precompute */
+        const __m256i shift_rhs = _mm256_setr_epi64x(52, 42, 32, 22); /*TODO: precompute */
+        const __m256i mask62 = _mm256_set1_epi64x(M62); /*TODO: precompute */
+        __m256i lhs = _mm256_srlv_epi64(limbs_0123, shift_lhs);
+        __m256i rhs = _mm256_sllv_epi64(limbs_1234, shift_rhs);
+        __m256i out = _mm256_or_si256(lhs, rhs);
+        _mm256_storeu_si256((__m256i *)r->v, _mm256_and_si256(out, mask62));
+    }
+#else
     r->v[0] = (a0       | a1 << 52) & M62;
     r->v[1] = (a1 >> 10 | a2 << 42) & M62;
     r->v[2] = (a2 >> 20 | a3 << 32) & M62;
     r->v[3] = (a3 >> 30 | a4 << 22) & M62;
+#endif
     r->v[4] =  a4 >> 40;
 }
 

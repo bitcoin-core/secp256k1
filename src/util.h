@@ -20,6 +20,37 @@
 #include <Windows.h>
 #endif
 
+/* endianess detection macro */
+#if defined(_MSC_VER)
+# define SECP256K1_LITTLE_ENDIAN
+#elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#  define SECP256K1_LITTLE_ENDIAN
+#elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#  define SECP256K1_BIG_ENDIAN
+#else
+# error "Cannot detect endianness" /* GCC <4.6 or embedded compilers */
+#endif
+
+/* Byteswap intrinsics */
+#if defined(_MSC_VER)
+# define BYTESWAP_16(x) _byteswap_ushort(x)
+# define BYTESWAP_32(x) _byteswap_ulong(x)
+# define BYTESWAP_64(x) _byteswap_uint64(x)
+#elif defined(__has_builtin) && __has_builtin(__builtin_bswap16) && __has_builtin(__builtin_bswap32) && __has_builtin(__builtin_bswap64)
+# define BYTESWAP_16(x) __builtin_bswap16(x)
+# define BYTESWAP_32(x) __builtin_bswap32(x)
+# define BYTESWAP_64(x) __builtin_bswap64(x)
+#else
+# define BYTESWAP_16(x) (((x) >> 8)  | ((x)  << 8))
+# define BYTESWAP_32(x) (((x) >> 24) | (((x) >> 8)  & 0xFF00) | (((x) << 8)  & 0xFF0000) | ((x)  << 24))
+# define BYTESWAP_64(x) (((x) >> 56) | (((x) >> 40) & 0xFF00) | (((x) >> 24) & 0xFF0000) | (((x) >> 8) & 0xFF000000ULL) | (((x) << 8) & 0xFF00000000ULL) | (((x) << 24) & 0xFF0000000000ULL) | (((x) << 40) & 0xFF000000000000ULL) | ((x) << 56) )
+#endif
+
+/* X86 detection macro */
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+# define X86
+#endif
+
 #define STR_(x) #x
 #define STR(x) STR_(x)
 #define DEBUG_CONFIG_MSG(x) "DEBUG_CONFIG: " x
@@ -414,42 +445,38 @@ static SECP256K1_INLINE int secp256k1_ctz64_var(uint64_t x) {
 
 /* Read a uint32_t in big endian */
 SECP256K1_INLINE static uint32_t secp256k1_read_be32(const unsigned char* p) {
-    return (uint32_t)p[0] << 24 |
-           (uint32_t)p[1] << 16 |
-           (uint32_t)p[2] << 8  |
-           (uint32_t)p[3];
+    uint32_t x;
+    memcpy(&x, p, sizeof(x));
+#ifdef SECP256K1_LITTLE_ENDIAN
+    x = BYTESWAP_32(x);
+#endif
+    return x;
 }
 
 /* Write a uint32_t in big endian */
 SECP256K1_INLINE static void secp256k1_write_be32(unsigned char* p, uint32_t x) {
-    p[3] = x;
-    p[2] = x >>  8;
-    p[1] = x >> 16;
-    p[0] = x >> 24;
+#ifdef SECP256K1_LITTLE_ENDIAN
+    x = BYTESWAP_32(x);
+#endif
+    memcpy(p, &x, sizeof(x));
 }
 
 /* Read a uint64_t in big endian */
 SECP256K1_INLINE static uint64_t secp256k1_read_be64(const unsigned char* p) {
-    return (uint64_t)p[0] << 56 |
-           (uint64_t)p[1] << 48 |
-           (uint64_t)p[2] << 40 |
-           (uint64_t)p[3] << 32 |
-           (uint64_t)p[4] << 24 |
-           (uint64_t)p[5] << 16 |
-           (uint64_t)p[6] << 8  |
-           (uint64_t)p[7];
+    uint64_t x;
+    memcpy(&x, p, sizeof(x));
+#ifdef SECP256K1_LITTLE_ENDIAN
+    x = BYTESWAP_64(x);
+#endif
+    return x;
 }
 
 /* Write a uint64_t in big endian */
 SECP256K1_INLINE static void secp256k1_write_be64(unsigned char* p, uint64_t x) {
-    p[7] = x;
-    p[6] = x >>  8;
-    p[5] = x >> 16;
-    p[4] = x >> 24;
-    p[3] = x >> 32;
-    p[2] = x >> 40;
-    p[1] = x >> 48;
-    p[0] = x >> 56;
+#ifdef SECP256K1_LITTLE_ENDIAN
+    x = BYTESWAP_64(x);
+#endif
+    memcpy(p, &x, sizeof(x));
 }
 
 /* Rotate a uint32_t to the right. */
