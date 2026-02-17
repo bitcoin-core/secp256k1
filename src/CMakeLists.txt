@@ -64,7 +64,7 @@ add_library(secp256k1_objs INTERFACE)
 target_sources(secp256k1_objs INTERFACE $<TARGET_OBJECTS:secp256k1> $<TARGET_OBJECTS:secp256k1_precomputed>)
 
 add_library(secp256k1_asm INTERFACE)
-if(SECP256K1_ASM STREQUAL "arm32")
+if(SECP256K1_USE_EXTERNAL_ASM)
   add_library(secp256k1_asm_arm OBJECT EXCLUDE_FROM_ALL)
   target_sources(secp256k1_asm_arm PUBLIC
     asm/field_10x26_arm.s
