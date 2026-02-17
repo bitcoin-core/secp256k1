@@ -8,8 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <time.h>
-
 #ifdef USE_EXTERNAL_DEFAULT_CALLBACKS
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in tests.")
     #undef USE_EXTERNAL_DEFAULT_CALLBACKS
@@ -30,12 +28,6 @@
 
 #include "../contrib/lax_der_parsing.c"
 #include "../contrib/lax_der_privatekey_parsing.c"
-
-#include "modinv32_impl.h"
-#ifdef SECP256K1_WIDEMUL_INT128
-#include "modinv64_impl.h"
-#include "int128_impl.h"
-#endif
 
 #define CONDITIONAL_TEST(cnt, nam) if (COUNT < (cnt)) { printf("Skipping %s (iteration count too low)\n", nam); } else
 
@@ -370,11 +362,9 @@ static void run_scratch_tests(void) {
     secp256k1_scratch_space *scratch;
     secp256k1_scratch_space local_scratch;
 
-    /* Test public API */
-    scratch = secp256k1_scratch_space_create(CTX, 1000);
-    CHECK(scratch != NULL);
-
     /* Test internal API */
+    scratch = secp256k1_scratch_create(&CTX->error_callback, 1000);
+    CHECK(scratch != NULL);
     CHECK(secp256k1_scratch_max_allocation(&CTX->error_callback, scratch, 0) == 1000);
     CHECK(secp256k1_scratch_max_allocation(&CTX->error_callback, scratch, 1) == 1000 - (ALIGNMENT - 1));
     CHECK(scratch->alloc_size == 0);
@@ -409,15 +399,15 @@ static void run_scratch_tests(void) {
     CHECK_ERROR_VOID(CTX, secp256k1_scratch_apply_checkpoint(&CTX->error_callback, scratch, (size_t) -1)); /* this is just wildly invalid */
 
     /* try to use badly initialized scratch space */
-    secp256k1_scratch_space_destroy(CTX, scratch);
+    secp256k1_scratch_destroy(&CTX->error_callback, scratch);
     memset(&local_scratch, 0, sizeof(local_scratch));
     scratch = &local_scratch;
     CHECK_ERROR(CTX, secp256k1_scratch_max_allocation(&CTX->error_callback, scratch, 0));
     CHECK_ERROR(CTX, secp256k1_scratch_alloc(&CTX->error_callback, scratch, 500));
-    CHECK_ERROR_VOID(CTX, secp256k1_scratch_space_destroy(CTX, scratch));
+    CHECK_ERROR_VOID(CTX, secp256k1_scratch_destroy(&CTX->error_callback, scratch));
 
     /* Test that large integers do not wrap around in a bad way */
-    scratch = secp256k1_scratch_space_create(CTX, 1000);
+    scratch = secp256k1_scratch_create(&CTX->error_callback, 1000);
     /* Try max allocation with a large number of objects. Only makes sense if
      * ALIGNMENT is greater than 1 because otherwise the objects take no extra
      * space. */
@@ -426,10 +416,10 @@ static void run_scratch_tests(void) {
      * ALIGNMENT > 1, otherwise it returns NULL anyway because the scratch
      * space is too small. */
     CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, SIZE_MAX) == NULL);
-    secp256k1_scratch_space_destroy(CTX, scratch);
+    secp256k1_scratch_destroy(&CTX->error_callback, scratch);
 
     /* cleanup */
-    secp256k1_scratch_space_destroy(CTX, NULL); /* no-op */
+    secp256k1_scratch_destroy(&CTX->error_callback, NULL); /* no-op */
 }
 
 static void run_ctz_tests(void) {
@@ -5509,7 +5499,7 @@ static void test_ecmult_constants_2bit(void) {
     secp256k1_sha256 acc;
     unsigned char b32[32];
     int i, j;
-    secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(CTX, 65536);
+    secp256k1_scratch_space *scratch = secp256k1_scratch_create(&CTX->error_callback, 65536);
 
     /* Expected hash of all the computed points; created with an independent
      * implementation. */
@@ -5537,7 +5527,7 @@ static void test_ecmult_constants_2bit(void) {
     secp256k1_sha256_finalize(&acc, b32);
     CHECK(secp256k1_memcmp_var(b32, expected32, 32) == 0);
 
-    secp256k1_scratch_space_destroy(CTX, scratch);
+    secp256k1_scratch_destroy(&CTX->error_callback, scratch);
 }
 
 static void test_ecmult_constants_sha(uint32_t prefix, size_t iter, const unsigned char* expected32) {
@@ -5553,7 +5543,7 @@ static void test_ecmult_constants_sha(uint32_t prefix, size_t iter, const unsign
     unsigned char b32[32];
     unsigned char inp[6];
     size_t i;
-    secp256k1_scratch_space *scratch = secp256k1_scratch_space_create(CTX, 65536);
+    secp256k1_scratch_space *scratch = secp256k1_scratch_create(&CTX->error_callback, 65536);
 
     inp[0] = prefix & 0xFF;
     inp[1] = (prefix >> 8) & 0xFF;
@@ -5580,7 +5570,7 @@ static void test_ecmult_constants_sha(uint32_t prefix, size_t iter, const unsign
     secp256k1_sha256_finalize(&acc, b32);
     CHECK(secp256k1_memcmp_var(b32, expected32, 32) == 0);
 
-    secp256k1_scratch_space_destroy(CTX, scratch);
+    secp256k1_scratch_destroy(&CTX->error_callback, scratch);
 }
 
 static void run_ecmult_constants(void) {

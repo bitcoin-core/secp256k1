@@ -20,23 +20,30 @@
 #include "../include/secp256k1.h"
 #include "../include/secp256k1_preallocated.h"
 
+#include "secp256k1_internal.h"
+
 #include "assumptions.h"
 #include "checkmem.h"
 #include "util.h"
 
-#include "field_impl.h"
-#include "scalar_impl.h"
-#include "group_impl.h"
-#include "ecmult_impl.h"
-#include "ecmult_const_impl.h"
-#include "ecmult_gen_impl.h"
 #include "ecdsa_impl.h"
 #include "eckey_impl.h"
+#include "ecmult_const_impl.h"
+#include "ecmult_gen_impl.h"
+#include "ecmult_impl.h"
+#include "field_impl.h"
+#include "group_impl.h"
 #include "hash_impl.h"
-#include "int128_impl.h"
-#include "scratch_impl.h"
-#include "selftest.h"
 #include "hsort_impl.h"
+#include "int128_impl.h"
+#include "modinv32_impl.h"
+#ifdef SECP256K1_WIDEMUL_INT128
+/* modinv64 is only available if we have an int128 implementation. */
+#include "modinv64_impl.h"
+#endif
+#include "scalar_impl.h"
+#include "scratch_impl.h"
+#include "selftest_impl.h"
 
 #ifdef SECP256K1_NO_BUILD
 # error "secp256k1.h processed without SECP256K1_BUILD defined while building secp256k1.c"
@@ -74,11 +81,6 @@ static const secp256k1_context secp256k1_context_static_ = {
 const secp256k1_context * const secp256k1_context_static = &secp256k1_context_static_;
 const secp256k1_context * const secp256k1_context_no_precomp = &secp256k1_context_static_;
 
-/* Helper function that determines if a context is proper, i.e., is not the static context or a copy thereof.
- *
- * This is intended for "context" functions such as secp256k1_context_clone. Functions that need specific
- * features of a context should still check for these features directly. For example, a function that needs
- * ecmult_gen should directly check for the existence of the ecmult_gen context. */
 static int secp256k1_context_is_proper(const secp256k1_context* ctx) {
     return secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx);
 }
@@ -220,19 +222,6 @@ void secp256k1_context_set_error_callback(secp256k1_context* ctx, void (*fun)(co
     ctx->error_callback.data = data;
 }
 
-static secp256k1_scratch_space* secp256k1_scratch_space_create(const secp256k1_context* ctx, size_t max_size) {
-    VERIFY_CHECK(ctx != NULL);
-    return secp256k1_scratch_create(&ctx->error_callback, max_size);
-}
-
-static void secp256k1_scratch_space_destroy(const secp256k1_context *ctx, secp256k1_scratch_space* scratch) {
-    VERIFY_CHECK(ctx != NULL);
-    secp256k1_scratch_destroy(&ctx->error_callback, scratch);
-}
-
-/* Mark memory as no-longer-secret for the purpose of analysing constant-time behaviour
- *  of the software.
- */
 static SECP256K1_INLINE void secp256k1_declassify(const secp256k1_context* ctx, const void *p, size_t len) {
     if (EXPECT(ctx->declassify, 0)) SECP256K1_CHECKMEM_DEFINE(p, len);
 }

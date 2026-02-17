@@ -8,6 +8,7 @@
 #define SECP256K1_HSORT_IMPL_H
 
 #include "hsort.h"
+#include "util.h"
 
 /* An array is a heap when, for all non-zero indexes i, the element at index i
  * compares as less than or equal to the element at index parent(i) = (i-1)/2.

@@ -8,7 +8,9 @@
 #define SECP256K1_SCALAR_REPR_IMPL_H
 
 #include "checkmem.h"
-#include "modinv32_impl.h"
+#include "modinv32.h"
+#include "scalar.h"
+#include "scalar_8x32.h"
 #include "util.h"
 
 /* Limbs of the secp256k1 order. */
