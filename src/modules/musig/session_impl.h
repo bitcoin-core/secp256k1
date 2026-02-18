@@ -309,31 +309,21 @@ static void secp256k1_nonce_function_musig_helper(secp256k1_sha256 *sha, unsigne
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("MuSig/aux")||SHA256("MuSig/aux"). */
 static void secp256k1_nonce_function_musig_sha256_tagged_aux(secp256k1_sha256 *sha) {
-    secp256k1_sha256_initialize(sha);
-    sha->s[0] = 0xa19e884bul;
-    sha->s[1] = 0xf463fe7eul;
-    sha->s[2] = 0x2f18f9a2ul;
-    sha->s[3] = 0xbeb0f9fful;
-    sha->s[4] = 0x0f37e8b0ul;
-    sha->s[5] = 0x06ebd26ful;
-    sha->s[6] = 0xe3b243d2ul;
-    sha->s[7] = 0x522fb150ul;
-    sha->bytes = 64;
+    static const uint32_t midstate[8] = {
+        0xa19e884bul, 0xf463fe7eul, 0x2f18f9a2ul, 0xbeb0f9fful,
+        0x0f37e8b0ul, 0x06ebd26ful, 0xe3b243d2ul, 0x522fb150ul
+    };
+    secp256k1_sha256_initialize_midstate(sha, 64, midstate);
 }
 
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("MuSig/nonce")||SHA256("MuSig/nonce"). */
 static void secp256k1_nonce_function_musig_sha256_tagged(secp256k1_sha256 *sha) {
-    secp256k1_sha256_initialize(sha);
-    sha->s[0] = 0x07101b64ul;
-    sha->s[1] = 0x18003414ul;
-    sha->s[2] = 0x0391bc43ul;
-    sha->s[3] = 0x0e6258eeul;
-    sha->s[4] = 0x29d26b72ul;
-    sha->s[5] = 0x8343937eul;
-    sha->s[6] = 0xb7a0a4fbul;
-    sha->s[7] = 0xff568a30ul;
-    sha->bytes = 64;
+    static const uint32_t midstate[8] = {
+        0x07101b64ul, 0x18003414ul, 0x0391bc43ul, 0x0e6258eeul,
+        0x29d26b72ul, 0x8343937eul, 0xb7a0a4fbul, 0xff568a30ul
+    };
+    secp256k1_sha256_initialize_midstate(sha, 64, midstate);
 }
 
 static void secp256k1_nonce_function_musig(secp256k1_scalar *k, const unsigned char *session_secrand, const unsigned char *msg32, const unsigned char *seckey32, const unsigned char *pk33, const unsigned char *agg_pk32, const unsigned char *extra_input32) {
@@ -543,16 +533,11 @@ int secp256k1_musig_nonce_agg(const secp256k1_context* ctx, secp256k1_musig_aggn
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("MuSig/noncecoef")||SHA256("MuSig/noncecoef"). */
 static void secp256k1_musig_compute_noncehash_sha256_tagged(secp256k1_sha256 *sha) {
-    secp256k1_sha256_initialize(sha);
-    sha->s[0] = 0x2c7d5a45ul;
-    sha->s[1] = 0x06bf7e53ul;
-    sha->s[2] = 0x89be68a6ul;
-    sha->s[3] = 0x971254c0ul;
-    sha->s[4] = 0x60ac12d2ul;
-    sha->s[5] = 0x72846dcdul;
-    sha->s[6] = 0x6c81212ful;
-    sha->s[7] = 0xde7a2500ul;
-    sha->bytes = 64;
+    static const uint32_t midstate[8] = {
+        0x2c7d5a45ul, 0x06bf7e53ul, 0x89be68a6ul, 0x971254c0ul,
+        0x60ac12d2ul, 0x72846dcdul, 0x6c81212ful, 0xde7a2500ul
+    };
+    secp256k1_sha256_initialize_midstate(sha, 64, midstate);
 }
 
 /* tagged_hash(aggnonce[0], aggnonce[1], agg_pk, msg) */

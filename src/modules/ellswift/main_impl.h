@@ -383,17 +383,11 @@ static void secp256k1_ellswift_elligatorswift_var(unsigned char *u32, secp256k1_
 
 /** Set hash state to the BIP340 tagged hash midstate for "secp256k1_ellswift_encode". */
 static void secp256k1_ellswift_sha256_init_encode(secp256k1_sha256* hash) {
-    secp256k1_sha256_initialize(hash);
-    hash->s[0] = 0xd1a6524bul;
-    hash->s[1] = 0x028594b3ul;
-    hash->s[2] = 0x96e42f4eul;
-    hash->s[3] = 0x1037a177ul;
-    hash->s[4] = 0x1b8fcb8bul;
-    hash->s[5] = 0x56023885ul;
-    hash->s[6] = 0x2560ede1ul;
-    hash->s[7] = 0xd626b715ul;
-
-    hash->bytes = 64;
+    static const uint32_t midstate[8] = {
+        0xd1a6524bul, 0x028594b3ul, 0x96e42f4eul, 0x1037a177ul,
+        0x1b8fcb8bul, 0x56023885ul, 0x2560ede1ul, 0xd626b715ul
+    };
+    secp256k1_sha256_initialize_midstate(hash, 64, midstate);
 }
 
 int secp256k1_ellswift_encode(const secp256k1_context *ctx, unsigned char *ell64, const secp256k1_pubkey *pubkey, const unsigned char *rnd32) {
@@ -427,17 +421,11 @@ int secp256k1_ellswift_encode(const secp256k1_context *ctx, unsigned char *ell64
 
 /** Set hash state to the BIP340 tagged hash midstate for "secp256k1_ellswift_create". */
 static void secp256k1_ellswift_sha256_init_create(secp256k1_sha256* hash) {
-    secp256k1_sha256_initialize(hash);
-    hash->s[0] = 0xd29e1bf5ul;
-    hash->s[1] = 0xf7025f42ul;
-    hash->s[2] = 0x9b024773ul;
-    hash->s[3] = 0x094cb7d5ul;
-    hash->s[4] = 0xe59ed789ul;
-    hash->s[5] = 0x03bc9786ul;
-    hash->s[6] = 0x68335b35ul;
-    hash->s[7] = 0x4e363b53ul;
-
-    hash->bytes = 64;
+    static const uint32_t midstate[8] = {
+        0xd29e1bf5ul, 0xf7025f42ul, 0x9b024773ul, 0x094cb7d5ul,
+        0xe59ed789ul, 0x03bc9786ul, 0x68335b35ul, 0x4e363b53ul
+    };
+    secp256k1_sha256_initialize_midstate(hash, 64, midstate);
 }
 
 int secp256k1_ellswift_create(const secp256k1_context *ctx, unsigned char *ell64, const unsigned char *seckey32, const unsigned char *auxrnd32) {
@@ -510,17 +498,11 @@ static int ellswift_xdh_hash_function_prefix(unsigned char *output, const unsign
 
 /** Set hash state to the BIP340 tagged hash midstate for "bip324_ellswift_xonly_ecdh". */
 static void secp256k1_ellswift_sha256_init_bip324(secp256k1_sha256* hash) {
-    secp256k1_sha256_initialize(hash);
-    hash->s[0] = 0x8c12d730ul;
-    hash->s[1] = 0x827bd392ul;
-    hash->s[2] = 0x9e4fb2eeul;
-    hash->s[3] = 0x207b373eul;
-    hash->s[4] = 0x2292bd7aul;
-    hash->s[5] = 0xaa5441bcul;
-    hash->s[6] = 0x15c3779ful;
-    hash->s[7] = 0xcfb52549ul;
-
-    hash->bytes = 64;
+    static const uint32_t midstate[8] = {
+        0x8c12d730ul, 0x827bd392ul, 0x9e4fb2eeul, 0x207b373eul,
+        0x2292bd7aul, 0xaa5441bcul, 0x15c3779ful, 0xcfb52549ul
+    };
+    secp256k1_sha256_initialize_midstate(hash, 64, midstate);
 }
 
 static int ellswift_xdh_hash_function_bip324(unsigned char* output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {

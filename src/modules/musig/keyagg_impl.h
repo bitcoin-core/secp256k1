@@ -62,17 +62,11 @@ static int secp256k1_keyagg_cache_load(const secp256k1_context* ctx, secp256k1_k
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("KeyAgg list")||SHA256("KeyAgg list"). */
 static void secp256k1_musig_keyagglist_sha256(secp256k1_sha256 *sha) {
-    secp256k1_sha256_initialize(sha);
-
-    sha->s[0] = 0xb399d5e0ul;
-    sha->s[1] = 0xc8fff302ul;
-    sha->s[2] = 0x6badac71ul;
-    sha->s[3] = 0x07c5b7f1ul;
-    sha->s[4] = 0x9701e2eful;
-    sha->s[5] = 0x2a72ecf8ul;
-    sha->s[6] = 0x201a4c7bul;
-    sha->s[7] = 0xab148a38ul;
-    sha->bytes = 64;
+    static const uint32_t midstate[8] = {
+        0xb399d5e0ul, 0xc8fff302ul, 0x6badac71ul, 0x07c5b7f1ul,
+        0x9701e2eful, 0x2a72ecf8ul, 0x201a4c7bul, 0xab148a38ul
+    };
+    secp256k1_sha256_initialize_midstate(sha, 64, midstate);
 }
 
 /* Computes pks_hash = tagged_hash(pk[0], ..., pk[np-1]) */
@@ -97,17 +91,11 @@ static int secp256k1_musig_compute_pks_hash(const secp256k1_context *ctx, unsign
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("KeyAgg coefficient")||SHA256("KeyAgg coefficient"). */
 static void secp256k1_musig_keyaggcoef_sha256(secp256k1_sha256 *sha) {
-    secp256k1_sha256_initialize(sha);
-
-    sha->s[0] = 0x6ef02c5aul;
-    sha->s[1] = 0x06a480deul;
-    sha->s[2] = 0x1f298665ul;
-    sha->s[3] = 0x1d1134f2ul;
-    sha->s[4] = 0x56a0b063ul;
-    sha->s[5] = 0x52da4147ul;
-    sha->s[6] = 0xf280d9d4ul;
-    sha->s[7] = 0x4484be15ul;
-    sha->bytes = 64;
+    static const uint32_t midstate[8] = {
+        0x6ef02c5aul, 0x06a480deul, 0x1f298665ul, 0x1d1134f2ul,
+        0x56a0b063ul, 0x52da4147ul, 0xf280d9d4ul, 0x4484be15ul
+    };
+    secp256k1_sha256_initialize_midstate(sha, 64, midstate);
 }
 
 /* Compute KeyAgg coefficient which is constant 1 for the second pubkey and

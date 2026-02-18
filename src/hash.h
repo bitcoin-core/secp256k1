@@ -17,6 +17,10 @@ typedef struct {
 } secp256k1_sha256;
 
 static void secp256k1_sha256_initialize(secp256k1_sha256 *hash);
+/* Initialize a SHA256 hash state with a precomputed midstate.
+ * The byte counter must be a multiple of 64, i.e., there must be no unwritten
+ * bytes in the buffer. */
+static void secp256k1_sha256_initialize_midstate(secp256k1_sha256 *hash, uint64_t bytes, const uint32_t state[8]);
 static void secp256k1_sha256_write(secp256k1_sha256 *hash, const unsigned char *data, size_t size);
 static void secp256k1_sha256_finalize(secp256k1_sha256 *hash, unsigned char *out32);
 static void secp256k1_sha256_clear(secp256k1_sha256 *hash);
