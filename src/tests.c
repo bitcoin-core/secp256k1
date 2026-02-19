@@ -739,6 +739,38 @@ static void run_tagged_sha256_tests(void) {
     CHECK(secp256k1_memcmp_var(hash32, hash_expected, sizeof(hash32)) == 0);
 }
 
+static void run_sha256_initialize_midstate_tests(void) {
+    static const unsigned char tag[] = "sha256_midstate_test_tag";
+    static const size_t msg_lens[] = { 0, 1, 31, 63, 64, 65, 127 };
+    unsigned char msg[127];
+    size_t i;
+
+    for (i = 0; i < sizeof(msg); ++i) {
+        msg[i] = (unsigned char)i;
+    }
+
+    for (i = 0; i < sizeof(msg_lens) / sizeof(msg_lens[0]); ++i) {
+        secp256k1_sha256 sha_tagged;
+        secp256k1_sha256 sha_midstate;
+        unsigned char hash_tagged[32];
+        unsigned char hash_midstate[32];
+        size_t msg_len = msg_lens[i];
+        size_t split = msg_len / 2;
+
+        secp256k1_sha256_initialize_tagged(&sha_tagged, tag, sizeof(tag) - 1);
+        secp256k1_sha256_initialize_midstate(&sha_midstate, sha_tagged.bytes, sha_tagged.s);
+        test_sha256_eq(&sha_tagged, &sha_midstate);
+
+        secp256k1_sha256_write(&sha_tagged, msg, split);
+        secp256k1_sha256_write(&sha_tagged, msg + split, msg_len - split);
+        secp256k1_sha256_write(&sha_midstate, msg, msg_len);
+
+        secp256k1_sha256_finalize(&sha_tagged, hash_tagged);
+        secp256k1_sha256_finalize(&sha_midstate, hash_midstate);
+        CHECK(secp256k1_memcmp_var(hash_tagged, hash_midstate, sizeof(hash_tagged)) == 0);
+    }
+}
+
 /***** MODINV TESTS *****/
 
 /* Compute the modular inverse of (odd) x mod 2^64. */
@@ -7750,6 +7782,7 @@ static const struct tf_test_entry tests_hash[] = {
     CASE(hmac_sha256_tests),
     CASE(rfc6979_hmac_sha256_tests),
     CASE(tagged_sha256_tests),
+    CASE(sha256_initialize_midstate_tests),
 };
 
 static const struct tf_test_entry tests_scalar[] = {
@@ -7889,4 +7922,3 @@ int main(int argc, char **argv) {
     if (tf_init(&tf, argc, argv) != 0) return EXIT_FAILURE;
     return tf_run(&tf);
 }
-
