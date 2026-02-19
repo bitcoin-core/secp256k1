@@ -92,7 +92,7 @@ static void run_xoshiro256pp_tests(void) {
     {
         size_t i;
         /* Sanity check that we run before the actual seeding. */
-        for (i = 0; i < sizeof(secp256k1_test_state)/sizeof(secp256k1_test_state[0]); i++) {
+        for (i = 0; i < ARRAY_SIZE(secp256k1_test_state); i++) {
             CHECK(secp256k1_test_state[i] == 0);
         }
     }
@@ -146,7 +146,7 @@ static void run_deprecated_context_flags_test(void) {
                              SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY };
     secp256k1_context *none_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     int i;
-    for (i = 0; i < (int)(sizeof(flags)/sizeof(flags[0])); i++) {
+    for (i = 0; i < (int)(ARRAY_SIZE(flags)); i++) {
         secp256k1_context *tmp_ctx;
         CHECK(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE) == secp256k1_context_preallocated_size(flags[i]));
         tmp_ctx = secp256k1_context_create(flags[i]);
@@ -437,13 +437,13 @@ static void run_ctz_tests(void) {
     static const uint64_t b64[] = {1, 0xffffffffffffffff, 0xbcd02462139b3fc3, 0x98b5f80c769693ef};
     int shift;
     unsigned i;
-    for (i = 0; i < sizeof(b32) / sizeof(b32[0]); ++i) {
+    for (i = 0; i < ARRAY_SIZE(b32); ++i) {
         for (shift = 0; shift < 32; ++shift) {
             CHECK(secp256k1_ctz32_var_debruijn(b32[i] << shift) == shift);
             CHECK(secp256k1_ctz32_var(b32[i] << shift) == shift);
         }
     }
-    for (i = 0; i < sizeof(b64) / sizeof(b64[0]); ++i) {
+    for (i = 0; i < ARRAY_SIZE(b64); ++i) {
         for (shift = 0; shift < 64; ++shift) {
             CHECK(secp256k1_ctz64_var_debruijn(b64[i] << shift) == shift);
             CHECK(secp256k1_ctz64_var(b64[i] << shift) == shift);
@@ -478,7 +478,7 @@ static void run_sha256_known_output_tests(void) {
     unsigned int i, ninputs;
 
     /* Skip last input vector for low iteration counts */
-    ninputs = sizeof(inputs)/sizeof(inputs[0]) - 1;
+    ninputs = ARRAY_SIZE(inputs) - 1;
     CONDITIONAL_TEST(16, "run_sha256_known_output_tests 1000000") ninputs++;
 
     for (i = 0; i < ninputs; i++) {
@@ -603,7 +603,7 @@ static void run_sha256_counter_tests(void) {
         {0xec, 0x12, 0x24, 0x9f, 0x35, 0xa4, 0x29, 0x8b, 0x9e, 0x4a, 0x95, 0xf8, 0x61, 0xaf, 0x61, 0xc5, 0x66, 0x55, 0x3e, 0x3f, 0x2a, 0x98, 0xea, 0x71, 0x16, 0x6b, 0x1c, 0xd9, 0xe4, 0x09, 0xd2, 0x8e},
     };
     unsigned int i;
-    for (i = 0; i < sizeof(midstates)/sizeof(midstates[0]); i++) {
+    for (i = 0; i < ARRAY_SIZE(midstates); i++) {
         unsigned char out[32];
         secp256k1_sha256 hasher = midstates[i];
         secp256k1_sha256_write(&hasher, (const unsigned char*)input, strlen(input));
@@ -1649,7 +1649,7 @@ static void run_modinv_tests(void) {
     int i, j, ok;
 
     /* Test known inputs/outputs */
-    for (i = 0; (size_t)i < sizeof(CASES) / sizeof(CASES[0]); ++i) {
+    for (i = 0; (size_t)i < ARRAY_SIZE(CASES); ++i) {
         uint16_t out[16];
         test_modinv32_uint16(out, CASES[i][0], CASES[i][1]);
         for (j = 0; j < 16; ++j) CHECK(out[j] == CASES[i][2][j]);
@@ -2297,7 +2297,7 @@ static void run_scalar_tests(void) {
             SECP256K1_SCALAR_CONST(0x7ffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful, 0xfffffffful),
         };
         unsigned n;
-        for (n = 0; n < sizeof(HALF_TESTS) / sizeof(HALF_TESTS[0]); ++n) {
+        for (n = 0; n < ARRAY_SIZE(HALF_TESTS); ++n) {
             secp256k1_scalar s;
             secp256k1_scalar_half(&s, &HALF_TESTS[n]);
             secp256k1_scalar_add(&s, &s, &s);
@@ -3565,7 +3565,7 @@ static void run_inverse_tests(void)
     secp256k1_scalar x_scalar;
     memset(b32, 0, sizeof(b32));
     /* Test fixed test cases through test_inverse_{scalar,field}, both ways. */
-    for (i = 0; (size_t)i < sizeof(fe_cases)/sizeof(fe_cases[0]); ++i) {
+    for (i = 0; (size_t)i < ARRAY_SIZE(fe_cases); ++i) {
         for (var = 0; var <= 1; ++var) {
             test_inverse_field(&x_fe, &fe_cases[i][0], var);
             CHECK(fe_equal(&x_fe, &fe_cases[i][1]));
@@ -3573,7 +3573,7 @@ static void run_inverse_tests(void)
             CHECK(fe_equal(&x_fe, &fe_cases[i][0]));
         }
     }
-    for (i = 0; (size_t)i < sizeof(scalar_cases)/sizeof(scalar_cases[0]); ++i) {
+    for (i = 0; (size_t)i < ARRAY_SIZE(scalar_cases); ++i) {
         for (var = 0; var <= 1; ++var) {
             test_inverse_scalar(&x_scalar, &scalar_cases[i][0], var);
             CHECK(secp256k1_scalar_eq(&x_scalar, &scalar_cases[i][1]));
@@ -4449,7 +4449,7 @@ static void run_ecmult_near_split_bound(void) {
     int i;
     unsigned j;
     for (i = 0; i < 4*COUNT; ++i) {
-        for (j = 0; j < sizeof(scalars_near_split_bounds) / sizeof(scalars_near_split_bounds[0]); ++j) {
+        for (j = 0; j < ARRAY_SIZE(scalars_near_split_bounds); ++j) {
             test_ecmult_target(&scalars_near_split_bounds[j], 0);
             test_ecmult_target(&scalars_near_split_bounds[j], 1);
             test_ecmult_target(&scalars_near_split_bounds[j], 2);
@@ -4573,7 +4573,7 @@ static void ecmult_const_edges(void) {
     secp256k1_ge point;
     secp256k1_gej res;
     size_t i;
-    size_t cases = 1 + sizeof(scalars_near_split_bounds) / sizeof(scalars_near_split_bounds[0]);
+    size_t cases = 1 + ARRAY_SIZE(scalars_near_split_bounds);
 
     /* We are trying to reach the following edge cases (variables are defined as
      * in ecmult_const_impl.h):
@@ -5725,7 +5725,7 @@ static void run_endomorphism_tests(void) {
         testutil_random_scalar_order_test(&full);
         test_scalar_split(&full);
     }
-    for (i = 0; i < sizeof(scalars_near_split_bounds) / sizeof(scalars_near_split_bounds[0]); ++i) {
+    for (i = 0; i < ARRAY_SIZE(scalars_near_split_bounds); ++i) {
         test_scalar_split(&scalars_near_split_bounds[i]);
     }
 }
@@ -7878,7 +7878,7 @@ static int teardown(void) {
 int main(int argc, char **argv) {
     struct tf_framework tf = {0};
     tf.registry_modules = registry_modules;
-    tf.num_modules = sizeof(registry_modules) / sizeof(registry_modules[0]);
+    tf.num_modules = ARRAY_SIZE(registry_modules);
     tf.registry_no_rng = &registry_modules_no_rng;
 
     /* Add context creation/destruction functions */
