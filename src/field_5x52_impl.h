@@ -43,36 +43,31 @@ static void secp256k1_fe_impl_get_bounds(secp256k1_fe *r, int m) {
 static void secp256k1_fe_impl_normalize(secp256k1_fe *r) {
     uint64_t t0 = r->n[0], t1 = r->n[1], t2 = r->n[2], t3 = r->n[3], t4 = r->n[4];
 
-    /* Reduce t4 at the start so there will be at most a single carry from the first pass */
-    uint64_t m;
-    uint64_t x = t4 >> 48; t4 &= 0x0FFFFFFFFFFFFULL;
+    /* Reduce t4 at the start so there will be at most a single carry from the first pass.
+     * x is incremented before the first pass and then decremented before the second pass
+     * to ensure that the result doesn't fall into the range [P, 2^256). */
+    uint64_t x = (t4 >> 48) + 1; t4 &= 0x0FFFFFFFFFFFFULL;
 
     /* The first pass ensures the magnitude is 1, ... */
-    t0 += x * 0x1000003D1ULL;
-    t1 += (t0 >> 52); t0 &= 0xFFFFFFFFFFFFFULL;
-    t2 += (t1 >> 52); t1 &= 0xFFFFFFFFFFFFFULL; m = t1;
-    t3 += (t2 >> 52); t2 &= 0xFFFFFFFFFFFFFULL; m &= t2;
-    t4 += (t3 >> 52); t3 &= 0xFFFFFFFFFFFFFULL; m &= t3;
-
-    /* ... except for a possible carry at bit 48 of t4 (i.e. bit 256 of the field element) */
-    VERIFY_CHECK(t4 >> 49 == 0);
-
-    /* At most a single final reduction is needed; check if the value is >= the field characteristic */
-    x = (t4 >> 48) | ((t4 == 0x0FFFFFFFFFFFFULL) & (m == 0xFFFFFFFFFFFFFULL)
-        & (t0 >= 0xFFFFEFFFFFC2FULL));
-
-    /* Apply the final reduction (for constant-time behaviour, we do it always) */
     t0 += x * 0x1000003D1ULL;
     t1 += (t0 >> 52); t0 &= 0xFFFFFFFFFFFFFULL;
     t2 += (t1 >> 52); t1 &= 0xFFFFFFFFFFFFFULL;
     t3 += (t2 >> 52); t2 &= 0xFFFFFFFFFFFFFULL;
     t4 += (t3 >> 52); t3 &= 0xFFFFFFFFFFFFFULL;
 
-    /* If t4 didn't carry to bit 48 already, then it should have after any final reduction */
-    VERIFY_CHECK(t4 >> 48 == x);
+    /* ... except for a possible carry at bit 48 of t4 (i.e. bit 256 of the field element). */
+    VERIFY_CHECK(t4 >> 49 == 0);
 
-    /* Mask off the possible multiple of 2^256 from the final reduction */
-    t4 &= 0x0FFFFFFFFFFFFULL;
+    /* The second pass subtracts (2^256 - P) from (t0..t4) iff there was no carry.
+     * No underflow is possible as we just added at least that amount in the first pass. */
+    x = (t4 >> 48) - 1; t4 &= 0x0FFFFFFFFFFFFULL;
+    VERIFY_CHECK(x == 0 || x == -(uint64_t)1);
+
+    t0 -= x & 0x1000003D1ULL;
+    t1 -= (t0 >> 63); t0 &= 0xFFFFFFFFFFFFFULL;
+    t2 -= (t1 >> 63); t1 &= 0xFFFFFFFFFFFFFULL;
+    t3 -= (t2 >> 63); t2 &= 0xFFFFFFFFFFFFFULL;
+    t4 -= (t3 >> 63); t3 &= 0xFFFFFFFFFFFFFULL;
 
     r->n[0] = t0; r->n[1] = t1; r->n[2] = t2; r->n[3] = t3; r->n[4] = t4;
 }
@@ -137,24 +132,27 @@ static void secp256k1_fe_impl_normalize_var(secp256k1_fe *r) {
 static int secp256k1_fe_impl_normalizes_to_zero(const secp256k1_fe *r) {
     uint64_t t0 = r->n[0], t1 = r->n[1], t2 = r->n[2], t3 = r->n[3], t4 = r->n[4];
 
-    /* z0 tracks a possible raw value of 0, z1 tracks a possible raw value of P */
-    uint64_t z0, z1;
+    /* z1 tracks a possible raw value of 0, z2 tracks a possible raw value of P */
+    uint64_t z0, z1, z2;
 
-    /* Reduce t4 at the start so there will be at most a single carry from the first pass */
-    uint64_t x = t4 >> 48; t4 &= 0x0FFFFFFFFFFFFULL;
+    /* Reduce t4 at the start so there will be at most a single carry from the first pass
+     * x is incremented before the first pass so both match values have internal zeros */
+    uint64_t x = (t4 >> 48) + 1; t4 &= 0x0FFFFFFFFFFFFULL;
 
     /* The first pass ensures the magnitude is 1, ... */
     t0 += x * 0x1000003D1ULL;
-    t1 += (t0 >> 52); t0 &= 0xFFFFFFFFFFFFFULL; z0  = t0; z1  = t0 ^ 0x1000003D0ULL;
-    t2 += (t1 >> 52); t1 &= 0xFFFFFFFFFFFFFULL; z0 |= t1; z1 &= t1;
-    t3 += (t2 >> 52); t2 &= 0xFFFFFFFFFFFFFULL; z0 |= t2; z1 &= t2;
-    t4 += (t3 >> 52); t3 &= 0xFFFFFFFFFFFFFULL; z0 |= t3; z1 &= t3;
-                                                z0 |= t4; z1 &= t4 ^ 0xF000000000000ULL;
+    t1 += (t0 >> 52); t0 &= 0xFFFFFFFFFFFFFULL;
+    t2 += (t1 >> 52); t1 &= 0xFFFFFFFFFFFFFULL; z0  = t1;
+    t3 += (t2 >> 52); t2 &= 0xFFFFFFFFFFFFFULL; z0 |= t2;
+    t4 += (t3 >> 52); t3 &= 0xFFFFFFFFFFFFFULL; z0 |= t3;
+
+    z1 = z0 | (t0 ^ 0x1000003D1ULL) | t4;
+    z2 = z0 | t0 | (t4 ^ 0x1000000000000ULL);
 
     /* ... except for a possible carry at bit 48 of t4 (i.e. bit 256 of the field element) */
     VERIFY_CHECK(t4 >> 49 == 0);
 
-    return (z0 == 0) | (z1 == 0xFFFFFFFFFFFFFULL);
+    return (z1 == 0) | (z2 == 0);
 }
 
 static int secp256k1_fe_impl_normalizes_to_zero_var(const secp256k1_fe *r) {
