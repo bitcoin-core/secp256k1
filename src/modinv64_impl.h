@@ -240,7 +240,7 @@ static int64_t secp256k1_modinv64_divsteps_62_var(int64_t eta, uint64_t f0, uint
     /* Transformation matrix; see comments in secp256k1_modinv64_divsteps_62. */
     uint64_t u = 1, v = 0, q = 0, r = 1;
     uint64_t f = f0, g = g0, m;
-    uint32_t w;
+    uint64_t w;
     int i = 62, limit, zeros;
 
     for (;;) {
@@ -326,7 +326,7 @@ static int64_t secp256k1_modinv64_posdivsteps_62_var(int64_t eta, uint64_t f0, u
     /* Transformation matrix; see comments in secp256k1_modinv64_divsteps_62. */
     uint64_t u = 1, v = 0, q = 0, r = 1;
     uint64_t f = f0, g = g0, m;
-    uint32_t w;
+    uint64_t w;
     int i = 62, limit, zeros;
     int jac = *jacp;
 
