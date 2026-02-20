@@ -19,13 +19,13 @@
 
 #define POINTS 32768
 
-static void help(char **argv, int default_iters) {
+static void help(const char *executable_path, int default_iters) {
     printf("Benchmark EC multiplication algorithms\n");
     printf("\n");
     printf("The default number of iterations for each benchmark is %d. This can be\n", default_iters);
     printf("customized using the SECP256K1_BENCH_ITERS environment variable.\n");
     printf("\n");
-    printf("Usage: %s <help|pippenger_wnaf|strauss_wnaf|simple>\n", argv[0]);
+    printf("Usage: %s [args]\n", executable_path);
     printf("The output shows the number of multiplied and summed points right after the\n");
     printf("function name. The letter 'g' indicates that one of the points is the generator.\n");
     printf("The benchmarks are divided by the number of points.\n");
@@ -314,7 +314,7 @@ int main(int argc, char **argv) {
     int default_iters = 10000;
     int iters = get_iters(default_iters);
     if (iters == 0) {
-        help(argv, default_iters);
+        help(argv[0], default_iters);
         return EXIT_FAILURE;
     }
 
@@ -324,7 +324,7 @@ int main(int argc, char **argv) {
         if(have_flag(argc, argv, "-h")
            || have_flag(argc, argv, "--help")
            || have_flag(argc, argv, "help")) {
-            help(argv, default_iters);
+            help(argv[0], default_iters);
             return EXIT_SUCCESS;
         } else if(have_flag(argc, argv, "pippenger_wnaf")) {
             printf("Using pippenger_wnaf:\n");
@@ -336,7 +336,7 @@ int main(int argc, char **argv) {
             printf("Using simple algorithm:\n");
         } else {
             fprintf(stderr, "%s: unrecognized argument '%s'.\n\n", argv[0], argv[1]);
-            help(argv, default_iters);
+            help(argv[0], default_iters);
             return EXIT_FAILURE;
         }
     }
