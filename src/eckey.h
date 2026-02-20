@@ -20,6 +20,9 @@ static void secp256k1_eckey_pubkey_serialize33(secp256k1_ge *elem, unsigned char
 /** Serialize a group element (that is not allowed to be infinity) to an uncompressed public key (65 bytes). */
 static void secp256k1_eckey_pubkey_serialize65(secp256k1_ge *elem, unsigned char *pub65);
 
+static void secp256k1_eckey_serialize_ext(unsigned char *out33, secp256k1_ge* ge);
+static int secp256k1_eckey_parse_ext(secp256k1_ge* ge, const unsigned char *in33);
+
 static int secp256k1_eckey_privkey_tweak_add(secp256k1_scalar *key, const secp256k1_scalar *tweak);
 static int secp256k1_eckey_pubkey_tweak_add(secp256k1_ge *key, const secp256k1_scalar *tweak);
 static int secp256k1_eckey_privkey_tweak_mul(secp256k1_scalar *key, const secp256k1_scalar *tweak);
