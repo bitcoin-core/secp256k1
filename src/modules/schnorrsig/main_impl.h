@@ -254,9 +254,9 @@ int secp256k1_schnorrsig_verify(const secp256k1_context* ctx, const unsigned cha
     secp256k1_fe_get_b32(buf, &pk.x);
     secp256k1_schnorrsig_challenge(&e, &sig64[0], msg, msglen, buf);
 
-    /* Compute rj =  s*G + (-e)*pkj */
-    secp256k1_scalar_negate(&e, &e);
+    /* Compute rj =  s*G + e*(-pkj) */
     secp256k1_gej_set_ge(&pkj, &pk);
+    secp256k1_gej_neg(&pkj, &pkj);
     secp256k1_ecmult(&rj, &pkj, &e, &s);
 
     secp256k1_ge_set_gej_var(&r, &rj);

@@ -767,11 +767,11 @@ int secp256k1_musig_partial_sig_verify(const secp256k1_context* ctx, const secp2
     if (!secp256k1_musig_partial_sig_load(ctx, &s, partial_sig)) {
         return 0;
     }
-    /* Compute -s*G + e*pkj + rj (e already includes the keyagg coefficient mu) */
-    secp256k1_scalar_negate(&s, &s);
+    /* Compute s*G + e*(-pkj) - rj (e already includes the keyagg coefficient mu) */
     secp256k1_gej_set_ge(&pkj, &pkp);
+    secp256k1_gej_neg(&pkj, &pkj);
     secp256k1_ecmult(&tmp, &pkj, &e, &s);
-    if (session_i.fin_nonce_parity) {
+    if (!session_i.fin_nonce_parity) {
         secp256k1_gej_neg(&rj, &rj);
     }
     secp256k1_gej_add_var(&tmp, &tmp, &rj, NULL);
