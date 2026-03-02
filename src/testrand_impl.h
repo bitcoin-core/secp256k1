@@ -158,10 +158,4 @@ static void testrand_init(const char* hexseed) {
     testrand_seed(seed16);
 }
 
-static void testrand_finish(void) {
-    unsigned char run32[32];
-    testrand256(run32);
-    printf("random run = %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\n", run32[0], run32[1], run32[2], run32[3], run32[4], run32[5], run32[6], run32[7], run32[8], run32[9], run32[10], run32[11], run32[12], run32[13], run32[14], run32[15]);
-}
-
 #endif /* SECP256K1_TESTRAND_IMPL_H */
