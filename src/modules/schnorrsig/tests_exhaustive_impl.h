@@ -56,7 +56,7 @@ static const unsigned char invalid_pubkey_bytes[][32] = {
     }
 };
 
-#define NUM_INVALID_KEYS (sizeof(invalid_pubkey_bytes) / sizeof(invalid_pubkey_bytes[0]))
+#define NUM_INVALID_KEYS (ARRAY_SIZE(invalid_pubkey_bytes))
 
 static int secp256k1_hardened_nonce_function_smallint(unsigned char *nonce32, const unsigned char *msg,
                                                       size_t msglen,

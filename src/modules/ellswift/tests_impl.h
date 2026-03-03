@@ -8,6 +8,7 @@
 
 #include "../../../include/secp256k1_ellswift.h"
 #include "../../unit_test.h"
+#include "../../util.h"
 
 struct ellswift_xswiftec_inv_test {
     int enc_bitmap;
@@ -180,7 +181,7 @@ static int ellswift_xdh_hash_x32(unsigned char *output, const unsigned char *x32
 /* Run the test vectors for ellswift encoding */
 void ellswift_encoding_test_vectors_tests(void) {
     int i;
-    for (i = 0; (unsigned)i < sizeof(ellswift_xswiftec_inv_tests) / sizeof(ellswift_xswiftec_inv_tests[0]); ++i) {
+    for (i = 0; (unsigned)i < ARRAY_SIZE(ellswift_xswiftec_inv_tests); ++i) {
         const struct ellswift_xswiftec_inv_test *testcase = &ellswift_xswiftec_inv_tests[i];
         int c;
         for (c = 0; c < 8; ++c) {
@@ -200,7 +201,7 @@ void ellswift_encoding_test_vectors_tests(void) {
 /* Run the test vectors for ellswift decoding */
 void ellswift_decoding_test_vectors_tests(void) {
     int i;
-    for (i = 0; (unsigned)i < sizeof(ellswift_decode_tests) / sizeof(ellswift_decode_tests[0]); ++i) {
+    for (i = 0; (unsigned)i < ARRAY_SIZE(ellswift_decode_tests); ++i) {
         const struct ellswift_decode_test *testcase = &ellswift_decode_tests[i];
         secp256k1_pubkey pubkey;
         secp256k1_ge ge;
@@ -217,7 +218,7 @@ void ellswift_decoding_test_vectors_tests(void) {
 /* Run the test vectors for ellswift expected xdh BIP324 shared secrets */
 void ellswift_xdh_test_vectors_tests(void) {
     int i;
-    for (i = 0; (unsigned)i < sizeof(ellswift_xdh_tests_bip324) / sizeof(ellswift_xdh_tests_bip324[0]); ++i) {
+    for (i = 0; (unsigned)i < ARRAY_SIZE(ellswift_xdh_tests_bip324); ++i) {
         const struct ellswift_xdh_test *test = &ellswift_xdh_tests_bip324[i];
         unsigned char shared_secret[32];
         int ret;

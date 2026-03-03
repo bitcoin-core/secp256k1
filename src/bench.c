@@ -183,8 +183,7 @@ int main(int argc, char** argv) {
                          "ecdsa_recover", "schnorrsig", "schnorrsig_verify", "schnorrsig_sign", "ec",
                          "keygen", "ec_keygen", "ellswift", "encode", "ellswift_encode", "decode",
                          "ellswift_decode", "ellswift_keygen", "ellswift_ecdh"};
-    size_t valid_args_size = sizeof(valid_args)/sizeof(valid_args[0]);
-    int invalid_args = have_invalid_args(argc, argv, valid_args, valid_args_size);
+    int invalid_args = have_invalid_args(argc, argv, valid_args, ARRAY_SIZE(valid_args));
 
     int default_iters = 20000;
     int iters = get_iters(default_iters);
