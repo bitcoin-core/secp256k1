@@ -22,7 +22,7 @@
 
 #define STR_(x) #x
 #define STR(x) STR_(x)
-#define DEBUG_CONFIG_MSG(x) "DEBUG_CONFIG: " x
+#define DEBUG_CONFIG_MSG(x) "SECP256K1_DEBUG_CONFIG: " x
 #define DEBUG_CONFIG_DEF(x) DEBUG_CONFIG_MSG(#x "=" STR(x))
 
 /* Debug helper for printing arrays of unsigned char. */
@@ -120,7 +120,7 @@ static const secp256k1_callback default_error_callback = {
 };
 
 
-#ifdef DETERMINISTIC
+#ifdef SECP256K1_DETERMINISTIC
 #define TEST_FAILURE(msg) do { \
     fprintf(stderr, "%s\n", msg); \
     abort(); \
@@ -138,7 +138,7 @@ static const secp256k1_callback default_error_callback = {
 #define EXPECT(x,c) (x)
 #endif
 
-#ifdef DETERMINISTIC
+#ifdef SECP256K1_DETERMINISTIC
 #define CHECK(cond) do { \
     if (EXPECT(!(cond), 0)) { \
         TEST_FAILURE("test condition failed"); \

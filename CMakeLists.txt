@@ -127,7 +127,7 @@ if(SECP256K1_VALGRIND)
   if(Valgrind_FOUND)
     set(SECP256K1_VALGRIND ON)
     include_directories(${Valgrind_INCLUDE_DIR})
-    add_compile_definitions(VALGRIND)
+    add_compile_definitions(SECP256K1_VALGRIND)
   elseif(SECP256K1_VALGRIND STREQUAL "AUTO")
     set(SECP256K1_VALGRIND OFF)
   else()
@@ -156,7 +156,7 @@ else()
 endif()
 
 # Define custom "Coverage" build type.
-set(CMAKE_C_FLAGS_COVERAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O0 -DCOVERAGE=1 --coverage" CACHE STRING
+set(CMAKE_C_FLAGS_COVERAGE "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O0 -DSECP256K1_COVERAGE=1 --coverage" CACHE STRING
   "Flags used by the C compiler during \"Coverage\" builds."
   FORCE
 )

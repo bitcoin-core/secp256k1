@@ -64,13 +64,13 @@
 /* Use (11, 6) as default configuration, which results in a 22 kB table. */
 #ifndef SECP256K1_COMB_BLOCKS
 #  define SECP256K1_COMB_BLOCKS 11
-#  ifdef DEBUG_CONFIG
+#  ifdef SECP256K1_DEBUG_CONFIG
 #    pragma message DEBUG_CONFIG_MSG("SECP256K1_COMB_BLOCKS undefined, assuming default value")
 #  endif
 #endif
 #ifndef SECP256K1_COMB_TEETH
 #  define SECP256K1_COMB_TEETH 6
-#  ifdef DEBUG_CONFIG
+#  ifdef SECP256K1_DEBUG_CONFIG
 #    pragma message DEBUG_CONFIG_MSG("SECP256K1_COMB_TEETH undefined, assuming default value")
 #  endif
 #endif
@@ -107,7 +107,7 @@
 #  error "SECP256K1_COMB_TEETH can be reduced"
 #endif
 
-#ifdef DEBUG_CONFIG
+#ifdef SECP256K1_DEBUG_CONFIG
 #  pragma message DEBUG_CONFIG_DEF(COMB_RANGE)
 #  pragma message DEBUG_CONFIG_DEF(SECP256K1_COMB_BLOCKS)
 #  pragma message DEBUG_CONFIG_DEF(SECP256K1_COMB_TEETH)

@@ -14,7 +14,7 @@
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in tests.")
     #undef SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS
 #endif
-#if defined(SECP256K1_VERIFY) && defined(COVERAGE)
+#if defined(SECP256K1_VERIFY) && defined(SECP256K1_COVERAGE)
     #pragma message("Defining SECP256K1_VERIFY for tests being built for coverage analysis support is meaningless.")
 #endif
 #include "secp256k1.c"

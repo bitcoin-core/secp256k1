@@ -13,12 +13,12 @@
 
 #ifndef SECP256K1_ECMULT_WINDOW_SIZE
 #  define SECP256K1_ECMULT_WINDOW_SIZE 15
-#  ifdef DEBUG_CONFIG
+#  ifdef SECP256K1_DEBUG_CONFIG
 #     pragma message DEBUG_CONFIG_MSG("SECP256K1_ECMULT_WINDOW_SIZE undefined, assuming default value")
 #  endif
 #endif
 
-#ifdef DEBUG_CONFIG
+#ifdef SECP256K1_DEBUG_CONFIG
 #  pragma message DEBUG_CONFIG_DEF(SECP256K1_ECMULT_WINDOW_SIZE)
 #endif
 

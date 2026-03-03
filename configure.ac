@@ -267,7 +267,7 @@ if test x"$enable_ctime_tests" = x"yes"; then
 fi
 
 if test x"$enable_coverage" = x"yes"; then
-    SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOVERAGE=1"
+    SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_COVERAGE=1"
     SECP_CFLAGS="-O0 --coverage $SECP_CFLAGS"
     # If coverage is enabled, and the user has not overridden CFLAGS,
     # override Autoconf's value "-g -O2" with "-g". Otherwise we'd end up
@@ -385,7 +385,7 @@ case $set_ecmult_gen_kb in
 esac
 
 if test x"$enable_valgrind" = x"yes"; then
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES $VALGRIND_CPPFLAGS -DVALGRIND"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES $VALGRIND_CPPFLAGS -DSECP256K1_VALGRIND"
 fi
 
 # Add -Werror and similar flags passed from the outside (for testing, e.g., in CI).
@@ -449,7 +449,7 @@ fi
 if test "x$enable_tests" != x"no"; then
   AC_CHECK_HEADERS([sys/types.h sys/wait.h unistd.h])
   AS_IF([test "x$ac_cv_header_sys_types_h" = xyes && test "x$ac_cv_header_sys_wait_h" = xyes &&
-         test "x$ac_cv_header_unistd_h" = xyes], [TEST_DEFINES="-DSUPPORTS_CONCURRENCY=1"], TEST_DEFINES="")
+         test "x$ac_cv_header_unistd_h" = xyes], [TEST_DEFINES="-DSECP256K1_SUPPORTS_CONCURRENCY=1"], TEST_DEFINES="")
   AC_SUBST(TEST_DEFINES)
 fi
 

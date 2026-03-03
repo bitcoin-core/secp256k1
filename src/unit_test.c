@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(SUPPORTS_CONCURRENCY)
+#if defined(SECP256K1_SUPPORTS_CONCURRENCY)
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -277,7 +277,7 @@ static int run_sequential(struct tf_framework* tf) {
     return EXIT_SUCCESS;
 }
 
-#if defined(SUPPORTS_CONCURRENCY)
+#if defined(SECP256K1_SUPPORTS_CONCURRENCY)
 static const int MAX_TARGETS = 255;
 
 /* Process tests in parallel */
@@ -463,7 +463,7 @@ static int tf_run(struct tf_framework* tf) {
     if (tf->args.num_processes <= 1) {
         status = run_sequential(tf);
     } else {
-#if defined(SUPPORTS_CONCURRENCY)
+#if defined(SECP256K1_SUPPORTS_CONCURRENCY)
         status = run_concurrent(tf);
 #else
         fputs("Parallel execution not supported on your system. Running sequentially...\n", stderr);
