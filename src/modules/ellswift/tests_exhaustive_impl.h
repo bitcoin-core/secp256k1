@@ -17,7 +17,7 @@ static void test_exhaustive_ellswift(const secp256k1_context *ctx, const secp256
      * a tiny subgroup. In that sense it can't be really seen as exhaustive as
      * it doesn't (and for computational reasons obviously cannot) test the
      * entire domain ellswift operates under. */
-    for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {
+    for (i = 1; i < SECP256K1_EXHAUSTIVE_TEST_ORDER; i++) {
         secp256k1_scalar scalar_i;
         unsigned char sec32[32];
         unsigned char ell64[64];

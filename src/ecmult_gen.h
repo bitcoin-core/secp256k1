@@ -33,33 +33,33 @@
  *
  * The number of point doublings is COMB_SPACING - 1. */
 
-#if defined(EXHAUSTIVE_TEST_ORDER)
+#if defined(SECP256K1_EXHAUSTIVE_TEST_ORDER)
 /* We need to control these values for exhaustive tests because
  * the table cannot have infinities in them (secp256k1_ge_storage
  * doesn't support infinities) */
 #  undef SECP256K1_COMB_BLOCKS
 #  undef SECP256K1_COMB_TEETH
-#  if EXHAUSTIVE_TEST_ORDER == 7
+#  if SECP256K1_EXHAUSTIVE_TEST_ORDER == 7
 #    define COMB_RANGE 3
 #    define SECP256K1_COMB_BLOCKS 1
 #    define SECP256K1_COMB_TEETH 2
-#  elif EXHAUSTIVE_TEST_ORDER == 13
+#  elif SECP256K1_EXHAUSTIVE_TEST_ORDER == 13
 #    define COMB_RANGE 4
 #    define SECP256K1_COMB_BLOCKS 1
 #    define SECP256K1_COMB_TEETH 2
-#  elif EXHAUSTIVE_TEST_ORDER == 199
+#  elif SECP256K1_EXHAUSTIVE_TEST_ORDER == 199
 #    define COMB_RANGE 8
 #    define SECP256K1_COMB_BLOCKS 2
 #    define SECP256K1_COMB_TEETH 3
 #  else
 #    error "Unknown exhaustive test order"
 #  endif
-#  if (COMB_RANGE >= 32) || ((EXHAUSTIVE_TEST_ORDER >> (COMB_RANGE - 1)) != 1)
-#    error "COMB_RANGE != ceil(log2(EXHAUSTIVE_TEST_ORDER+1))"
+#  if (COMB_RANGE >= 32) || ((SECP256K1_EXHAUSTIVE_TEST_ORDER >> (COMB_RANGE - 1)) != 1)
+#    error "COMB_RANGE != ceil(log2(SECP256K1_EXHAUSTIVE_TEST_ORDER+1))"
 #  endif
-#else /* !defined(EXHAUSTIVE_TEST_ORDER) */
+#else /* !defined(SECP256K1_EXHAUSTIVE_TEST_ORDER) */
 #  define COMB_RANGE 256
-#endif /* defined(EXHAUSTIVE_TEST_ORDER) */
+#endif /* defined(SECP256K1_EXHAUSTIVE_TEST_ORDER) */
 
 /* Use (11, 6) as default configuration, which results in a 22 kB table. */
 #ifndef SECP256K1_COMB_BLOCKS

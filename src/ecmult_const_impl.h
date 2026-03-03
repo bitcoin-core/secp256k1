@@ -12,18 +12,18 @@
 #include "ecmult_const.h"
 #include "ecmult_impl.h"
 
-#if defined(EXHAUSTIVE_TEST_ORDER)
-/* We need 2^ECMULT_CONST_GROUP_SIZE - 1 to be less than EXHAUSTIVE_TEST_ORDER, because
+#if defined(SECP256K1_EXHAUSTIVE_TEST_ORDER)
+/* We need 2^ECMULT_CONST_GROUP_SIZE - 1 to be less than SECP256K1_EXHAUSTIVE_TEST_ORDER, because
  * the tables cannot have infinities in them (this breaks the effective-affine technique's
  * z-ratio tracking) */
-#  if EXHAUSTIVE_TEST_ORDER == 199
+#  if SECP256K1_EXHAUSTIVE_TEST_ORDER == 199
 #    define ECMULT_CONST_GROUP_SIZE 4
-#  elif EXHAUSTIVE_TEST_ORDER == 13
+#  elif SECP256K1_EXHAUSTIVE_TEST_ORDER == 13
 #    define ECMULT_CONST_GROUP_SIZE 3
-#  elif EXHAUSTIVE_TEST_ORDER == 7
+#  elif SECP256K1_EXHAUSTIVE_TEST_ORDER == 7
 #    define ECMULT_CONST_GROUP_SIZE 2
 #  else
-#    error "Unknown EXHAUSTIVE_TEST_ORDER"
+#    error "Unknown SECP256K1_EXHAUSTIVE_TEST_ORDER"
 #  endif
 #else
 /* Group size 4 or 5 appears optimal. */
@@ -103,8 +103,8 @@ static void secp256k1_ecmult_const_odd_multiples_table_globalz(secp256k1_ge *pre
 /* For K as defined in the comment of secp256k1_ecmult_const, we have several precomputed
  * formulas/constants.
  * - in exhaustive test mode, we give an explicit expression to compute it at compile time: */
-#ifdef EXHAUSTIVE_TEST_ORDER
-static const secp256k1_scalar secp256k1_ecmult_const_K = ((SECP256K1_SCALAR_CONST(0, 0, 0, (1U << (ECMULT_CONST_BITS - 128)) - 2U, 0, 0, 0, 0) + EXHAUSTIVE_TEST_ORDER - 1U) * (1U + EXHAUSTIVE_TEST_LAMBDA)) % EXHAUSTIVE_TEST_ORDER;
+#ifdef SECP256K1_EXHAUSTIVE_TEST_ORDER
+static const secp256k1_scalar secp256k1_ecmult_const_K = ((SECP256K1_SCALAR_CONST(0, 0, 0, (1U << (ECMULT_CONST_BITS - 128)) - 2U, 0, 0, 0, 0) + SECP256K1_EXHAUSTIVE_TEST_ORDER - 1U) * (1U + EXHAUSTIVE_TEST_LAMBDA)) % SECP256K1_EXHAUSTIVE_TEST_ORDER;
 /* - for the real secp256k1 group we have constants for various ECMULT_CONST_BITS values. */
 #elif ECMULT_CONST_BITS == 129
 /* For GROUP_SIZE = 1,3. */

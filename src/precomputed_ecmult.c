@@ -9,9 +9,9 @@
 #if SECP256K1_ECMULT_WINDOW_SIZE > 15
    #error configuration mismatch, invalid SECP256K1_ECMULT_WINDOW_SIZE. Try deleting precomputed_ecmult.c before the build.
 #endif
-#ifdef EXHAUSTIVE_TEST_ORDER
+#ifdef SECP256K1_EXHAUSTIVE_TEST_ORDER
 #    error Cannot compile precomputed_ecmult.c in exhaustive test mode
-#endif /* EXHAUSTIVE_TEST_ORDER */
+#endif /* SECP256K1_EXHAUSTIVE_TEST_ORDER */
 #define WINDOW_G SECP256K1_ECMULT_WINDOW_SIZE
 const secp256k1_ge_storage secp256k1_pre_g[ECMULT_TABLE_SIZE(WINDOW_G)] = {
  S(79be667e,f9dcbbac,55a06295,ce870b07,29bfcdb,2dce28d9,59f2815b,16f81798,483ada77,26a3c465,5da4fbfc,e1108a8,fd17b448,a6855419,9c47d08f,fb10d4b8)

@@ -77,9 +77,9 @@ int main(void) {
     fprintf(fp, "#if SECP256K1_ECMULT_WINDOW_SIZE > %d\n", window_g);
     fprintf(fp, "   #error configuration mismatch, invalid SECP256K1_ECMULT_WINDOW_SIZE. Try deleting precomputed_ecmult.c before the build.\n");
     fprintf(fp, "#endif\n");
-    fprintf(fp, "#ifdef EXHAUSTIVE_TEST_ORDER\n");
+    fprintf(fp, "#ifdef SECP256K1_EXHAUSTIVE_TEST_ORDER\n");
     fprintf(fp, "#    error Cannot compile precomputed_ecmult.c in exhaustive test mode\n");
-    fprintf(fp, "#endif /* EXHAUSTIVE_TEST_ORDER */\n");
+    fprintf(fp, "#endif /* SECP256K1_EXHAUSTIVE_TEST_ORDER */\n");
     fprintf(fp, "#define WINDOW_G SECP256K1_ECMULT_WINDOW_SIZE\n");
 
     print_two_tables(fp, window_g);

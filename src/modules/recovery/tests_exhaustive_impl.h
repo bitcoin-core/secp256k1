@@ -15,10 +15,10 @@ static void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const se
     uint64_t iter = 0;
 
     /* Loop */
-    for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {  /* message */
-        for (j = 1; j < EXHAUSTIVE_TEST_ORDER; j++) {  /* key */
+    for (i = 1; i < SECP256K1_EXHAUSTIVE_TEST_ORDER; i++) {  /* message */
+        for (j = 1; j < SECP256K1_EXHAUSTIVE_TEST_ORDER; j++) {  /* key */
             if (skip_section(&iter)) continue;
-            for (k = 1; k < EXHAUSTIVE_TEST_ORDER; k++) {  /* nonce */
+            for (k = 1; k < SECP256K1_EXHAUSTIVE_TEST_ORDER; k++) {  /* nonce */
                 const int starting_k = k;
                 secp256k1_fe r_dot_y_normalized;
                 secp256k1_ecdsa_recoverable_signature rsig;
@@ -39,8 +39,8 @@ static void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const se
                 secp256k1_ecdsa_recoverable_signature_load(ctx, &r, &s, &recid, &rsig);
                 r_from_k(&expected_r, group, k, &overflow);
                 CHECK(r == expected_r);
-                CHECK((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER ||
-                      (k * (EXHAUSTIVE_TEST_ORDER - s)) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER);
+                CHECK((k * s) % SECP256K1_EXHAUSTIVE_TEST_ORDER == (i + r * j) % SECP256K1_EXHAUSTIVE_TEST_ORDER ||
+                      (k * (SECP256K1_EXHAUSTIVE_TEST_ORDER - s)) % SECP256K1_EXHAUSTIVE_TEST_ORDER == (i + r * j) % SECP256K1_EXHAUSTIVE_TEST_ORDER);
                 /* The recid's second bit is for conveying overflow (R.x value >= group order).
                  * In the actual secp256k1 this is an astronomically unlikely event, but in the
                  * small group used here, it will almost certainly be the case for all points.
@@ -51,7 +51,7 @@ static void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const se
                 r_dot_y_normalized = group[k].y;
                 secp256k1_fe_normalize(&r_dot_y_normalized);
                 /* Also the recovery id is flipped depending if we hit the low-s branch */
-                if ((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER) {
+                if ((k * s) % SECP256K1_EXHAUSTIVE_TEST_ORDER == (i + r * j) % SECP256K1_EXHAUSTIVE_TEST_ORDER) {
                     expected_recid |= secp256k1_fe_is_odd(&r_dot_y_normalized);
                 } else {
                     expected_recid |= !secp256k1_fe_is_odd(&r_dot_y_normalized);
@@ -66,8 +66,8 @@ static void test_exhaustive_recovery_sign(const secp256k1_context *ctx, const se
                  * signing. */
                 r_from_k(&expected_r, group, k, NULL);
                 CHECK(r == expected_r);
-                CHECK((k * s) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER ||
-                      (k * (EXHAUSTIVE_TEST_ORDER - s)) % EXHAUSTIVE_TEST_ORDER == (i + r * j) % EXHAUSTIVE_TEST_ORDER);
+                CHECK((k * s) % SECP256K1_EXHAUSTIVE_TEST_ORDER == (i + r * j) % SECP256K1_EXHAUSTIVE_TEST_ORDER ||
+                      (k * (SECP256K1_EXHAUSTIVE_TEST_ORDER - s)) % SECP256K1_EXHAUSTIVE_TEST_ORDER == (i + r * j) % SECP256K1_EXHAUSTIVE_TEST_ORDER);
 
                 /* Overflow means we've tried every possible nonce */
                 if (k < starting_k) {
@@ -82,10 +82,10 @@ static void test_exhaustive_recovery_verify(const secp256k1_context *ctx, const 
     /* This is essentially a copy of test_exhaustive_verify, with recovery added */
     int s, r, msg, key;
     uint64_t iter = 0;
-    for (s = 1; s < EXHAUSTIVE_TEST_ORDER; s++) {
-        for (r = 1; r < EXHAUSTIVE_TEST_ORDER; r++) {
-            for (msg = 1; msg < EXHAUSTIVE_TEST_ORDER; msg++) {
-                for (key = 1; key < EXHAUSTIVE_TEST_ORDER; key++) {
+    for (s = 1; s < SECP256K1_EXHAUSTIVE_TEST_ORDER; s++) {
+        for (r = 1; r < SECP256K1_EXHAUSTIVE_TEST_ORDER; r++) {
+            for (msg = 1; msg < SECP256K1_EXHAUSTIVE_TEST_ORDER; msg++) {
+                for (key = 1; key < SECP256K1_EXHAUSTIVE_TEST_ORDER; key++) {
                     secp256k1_ge nonconst_ge;
                     secp256k1_ecdsa_recoverable_signature rsig;
                     secp256k1_ecdsa_signature sig;
@@ -108,7 +108,7 @@ static void test_exhaustive_recovery_verify(const secp256k1_context *ctx, const 
                     /* Run through every k value that gives us this r and check that *one* works.
                      * Note there could be none, there could be multiple, ECDSA is weird. */
                     should_verify = 0;
-                    for (k = 0; k < EXHAUSTIVE_TEST_ORDER; k++) {
+                    for (k = 0; k < SECP256K1_EXHAUSTIVE_TEST_ORDER; k++) {
                         secp256k1_scalar check_x_s;
                         r_from_k(&check_x_s, group, k, NULL);
                         if (r_s == check_x_s) {

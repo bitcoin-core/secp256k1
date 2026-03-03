@@ -9,7 +9,7 @@
 
 #include "util.h"
 
-#if defined(EXHAUSTIVE_TEST_ORDER)
+#if defined(SECP256K1_EXHAUSTIVE_TEST_ORDER)
 #include "scalar_low.h"
 #elif defined(SECP256K1_WIDEMUL_INT128)
 #include "scalar_4x64.h"

@@ -16,13 +16,13 @@
 #include "ecmult.h"
 #include "precomputed_ecmult.h"
 
-#if defined(EXHAUSTIVE_TEST_ORDER)
+#if defined(SECP256K1_EXHAUSTIVE_TEST_ORDER)
 /* We need to lower these values for exhaustive tests because
  * the tables cannot have infinities in them (this breaks the
  * affine-isomorphism stuff which tracks z-ratios) */
-#  if EXHAUSTIVE_TEST_ORDER > 128
+#  if SECP256K1_EXHAUSTIVE_TEST_ORDER > 128
 #    define WINDOW_A 5
-#  elif EXHAUSTIVE_TEST_ORDER > 8
+#  elif SECP256K1_EXHAUSTIVE_TEST_ORDER > 8
 #    define WINDOW_A 4
 #  else
 #    define WINDOW_A 2
