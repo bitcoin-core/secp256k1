@@ -15,6 +15,12 @@
 
 #include "group.h"
 #include "int128_impl.h"
+#include "modinv32_impl.h"
+#ifdef SECP256K1_WIDEMUL_INT128
+/* modinv64 is only available if we have an int128 implementation. */
+#include "modinv64_impl.h"
+#endif
+
 #include "ecmult_gen.h"
 #include "ecmult_gen_compute_table_impl.h"
 

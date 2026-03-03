@@ -8,6 +8,8 @@
 
 #include "field.h"
 #include "group.h"
+#include "scalar.h"
+#include "secp256k1_internal.h"
 #include "testrand.h"
 #include "util.h"
 
