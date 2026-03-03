@@ -7497,27 +7497,27 @@ static void run_ecdsa_wycheproof(void) {
     test_ecdsa_wycheproof();
 }
 
-#ifdef ENABLE_MODULE_ECDH
+#ifdef SECP256K1_ENABLE_MODULE_ECDH
 # include "modules/ecdh/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
 # include "modules/recovery/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_EXTRAKEYS
+#ifdef SECP256K1_ENABLE_MODULE_EXTRAKEYS
 # include "modules/extrakeys/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
 # include "modules/schnorrsig/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_MUSIG
+#ifdef SECP256K1_ENABLE_MODULE_MUSIG
 # include "modules/musig/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
 # include "modules/ellswift/tests_impl.h"
 #endif
 
@@ -7836,24 +7836,24 @@ static const struct tf_test_module registry_modules[] = {
     MAKE_TEST_MODULE(group),
     MAKE_TEST_MODULE(ecmult),
     MAKE_TEST_MODULE(ec),
-#ifdef ENABLE_MODULE_ECDH
+#ifdef SECP256K1_ENABLE_MODULE_ECDH
     MAKE_TEST_MODULE(ecdh),
 #endif
     MAKE_TEST_MODULE(ecdsa),
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
     /* ECDSA pubkey recovery tests */
     MAKE_TEST_MODULE(recovery),
 #endif
-#ifdef ENABLE_MODULE_EXTRAKEYS
+#ifdef SECP256K1_ENABLE_MODULE_EXTRAKEYS
     MAKE_TEST_MODULE(extrakeys),
 #endif
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
     MAKE_TEST_MODULE(schnorrsig),
 #endif
-#ifdef ENABLE_MODULE_MUSIG
+#ifdef SECP256K1_ENABLE_MODULE_MUSIG
     MAKE_TEST_MODULE(musig),
 #endif
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
     MAKE_TEST_MODULE(ellswift),
 #endif
     MAKE_TEST_MODULE(utils),

@@ -337,19 +337,19 @@ static void test_exhaustive_sign(const secp256k1_context *ctx, const secp256k1_g
      */
 }
 
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
 #include "modules/recovery/tests_exhaustive_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_EXTRAKEYS
+#ifdef SECP256K1_ENABLE_MODULE_EXTRAKEYS
 #include "modules/extrakeys/tests_exhaustive_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
 #include "modules/schnorrsig/tests_exhaustive_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
 #include "modules/ellswift/tests_exhaustive_impl.h"
 #endif
 
@@ -437,16 +437,16 @@ int main(int argc, char** argv) {
         test_exhaustive_sign(ctx, group);
         test_exhaustive_verify(ctx, group);
 
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
         test_exhaustive_recovery(ctx, group);
 #endif
-#ifdef ENABLE_MODULE_EXTRAKEYS
+#ifdef SECP256K1_ENABLE_MODULE_EXTRAKEYS
         test_exhaustive_extrakeys(ctx, group);
 #endif
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
         test_exhaustive_schnorrsig(ctx);
 #endif
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
     /* The ellswift algorithm does have additional edge cases when operating on
      * curves of even order, which are not included in the code as secp256k1 is
      * of odd order. Skip the ellswift tests if the used exhaustive tests curve

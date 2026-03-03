@@ -16,19 +16,19 @@ static void help(const char *executable_path, int default_iters) {
     printf("Benchmarks the following algorithms:\n");
     printf("    - ECDSA signing/verification\n");
 
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
     printf("    - Public key recovery (optional module)\n");
 #endif
 
-#ifdef ENABLE_MODULE_ECDH
+#ifdef SECP256K1_ENABLE_MODULE_ECDH
     printf("    - ECDH key exchange (optional module)\n");
 #endif
 
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
     printf("    - Schnorr signatures (optional module)\n");
 #endif
 
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
     printf("    - ElligatorSwift (optional module)\n");
 #endif
 
@@ -46,21 +46,21 @@ static void help(const char *executable_path, int default_iters) {
     printf("    ec                : all EC public key algorithms (keygen)\n");
     printf("    ec_keygen         : EC public key generation\n");
 
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
     printf("    ecdsa_recover     : ECDSA public key recovery algorithm\n");
 #endif
 
-#ifdef ENABLE_MODULE_ECDH
+#ifdef SECP256K1_ENABLE_MODULE_ECDH
     printf("    ecdh              : ECDH key exchange algorithm\n");
 #endif
 
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
     printf("    schnorrsig        : all Schnorr signature algorithms (sign, verify)\n");
     printf("    schnorrsig_sign   : Schnorr sigining algorithm\n");
     printf("    schnorrsig_verify : Schnorr verification algorithm\n");
 #endif
 
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
     printf("    ellswift          : all ElligatorSwift benchmarks (encode, decode, keygen, ecdh)\n");
     printf("    ellswift_encode   : ElligatorSwift encoding\n");
     printf("    ellswift_decode   : ElligatorSwift decoding\n");
@@ -154,19 +154,19 @@ static void bench_keygen_run(void *arg, int iters) {
 }
 
 
-#ifdef ENABLE_MODULE_ECDH
+#ifdef SECP256K1_ENABLE_MODULE_ECDH
 # include "modules/ecdh/bench_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
 # include "modules/recovery/bench_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
 # include "modules/schnorrsig/bench_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
 # include "modules/ellswift/bench_impl.h"
 #endif
 
@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
     }
 
 /* Check if the user tries to benchmark optional module without building it */
-#ifndef ENABLE_MODULE_ECDH
+#ifndef SECP256K1_ENABLE_MODULE_ECDH
     if (have_flag(argc, argv, "ecdh")) {
         fprintf(stderr, "./bench: ECDH module not enabled.\n");
         fprintf(stderr, "See README.md for configuration instructions.\n\n");
@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
     }
 #endif
 
-#ifndef ENABLE_MODULE_RECOVERY
+#ifndef SECP256K1_ENABLE_MODULE_RECOVERY
     if (have_flag(argc, argv, "recover") || have_flag(argc, argv, "ecdsa_recover")) {
         fprintf(stderr, "./bench: Public key recovery module not enabled.\n");
         fprintf(stderr, "See README.md for configuration instructions.\n\n");
@@ -222,7 +222,7 @@ int main(int argc, char** argv) {
     }
 #endif
 
-#ifndef ENABLE_MODULE_SCHNORRSIG
+#ifndef SECP256K1_ENABLE_MODULE_SCHNORRSIG
     if (have_flag(argc, argv, "schnorrsig") || have_flag(argc, argv, "schnorrsig_sign") || have_flag(argc, argv, "schnorrsig_verify")) {
         fprintf(stderr, "./bench: Schnorr signatures module not enabled.\n");
         fprintf(stderr, "See README.md for configuration instructions.\n\n");
@@ -230,7 +230,7 @@ int main(int argc, char** argv) {
     }
 #endif
 
-#ifndef ENABLE_MODULE_ELLSWIFT
+#ifndef SECP256K1_ENABLE_MODULE_ELLSWIFT
     if (have_flag(argc, argv, "ellswift") || have_flag(argc, argv, "ellswift_encode") || have_flag(argc, argv, "ellswift_decode") ||
         have_flag(argc, argv, "encode") || have_flag(argc, argv, "decode") || have_flag(argc, argv, "ellswift_keygen") ||
         have_flag(argc, argv, "ellswift_ecdh")) {
@@ -264,22 +264,22 @@ int main(int argc, char** argv) {
 
     secp256k1_context_destroy(data.ctx);
 
-#ifdef ENABLE_MODULE_ECDH
+#ifdef SECP256K1_ENABLE_MODULE_ECDH
     /* ECDH benchmarks */
     run_ecdh_bench(iters, argc, argv);
 #endif
 
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
     /* ECDSA recovery benchmarks */
     run_recovery_bench(iters, argc, argv);
 #endif
 
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
     /* Schnorr signature benchmarks */
     run_schnorrsig_bench(iters, argc, argv);
 #endif
 
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
     /* ElligatorSwift benchmarks */
     run_ellswift_bench(iters, argc, argv);
 #endif
