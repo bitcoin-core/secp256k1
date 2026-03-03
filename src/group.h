@@ -207,11 +207,11 @@ static void secp256k1_ge_from_bytes_ext(secp256k1_ge *ge, const unsigned char *d
  */
 static int secp256k1_ge_is_in_correct_subgroup(const secp256k1_ge* ge);
 
-/** Check invariants on an affine group element (no-op unless VERIFY is enabled). */
+/** Check invariants on an affine group element (no-op unless SECP256K1_VERIFY is enabled). */
 static void secp256k1_ge_verify(const secp256k1_ge *a);
 #define SECP256K1_GE_VERIFY(a) secp256k1_ge_verify(a)
 
-/** Check invariants on a Jacobian group element (no-op unless VERIFY is enabled). */
+/** Check invariants on a Jacobian group element (no-op unless SECP256K1_VERIFY is enabled). */
 static void secp256k1_gej_verify(const secp256k1_gej *a);
 #define SECP256K1_GEJ_VERIFY(a) secp256k1_gej_verify(a)
 

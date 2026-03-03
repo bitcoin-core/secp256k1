@@ -152,8 +152,8 @@ static const secp256k1_callback default_error_callback = {
 } while(0)
 #endif
 
-/* Like assert(), but when VERIFY is defined. */
-#if defined(VERIFY)
+/* Like assert(), but when SECP256K1_VERIFY is defined. */
+#if defined(SECP256K1_VERIFY)
 #define VERIFY_CHECK CHECK
 #else
 #define VERIFY_CHECK(cond)
@@ -183,8 +183,8 @@ static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-/* Macro for restrict, when available and not in a VERIFY build. */
-#if defined(SECP256K1_BUILD) && defined(VERIFY)
+/* Macro for restrict, when available and not in a SECP256K1_VERIFY build. */
+#if defined(SECP256K1_BUILD) && defined(SECP256K1_VERIFY)
 # define SECP256K1_RESTRICT
 #else
 # if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
@@ -251,14 +251,14 @@ static SECP256K1_INLINE void secp256k1_memzero_explicit(void *ptr, size_t len) {
  * The state of the memory after this call is unspecified so callers must not
  * make any assumptions about its contents.
  *
- * In VERIFY builds, it has the side effect of marking the memory as undefined.
+ * In SECP256K1_VERIFY builds, it has the side effect of marking the memory as undefined.
  * This helps to detect use-after-clear bugs where code incorrectly reads from
  * cleansed memory during testing.
  */
 static SECP256K1_INLINE void secp256k1_memclear_explicit(void *ptr, size_t len) {
     /* The current implementation zeroes, but callers must not rely on this */
     secp256k1_memzero_explicit(ptr, len);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     SECP256K1_CHECKMEM_UNDEFINE(ptr, len);
 #endif
 }

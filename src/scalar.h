@@ -98,7 +98,7 @@ static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r, const secp256k1_
 /** If flag is 1, set *r equal to *a; if flag is 0, leave it. Constant-time.  Both *r and *a must be initialized. Flag must be 0 or 1. */
 static void secp256k1_scalar_cmov(secp256k1_scalar *r, const secp256k1_scalar *a, int flag);
 
-/** Check invariants on a scalar (no-op unless VERIFY is enabled). */
+/** Check invariants on a scalar (no-op unless SECP256K1_VERIFY is enabled). */
 static void secp256k1_scalar_verify(const secp256k1_scalar *r);
 #define SECP256K1_SCALAR_VERIFY(r) secp256k1_scalar_verify(r)
 

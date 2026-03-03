@@ -7,7 +7,7 @@
 #ifndef SECP256K1_SCALAR_IMPL_H
 #define SECP256K1_SCALAR_IMPL_H
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
 #include <string.h>
 #endif
 
@@ -85,7 +85,7 @@ static const secp256k1_scalar secp256k1_const_lambda = SECP256K1_SCALAR_CONST(
     0x122E22EAUL, 0x20816678UL, 0xDF02967CUL, 0x1B23BD72UL
 );
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
 static void secp256k1_scalar_split_lambda_verify(const secp256k1_scalar *r1, const secp256k1_scalar *r2, const secp256k1_scalar *k);
 #endif
 
@@ -174,12 +174,12 @@ static void secp256k1_scalar_split_lambda(secp256k1_scalar * SECP256K1_RESTRICT 
 
     SECP256K1_SCALAR_VERIFY(r1);
     SECP256K1_SCALAR_VERIFY(r2);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     secp256k1_scalar_split_lambda_verify(r1, r2, k);
 #endif
 }
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
 /*
  * Proof for secp256k1_scalar_split_lambda's bounds.
  *
@@ -315,7 +315,7 @@ static void secp256k1_scalar_split_lambda_verify(const secp256k1_scalar *r1, con
     secp256k1_scalar_get_b32(buf2, &s);
     VERIFY_CHECK(secp256k1_memcmp_var(buf1, k2_bound, 32) < 0 || secp256k1_memcmp_var(buf2, k2_bound, 32) < 0);
 }
-#endif /* VERIFY */
+#endif /* SECP256K1_VERIFY */
 #endif /* !defined(EXHAUSTIVE_TEST_ORDER) */
 
 #endif /* SECP256K1_SCALAR_IMPL_H */

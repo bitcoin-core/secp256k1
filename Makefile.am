@@ -130,7 +130,7 @@ if !ENABLE_COVERAGE
 TESTS += tests
 noinst_PROGRAMS += tests
 tests_SOURCES  = $(noverify_tests_SOURCES)
-tests_CPPFLAGS = $(noverify_tests_CPPFLAGS) -DVERIFY
+tests_CPPFLAGS = $(noverify_tests_CPPFLAGS) -DSECP256K1_VERIFY
 tests_LDADD    = $(noverify_tests_LDADD)
 tests_LDFLAGS  = $(noverify_tests_LDFLAGS)
 endif
@@ -148,7 +148,7 @@ noinst_PROGRAMS += exhaustive_tests
 exhaustive_tests_SOURCES = src/tests_exhaustive.c
 exhaustive_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 if !ENABLE_COVERAGE
-exhaustive_tests_CPPFLAGS += -DVERIFY
+exhaustive_tests_CPPFLAGS += -DSECP256K1_VERIFY
 endif
 # Note: do not include $(PRECOMPUTED_LIB) in exhaustive_tests (it uses runtime-generated tables).
 exhaustive_tests_LDADD = $(COMMON_LIB)
@@ -217,11 +217,11 @@ EXTRA_PROGRAMS = precompute_ecmult precompute_ecmult_gen
 CLEANFILES = $(EXTRA_PROGRAMS)
 
 precompute_ecmult_SOURCES = src/precompute_ecmult.c
-precompute_ecmult_CPPFLAGS = $(SECP_CONFIG_DEFINES) -DVERIFY
+precompute_ecmult_CPPFLAGS = $(SECP_CONFIG_DEFINES) -DSECP256K1_VERIFY
 precompute_ecmult_LDADD = $(COMMON_LIB)
 
 precompute_ecmult_gen_SOURCES = src/precompute_ecmult_gen.c
-precompute_ecmult_gen_CPPFLAGS = $(SECP_CONFIG_DEFINES) -DVERIFY
+precompute_ecmult_gen_CPPFLAGS = $(SECP_CONFIG_DEFINES) -DSECP256K1_VERIFY
 precompute_ecmult_gen_LDADD = $(COMMON_LIB)
 
 # See Automake manual, Section "Errors with distclean".

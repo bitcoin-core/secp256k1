@@ -14,8 +14,8 @@
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in tests.")
     #undef USE_EXTERNAL_DEFAULT_CALLBACKS
 #endif
-#if defined(VERIFY) && defined(COVERAGE)
-    #pragma message("Defining VERIFY for tests being built for coverage analysis support is meaningless.")
+#if defined(SECP256K1_VERIFY) && defined(COVERAGE)
+    #pragma message("Defining SECP256K1_VERIFY for tests being built for coverage analysis support is meaningless.")
 #endif
 #include "secp256k1.c"
 
@@ -3021,7 +3021,7 @@ static void run_field_half(void) {
     /* Check magnitude 0 input */
     secp256k1_fe_get_bounds(&t, 0);
     secp256k1_fe_half(&t);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     CHECK(t.magnitude == 1);
     CHECK(t.normalized == 0);
 #endif
@@ -3034,7 +3034,7 @@ static void run_field_half(void) {
 
         u = t;
         secp256k1_fe_half(&u);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         CHECK(u.magnitude == (m >> 1) + 1);
         CHECK(u.normalized == 0);
 #endif
@@ -3053,7 +3053,7 @@ static void run_field_half(void) {
 
         u = t;
         secp256k1_fe_half(&u);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         CHECK(u.magnitude == (m >> 1) + 1);
         CHECK(u.normalized == 0);
 #endif
@@ -3095,7 +3095,7 @@ static void run_field_misc(void) {
         /* Test fe conditional move; z is not normalized here. */
         q = x;
         secp256k1_fe_cmov(&x, &z, 0);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         CHECK(!x.normalized);
         CHECK((x.magnitude == q.magnitude) || (x.magnitude == z.magnitude));
         CHECK((x.magnitude >= q.magnitude) && (x.magnitude >= z.magnitude));
@@ -3105,7 +3105,7 @@ static void run_field_misc(void) {
         CHECK(!fe_identical(&x, &z));
         CHECK(fe_identical(&x, &q));
         secp256k1_fe_cmov(&q, &z, 1);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         CHECK(!q.normalized);
         CHECK((q.magnitude == x.magnitude) || (q.magnitude == z.magnitude));
         CHECK((q.magnitude >= x.magnitude) && (q.magnitude >= z.magnitude));
@@ -3117,14 +3117,14 @@ static void run_field_misc(void) {
         CHECK(!secp256k1_fe_equal(&x, &z));
         secp256k1_fe_normalize_var(&q);
         secp256k1_fe_cmov(&q, &z, (i&1));
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         CHECK(q.normalized && q.magnitude == 1);
 #endif
         for (j = 0; j < 6; j++) {
             secp256k1_fe_negate_unchecked(&z, &z, j+1);
             secp256k1_fe_normalize_var(&q);
             secp256k1_fe_cmov(&q, &z, (j&1));
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
             CHECK(!q.normalized && q.magnitude == z.magnitude);
 #endif
         }

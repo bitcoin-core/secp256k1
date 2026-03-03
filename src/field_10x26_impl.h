@@ -12,7 +12,7 @@
 #include "field.h"
 #include "modinv32_impl.h"
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
 static void secp256k1_fe_impl_verify(const secp256k1_fe *a) {
     const uint32_t *d = a->n;
     int m = a->normalized ? 1 : 2 * a->magnitude;
@@ -1222,7 +1222,7 @@ static int secp256k1_fe_impl_is_square_var(const secp256k1_fe *x) {
     if (jac == 0) {
         /* secp256k1_jacobi32_maybe_var failed to compute the Jacobi symbol. Fall back
          * to computing a square root. This should be extremely rare with random
-         * input (except in VERIFY mode, where a lower iteration count is used). */
+         * input (except in SECP256K1_VERIFY mode, where a lower iteration count is used). */
         secp256k1_fe dummy;
         ret = secp256k1_fe_sqrt(&dummy, &tmp);
     } else {

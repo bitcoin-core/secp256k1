@@ -267,7 +267,7 @@ static int secp256k1_ellswift_xswiftec_inv_var(secp256k1_fe *t, const secp256k1_
         secp256k1_fe_negate(&q, &q, 1);                 /* q = -s*(4*(u^3+7)+3*u^2*s) */
         if (!secp256k1_fe_is_square_var(&q)) return 0;
         ret = secp256k1_fe_sqrt(&r, &q);                /* r = sqrt(-s*(4*(u^3+7)+3*u^2*s)) */
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         VERIFY_CHECK(ret);
 #else
         (void)ret;
@@ -310,7 +310,7 @@ static int secp256k1_ellswift_xswiftec_inv_var(secp256k1_fe *t, const secp256k1_
 static void secp256k1_ellswift_prng(unsigned char* out32, const secp256k1_sha256 *hasher, uint32_t cnt) {
     secp256k1_sha256 hash = *hasher;
     unsigned char buf4[4];
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     size_t blocks = hash.bytes >> 6;
 #endif
     buf4[0] = cnt;

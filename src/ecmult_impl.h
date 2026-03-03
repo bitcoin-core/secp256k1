@@ -205,7 +205,7 @@ static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, 
 
         bit += now;
     }
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     {
         int verify_bit = bit;
 

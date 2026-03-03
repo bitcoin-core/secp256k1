@@ -46,7 +46,7 @@ static void testutil_random_fe_magnitude(secp256k1_fe *fe, int m) {
     secp256k1_fe_negate(&zero, &zero, 0);
     secp256k1_fe_mul_int_unchecked(&zero, n - 1);
     secp256k1_fe_add(fe, &zero);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     CHECK(fe->magnitude == n);
 #endif
 }

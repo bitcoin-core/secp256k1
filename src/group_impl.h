@@ -198,7 +198,7 @@ static void secp256k1_ge_set_gej_var(secp256k1_ge *r, secp256k1_gej *a) {
 static void secp256k1_ge_set_all_gej(secp256k1_ge *r, const secp256k1_gej *a, size_t len) {
     secp256k1_fe u;
     size_t i;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GEJ_VERIFY(&a[i]);
         VERIFY_CHECK(!secp256k1_gej_is_infinity(&a[i]));
@@ -226,7 +226,7 @@ static void secp256k1_ge_set_all_gej(secp256k1_ge *r, const secp256k1_gej *a, si
         secp256k1_ge_set_gej_zinv(&r[i], &a[i], &r[i].x);
     }
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GE_VERIFY(&r[i]);
     }
@@ -237,7 +237,7 @@ static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a
     secp256k1_fe u;
     size_t i;
     size_t last_i = SIZE_MAX;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GEJ_VERIFY(&a[i]);
     }
@@ -279,7 +279,7 @@ static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a
         }
     }
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GE_VERIFY(&r[i]);
     }
@@ -289,7 +289,7 @@ static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a
 static void secp256k1_ge_table_set_globalz(size_t len, secp256k1_ge *a, const secp256k1_fe *zr) {
     size_t i;
     secp256k1_fe zs;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GE_VERIFY(&a[i]);
         SECP256K1_FE_VERIFY(&zr[i]);
@@ -312,7 +312,7 @@ static void secp256k1_ge_table_set_globalz(size_t len, secp256k1_ge *a, const se
         }
     }
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GE_VERIFY(&a[i]);
     }

@@ -142,7 +142,7 @@ static int secp256k1_musig_pubkey_agg_callback(secp256k1_scalar *sc, secp256k1_g
     secp256k1_musig_pubkey_agg_ecmult_data *ctx = (secp256k1_musig_pubkey_agg_ecmult_data *) data;
     int ret;
     ret = secp256k1_pubkey_load(ctx->ctx, pt, ctx->pks[idx]);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     /* pubkey_load can't fail because the same pks have already been loaded in
      * `musig_compute_pks_hash` (and we test this). */
     VERIFY_CHECK(ret);

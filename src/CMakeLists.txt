@@ -161,7 +161,7 @@ if(SECP256K1_BUILD_TESTS)
 
   add_executable_and_tests(noverify_tests "")
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Coverage")
-    add_executable_and_tests(tests VERIFY)
+    add_executable_and_tests(tests SECP256K1_VERIFY)
   endif()
   unset(TEST_DEFINITIONS)
 endif()
@@ -170,7 +170,7 @@ if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
   # Note: do not include secp256k1_precomputed in exhaustive_tests (it uses runtime-generated tables).
   add_executable(exhaustive_tests tests_exhaustive.c)
   target_link_libraries(exhaustive_tests secp256k1_asm)
-  target_compile_definitions(exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
+  target_compile_definitions(exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:SECP256K1_VERIFY>)
   add_test(NAME secp256k1.exhaustive_tests COMMAND exhaustive_tests)
   set_tests_properties(secp256k1.exhaustive_tests PROPERTIES
     LABELS secp256k1_exhaustive
