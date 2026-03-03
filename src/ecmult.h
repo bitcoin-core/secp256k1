@@ -11,19 +11,19 @@
 #include "scalar.h"
 #include "scratch.h"
 
-#ifndef ECMULT_WINDOW_SIZE
-#  define ECMULT_WINDOW_SIZE 15
+#ifndef SECP256K1_ECMULT_WINDOW_SIZE
+#  define SECP256K1_ECMULT_WINDOW_SIZE 15
 #  ifdef DEBUG_CONFIG
-#     pragma message DEBUG_CONFIG_MSG("ECMULT_WINDOW_SIZE undefined, assuming default value")
+#     pragma message DEBUG_CONFIG_MSG("SECP256K1_ECMULT_WINDOW_SIZE undefined, assuming default value")
 #  endif
 #endif
 
 #ifdef DEBUG_CONFIG
-#  pragma message DEBUG_CONFIG_DEF(ECMULT_WINDOW_SIZE)
+#  pragma message DEBUG_CONFIG_DEF(SECP256K1_ECMULT_WINDOW_SIZE)
 #endif
 
 /* No one will ever need more than a window size of 24. The code might
- * be correct for larger values of ECMULT_WINDOW_SIZE but this is not
+ * be correct for larger values of SECP256K1_ECMULT_WINDOW_SIZE but this is not
  * tested.
  *
  * The following limitations are known, and there are probably more:
@@ -33,8 +33,8 @@
  * If WINDOW_G > 31 and int has 32 bits, then the code is incorrect
  * because certain expressions will overflow.
  */
-#if ECMULT_WINDOW_SIZE < 2 || ECMULT_WINDOW_SIZE > 24
-#  error Set ECMULT_WINDOW_SIZE to an integer in range [2..24].
+#if SECP256K1_ECMULT_WINDOW_SIZE < 2 || SECP256K1_ECMULT_WINDOW_SIZE > 24
+#  error Set SECP256K1_ECMULT_WINDOW_SIZE to an integer in range [2..24].
 #endif
 
 /** The number of entries a table with precomputed multiples needs to have. */

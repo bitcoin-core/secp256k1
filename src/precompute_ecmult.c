@@ -56,7 +56,7 @@ static void print_two_tables(FILE *fp, int window_g) {
 
 int main(void) {
     /* Always compute all tables for window sizes up to 15. */
-    int window_g = (ECMULT_WINDOW_SIZE < 15) ? 15 : ECMULT_WINDOW_SIZE;
+    int window_g = (SECP256K1_ECMULT_WINDOW_SIZE < 15) ? 15 : SECP256K1_ECMULT_WINDOW_SIZE;
     const char outfile[] = "src/precomputed_ecmult.c";
     FILE* fp;
 
@@ -74,13 +74,13 @@ int main(void) {
     fprintf(fp, "#include \"ecmult.h\"\n");
     fprintf(fp, "#include \"precomputed_ecmult.h\"\n");
     fprintf(fp, "#define S(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) SECP256K1_GE_STORAGE_CONST(0x##a##u,0x##b##u,0x##c##u,0x##d##u,0x##e##u,0x##f##u,0x##g##u,0x##h##u,0x##i##u,0x##j##u,0x##k##u,0x##l##u,0x##m##u,0x##n##u,0x##o##u,0x##p##u)\n");
-    fprintf(fp, "#if ECMULT_WINDOW_SIZE > %d\n", window_g);
-    fprintf(fp, "   #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. Try deleting precomputed_ecmult.c before the build.\n");
+    fprintf(fp, "#if SECP256K1_ECMULT_WINDOW_SIZE > %d\n", window_g);
+    fprintf(fp, "   #error configuration mismatch, invalid SECP256K1_ECMULT_WINDOW_SIZE. Try deleting precomputed_ecmult.c before the build.\n");
     fprintf(fp, "#endif\n");
     fprintf(fp, "#ifdef EXHAUSTIVE_TEST_ORDER\n");
     fprintf(fp, "#    error Cannot compile precomputed_ecmult.c in exhaustive test mode\n");
     fprintf(fp, "#endif /* EXHAUSTIVE_TEST_ORDER */\n");
-    fprintf(fp, "#define WINDOW_G ECMULT_WINDOW_SIZE\n");
+    fprintf(fp, "#define WINDOW_G SECP256K1_ECMULT_WINDOW_SIZE\n");
 
     print_two_tables(fp, window_g);
 

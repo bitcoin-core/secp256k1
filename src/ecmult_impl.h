@@ -30,7 +30,7 @@
 #else
 /* optimal for 128-bit and 256-bit exponents. */
 #  define WINDOW_A 5
-/** Larger values for ECMULT_WINDOW_SIZE result in possibly better
+/** Larger values for SECP256K1_ECMULT_WINDOW_SIZE result in possibly better
  *  performance at the cost of an exponentially larger precomputed
  *  table. The exact table size is
  *      (1 << (WINDOW_G - 2)) * sizeof(secp256k1_ge_storage)  bytes,
