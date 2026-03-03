@@ -93,7 +93,7 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
     cb->fn(text, (void*)cb->data);
 }
 
-#ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
+#ifndef SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS
 static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
     (void)data;
     fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
@@ -318,16 +318,16 @@ static SECP256K1_INLINE void secp256k1_int_cmov(int *r, const int *a, int flag) 
     *r = (int)(r_masked | a_masked);
 }
 
-#if defined(USE_FORCE_WIDEMUL_INT128_STRUCT)
-/* If USE_FORCE_WIDEMUL_INT128_STRUCT is set, use int128_struct. */
+#if defined(SECP256K1_USE_FORCE_WIDEMUL_INT128_STRUCT)
+/* If SECP256K1_USE_FORCE_WIDEMUL_INT128_STRUCT is set, use int128_struct. */
 # define SECP256K1_WIDEMUL_INT128 1
 # define SECP256K1_INT128_STRUCT 1
-#elif defined(USE_FORCE_WIDEMUL_INT128)
-/* If USE_FORCE_WIDEMUL_INT128 is set, use int128. */
+#elif defined(SECP256K1_USE_FORCE_WIDEMUL_INT128)
+/* If SECP256K1_USE_FORCE_WIDEMUL_INT128 is set, use int128. */
 # define SECP256K1_WIDEMUL_INT128 1
 # define SECP256K1_INT128_NATIVE 1
-#elif defined(USE_FORCE_WIDEMUL_INT64)
-/* If USE_FORCE_WIDEMUL_INT64 is set, use int64. */
+#elif defined(SECP256K1_USE_FORCE_WIDEMUL_INT64)
+/* If SECP256K1_USE_FORCE_WIDEMUL_INT64 is set, use int64. */
 # define SECP256K1_WIDEMUL_INT64 1
 #elif defined(UINT128_MAX) || defined(__SIZEOF_INT128__)
 /* If a native 128-bit integer type exists, use int128. */

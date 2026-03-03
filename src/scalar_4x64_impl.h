@@ -347,7 +347,7 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *r, int flag) {
 }
 
 static void secp256k1_scalar_reduce_512(secp256k1_scalar *r, const uint64_t *l) {
-#ifdef USE_ASM_X86_64
+#ifdef SECP256K1_USE_ASM_X86_64
     /* Reduce 512 bits into 385. */
     uint64_t m0, m1, m2, m3, m4, m5, m6;
     uint64_t p0, p1, p2, p3, p4;
@@ -678,7 +678,7 @@ static void secp256k1_scalar_reduce_512(secp256k1_scalar *r, const uint64_t *l) 
 }
 
 static void secp256k1_scalar_mul_512(uint64_t *l8, const secp256k1_scalar *a, const secp256k1_scalar *b) {
-#ifdef USE_ASM_X86_64
+#ifdef SECP256K1_USE_ASM_X86_64
     const uint64_t *pb = b->d;
     __asm__ __volatile__(
     /* Preload */

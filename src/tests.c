@@ -10,9 +10,9 @@
 
 #include <time.h>
 
-#ifdef USE_EXTERNAL_DEFAULT_CALLBACKS
+#ifdef SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in tests.")
-    #undef USE_EXTERNAL_DEFAULT_CALLBACKS
+    #undef SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS
 #endif
 #if defined(SECP256K1_VERIFY) && defined(COVERAGE)
     #pragma message("Defining SECP256K1_VERIFY for tests being built for coverage analysis support is meaningless.")

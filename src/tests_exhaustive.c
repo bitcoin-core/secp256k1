@@ -16,9 +16,9 @@
 /* These values of B are all values in [1, 8] that result in a curve with even order. */
 #define EXHAUSTIVE_TEST_CURVE_HAS_EVEN_ORDER (SECP256K1_B == 1 || SECP256K1_B == 6 || SECP256K1_B == 8)
 
-#ifdef USE_EXTERNAL_DEFAULT_CALLBACKS
+#ifdef SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in exhaustive_tests.")
-    #undef USE_EXTERNAL_DEFAULT_CALLBACKS
+    #undef SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS
 #endif
 #include "secp256k1.c"
 

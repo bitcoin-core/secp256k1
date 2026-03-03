@@ -388,7 +388,7 @@ SECP256K1_INLINE static void secp256k1_fe_impl_add_int(secp256k1_fe *r, int a) {
     r->n[0] += a;
 }
 
-#if defined(USE_EXTERNAL_ASM)
+#if defined(SECP256K1_USE_EXTERNAL_ASM)
 
 /* External assembler implementation */
 void secp256k1_fe_mul_inner(uint32_t *r, const uint32_t *a, const uint32_t * SECP256K1_RESTRICT b);
