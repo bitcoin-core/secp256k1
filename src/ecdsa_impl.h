@@ -196,7 +196,7 @@ static int secp256k1_ecdsa_sig_verify(const secp256k1_scalar *sigr, const secp25
     unsigned char c[32];
     secp256k1_scalar sn, u1, u2;
 #if !defined(EXHAUSTIVE_TEST_ORDER)
-    secp256k1_fe xr;
+    secp256k1_fe xr = {0};
 #endif
     secp256k1_gej pubkeyj;
     secp256k1_gej pr;
