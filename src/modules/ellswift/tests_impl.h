@@ -439,14 +439,18 @@ void ellswift_xdh_ctx_sha256_tests(void) {
     unsigned char out_default[65], out_custom[65];
     const unsigned char skA[32] = {1}, skB[32] = {2};
     unsigned char keyA[64], keyB[64], data[64] = {0};
-    const secp256k1_ellswift_xdh_hash_function hash_funcs[2] = {secp256k1_ellswift_xdh_hash_function_bip324, secp256k1_ellswift_xdh_hash_function_prefix};
+    secp256k1_ellswift_xdh_hash_function hash_fn;
     int i;
 
     CHECK(secp256k1_ellswift_create(ctx, keyA, skA, NULL));
     CHECK(secp256k1_ellswift_create(ctx, keyB, skB, NULL));
 
     for (i = 0; i < 2; i++) {
-        const secp256k1_ellswift_xdh_hash_function hash_fn = hash_funcs[i];
+        if (i == 0) {
+            hash_fn = secp256k1_ellswift_xdh_hash_function_bip324;
+        } else {
+            hash_fn = secp256k1_ellswift_xdh_hash_function_prefix;
+        }
         /* Default behavior. No ctx-provided SHA256 compression */
         CHECK(secp256k1_ellswift_xdh(ctx, out_default, keyA, keyB, skA, 0, hash_fn, data));
         CHECK(!sha256_ellswift_xdh_called);
