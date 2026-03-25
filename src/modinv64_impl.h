@@ -26,7 +26,7 @@ typedef struct {
     int64_t u, v, q, r;
 } secp256k1_modinv64_trans2x2;
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
 /* Helper function to compute the absolute value of an int64_t.
  * (we don't use abs/labs/llabs as it depends on the int sizes). */
 static int64_t secp256k1_modinv64_abs(int64_t v) {
@@ -90,7 +90,7 @@ static void secp256k1_modinv64_normalize_62(secp256k1_modinv64_signed62 *r, int6
     int64_t r0 = r->v[0], r1 = r->v[1], r2 = r->v[2], r3 = r->v[3], r4 = r->v[4];
     volatile int64_t cond_add, cond_negate;
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     /* Verify that all limbs are in range (-2^62,2^62). */
     int i;
     for (i = 0; i < 5; ++i) {
@@ -640,7 +640,7 @@ static void secp256k1_modinv64_var(secp256k1_modinv64_signed62 *x, const secp256
     secp256k1_modinv64_signed62 e = {{1, 0, 0, 0, 0}};
     secp256k1_modinv64_signed62 f = modinfo->modulus;
     secp256k1_modinv64_signed62 g = *x;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     int i = 0;
 #endif
     int j, len = 5;
@@ -710,8 +710,8 @@ static void secp256k1_modinv64_var(secp256k1_modinv64_signed62 *x, const secp256
 }
 
 /* Do up to 25 iterations of 62 posdivsteps (up to 1550 steps; more is extremely rare) each until f=1.
- * In VERIFY mode use a lower number of iterations (744, close to the median 756), so failure actually occurs. */
-#ifdef VERIFY
+ * In SECP256K1_VERIFY mode use a lower number of iterations (744, close to the median 756), so failure actually occurs. */
+#ifdef SECP256K1_VERIFY
 #define JACOBI64_ITERATIONS 12
 #else
 #define JACOBI64_ITERATIONS 25

@@ -16,13 +16,13 @@
 #include "ecmult.h"
 #include "precomputed_ecmult.h"
 
-#if defined(EXHAUSTIVE_TEST_ORDER)
+#if defined(SECP256K1_EXHAUSTIVE_TEST_ORDER)
 /* We need to lower these values for exhaustive tests because
  * the tables cannot have infinities in them (this breaks the
  * affine-isomorphism stuff which tracks z-ratios) */
-#  if EXHAUSTIVE_TEST_ORDER > 128
+#  if SECP256K1_EXHAUSTIVE_TEST_ORDER > 128
 #    define WINDOW_A 5
-#  elif EXHAUSTIVE_TEST_ORDER > 8
+#  elif SECP256K1_EXHAUSTIVE_TEST_ORDER > 8
 #    define WINDOW_A 4
 #  else
 #    define WINDOW_A 2
@@ -30,7 +30,7 @@
 #else
 /* optimal for 128-bit and 256-bit exponents. */
 #  define WINDOW_A 5
-/** Larger values for ECMULT_WINDOW_SIZE result in possibly better
+/** Larger values for SECP256K1_ECMULT_WINDOW_SIZE result in possibly better
  *  performance at the cost of an exponentially larger precomputed
  *  table. The exact table size is
  *      (1 << (WINDOW_G - 2)) * sizeof(secp256k1_ge_storage)  bytes,
@@ -205,7 +205,7 @@ static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, 
 
         bit += now;
     }
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     {
         int verify_bit = bit;
 

@@ -267,7 +267,7 @@ if test x"$enable_ctime_tests" = x"yes"; then
 fi
 
 if test x"$enable_coverage" = x"yes"; then
-    SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOVERAGE=1"
+    SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_COVERAGE=1"
     SECP_CFLAGS="-O0 --coverage $SECP_CFLAGS"
     # If coverage is enabled, and the user has not overridden CFLAGS,
     # override Autoconf's value "-g -O2" with "-g". Otherwise we'd end up
@@ -319,7 +319,7 @@ enable_external_asm=no
 
 case $set_asm in
 x86_64)
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_ASM_X86_64=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_USE_ASM_X86_64=1"
   ;;
 arm32)
   enable_external_asm=yes
@@ -332,20 +332,20 @@ no)
 esac
 
 if test x"$enable_external_asm" = x"yes"; then
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_EXTERNAL_ASM=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_USE_EXTERNAL_ASM=1"
 fi
 
 
 # Select wide multiplication implementation
 case $set_widemul in
 int128_struct)
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_FORCE_WIDEMUL_INT128_STRUCT=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_USE_FORCE_WIDEMUL_INT128_STRUCT=1"
   ;;
 int128)
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_FORCE_WIDEMUL_INT128=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_USE_FORCE_WIDEMUL_INT128=1"
   ;;
 int64)
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_FORCE_WIDEMUL_INT64=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_USE_FORCE_WIDEMUL_INT64=1"
   ;;
 auto)
   ;;
@@ -365,19 +365,19 @@ case $set_ecmult_window in
     # not in range
     AC_MSG_ERROR($error_window_size)
   fi
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DECMULT_WINDOW_SIZE=$set_ecmult_window"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_ECMULT_WINDOW_SIZE=$set_ecmult_window"
   ;;
 esac
 
 case $set_ecmult_gen_kb in
 2)
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOMB_BLOCKS=2 -DCOMB_TEETH=5"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_COMB_BLOCKS=2 -DSECP256K1_COMB_TEETH=5"
   ;;
 22)
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOMB_BLOCKS=11 -DCOMB_TEETH=6"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_COMB_BLOCKS=11 -DSECP256K1_COMB_TEETH=6"
   ;;
 86)
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOMB_BLOCKS=43 -DCOMB_TEETH=6"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_COMB_BLOCKS=43 -DSECP256K1_COMB_TEETH=6"
   ;;
 *)
   AC_MSG_ERROR(['ecmult gen table size not 2, 22 or 86'])
@@ -385,7 +385,7 @@ case $set_ecmult_gen_kb in
 esac
 
 if test x"$enable_valgrind" = x"yes"; then
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES $VALGRIND_CPPFLAGS -DVALGRIND"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES $VALGRIND_CPPFLAGS -DSECP256K1_VALGRIND"
 fi
 
 # Add -Werror and similar flags passed from the outside (for testing, e.g., in CI).
@@ -400,7 +400,7 @@ SECP_CFLAGS="$SECP_CFLAGS $WERROR_CFLAGS"
 # Processing must be done in a reverse topological sorting of the dependency graph
 # (dependent module first).
 if test x"$enable_module_ellswift" = x"yes"; then
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_ELLSWIFT=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_ENABLE_MODULE_ELLSWIFT=1"
 fi
 
 if test x"$enable_module_musig" = x"yes"; then
@@ -408,7 +408,7 @@ if test x"$enable_module_musig" = x"yes"; then
     AC_MSG_ERROR([Module dependency error: You have disabled the schnorrsig module explicitly, but it is required by the musig module.])
   fi
   enable_module_schnorrsig=yes
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_MUSIG=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_ENABLE_MODULE_MUSIG=1"
 fi
 
 if test x"$enable_module_schnorrsig" = x"yes"; then
@@ -416,23 +416,23 @@ if test x"$enable_module_schnorrsig" = x"yes"; then
     AC_MSG_ERROR([Module dependency error: You have disabled the extrakeys module explicitly, but it is required by the schnorrsig module.])
   fi
   enable_module_extrakeys=yes
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_SCHNORRSIG=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_ENABLE_MODULE_SCHNORRSIG=1"
 fi
 
 if test x"$enable_module_extrakeys" = x"yes"; then
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_EXTRAKEYS=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_ENABLE_MODULE_EXTRAKEYS=1"
 fi
 
 if test x"$enable_module_recovery" = x"yes"; then
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_RECOVERY=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_ENABLE_MODULE_RECOVERY=1"
 fi
 
 if test x"$enable_module_ecdh" = x"yes"; then
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_ECDH=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_ENABLE_MODULE_ECDH=1"
 fi
 
 if test x"$enable_external_default_callbacks" = x"yes"; then
-  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_EXTERNAL_DEFAULT_CALLBACKS=1"
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS=1"
 fi
 
 ###
@@ -449,7 +449,7 @@ fi
 if test "x$enable_tests" != x"no"; then
   AC_CHECK_HEADERS([sys/types.h sys/wait.h unistd.h])
   AS_IF([test "x$ac_cv_header_sys_types_h" = xyes && test "x$ac_cv_header_sys_wait_h" = xyes &&
-         test "x$ac_cv_header_unistd_h" = xyes], [TEST_DEFINES="-DSUPPORTS_CONCURRENCY=1"], TEST_DEFINES="")
+         test "x$ac_cv_header_unistd_h" = xyes], [TEST_DEFINES="-DSECP256K1_SUPPORTS_CONCURRENCY=1"], TEST_DEFINES="")
   AC_SUBST(TEST_DEFINES)
 fi
 

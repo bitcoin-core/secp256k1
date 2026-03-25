@@ -48,18 +48,18 @@
  * - The subgroup has size less than 1000 to permit exhaustive testing.
  * - The subgroup admits an endomorphism of the form lambda*(x,y) == (beta*x,y).
  */
-#if defined(EXHAUSTIVE_TEST_ORDER)
-#  if EXHAUSTIVE_TEST_ORDER == 7
+#if defined(SECP256K1_EXHAUSTIVE_TEST_ORDER)
+#  if SECP256K1_EXHAUSTIVE_TEST_ORDER == 7
 
 static const secp256k1_ge secp256k1_ge_const_g = SECP256K1_G_ORDER_7;
 #define SECP256K1_B 6
 
-#  elif EXHAUSTIVE_TEST_ORDER == 13
+#  elif SECP256K1_EXHAUSTIVE_TEST_ORDER == 13
 
 static const secp256k1_ge secp256k1_ge_const_g = SECP256K1_G_ORDER_13;
 #define SECP256K1_B 2
 
-#  elif EXHAUSTIVE_TEST_ORDER == 199
+#  elif SECP256K1_EXHAUSTIVE_TEST_ORDER == 199
 
 static const secp256k1_ge secp256k1_ge_const_g = SECP256K1_G_ORDER_199;
 #define SECP256K1_B 4
@@ -198,7 +198,7 @@ static void secp256k1_ge_set_gej_var(secp256k1_ge *r, secp256k1_gej *a) {
 static void secp256k1_ge_set_all_gej(secp256k1_ge *r, const secp256k1_gej *a, size_t len) {
     secp256k1_fe u;
     size_t i;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GEJ_VERIFY(&a[i]);
         VERIFY_CHECK(!secp256k1_gej_is_infinity(&a[i]));
@@ -226,7 +226,7 @@ static void secp256k1_ge_set_all_gej(secp256k1_ge *r, const secp256k1_gej *a, si
         secp256k1_ge_set_gej_zinv(&r[i], &a[i], &r[i].x);
     }
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GE_VERIFY(&r[i]);
     }
@@ -237,7 +237,7 @@ static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a
     secp256k1_fe u;
     size_t i;
     size_t last_i = SIZE_MAX;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GEJ_VERIFY(&a[i]);
     }
@@ -279,7 +279,7 @@ static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a
         }
     }
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GE_VERIFY(&r[i]);
     }
@@ -289,7 +289,7 @@ static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a
 static void secp256k1_ge_table_set_globalz(size_t len, secp256k1_ge *a, const secp256k1_fe *zr) {
     size_t i;
     secp256k1_fe zs;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GE_VERIFY(&a[i]);
         SECP256K1_FE_VERIFY(&zr[i]);
@@ -312,7 +312,7 @@ static void secp256k1_ge_table_set_globalz(size_t len, secp256k1_ge *a, const se
         }
     }
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     for (i = 0; i < len; i++) {
         SECP256K1_GE_VERIFY(&a[i]);
     }
@@ -924,7 +924,7 @@ static void secp256k1_ge_mul_lambda(secp256k1_ge *r, const secp256k1_ge *a) {
 }
 
 static int secp256k1_ge_is_in_correct_subgroup(const secp256k1_ge* ge) {
-#ifdef EXHAUSTIVE_TEST_ORDER
+#ifdef SECP256K1_EXHAUSTIVE_TEST_ORDER
     secp256k1_gej out;
     int i;
     SECP256K1_GE_VERIFY(ge);
@@ -933,7 +933,7 @@ static int secp256k1_ge_is_in_correct_subgroup(const secp256k1_ge* ge) {
     secp256k1_gej_set_infinity(&out);
     for (i = 0; i < 32; ++i) {
         secp256k1_gej_double_var(&out, &out, NULL);
-        if ((((uint32_t)EXHAUSTIVE_TEST_ORDER) >> (31 - i)) & 1) {
+        if ((((uint32_t)SECP256K1_EXHAUSTIVE_TEST_ORDER) >> (31 - i)) & 1) {
             secp256k1_gej_add_ge_var(&out, &out, ge, NULL);
         }
     }

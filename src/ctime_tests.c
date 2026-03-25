@@ -16,27 +16,27 @@
 #  error "This tool cannot be compiled without memory-checking interface (valgrind or msan)"
 #endif
 
-#ifdef ENABLE_MODULE_ECDH
+#ifdef SECP256K1_ENABLE_MODULE_ECDH
 # include "../include/secp256k1_ecdh.h"
 #endif
 
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
 # include "../include/secp256k1_recovery.h"
 #endif
 
-#ifdef ENABLE_MODULE_EXTRAKEYS
+#ifdef SECP256K1_ENABLE_MODULE_EXTRAKEYS
 # include "../include/secp256k1_extrakeys.h"
 #endif
 
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
 #include "../include/secp256k1_schnorrsig.h"
 #endif
 
-#ifdef ENABLE_MODULE_MUSIG
+#ifdef SECP256K1_ENABLE_MODULE_MUSIG
 #include "../include/secp256k1_musig.h"
 #endif
 
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
 #include "../include/secp256k1_ellswift.h"
 #endif
 
@@ -83,14 +83,14 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     unsigned char msg[32];
     unsigned char sig[74];
     unsigned char spubkey[33];
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
     secp256k1_ecdsa_recoverable_signature recoverable_signature;
     int recid;
 #endif
-#ifdef ENABLE_MODULE_EXTRAKEYS
+#ifdef SECP256K1_ENABLE_MODULE_EXTRAKEYS
     secp256k1_keypair keypair;
 #endif
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
     unsigned char ellswift[64];
     static const unsigned char prefix[64] = {'t', 'e', 's', 't'};
 #endif
@@ -115,7 +115,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     CHECK(ret);
     CHECK(secp256k1_ecdsa_signature_serialize_der(ctx, sig, &siglen, &signature));
 
-#ifdef ENABLE_MODULE_ECDH
+#ifdef SECP256K1_ENABLE_MODULE_ECDH
     /* Test ECDH. */
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_ecdh(ctx, msg, &pubkey, key, NULL, NULL);
@@ -123,7 +123,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     CHECK(ret == 1);
 #endif
 
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
     /* Test signing a recoverable signature. */
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_ecdsa_sign_recoverable(ctx, &recoverable_signature, msg, key, NULL, NULL);
@@ -157,7 +157,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     CHECK(ret == 1);
 
     /* Test keypair_create and keypair_xonly_tweak_add. */
-#ifdef ENABLE_MODULE_EXTRAKEYS
+#ifdef SECP256K1_ENABLE_MODULE_EXTRAKEYS
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_keypair_create(ctx, &keypair, key);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
@@ -176,7 +176,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     CHECK(ret == 1);
 #endif
 
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_keypair_create(ctx, &keypair, key);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
@@ -186,7 +186,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     CHECK(ret == 1);
 #endif
 
-#ifdef ENABLE_MODULE_MUSIG
+#ifdef SECP256K1_ENABLE_MODULE_MUSIG
     {
         secp256k1_pubkey pk;
         const secp256k1_pubkey *pk_ptr[1];
@@ -238,7 +238,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     }
 #endif
 
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
     SECP256K1_CHECKMEM_UNDEFINE(key, 32);
     ret = secp256k1_ellswift_create(ctx, ellswift, key, NULL);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));

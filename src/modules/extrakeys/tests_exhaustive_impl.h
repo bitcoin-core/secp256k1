@@ -11,14 +11,14 @@
 #include "main_impl.h"
 
 static void test_exhaustive_extrakeys(const secp256k1_context *ctx, const secp256k1_ge* group) {
-    secp256k1_keypair keypair[EXHAUSTIVE_TEST_ORDER - 1];
-    secp256k1_pubkey pubkey[EXHAUSTIVE_TEST_ORDER - 1];
-    secp256k1_xonly_pubkey xonly_pubkey[EXHAUSTIVE_TEST_ORDER - 1];
-    int parities[EXHAUSTIVE_TEST_ORDER - 1];
-    unsigned char xonly_pubkey_bytes[EXHAUSTIVE_TEST_ORDER - 1][32];
+    secp256k1_keypair keypair[SECP256K1_EXHAUSTIVE_TEST_ORDER - 1];
+    secp256k1_pubkey pubkey[SECP256K1_EXHAUSTIVE_TEST_ORDER - 1];
+    secp256k1_xonly_pubkey xonly_pubkey[SECP256K1_EXHAUSTIVE_TEST_ORDER - 1];
+    int parities[SECP256K1_EXHAUSTIVE_TEST_ORDER - 1];
+    unsigned char xonly_pubkey_bytes[SECP256K1_EXHAUSTIVE_TEST_ORDER - 1][32];
     int i;
 
-    for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {
+    for (i = 1; i < SECP256K1_EXHAUSTIVE_TEST_ORDER; i++) {
         secp256k1_fe fe;
         secp256k1_scalar scalar_i;
         unsigned char buf[33];
@@ -56,9 +56,9 @@ static void test_exhaustive_extrakeys(const secp256k1_context *ctx, const secp25
         CHECK(secp256k1_fe_is_odd(&fe) == parities[i - 1]);
 
         /* Verify that the higher half is identical to the lower half mirrored. */
-        if (i > EXHAUSTIVE_TEST_ORDER / 2) {
-            CHECK(secp256k1_memcmp_var(xonly_pubkey_bytes[i - 1], xonly_pubkey_bytes[EXHAUSTIVE_TEST_ORDER - i - 1], 32) == 0);
-            CHECK(parities[i - 1] == 1 - parities[EXHAUSTIVE_TEST_ORDER - i - 1]);
+        if (i > SECP256K1_EXHAUSTIVE_TEST_ORDER / 2) {
+            CHECK(secp256k1_memcmp_var(xonly_pubkey_bytes[i - 1], xonly_pubkey_bytes[SECP256K1_EXHAUSTIVE_TEST_ORDER - i - 1], 32) == 0);
+            CHECK(parities[i - 1] == 1 - parities[SECP256K1_EXHAUSTIVE_TEST_ORDER - i - 1]);
         }
     }
 

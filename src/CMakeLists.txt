@@ -8,7 +8,7 @@ set_property(TARGET secp256k1 PROPERTY PUBLIC_HEADER
 # Processing must be done in a topological sorting of the dependency graph
 # (dependent module first).
 if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
-  add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
+  add_compile_definitions(SECP256K1_ENABLE_MODULE_ELLSWIFT=1)
   set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_ellswift.h)
 endif()
 
@@ -17,7 +17,7 @@ if(SECP256K1_ENABLE_MODULE_MUSIG)
     message(FATAL_ERROR "Module dependency error: You have disabled the schnorrsig module explicitly, but it is required by the musig module.")
   endif()
   set(SECP256K1_ENABLE_MODULE_SCHNORRSIG ON)
-  add_compile_definitions(ENABLE_MODULE_MUSIG=1)
+  add_compile_definitions(SECP256K1_ENABLE_MODULE_MUSIG=1)
   set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_musig.h)
 endif()
 
@@ -26,22 +26,22 @@ if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
     message(FATAL_ERROR "Module dependency error: You have disabled the extrakeys module explicitly, but it is required by the schnorrsig module.")
   endif()
   set(SECP256K1_ENABLE_MODULE_EXTRAKEYS ON)
-  add_compile_definitions(ENABLE_MODULE_SCHNORRSIG=1)
+  add_compile_definitions(SECP256K1_ENABLE_MODULE_SCHNORRSIG=1)
   set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_schnorrsig.h)
 endif()
 
 if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
-  add_compile_definitions(ENABLE_MODULE_EXTRAKEYS=1)
+  add_compile_definitions(SECP256K1_ENABLE_MODULE_EXTRAKEYS=1)
   set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_extrakeys.h)
 endif()
 
 if(SECP256K1_ENABLE_MODULE_RECOVERY)
-  add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
+  add_compile_definitions(SECP256K1_ENABLE_MODULE_RECOVERY=1)
   set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_recovery.h)
 endif()
 
 if(SECP256K1_ENABLE_MODULE_ECDH)
-  add_compile_definitions(ENABLE_MODULE_ECDH=1)
+  add_compile_definitions(SECP256K1_ENABLE_MODULE_ECDH=1)
   set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_ecdh.h)
 endif()
 
@@ -141,7 +141,7 @@ if(SECP256K1_BUILD_TESTS)
 
   set(TEST_DEFINITIONS "")
   if(HAVE_SYS_TYPES_H AND HAVE_SYS_WAIT_H AND HAVE_UNISTD_H)
-    list(APPEND TEST_DEFINITIONS SUPPORTS_CONCURRENCY=1)
+    list(APPEND TEST_DEFINITIONS SECP256K1_SUPPORTS_CONCURRENCY=1)
   endif()
 
   function(add_executable_and_tests exe_name verify_definition)
@@ -161,7 +161,7 @@ if(SECP256K1_BUILD_TESTS)
 
   add_executable_and_tests(noverify_tests "")
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Coverage")
-    add_executable_and_tests(tests VERIFY)
+    add_executable_and_tests(tests SECP256K1_VERIFY)
   endif()
   unset(TEST_DEFINITIONS)
 endif()
@@ -170,7 +170,7 @@ if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
   # Note: do not include secp256k1_precomputed in exhaustive_tests (it uses runtime-generated tables).
   add_executable(exhaustive_tests tests_exhaustive.c)
   target_link_libraries(exhaustive_tests secp256k1_asm)
-  target_compile_definitions(exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
+  target_compile_definitions(exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:SECP256K1_VERIFY>)
   add_test(NAME secp256k1.exhaustive_tests COMMAND exhaustive_tests)
   set_tests_properties(secp256k1.exhaustive_tests PROPERTIES
     LABELS secp256k1_exhaustive

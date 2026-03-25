@@ -10,12 +10,12 @@
 
 #include <time.h>
 
-#ifdef USE_EXTERNAL_DEFAULT_CALLBACKS
+#ifdef SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in tests.")
-    #undef USE_EXTERNAL_DEFAULT_CALLBACKS
+    #undef SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS
 #endif
-#if defined(VERIFY) && defined(COVERAGE)
-    #pragma message("Defining VERIFY for tests being built for coverage analysis support is meaningless.")
+#if defined(SECP256K1_VERIFY) && defined(SECP256K1_COVERAGE)
+    #pragma message("Defining SECP256K1_VERIFY for tests being built for coverage analysis support is meaningless.")
 #endif
 #include "secp256k1.c"
 
@@ -3167,7 +3167,7 @@ static void run_field_half(void) {
     /* Check magnitude 0 input */
     secp256k1_fe_get_bounds(&t, 0);
     secp256k1_fe_half(&t);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     CHECK(t.magnitude == 1);
     CHECK(t.normalized == 0);
 #endif
@@ -3180,7 +3180,7 @@ static void run_field_half(void) {
 
         u = t;
         secp256k1_fe_half(&u);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         CHECK(u.magnitude == (m >> 1) + 1);
         CHECK(u.normalized == 0);
 #endif
@@ -3199,7 +3199,7 @@ static void run_field_half(void) {
 
         u = t;
         secp256k1_fe_half(&u);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         CHECK(u.magnitude == (m >> 1) + 1);
         CHECK(u.normalized == 0);
 #endif
@@ -3241,7 +3241,7 @@ static void run_field_misc(void) {
         /* Test fe conditional move; z is not normalized here. */
         q = x;
         secp256k1_fe_cmov(&x, &z, 0);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         CHECK(!x.normalized);
         CHECK((x.magnitude == q.magnitude) || (x.magnitude == z.magnitude));
         CHECK((x.magnitude >= q.magnitude) && (x.magnitude >= z.magnitude));
@@ -3251,7 +3251,7 @@ static void run_field_misc(void) {
         CHECK(!fe_identical(&x, &z));
         CHECK(fe_identical(&x, &q));
         secp256k1_fe_cmov(&q, &z, 1);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         CHECK(!q.normalized);
         CHECK((q.magnitude == x.magnitude) || (q.magnitude == z.magnitude));
         CHECK((q.magnitude >= x.magnitude) && (q.magnitude >= z.magnitude));
@@ -3263,14 +3263,14 @@ static void run_field_misc(void) {
         CHECK(!secp256k1_fe_equal(&x, &z));
         secp256k1_fe_normalize_var(&q);
         secp256k1_fe_cmov(&q, &z, (i&1));
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
         CHECK(q.normalized && q.magnitude == 1);
 #endif
         for (j = 0; j < 6; j++) {
             secp256k1_fe_negate_unchecked(&z, &z, j+1);
             secp256k1_fe_normalize_var(&q);
             secp256k1_fe_cmov(&q, &z, (j&1));
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
             CHECK(!q.normalized && q.magnitude == z.magnitude);
 #endif
         }
@@ -7671,27 +7671,27 @@ static void run_ecdsa_wycheproof(void) {
     test_ecdsa_wycheproof();
 }
 
-#ifdef ENABLE_MODULE_ECDH
+#ifdef SECP256K1_ENABLE_MODULE_ECDH
 # include "modules/ecdh/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
 # include "modules/recovery/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_EXTRAKEYS
+#ifdef SECP256K1_ENABLE_MODULE_EXTRAKEYS
 # include "modules/extrakeys/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
 # include "modules/schnorrsig/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_MUSIG
+#ifdef SECP256K1_ENABLE_MODULE_MUSIG
 # include "modules/musig/tests_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
 # include "modules/ellswift/tests_impl.h"
 #endif
 
@@ -8013,24 +8013,24 @@ static const struct tf_test_module registry_modules[] = {
     MAKE_TEST_MODULE(group),
     MAKE_TEST_MODULE(ecmult),
     MAKE_TEST_MODULE(ec),
-#ifdef ENABLE_MODULE_ECDH
+#ifdef SECP256K1_ENABLE_MODULE_ECDH
     MAKE_TEST_MODULE(ecdh),
 #endif
     MAKE_TEST_MODULE(ecdsa),
-#ifdef ENABLE_MODULE_RECOVERY
+#ifdef SECP256K1_ENABLE_MODULE_RECOVERY
     /* ECDSA pubkey recovery tests */
     MAKE_TEST_MODULE(recovery),
 #endif
-#ifdef ENABLE_MODULE_EXTRAKEYS
+#ifdef SECP256K1_ENABLE_MODULE_EXTRAKEYS
     MAKE_TEST_MODULE(extrakeys),
 #endif
-#ifdef ENABLE_MODULE_SCHNORRSIG
+#ifdef SECP256K1_ENABLE_MODULE_SCHNORRSIG
     MAKE_TEST_MODULE(schnorrsig),
 #endif
-#ifdef ENABLE_MODULE_MUSIG
+#ifdef SECP256K1_ENABLE_MODULE_MUSIG
     MAKE_TEST_MODULE(musig),
 #endif
-#ifdef ENABLE_MODULE_ELLSWIFT
+#ifdef SECP256K1_ENABLE_MODULE_ELLSWIFT
     MAKE_TEST_MODULE(ellswift),
 #endif
     MAKE_TEST_MODULE(utils),

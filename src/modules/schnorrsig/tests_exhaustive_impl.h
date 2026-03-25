@@ -25,19 +25,19 @@ static const unsigned char invalid_pubkey_bytes[][32] = {
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ((EXHAUSTIVE_TEST_ORDER + 0UL) >> 24) & 0xFF,
-        ((EXHAUSTIVE_TEST_ORDER + 0UL) >> 16) & 0xFF,
-        ((EXHAUSTIVE_TEST_ORDER + 0UL) >> 8) & 0xFF,
-        (EXHAUSTIVE_TEST_ORDER + 0UL) & 0xFF
+        ((SECP256K1_EXHAUSTIVE_TEST_ORDER + 0UL) >> 24) & 0xFF,
+        ((SECP256K1_EXHAUSTIVE_TEST_ORDER + 0UL) >> 16) & 0xFF,
+        ((SECP256K1_EXHAUSTIVE_TEST_ORDER + 0UL) >> 8) & 0xFF,
+        (SECP256K1_EXHAUSTIVE_TEST_ORDER + 0UL) & 0xFF
     },
     /* order + 1 */
     {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ((EXHAUSTIVE_TEST_ORDER + 1UL) >> 24) & 0xFF,
-        ((EXHAUSTIVE_TEST_ORDER + 1UL) >> 16) & 0xFF,
-        ((EXHAUSTIVE_TEST_ORDER + 1UL) >> 8) & 0xFF,
-        (EXHAUSTIVE_TEST_ORDER + 1UL) & 0xFF
+        ((SECP256K1_EXHAUSTIVE_TEST_ORDER + 1UL) >> 24) & 0xFF,
+        ((SECP256K1_EXHAUSTIVE_TEST_ORDER + 1UL) >> 16) & 0xFF,
+        ((SECP256K1_EXHAUSTIVE_TEST_ORDER + 1UL) >> 8) & 0xFF,
+        (SECP256K1_EXHAUSTIVE_TEST_ORDER + 1UL) & 0xFF
     },
     /* field size */
     {
@@ -80,28 +80,28 @@ static void test_exhaustive_schnorrsig_verify(const secp256k1_context *ctx, cons
     int d;
     uint64_t iter = 0;
     /* Iterate over the possible public keys to verify against (through their corresponding DL d). */
-    for (d = 1; d <= EXHAUSTIVE_TEST_ORDER / 2; ++d) {
+    for (d = 1; d <= SECP256K1_EXHAUSTIVE_TEST_ORDER / 2; ++d) {
         int actual_d;
         unsigned k;
         unsigned char pk32[32];
         memcpy(pk32, xonly_pubkey_bytes[d - 1], 32);
-        actual_d = parities[d - 1] ? EXHAUSTIVE_TEST_ORDER - d : d;
+        actual_d = parities[d - 1] ? SECP256K1_EXHAUSTIVE_TEST_ORDER - d : d;
         /* Iterate over the possible valid first 32 bytes in the signature, through their corresponding DL k.
-           Values above EXHAUSTIVE_TEST_ORDER/2 refer to the entries in invalid_pubkey_bytes. */
-        for (k = 1; k <= EXHAUSTIVE_TEST_ORDER / 2 + NUM_INVALID_KEYS; ++k) {
+           Values above SECP256K1_EXHAUSTIVE_TEST_ORDER/2 refer to the entries in invalid_pubkey_bytes. */
+        for (k = 1; k <= SECP256K1_EXHAUSTIVE_TEST_ORDER / 2 + NUM_INVALID_KEYS; ++k) {
             unsigned char sig64[64];
             int actual_k = -1;
-            int e_done[EXHAUSTIVE_TEST_ORDER] = {0};
+            int e_done[SECP256K1_EXHAUSTIVE_TEST_ORDER] = {0};
             int e_count_done = 0;
             if (skip_section(&iter)) continue;
-            if (k <= EXHAUSTIVE_TEST_ORDER / 2) {
+            if (k <= SECP256K1_EXHAUSTIVE_TEST_ORDER / 2) {
                 memcpy(sig64, xonly_pubkey_bytes[k - 1], 32);
-                actual_k = parities[k - 1] ? EXHAUSTIVE_TEST_ORDER - k : k;
+                actual_k = parities[k - 1] ? SECP256K1_EXHAUSTIVE_TEST_ORDER - k : k;
             } else {
-                memcpy(sig64, invalid_pubkey_bytes[k - 1 - EXHAUSTIVE_TEST_ORDER / 2], 32);
+                memcpy(sig64, invalid_pubkey_bytes[k - 1 - SECP256K1_EXHAUSTIVE_TEST_ORDER / 2], 32);
             }
             /* Randomly generate messages until all challenges have been hit. */
-            while (e_count_done < EXHAUSTIVE_TEST_ORDER) {
+            while (e_count_done < SECP256K1_EXHAUSTIVE_TEST_ORDER) {
                 secp256k1_scalar e;
                 unsigned char msg32[32];
                 testrand256(msg32);
@@ -112,13 +112,13 @@ static void test_exhaustive_schnorrsig_verify(const secp256k1_context *ctx, cons
                        0..order=that s value; order+1=random bytes */
                     int count_valid = 0;
                     unsigned int s;
-                    for (s = 0; s <= EXHAUSTIVE_TEST_ORDER + 1; ++s) {
+                    for (s = 0; s <= SECP256K1_EXHAUSTIVE_TEST_ORDER + 1; ++s) {
                         int expect_valid, valid;
-                        if (s <= EXHAUSTIVE_TEST_ORDER) {
+                        if (s <= SECP256K1_EXHAUSTIVE_TEST_ORDER) {
                             memset(sig64 + 32, 0, 32);
                             secp256k1_write_be32(sig64 + 60, s);
-                            expect_valid = actual_k != -1 && s != EXHAUSTIVE_TEST_ORDER &&
-                                           (s == (actual_k + actual_d * e) % EXHAUSTIVE_TEST_ORDER);
+                            expect_valid = actual_k != -1 && s != SECP256K1_EXHAUSTIVE_TEST_ORDER &&
+                                           (s == (actual_k + actual_d * e) % SECP256K1_EXHAUSTIVE_TEST_ORDER);
                         } else {
                             testrand256(sig64 + 32);
                             expect_valid = 0;
@@ -144,12 +144,12 @@ static void test_exhaustive_schnorrsig_sign(const secp256k1_context *ctx, unsign
     secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
 
     /* Loop over keys. */
-    for (d = 1; d < EXHAUSTIVE_TEST_ORDER; ++d) {
+    for (d = 1; d < SECP256K1_EXHAUSTIVE_TEST_ORDER; ++d) {
         int actual_d = d;
-        if (parities[d - 1]) actual_d = EXHAUSTIVE_TEST_ORDER - d;
+        if (parities[d - 1]) actual_d = SECP256K1_EXHAUSTIVE_TEST_ORDER - d;
         /* Loop over nonces. */
-        for (k = 1; k < EXHAUSTIVE_TEST_ORDER; ++k) {
-            int e_done[EXHAUSTIVE_TEST_ORDER] = {0};
+        for (k = 1; k < SECP256K1_EXHAUSTIVE_TEST_ORDER; ++k) {
+            int e_done[SECP256K1_EXHAUSTIVE_TEST_ORDER] = {0};
             int e_count_done = 0;
             unsigned char msg32[32];
             unsigned char sig64[64];
@@ -157,15 +157,15 @@ static void test_exhaustive_schnorrsig_sign(const secp256k1_context *ctx, unsign
             if (skip_section(&iter)) continue;
             extraparams.noncefp = secp256k1_hardened_nonce_function_smallint;
             extraparams.ndata = &k;
-            if (parities[k - 1]) actual_k = EXHAUSTIVE_TEST_ORDER - k;
+            if (parities[k - 1]) actual_k = SECP256K1_EXHAUSTIVE_TEST_ORDER - k;
             /* Generate random messages until all challenges have been tried. */
-            while (e_count_done < EXHAUSTIVE_TEST_ORDER) {
+            while (e_count_done < SECP256K1_EXHAUSTIVE_TEST_ORDER) {
                 secp256k1_scalar e;
                 testrand256(msg32);
                 secp256k1_schnorrsig_challenge(secp256k1_get_hash_context(ctx), &e, xonly_pubkey_bytes[k - 1], msg32, sizeof(msg32), xonly_pubkey_bytes[d - 1]);
                 /* Only do work if we hit a challenge we haven't tried before. */
                 if (!e_done[e]) {
-                    secp256k1_scalar expected_s = (actual_k + e * actual_d) % EXHAUSTIVE_TEST_ORDER;
+                    secp256k1_scalar expected_s = (actual_k + e * actual_d) % SECP256K1_EXHAUSTIVE_TEST_ORDER;
                     unsigned char expected_s_bytes[32];
                     secp256k1_scalar_get_b32(expected_s_bytes, &expected_s);
                     /* Invoke the real function to construct a signature. */
@@ -184,10 +184,10 @@ static void test_exhaustive_schnorrsig_sign(const secp256k1_context *ctx, unsign
 }
 
 static void test_exhaustive_schnorrsig(const secp256k1_context *ctx) {
-    secp256k1_keypair keypair[EXHAUSTIVE_TEST_ORDER - 1];
-    secp256k1_xonly_pubkey xonly_pubkey[EXHAUSTIVE_TEST_ORDER - 1];
-    int parity[EXHAUSTIVE_TEST_ORDER - 1];
-    unsigned char xonly_pubkey_bytes[EXHAUSTIVE_TEST_ORDER - 1][32];
+    secp256k1_keypair keypair[SECP256K1_EXHAUSTIVE_TEST_ORDER - 1];
+    secp256k1_xonly_pubkey xonly_pubkey[SECP256K1_EXHAUSTIVE_TEST_ORDER - 1];
+    int parity[SECP256K1_EXHAUSTIVE_TEST_ORDER - 1];
+    unsigned char xonly_pubkey_bytes[SECP256K1_EXHAUSTIVE_TEST_ORDER - 1][32];
     unsigned i;
 
     /* Verify that all invalid_pubkey_bytes are actually invalid. */
@@ -197,7 +197,7 @@ static void test_exhaustive_schnorrsig(const secp256k1_context *ctx) {
     }
 
     /* Construct keypairs and xonly-pubkeys for the entire group. */
-    for (i = 1; i < EXHAUSTIVE_TEST_ORDER; ++i) {
+    for (i = 1; i < SECP256K1_EXHAUSTIVE_TEST_ORDER; ++i) {
         secp256k1_scalar scalar_i;
         unsigned char buf[32];
         secp256k1_scalar_set_int(&scalar_i, i);

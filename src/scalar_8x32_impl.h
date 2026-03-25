@@ -782,7 +782,7 @@ static const secp256k1_modinv32_modinfo secp256k1_const_modinfo_scalar = {
 
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *x) {
     secp256k1_modinv32_signed30 s;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
     SECP256K1_SCALAR_VERIFY(x);
@@ -797,7 +797,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 
 static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
     secp256k1_modinv32_signed30 s;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
     SECP256K1_SCALAR_VERIFY(x);

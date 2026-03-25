@@ -24,12 +24,12 @@
  * - magnitude: an integer in [0,32]
  * - normalized: 0 or 1; normalized=1 implies magnitude <= 1.
  *
- * In VERIFY mode, they are materialized explicitly as fields in the struct,
+ * In SECP256K1_VERIFY mode, they are materialized explicitly as fields in the struct,
  * allowing run-time verification of these properties. In that case, the field
  * implementation also provides a secp256k1_fe_verify routine to verify that
  * these fields match the run-time value and perform internal consistency
  * checks. */
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
 #  define SECP256K1_FE_VERIFY_FIELDS \
     int magnitude; \
     int normalized;
@@ -45,7 +45,7 @@
 #error "Please select wide multiplication implementation"
 #endif
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
 /* Magnitude and normalized value for constants. */
 #define SECP256K1_FE_VERIFY_CONST(d7, d6, d5, d4, d3, d2, d1, d0) \
     /* Magnitude is 0 for constant 0; 1 otherwise. */ \
@@ -71,8 +71,8 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
     0x9cf04975ul, 0x12f58995ul, 0xc1396c28ul, 0x719501eeul
 );
 
-#ifndef VERIFY
-/* In non-VERIFY mode, we #define the fe operations to be identical to their
+#ifndef SECP256K1_VERIFY
+/* In non-SECP256K1_VERIFY mode, we #define the fe operations to be identical to their
  * internal field implementation, to avoid the potential overhead of a
  * function call (even though presumably inlinable). */
 #  define secp256k1_fe_normalize secp256k1_fe_impl_normalize
@@ -101,7 +101,7 @@ static const secp256k1_fe secp256k1_const_beta = SECP256K1_FE_CONST(
 #  define secp256k1_fe_half secp256k1_fe_impl_half
 #  define secp256k1_fe_add_int secp256k1_fe_impl_add_int
 #  define secp256k1_fe_is_square_var secp256k1_fe_impl_is_square_var
-#endif /* !defined(VERIFY) */
+#endif /* !defined(SECP256K1_VERIFY) */
 
 /** Normalize a field element.
  *
@@ -340,11 +340,11 @@ static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m);
  */
 static int secp256k1_fe_is_square_var(const secp256k1_fe *a);
 
-/** Check invariants on a field element (no-op unless VERIFY is enabled). */
+/** Check invariants on a field element (no-op unless SECP256K1_VERIFY is enabled). */
 static void secp256k1_fe_verify(const secp256k1_fe *a);
 #define SECP256K1_FE_VERIFY(a) secp256k1_fe_verify(a)
 
-/** Check that magnitude of a is at most m (no-op unless VERIFY is enabled). */
+/** Check that magnitude of a is at most m (no-op unless SECP256K1_VERIFY is enabled). */
 static void secp256k1_fe_verify_magnitude(const secp256k1_fe *a, int m);
 #define SECP256K1_FE_VERIFY_MAGNITUDE(a, m) secp256k1_fe_verify_magnitude(a, m)
 

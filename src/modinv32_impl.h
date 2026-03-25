@@ -20,7 +20,7 @@
  * implementation for N=30, using 30-bit signed limbs represented as int32_t.
  */
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
 static const secp256k1_modinv32_signed30 SECP256K1_SIGNED30_ONE = {{1}};
 
 /* Compute a*factor and put it in r. All but the top limb in r will be in range [0,2^30). */
@@ -66,7 +66,7 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
             r5 = r->v[5], r6 = r->v[6], r7 = r->v[7], r8 = r->v[8];
     volatile int32_t cond_add, cond_negate;
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     /* Verify that all limbs are in range (-2^30,2^30). */
     int i;
     for (i = 0; i < 9; ++i) {
@@ -584,7 +584,7 @@ static void secp256k1_modinv32_var(secp256k1_modinv32_signed30 *x, const secp256
     secp256k1_modinv32_signed30 e = {{1, 0, 0, 0, 0, 0, 0, 0, 0}};
     secp256k1_modinv32_signed30 f = modinfo->modulus;
     secp256k1_modinv32_signed30 g = *x;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     int i = 0;
 #endif
     int j, len = 9;
@@ -655,8 +655,8 @@ static void secp256k1_modinv32_var(secp256k1_modinv32_signed30 *x, const secp256
 }
 
 /* Do up to 50 iterations of 30 posdivsteps (up to 1500 steps; more is extremely rare) each until f=1.
- * In VERIFY mode use a lower number of iterations (750, close to the median 756), so failure actually occurs. */
-#ifdef VERIFY
+ * In SECP256K1_VERIFY mode use a lower number of iterations (750, close to the median 756), so failure actually occurs. */
+#ifdef SECP256K1_VERIFY
 #define JACOBI32_ITERATIONS 25
 #else
 #define JACOBI32_ITERATIONS 50

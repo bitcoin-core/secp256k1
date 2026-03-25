@@ -22,7 +22,7 @@
 
 #define STR_(x) #x
 #define STR(x) STR_(x)
-#define DEBUG_CONFIG_MSG(x) "DEBUG_CONFIG: " x
+#define DEBUG_CONFIG_MSG(x) "SECP256K1_DEBUG_CONFIG: " x
 #define DEBUG_CONFIG_DEF(x) DEBUG_CONFIG_MSG(#x "=" STR(x))
 
 /* Debug helper for printing arrays of unsigned char. */
@@ -93,7 +93,7 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
     cb->fn(text, (void*)cb->data);
 }
 
-#ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
+#ifndef SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS
 static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
     (void)data;
     fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
@@ -120,7 +120,7 @@ static const secp256k1_callback default_error_callback = {
 };
 
 
-#ifdef DETERMINISTIC
+#ifdef SECP256K1_DETERMINISTIC
 #define TEST_FAILURE(msg) do { \
     fprintf(stderr, "%s\n", msg); \
     abort(); \
@@ -138,7 +138,7 @@ static const secp256k1_callback default_error_callback = {
 #define EXPECT(x,c) (x)
 #endif
 
-#ifdef DETERMINISTIC
+#ifdef SECP256K1_DETERMINISTIC
 #define CHECK(cond) do { \
     if (EXPECT(!(cond), 0)) { \
         TEST_FAILURE("test condition failed"); \
@@ -152,8 +152,8 @@ static const secp256k1_callback default_error_callback = {
 } while(0)
 #endif
 
-/* Like assert(), but when VERIFY is defined. */
-#if defined(VERIFY)
+/* Like assert(), but when SECP256K1_VERIFY is defined. */
+#if defined(SECP256K1_VERIFY)
 #define VERIFY_CHECK CHECK
 #else
 #define VERIFY_CHECK(cond)
@@ -183,8 +183,8 @@ static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-/* Macro for restrict, when available and not in a VERIFY build. */
-#if defined(SECP256K1_BUILD) && defined(VERIFY)
+/* Macro for restrict, when available and not in a SECP256K1_VERIFY build. */
+#if defined(SECP256K1_BUILD) && defined(SECP256K1_VERIFY)
 # define SECP256K1_RESTRICT
 #else
 # if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
@@ -251,14 +251,14 @@ static SECP256K1_INLINE void secp256k1_memzero_explicit(void *ptr, size_t len) {
  * The state of the memory after this call is unspecified so callers must not
  * make any assumptions about its contents.
  *
- * In VERIFY builds, it has the side effect of marking the memory as undefined.
+ * In SECP256K1_VERIFY builds, it has the side effect of marking the memory as undefined.
  * This helps to detect use-after-clear bugs where code incorrectly reads from
  * cleansed memory during testing.
  */
 static SECP256K1_INLINE void secp256k1_memclear_explicit(void *ptr, size_t len) {
     /* The current implementation zeroes, but callers must not rely on this */
     secp256k1_memzero_explicit(ptr, len);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     SECP256K1_CHECKMEM_UNDEFINE(ptr, len);
 #endif
 }
@@ -318,16 +318,16 @@ static SECP256K1_INLINE void secp256k1_int_cmov(int *r, const int *a, int flag) 
     *r = (int)(r_masked | a_masked);
 }
 
-#if defined(USE_FORCE_WIDEMUL_INT128_STRUCT)
-/* If USE_FORCE_WIDEMUL_INT128_STRUCT is set, use int128_struct. */
+#if defined(SECP256K1_USE_FORCE_WIDEMUL_INT128_STRUCT)
+/* If SECP256K1_USE_FORCE_WIDEMUL_INT128_STRUCT is set, use int128_struct. */
 # define SECP256K1_WIDEMUL_INT128 1
 # define SECP256K1_INT128_STRUCT 1
-#elif defined(USE_FORCE_WIDEMUL_INT128)
-/* If USE_FORCE_WIDEMUL_INT128 is set, use int128. */
+#elif defined(SECP256K1_USE_FORCE_WIDEMUL_INT128)
+/* If SECP256K1_USE_FORCE_WIDEMUL_INT128 is set, use int128. */
 # define SECP256K1_WIDEMUL_INT128 1
 # define SECP256K1_INT128_NATIVE 1
-#elif defined(USE_FORCE_WIDEMUL_INT64)
-/* If USE_FORCE_WIDEMUL_INT64 is set, use int64. */
+#elif defined(SECP256K1_USE_FORCE_WIDEMUL_INT64)
+/* If SECP256K1_USE_FORCE_WIDEMUL_INT64 is set, use int64. */
 # define SECP256K1_WIDEMUL_INT64 1
 #elif defined(UINT128_MAX) || defined(__SIZEOF_INT128__)
 /* If a native 128-bit integer type exists, use int128. */

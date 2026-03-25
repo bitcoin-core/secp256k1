@@ -135,7 +135,7 @@ static int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k
     secp256k1_fe_sqr(&t1, r);
     ret = secp256k1_fe_equal(&t1, a);
 
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     if (!ret) {
         secp256k1_fe_negate(&t1, &t1, 1);
         secp256k1_fe_normalize_var(&t1);
@@ -145,7 +145,7 @@ static int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k
     return ret;
 }
 
-#ifndef VERIFY
+#ifndef SECP256K1_VERIFY
 static void secp256k1_fe_verify(const secp256k1_fe *a) { (void)a; }
 static void secp256k1_fe_verify_magnitude(const secp256k1_fe *a, int m) { (void)a; (void)m; }
 #else
@@ -452,6 +452,6 @@ SECP256K1_INLINE static void secp256k1_fe_half(secp256k1_fe *r) {
     SECP256K1_FE_VERIFY(r);
 }
 
-#endif /* defined(VERIFY) */
+#endif /* defined(SECP256K1_VERIFY) */
 
 #endif /* SECP256K1_FIELD_IMPL_H */

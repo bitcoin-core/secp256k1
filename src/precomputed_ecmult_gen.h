@@ -15,11 +15,11 @@ extern "C" {
 #include "ecmult_gen.h"
 #include "util_local_visibility.h"
 
-#ifdef EXHAUSTIVE_TEST_ORDER
-static secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[COMB_BLOCKS][COMB_POINTS];
+#ifdef SECP256K1_EXHAUSTIVE_TEST_ORDER
+static secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[SECP256K1_COMB_BLOCKS][COMB_POINTS];
 #else
-SECP256K1_LOCAL_VAR const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[COMB_BLOCKS][COMB_POINTS];
-#endif /* defined(EXHAUSTIVE_TEST_ORDER) */
+SECP256K1_LOCAL_VAR const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[SECP256K1_COMB_BLOCKS][COMB_POINTS];
+#endif /* defined(SECP256K1_EXHAUSTIVE_TEST_ORDER) */
 
 #ifdef __cplusplus
 }

@@ -23,7 +23,7 @@
  *   - Assert or otherwise fail in case the len-byte memory block pointed to by p is
  *     not considered entirely defined.
  * - SECP256K1_CHECKMEM_CHECK_VERIFY(p, len):
- *   - Like SECP256K1_CHECKMEM_CHECK, but only works in VERIFY mode.
+ *   - Like SECP256K1_CHECKMEM_CHECK, but only works in SECP256K1_VERIFY mode.
  * - SECP256K1_CHECKMEM_UNDEFINE(p, len):
  *   - marks the len-byte memory block pointed to by p as undefined data (secret data,
  *     in the context of constant-time checking).
@@ -42,7 +42,7 @@
 #define SECP256K1_CHECKMEM_NOOP(p, len) do { (void)(p); (void)(len); } while(0)
 
 /* If compiling under msan, map the SECP256K1_CHECKMEM_* functionality to msan.
- * Choose this preferentially, even when VALGRIND is defined, as msan-compiled
+ * Choose this preferentially, even when SECP256K1_VALGRIND is defined, as msan-compiled
  * binaries can't be run under valgrind anyway. */
 #if defined(__has_feature)
 #  if __has_feature(memory_sanitizer)
@@ -70,10 +70,10 @@
 #  define SECP256K1_CHECKMEM_MSAN_DEFINE(p, len) SECP256K1_CHECKMEM_NOOP((p), (len))
 #endif
 
-/* If valgrind integration is desired (through the VALGRIND define), implement the
+/* If valgrind integration is desired (through the SECP256K1_VALGRIND define), implement the
  * SECP256K1_CHECKMEM_* macros using valgrind. */
 #if !defined SECP256K1_CHECKMEM_ENABLED
-#  if defined VALGRIND
+#  if defined SECP256K1_VALGRIND
 #    include <stddef.h>
 #  if defined(__clang__) && defined(__APPLE__)
 #    pragma clang diagnostic push
@@ -108,7 +108,7 @@
 #  define SECP256K1_CHECKMEM_RUNNING() (0)
 #endif
 
-#if defined VERIFY
+#if defined SECP256K1_VERIFY
 #define SECP256K1_CHECKMEM_CHECK_VERIFY(p, len) SECP256K1_CHECKMEM_CHECK((p), (len))
 #else
 #define SECP256K1_CHECKMEM_CHECK_VERIFY(p, len) SECP256K1_CHECKMEM_NOOP((p), (len))

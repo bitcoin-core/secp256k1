@@ -221,7 +221,7 @@ static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a
     secp256k1_u128_accum_u64(&t, SECP256K1_N_H_2 & mask);
     r->d[2] = secp256k1_u128_to_u64(&t); secp256k1_u128_rshift(&t, 64);
     r->d[3] = secp256k1_u128_to_u64(&t) + (a->d[3] >> 1) + (SECP256K1_N_H_3 & mask);
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     /* The line above only computed the bottom 64 bits of r->d[3]; redo the computation
      * in full 128 bits to make sure the top 64 bits are indeed zero. */
     secp256k1_u128_accum_u64(&t, a->d[3] >> 1);
@@ -347,7 +347,7 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *r, int flag) {
 }
 
 static void secp256k1_scalar_reduce_512(secp256k1_scalar *r, const uint64_t *l) {
-#ifdef USE_ASM_X86_64
+#ifdef SECP256K1_USE_ASM_X86_64
     /* Reduce 512 bits into 385. */
     uint64_t m0, m1, m2, m3, m4, m5, m6;
     uint64_t p0, p1, p2, p3, p4;
@@ -678,7 +678,7 @@ static void secp256k1_scalar_reduce_512(secp256k1_scalar *r, const uint64_t *l) 
 }
 
 static void secp256k1_scalar_mul_512(uint64_t *l8, const secp256k1_scalar *a, const secp256k1_scalar *b) {
-#ifdef USE_ASM_X86_64
+#ifdef SECP256K1_USE_ASM_X86_64
     const uint64_t *pb = b->d;
     __asm__ __volatile__(
     /* Preload */
@@ -966,7 +966,7 @@ static const secp256k1_modinv64_modinfo secp256k1_const_modinfo_scalar = {
 
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *x) {
     secp256k1_modinv64_signed62 s;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
     SECP256K1_SCALAR_VERIFY(x);
@@ -981,7 +981,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 
 static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_scalar *x) {
     secp256k1_modinv64_signed62 s;
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     int zero_in = secp256k1_scalar_is_zero(x);
 #endif
     SECP256K1_SCALAR_VERIFY(x);

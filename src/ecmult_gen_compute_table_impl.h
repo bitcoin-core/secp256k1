@@ -37,7 +37,7 @@ static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, cons
             secp256k1_gej_add_ge_var(&u, &u, gen, NULL);
         }
     }
-#ifdef VERIFY
+#ifdef SECP256K1_VERIFY
     {
         /* Verify that u*2 = gen. */
         secp256k1_gej double_u;
