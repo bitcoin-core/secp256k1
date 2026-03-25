@@ -73,14 +73,14 @@ jobs:
         run: echo "period=$((10#$(date +%V) / 4))" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           # See: https://github.com/moby/buildkit/issues/3969.
           driver-opts: |
             network=host
 
       - name: Build container
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           file: ./ci/linux-debian.Dockerfile
           cache-from: type=gha,scope=${{ runner.arch }}-${{ steps.cache_timestamp.outputs.period }}
