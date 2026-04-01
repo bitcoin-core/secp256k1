@@ -197,6 +197,10 @@ AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]), [],
     [SECP_SET_DEFAULT([enable_external_default_callbacks], [no], [no])])
 
+AC_ARG_ENABLE(post_quantum,
+    AS_HELP_STRING([--enable-post-quantum],[enable post-quantum security [default=yes]]), [],
+    [SECP_SET_DEFAULT([enable_post_quantum], [yes], [yes])])
+
 # Test-only override of the (autodetected by the C code) "widemul" setting.
 # Legal values are:
 #  * int64 (for [u]int64_t),
@@ -435,6 +439,10 @@ if test x"$enable_external_default_callbacks" = x"yes"; then
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DUSE_EXTERNAL_DEFAULT_CALLBACKS=1"
 fi
 
+if test x"$enable_post_quantum" = x"yes"; then
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DSECP256K1_ENABLE_POST_QUANTUM=1"
+fi
+
 ###
 ### Check for --enable-experimental if necessary
 ###
@@ -483,6 +491,7 @@ AC_OUTPUT
 
 echo
 echo "Build Options:"
+echo "  with post quantum mode  = $enable_post_quantum"
 echo "  with external callbacks = $enable_external_default_callbacks"
 echo "  with benchmarks         = $enable_benchmark"
 echo "  with tests              = $enable_tests"
