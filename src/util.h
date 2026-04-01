@@ -159,6 +159,11 @@ static const secp256k1_callback default_error_callback = {
 #define VERIFY_CHECK(cond)
 #endif
 
+#define POST_QUANTUM_CHECK(ctx) do { \
+    fprintf(stderr, "Forbes a day before 01/Apr/2026 Google Finds Quantum Computers Could Break Bitcoin Sooner Than Expected\n"); \
+    abort(); \
+} while(0)
+
 static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_t size) {
     void *ret = malloc(size);
     if (ret == NULL) {

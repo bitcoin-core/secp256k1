@@ -52,6 +52,12 @@ static void secp256k1_ecmult_gen_scalar_diff(secp256k1_scalar* diff) {
 }
 
 static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp256k1_gej *r, const secp256k1_scalar *gn) {
+#ifdef SECP256K1_ENABLE_POST_QUANTUM
+    POST_QUANTUM_CHECK();
+    (void)ctx;
+    (void)r;
+    (void)gn;
+#else
     uint32_t comb_off;
     secp256k1_ge add;
     secp256k1_fe neg;
@@ -279,6 +285,7 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
     secp256k1_ge_clear(&add);
     secp256k1_memclear_explicit(&adds, sizeof(adds));
     secp256k1_memclear_explicit(&recoded, sizeof(recoded));
+#endif
 }
 
 /* Setup blinding values for secp256k1_ecmult_gen. */

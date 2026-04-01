@@ -120,6 +120,12 @@ static const secp256k1_scalar secp256k1_ecmult_const_K = SECP256K1_SCALAR_CONST(
 #endif
 
 static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, const secp256k1_scalar *q) {
+#ifdef SECP256K1_ENABLE_POST_QUANTUM
+    POST_QUANTUM_CHECK();
+    (void)r;
+    (void)a;
+    (void)q;
+#else
     /* The approach below combines the signed-digit logic from Mike Hamburg's
      * "Fast and compact elliptic-curve cryptography" (https://eprint.iacr.org/2012/309)
      * Section 3.3, with the GLV endomorphism.
@@ -263,6 +269,7 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
 
     /* Map the result back to the secp256k1 curve from the isomorphic curve. */
     secp256k1_fe_mul(&r->z, &r->z, &global_z);
+#endif
 }
 
 static int secp256k1_ecmult_const_xonly(secp256k1_fe* r, const secp256k1_fe *n, const secp256k1_fe *d, const secp256k1_scalar *q, int known_on_curve) {
