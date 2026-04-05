@@ -61,8 +61,8 @@ static int secp256k1_eckey_privkey_tweak_add(secp256k1_scalar *key, const secp25
 
 static int secp256k1_eckey_pubkey_tweak_add(secp256k1_ge *key, const secp256k1_scalar *tweak) {
     secp256k1_gej pt;
-    secp256k1_gej_set_ge(&pt, key);
-    secp256k1_ecmult(&pt, &pt, &secp256k1_scalar_one, tweak);
+    secp256k1_ecmult_gen_var(&pt, tweak);
+    secp256k1_gej_add_ge_var(&pt, &pt, key, NULL);
 
     if (secp256k1_gej_is_infinity(&pt)) {
         return 0;
