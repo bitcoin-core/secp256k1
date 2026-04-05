@@ -4600,10 +4600,14 @@ static void test_ecmult_target(const secp256k1_scalar* target, int mode) {
         secp256k1_ecmult(&p1j, &pj, &n1, &secp256k1_scalar_zero);
         secp256k1_ecmult(&p2j, &pj, &n2, &secp256k1_scalar_zero);
         secp256k1_ecmult(&ptj, &pj, target, &secp256k1_scalar_zero);
-    } else {
+    } else if (mode == 2) {
         secp256k1_ecmult_const(&p1j, &p, &n1);
         secp256k1_ecmult_const(&p2j, &p, &n2);
         secp256k1_ecmult_const(&ptj, &p, target);
+    } else {
+        secp256k1_ecmult_gen_var(&p1j, &n1);
+        secp256k1_ecmult_gen_var(&p2j, &n2);
+        secp256k1_ecmult_gen_var(&ptj, target);
     }
 
     /* Add them all up: n1*P + n2*P + target*P = (n1+n2+target)*P = (n1+n1-n1-n2)*P = 0. */
@@ -4620,6 +4624,7 @@ static void run_ecmult_near_split_bound(void) {
             test_ecmult_target(&scalars_near_split_bounds[j], 0);
             test_ecmult_target(&scalars_near_split_bounds[j], 1);
             test_ecmult_target(&scalars_near_split_bounds[j], 2);
+            test_ecmult_target(&scalars_near_split_bounds[j], 3);
         }
     }
 }
@@ -5637,7 +5642,7 @@ static void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar
     /* Compute x*G in many different ways, serialize it uncompressed, and feed it into acc. */
     secp256k1_gej gj, infj;
     secp256k1_ge r;
-    secp256k1_gej rj[7];
+    secp256k1_gej rj[8];
     unsigned char bytes[65];
     size_t i;
     secp256k1_gej_set_ge(&gj, &secp256k1_ge_const_g);
@@ -5649,6 +5654,7 @@ static void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar
     CHECK(secp256k1_ecmult_multi_var(&CTX->error_callback, scratch, &rj[4], x, NULL, NULL, 0));
     CHECK(secp256k1_ecmult_multi_var(&CTX->error_callback, scratch, &rj[5], &secp256k1_scalar_zero, test_ecmult_accumulate_cb, (void*)x, 1));
     secp256k1_ecmult_const(&rj[6], &secp256k1_ge_const_g, x);
+    secp256k1_ecmult_gen_var(&rj[7], x);
     secp256k1_ge_set_gej_var(&r, &rj[0]);
     for (i = 0; i < ARRAY_SIZE(rj); i++) {
         CHECK(secp256k1_gej_eq_ge_var(&rj[i], &r));
