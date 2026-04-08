@@ -1777,3 +1777,16 @@ S(ff3d6136,ffac5b0c,bfc6c5c0,c30dc01a,7ea3d56c,20bd3103,b178e3d3,ae180068,eccdc6
 #endif
 };
 #undef S
+
+const secp256k1_scalar secp256k1_ecmult_gen_scalar_diff =
+#if 0
+#elif (COMB_BLOCKS == 2) && (COMB_TEETH == 5) && (COMB_SPACING == 26)
+    SECP256K1_SCALAR_CONST(0x80000000,0x00000000,0x00000000,0x00000009,0x87e0873d,0xdd5f4e3f,0xe1563adf,0xe6691698)
+#elif (COMB_BLOCKS == 11) && (COMB_TEETH == 6) && (COMB_SPACING == 4)
+    SECP256K1_SCALAR_CONST(0x80000000,0x00000000,0x00000000,0x000000a2,0x05e8fb1b,0xb354323d,0xf6b9e8de,0x4cfa8020)
+#elif (COMB_BLOCKS == 43) && (COMB_TEETH == 6) && (COMB_SPACING == 1)
+    SECP256K1_SCALAR_CONST(0x80000000,0x00000000,0x00000000,0x00000001,0xe7f9b4a5,0xf9130fa6,0x6044722c,0xc7ae9e1e)
+#else
+#    error Configuration mismatch, invalid COMB_* parameters. Try deleting precomputed_ecmult_gen.c before the build.
+#endif
+;
