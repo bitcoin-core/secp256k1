@@ -105,4 +105,26 @@ static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, cons
     free(prec);
 }
 
+/* Compute the scalar (2^COMB_BITS - 1) / 2, the difference between the gn argument to
+ * secp256k1_ecmult_gen, and the scalar whose encoding the table lookup bits are drawn
+ * from (before applying blinding). */
+static void secp256k1_ecmult_gen_compute_scalar_diff(secp256k1_scalar* diff, int blocks, int teeth, int spacing) {
+    int i;
+    int comb_bits = blocks * teeth * spacing;
+
+    /* Compute scalar -1/2. */
+    secp256k1_scalar neghalf;
+    secp256k1_scalar_half(&neghalf, &secp256k1_scalar_one);
+    secp256k1_scalar_negate(&neghalf, &neghalf);
+
+    /* Compute offset = 2^(COMB_BITS - 1). */
+    *diff = secp256k1_scalar_one;
+    for (i = 0; i < comb_bits - 1; ++i) {
+        secp256k1_scalar_add(diff, diff, diff);
+    }
+
+    /* The result is the sum 2^(COMB_BITS - 1) + (-1/2). */
+    secp256k1_scalar_add(diff, diff, &neghalf);
+}
+
 #endif /* SECP256K1_ECMULT_GEN_COMPUTE_TABLE_IMPL_H */
