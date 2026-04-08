@@ -390,6 +390,8 @@ int main(int argc, char** argv) {
         printf("running tests for core %lu (out of [0..%lu])\n", (unsigned long)this_core, (unsigned long)num_cores - 1);
     }
 
+    /* Recreate the scalar_diff value using the proper COMB parameters (as selected via EXHAUSTIVE_TEST_ORDER) */
+    secp256k1_ecmult_gen_compute_scalar_diff(&secp256k1_ecmult_gen_scalar_diff, COMB_BLOCKS, COMB_TEETH, COMB_SPACING);
     /* Recreate the ecmult{,_gen} tables using the right generator (as selected via EXHAUSTIVE_TEST_ORDER) */
     secp256k1_ecmult_gen_compute_table(&secp256k1_ecmult_gen_prec_table[0][0], &secp256k1_ge_const_g, COMB_BLOCKS, COMB_TEETH, COMB_SPACING);
     secp256k1_ecmult_compute_two_tables(secp256k1_pre_g, secp256k1_pre_g_128, WINDOW_G, &secp256k1_ge_const_g);

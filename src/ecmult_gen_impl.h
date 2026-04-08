@@ -30,27 +30,6 @@ static void secp256k1_ecmult_gen_context_clear(secp256k1_ecmult_gen_context *ctx
     secp256k1_fe_clear(&ctx->proj_blind);
 }
 
-/* Compute the scalar (2^COMB_BITS - 1) / 2, the difference between the gn argument to
- * secp256k1_ecmult_gen, and the scalar whose encoding the table lookup bits are drawn
- * from (before applying blinding). */
-static void secp256k1_ecmult_gen_scalar_diff(secp256k1_scalar* diff) {
-    int i;
-
-    /* Compute scalar -1/2. */
-    secp256k1_scalar neghalf;
-    secp256k1_scalar_half(&neghalf, &secp256k1_scalar_one);
-    secp256k1_scalar_negate(&neghalf, &neghalf);
-
-    /* Compute offset = 2^(COMB_BITS - 1). */
-    *diff = secp256k1_scalar_one;
-    for (i = 0; i < COMB_BITS - 1; ++i) {
-        secp256k1_scalar_add(diff, diff, diff);
-    }
-
-    /* The result is the sum 2^(COMB_BITS - 1) + (-1/2). */
-    secp256k1_scalar_add(diff, diff, &neghalf);
-}
-
 static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp256k1_gej *r, const secp256k1_scalar *gn) {
     uint32_t comb_off;
     secp256k1_ge add;
@@ -284,15 +263,12 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
 /* Setup blinding values for secp256k1_ecmult_gen. */
 static void secp256k1_ecmult_gen_blind(secp256k1_ecmult_gen_context *ctx, const secp256k1_hash_ctx *hash_ctx, const unsigned char *seed32) {
     secp256k1_scalar b;
-    secp256k1_scalar diff;
+    const secp256k1_scalar diff = secp256k1_ecmult_gen_scalar_diff;
     secp256k1_gej gb;
     secp256k1_fe f;
     unsigned char nonce32[32];
     secp256k1_rfc6979_hmac_sha256 rng;
     unsigned char keydata[64];
-
-    /* Compute the (2^COMB_BITS - 1)/2 term once. */
-    secp256k1_ecmult_gen_scalar_diff(&diff);
 
     if (seed32 == NULL) {
         /* When seed is NULL, reset the final point and blinding value. */
