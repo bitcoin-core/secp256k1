@@ -43,8 +43,10 @@ static void help(const char *executable_path, int default_iters) {
     printf("    ecdsa             : all ECDSA algorithms--sign, verify, recovery (if enabled)\n");
     printf("    ecdsa_sign        : ECDSA siging algorithm\n");
     printf("    ecdsa_verify      : ECDSA verification algorithm\n");
-    printf("    ec                : all EC public key algorithms (keygen)\n");
+    printf("    ec                : all EC public key algorithms (keygen, tweak)\n");
     printf("    ec_keygen         : EC public key generation\n");
+    printf("    ec_pk_tweak_add   : EC public key additive tweaking\n");
+    printf("    ec_pk_tweak_mul   : EC public key multiplicative tweaking\n");
 
 #ifdef ENABLE_MODULE_RECOVERY
     printf("    ecdsa_recover     : ECDSA public key recovery algorithm\n");
@@ -79,6 +81,8 @@ typedef struct {
     size_t siglen;
     unsigned char pubkey[33];
     size_t pubkeylen;
+    secp256k1_pubkey tweaked_pubkey;
+    unsigned char tweak[32];
 } bench_data;
 
 static void bench_verify(void* arg, int iters) {
@@ -153,6 +157,44 @@ static void bench_keygen_run(void *arg, int iters) {
     }
 }
 
+static void bench_tweak_setup(void* arg) {
+    int i;
+    bench_data *data = (bench_data*)arg;
+    unsigned char seckey_one[32] = {0};
+
+    /* set starting pubkey to the generator point */
+    seckey_one[31] = 1;
+    CHECK(secp256k1_ec_pubkey_create(data->ctx, &data->tweaked_pubkey, seckey_one));
+    for (i = 0; i < 32; i++) {
+        data->tweak[i] = i + 129;
+    }
+}
+
+static void bench_pubkey_tweak_add(void *arg, int iters) {
+    int i;
+    bench_data *data = (bench_data*)arg;
+
+    for (i = 0; i < iters; i++) {
+        unsigned char pub33[33];
+        size_t len = 33;
+        CHECK(secp256k1_ec_pubkey_tweak_add(data->ctx, &data->tweaked_pubkey, data->tweak));
+        CHECK(secp256k1_ec_pubkey_serialize(data->ctx, pub33, &len, &data->tweaked_pubkey, SECP256K1_EC_COMPRESSED));
+        memcpy(data->tweak, pub33 + 1, 32);
+    }
+}
+
+static void bench_pubkey_tweak_mul(void *arg, int iters) {
+    int i;
+    bench_data *data = (bench_data*)arg;
+
+    for (i = 0; i < iters; i++) {
+        unsigned char pub33[33];
+        size_t len = 33;
+        CHECK(secp256k1_ec_pubkey_tweak_mul(data->ctx, &data->tweaked_pubkey, data->tweak));
+        CHECK(secp256k1_ec_pubkey_serialize(data->ctx, pub33, &len, &data->tweaked_pubkey, SECP256K1_EC_COMPRESSED));
+        memcpy(data->tweak, pub33 + 1, 32);
+    }
+}
 
 #ifdef ENABLE_MODULE_ECDH
 # include "modules/ecdh/bench_impl.h"
@@ -181,8 +223,8 @@ int main(int argc, char** argv) {
     /* Check for invalid user arguments */
     char* valid_args[] = {"ecdsa", "verify", "ecdsa_verify", "sign", "ecdsa_sign", "ecdh", "recover",
                          "ecdsa_recover", "schnorrsig", "schnorrsig_verify", "schnorrsig_sign", "ec",
-                         "keygen", "ec_keygen", "ellswift", "encode", "ellswift_encode", "decode",
-                         "ellswift_decode", "ellswift_keygen", "ellswift_ecdh"};
+                         "keygen", "ec_keygen", "tweak", "ec_pk_tweak_add", "ec_pk_tweak_mul", "ellswift", "encode",
+                         "ellswift_encode", "decode", "ellswift_decode", "ellswift_keygen", "ellswift_ecdh"};
     int invalid_args = have_invalid_args(argc, argv, valid_args, ARRAY_SIZE(valid_args));
 
     int default_iters = 20000;
@@ -261,6 +303,8 @@ int main(int argc, char** argv) {
 
     if (d || have_flag(argc, argv, "ecdsa") || have_flag(argc, argv, "sign") || have_flag(argc, argv, "ecdsa_sign")) run_benchmark("ecdsa_sign", bench_sign_run, bench_sign_setup, NULL, &data, 10, iters);
     if (d || have_flag(argc, argv, "ec") || have_flag(argc, argv, "keygen") || have_flag(argc, argv, "ec_keygen")) run_benchmark("ec_keygen", bench_keygen_run, bench_keygen_setup, NULL, &data, 10, iters);
+    if (d || have_flag(argc, argv, "ec") || have_flag(argc, argv, "tweak") || have_flag(argc, argv, "ec_pk_tweak_add")) run_benchmark("ec_pk_tweak_add", bench_pubkey_tweak_add, bench_tweak_setup, NULL, &data, 10, iters);
+    if (d || have_flag(argc, argv, "ec") || have_flag(argc, argv, "tweak") || have_flag(argc, argv, "ec_pk_tweak_mul")) run_benchmark("ec_pk_tweak_mul", bench_pubkey_tweak_mul, bench_tweak_setup, NULL, &data, 10, iters);
 
     secp256k1_context_destroy(data.ctx);
 
