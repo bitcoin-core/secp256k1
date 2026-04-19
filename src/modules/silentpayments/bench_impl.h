@@ -194,7 +194,12 @@ static void run_silentpayments_bench(int iters, int argc, char** argv) {
             data.num_outputs = num_outputs;
             data.num_matches = 0;
             sprintf(str, "silentpayments_scan_nomatch_N=%i", num_outputs);
-            run_benchmark(str, bench_silentpayments_scan, bench_silentpayments_scan_setup, bench_silentpayments_scan_teardown, &data, 10, num_outputs < 100 ? iters : 1);
+            /* Don't run these slow benchmarks with low iterations (as used e.g. in CI) to prevent slow down */
+            if (iters <= 2 && num_outputs > 10) {
+                printf("Skipping benchmark \"%s\" due to SECP256K1_BENCH_ITERS <= 2\n", str);
+            } else {
+                run_benchmark(str, bench_silentpayments_scan, bench_silentpayments_scan_setup, bench_silentpayments_scan_teardown, &data, 10, num_outputs <= 10 ? iters : 1);
+            }
         }
     }
 
@@ -207,7 +212,12 @@ static void run_silentpayments_bench(int iters, int argc, char** argv) {
             data.num_outputs = MAX_P2TR_OUTPUTS_PER_BLOCK;
             data.num_matches = num_matches;
             sprintf(str, "silentpayments_scan_worstcase_K=%i", num_matches);
-            run_benchmark(str, bench_silentpayments_scan, bench_silentpayments_scan_setup, bench_silentpayments_scan_teardown, &data, 3, 1);
+            /* Don't run these slow benchmarks with low iterations (as used e.g. in CI) to prevent slow down */
+            if (iters <= 2) {
+                printf("Skipping benchmark \"%s\" due to SECP256K1_BENCH_ITERS <= 2\n", str);
+            } else {
+                run_benchmark(str, bench_silentpayments_scan, bench_silentpayments_scan_setup, bench_silentpayments_scan_teardown, &data, 3, 1);
+            }
         }
     }
 
