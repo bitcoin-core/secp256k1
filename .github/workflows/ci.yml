@@ -33,12 +33,12 @@ env:
   EXTRAFLAGS:
   ### secp256k1 modules
   EXPERIMENTAL: 'no'
-  ECDH: 'no'
-  RECOVERY: 'no'
-  EXTRAKEYS: 'no'
-  SCHNORRSIG: 'no'
-  MUSIG: 'no'
-  ELLSWIFT: 'no'
+  ECDH: 'yes'
+  RECOVERY: 'yes'
+  EXTRAKEYS: 'yes'
+  SCHNORRSIG: 'yes'
+  MUSIG: 'yes'
+  ELLSWIFT: 'yes'
   ### test options
   SECP256K1_TEST_ITERS: 64
   BENCH: 'yes'
@@ -95,21 +95,23 @@ jobs:
       fail-fast: false
       matrix:
         configuration:
-          - env_vars: { WIDEMUL: 'int64',  RECOVERY: 'yes' }
-          - env_vars: { WIDEMUL: 'int64',                   ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
+          - env_vars: { WIDEMUL: 'int64' }
           - env_vars: { WIDEMUL: 'int128' }
-          - env_vars: { WIDEMUL: 'int128_struct',                                                             ELLSWIFT: 'yes' }
-          - env_vars: { WIDEMUL: 'int128', RECOVERY: 'yes',              EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
-          - env_vars: { WIDEMUL: 'int128',                  ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes' }
-          - env_vars: { WIDEMUL: 'int128', ASM: 'x86_64',                                                     ELLSWIFT: 'yes' }
-          - env_vars: {                    RECOVERY: 'yes',              EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes' }
-          - env_vars: { CTIMETESTS: 'no',  RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', CPPFLAGS: '-DVERIFY' }
+          - env_vars: { WIDEMUL: 'int128_struct' }
+          - env_vars: { WIDEMUL: 'int128', ASM: 'x86_64' }
+          - env_vars: { CTIMETESTS: 'no', CPPFLAGS: '-DVERIFY' }
           - env_vars: { BUILD: 'distcheck', WITH_VALGRIND: 'no', CTIMETESTS: 'no', BENCH: 'no' }
           - env_vars: { CPPFLAGS: '-DDETERMINISTIC' }
           - env_vars: { CFLAGS: '-O0', CTIMETESTS: 'no' }
-          - env_vars: { CFLAGS: '-O1',     RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
+          - env_vars: { CFLAGS: '-O1' }
           - env_vars: { ECMULTGENKB: 2, ECMULTWINDOW: 2 }
           - env_vars: { ECMULTGENKB: 86, ECMULTWINDOW: 4 }
+          - env_vars: { ECDH: 'no' }
+          - env_vars: { RECOVERY: 'no' }
+          - env_vars: { EXTRAKEYS: 'no', SCHNORRSIG: 'no', MUSIG: 'no' }
+          - env_vars: { SCHNORRSIG: 'no', MUSIG: 'no' }
+          - env_vars: { MUSIG: 'no' }
+          - env_vars: { ELLSWIFT: 'no' }
         cc:
           - 'gcc'
           - 'clang'
@@ -154,12 +156,6 @@ jobs:
 
     env:
       HOST: 'i686-linux-gnu'
-      ECDH: 'yes'
-      RECOVERY: 'yes'
-      EXTRAKEYS: 'yes'
-      SCHNORRSIG: 'yes'
-      MUSIG: 'yes'
-      ELLSWIFT: 'yes'
       CC: ${{ matrix.cc }}
 
     steps:
@@ -182,12 +178,6 @@ jobs:
       SECP256K1_TEST_ITERS: 16
       HOST: 's390x-linux-gnu'
       WITH_VALGRIND: 'no'
-      ECDH: 'yes'
-      RECOVERY: 'yes'
-      EXTRAKEYS: 'yes'
-      SCHNORRSIG: 'yes'
-      MUSIG: 'yes'
-      ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
 
     steps:
@@ -212,12 +202,6 @@ jobs:
       SECP256K1_TEST_ITERS: 16
       HOST: 'arm-linux-gnueabihf'
       WITH_VALGRIND: 'no'
-      ECDH: 'yes'
-      RECOVERY: 'yes'
-      EXTRAKEYS: 'yes'
-      SCHNORRSIG: 'yes'
-      MUSIG: 'yes'
-      ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
 
     steps:
@@ -233,12 +217,6 @@ jobs:
     env:
       SECP256K1_TEST_ITERS: 16
       WITH_VALGRIND: 'no'
-      ECDH: 'yes'
-      RECOVERY: 'yes'
-      EXTRAKEYS: 'yes'
-      SCHNORRSIG: 'yes'
-      MUSIG: 'yes'
-      ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
       CC: ${{ matrix.cc }}
 
@@ -273,12 +251,6 @@ jobs:
       SECP256K1_TEST_ITERS: 16
       HOST: 'powerpc64le-linux-gnu'
       WITH_VALGRIND: 'no'
-      ECDH: 'yes'
-      RECOVERY: 'yes'
-      EXTRAKEYS: 'yes'
-      SCHNORRSIG: 'yes'
-      MUSIG: 'yes'
-      ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
 
     steps:
@@ -318,12 +290,6 @@ jobs:
       # The `--error-exitcode` is required to make the test fail if valgrind found errors,
       # otherwise it will return 0 (https://www.valgrind.org/docs/manual/manual-core.html).
       WRAPPER_CMD: 'valgrind --error-exitcode=42'
-      ECDH: 'yes'
-      RECOVERY: 'yes'
-      EXTRAKEYS: 'yes'
-      SCHNORRSIG: 'yes'
-      MUSIG: 'yes'
-      ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
       SECP256K1_TEST_ITERS: 2
 
@@ -347,12 +313,6 @@ jobs:
           - env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
 
     env:
-      ECDH: 'yes'
-      RECOVERY: 'yes'
-      EXTRAKEYS: 'yes'
-      SCHNORRSIG: 'yes'
-      MUSIG: 'yes'
-      ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
       CFLAGS: '-fsanitize=undefined,address -g'
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
@@ -393,12 +353,6 @@ jobs:
           - 'clang-snapshot'
 
     env:
-      ECDH: 'yes'
-      RECOVERY: 'yes'
-      EXTRAKEYS: 'yes'
-      SCHNORRSIG: 'yes'
-      MUSIG: 'yes'
-      ELLSWIFT: 'yes'
       CC: ${{ matrix.cc }}
       SECP256K1_TEST_ITERS: 32
       ASM: 'no'
@@ -418,12 +372,6 @@ jobs:
     env:
       WRAPPER_CMD: 'wine'
       WITH_VALGRIND: 'no'
-      ECDH: 'yes'
-      RECOVERY: 'yes'
-      EXTRAKEYS: 'yes'
-      SCHNORRSIG: 'yes'
-      MUSIG: 'yes'
-      ELLSWIFT: 'yes'
       CTIMETESTS: 'no'
 
     strategy:
@@ -456,15 +404,13 @@ jobs:
       fail-fast: false
       matrix:
         env_vars:
-          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
+          - { WIDEMUL: 'int64' }
           - { WIDEMUL: 'int128_struct', ECMULTGENKB: 2, ECMULTWINDOW: 4 }
-          - { WIDEMUL: 'int128',                  ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes',            WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2 }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc', WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2 }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY', CTIMETESTS: 'no' }
+          - { WIDEMUL: 'int128' }
+          - { WIDEMUL: 'int128', CC: 'gcc' }
+          - { WIDEMUL: 'int128',            WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2 }
+          - { WIDEMUL: 'int128', CC: 'gcc', WRAPPER_CMD: 'valgrind --error-exitcode=42', SECP256K1_TEST_ITERS: 2 }
+          - { WIDEMUL: 'int128', CPPFLAGS: '-DVERIFY', CTIMETESTS: 'no' }
           - BUILD: 'distcheck'
 
     steps:
@@ -513,13 +459,11 @@ jobs:
       fail-fast: false
       matrix:
         env_vars:
-          - { WIDEMUL: 'int64',  RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
+          - { WIDEMUL: 'int64' }
           - { WIDEMUL: 'int128_struct', ECMULTGENKB: 2, ECMULTWINDOW: 4 }
-          - { WIDEMUL: 'int128',                  ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', CC: 'gcc' }
-          - { WIDEMUL: 'int128', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', CPPFLAGS: '-DVERIFY' }
+          - { WIDEMUL: 'int128' }
+          - { WIDEMUL: 'int128', CC: 'gcc' }
+          - { WIDEMUL: 'int128', CPPFLAGS: '-DVERIFY' }
           - BUILD: 'distcheck'
 
     steps:
@@ -625,12 +569,6 @@ jobs:
       CFLAGS: '-fpermissive -g'
       CPPFLAGS: '-DSECP256K1_CPLUSPLUS_TEST_OVERRIDE'
       WERROR_CFLAGS:
-      ECDH: 'yes'
-      RECOVERY: 'yes'
-      EXTRAKEYS: 'yes'
-      SCHNORRSIG: 'yes'
-      MUSIG: 'yes'
-      ELLSWIFT: 'yes'
 
     steps:
       - *CHECKOUT
