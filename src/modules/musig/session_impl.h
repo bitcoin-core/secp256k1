@@ -431,6 +431,7 @@ static int secp256k1_musig_nonce_gen_internal(const secp256k1_context* ctx, secp
     /* None of the nonce_pts will be infinity because k != 0 with overwhelming
      * probability */
     secp256k1_musig_pubnonce_save(pubnonce, nonce_pts);
+    secp256k1_memczero(pubnonce, sizeof(*pubnonce), !ret);
     return ret;
 }
 
