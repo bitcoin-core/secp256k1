@@ -108,6 +108,15 @@ static void bench_ecmult_gen(void* arg, int iters) {
     }
 }
 
+static void bench_ecmult_gen_var(void* arg, int iters) {
+    bench_data* data = (bench_data*)arg;
+    int i;
+
+    for (i = 0; i < iters; ++i) {
+        secp256k1_ecmult_gen_var(&data->output[i], &data->scalars[(data->offset1+i) % POINTS]);
+    }
+}
+
 static void bench_ecmult_gen_teardown(void* arg, int iters) {
     bench_data* data = (bench_data*)arg;
     bench_ecmult_teardown_helper(data, NULL, NULL, &data->offset1, iters);
@@ -199,6 +208,8 @@ static void run_ecmult_bench(bench_data* data, int iters) {
     char str[32];
     sprintf(str, "ecmult_gen");
     run_benchmark(str, bench_ecmult_gen, bench_ecmult_setup, bench_ecmult_gen_teardown, data, 10, iters);
+    sprintf(str, "ecmult_gen_var");
+    run_benchmark(str, bench_ecmult_gen_var, bench_ecmult_setup, bench_ecmult_gen_teardown, data, 10, iters);
     sprintf(str, "ecmult_const");
     run_benchmark(str, bench_ecmult_const, bench_ecmult_setup, bench_ecmult_const_teardown, data, 10, iters);
     sprintf(str, "ecmult_const_xonly");
