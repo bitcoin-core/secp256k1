@@ -337,6 +337,10 @@ static void test_exhaustive_sign(const secp256k1_context *ctx, const secp256k1_g
      */
 }
 
+#ifdef ENABLE_MODULE_ECDH
+#include "modules/ecdh/tests_exhaustive_impl.h"
+#endif
+
 #ifdef ENABLE_MODULE_RECOVERY
 #include "modules/recovery/tests_exhaustive_impl.h"
 #endif
@@ -437,6 +441,9 @@ int main(int argc, char** argv) {
         test_exhaustive_sign(ctx, group);
         test_exhaustive_verify(ctx, group);
 
+#ifdef ENABLE_MODULE_ECDH
+        test_exhaustive_ecdh(ctx, group);
+#endif
 #ifdef ENABLE_MODULE_RECOVERY
         test_exhaustive_recovery(ctx, group);
 #endif
