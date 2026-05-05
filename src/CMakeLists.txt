@@ -45,10 +45,22 @@ if(SECP256K1_ENABLE_MODULE_ECDH)
   set_property(TARGET secp256k1 APPEND PROPERTY PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/secp256k1_ecdh.h)
 endif()
 
-add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL
-  precomputed_ecmult.c
-  precomputed_ecmult_gen.c
-)
+add_library(secp256k1_precomputed OBJECT EXCLUDE_FROM_ALL)
+if(SECP256K1_BUILD_PRECOMPUTED)
+  include(Precompute)
+  precompute(ecmult)
+  precompute(ecmult_gen)
+  target_sources(secp256k1_precomputed PRIVATE
+    ${PROJECT_BINARY_DIR}/src/precomputed_ecmult.c
+    ${PROJECT_BINARY_DIR}/src/precomputed_ecmult_gen.c
+  )
+  target_include_directories(secp256k1_precomputed PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+else()
+  target_sources(secp256k1_precomputed PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/precomputed_ecmult.c
+    ${CMAKE_CURRENT_LIST_DIR}/precomputed_ecmult_gen.c
+  )
+endif()
 
 # Add objects explicitly rather than linking to the object libs to keep them
 # from being exported.
