@@ -240,19 +240,25 @@ if(SECP256K1_BUILD_CTIME_TESTS)
   unset(msan_enabled)
 endif()
 
-set(SECP256K1_APPEND_CFLAGS "" CACHE STRING "Compiler flags that are appended to the command line after all other flags added by the build system. This variable is intended for debugging and special builds.")
-if(SECP256K1_APPEND_CFLAGS)
-  # Appending to this low-level rule variable is the only way to
+# Only some generators use low-level rule variables.
+if(CMAKE_GENERATOR MATCHES "Make|Ninja")
+  # Appending to the low-level rule variables is the only way to
   # guarantee that the flags appear at the end of the command line.
-  string(APPEND CMAKE_C_COMPILE_OBJECT " ${SECP256K1_APPEND_CFLAGS}")
-endif()
+  set(SECP256K1_APPEND_CFLAGS "" CACHE STRING "Compiler flags that are appended to the command line after all other flags added by the build system. This variable is intended for debugging and special builds.")
+  if(SECP256K1_APPEND_CFLAGS)
+    # CMAKE_C_COMPILE_OBJECT internally uses placeholders to maintain the order of certain fields.
+    # Rather than appending to CMAKE_C_COMPILE_OBJECT itself, append to its <FLAGS>. This is an
+    # implementation detail and not guaranteed to be stable in future versions of CMake.
+    string(REPLACE "<FLAGS>" "<FLAGS> ${SECP256K1_APPEND_CFLAGS}" CMAKE_C_COMPILE_OBJECT "${CMAKE_C_COMPILE_OBJECT}")
+  endif()
 
-set(SECP256K1_APPEND_LDFLAGS "" CACHE STRING "Linker flags that are appended to the command line after all other flags added by the build system. This variable is intended for debugging and special builds.")
-if(SECP256K1_APPEND_LDFLAGS)
-  # Appending to this low-level rule variable is the only way to
-  # guarantee that the flags appear at the end of the command line.
-  string(APPEND CMAKE_C_CREATE_SHARED_LIBRARY " ${SECP256K1_APPEND_LDFLAGS}")
-  string(APPEND CMAKE_C_LINK_EXECUTABLE " ${SECP256K1_APPEND_LDFLAGS}")
+  set(SECP256K1_APPEND_LDFLAGS "" CACHE STRING "Linker flags that are appended to the command line after all other flags added by the build system. This variable is intended for debugging and special builds.")
+  if(SECP256K1_APPEND_LDFLAGS)
+    string(REPLACE "<LINK_FLAGS>" "<LINK_FLAGS> ${SECP256K1_APPEND_LDFLAGS}" CMAKE_C_CREATE_SHARED_LIBRARY "${CMAKE_C_CREATE_SHARED_LIBRARY}")
+    string(REPLACE "<LINK_FLAGS>" "<LINK_FLAGS> ${SECP256K1_APPEND_LDFLAGS}" CMAKE_C_LINK_EXECUTABLE "${CMAKE_C_LINK_EXECUTABLE}")
+  endif()
+elseif(SECP256K1_APPEND_CFLAGS OR SECP256K1_APPEND_LDFLAGS)
+  message(FATAL_ERROR "SECP256K1_APPEND_*FLAGS variables are not supported for '${CMAKE_GENERATOR}' generator.")
 endif()
 
 if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
@@ -342,11 +348,13 @@ else()
   message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
   message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_DEBUG}")
 endif()
-if(SECP256K1_APPEND_CFLAGS)
-  message("SECP256K1_APPEND_CFLAGS ............... ${SECP256K1_APPEND_CFLAGS}")
-endif()
-if(SECP256K1_APPEND_LDFLAGS)
-  message("SECP256K1_APPEND_LDFLAGS .............. ${SECP256K1_APPEND_LDFLAGS}")
+if(CMAKE_GENERATOR MATCHES "Make|Ninja")
+  if(SECP256K1_APPEND_CFLAGS)
+    message("SECP256K1_APPEND_CFLAGS ............... ${SECP256K1_APPEND_CFLAGS}")
+  endif()
+  if(SECP256K1_APPEND_LDFLAGS)
+    message("SECP256K1_APPEND_LDFLAGS .............. ${SECP256K1_APPEND_LDFLAGS}")
+  endif()
 endif()
 message("")
 if(print_msan_notice)
