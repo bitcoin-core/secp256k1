@@ -862,7 +862,7 @@ static void musig_test_vectors_nonceagg(void) {
         }
         CHECK(secp256k1_musig_nonce_agg(CTX, &aggnonce, pubnonce_ptr, 2));
         CHECK(secp256k1_musig_aggnonce_serialize(CTX, aggnonce66, &aggnonce));
-        CHECK(secp256k1_memcmp_var(aggnonce66, c->expected, 33) == 0);
+        CHECK(secp256k1_memcmp_var(aggnonce66, c->expected, sizeof(aggnonce66)) == 0);
     }
     for (i = 0; i < ARRAY_SIZE(vector->error_case); i++) {
         const struct musig_nonce_agg_test_case *c = &vector->error_case[i];
