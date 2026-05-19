@@ -305,6 +305,9 @@ jobs:
             binary_arch: armhf
             env_vars: { CC: 'arm-linux-gnueabihf-gcc', HOST: 'arm-linux-gnueabihf', ASM: 'auto', VALGRIND_EXTRA_PACKAGES: 'valgrind:armhf' }
           - runner: ubuntu-24.04-arm
+            binary_arch: armhf
+            env_vars: { CC: 'clang --target=arm-linux-gnueabihf -isystem /usr/arm-linux-gnueabihf/include', HOST: 'arm-linux-gnueabihf', ASM: 'auto', VALGRIND_EXTRA_PACKAGES: 'valgrind:armhf' }
+          - runner: ubuntu-24.04-arm
             binary_arch: arm64
             env_vars: { CC: 'clang',                                      ASM: 'auto' }
           - runner: ubuntu-latest
@@ -316,6 +319,9 @@ jobs:
           - runner: ubuntu-24.04-arm
             binary_arch: armhf
             env_vars: { CC: 'arm-linux-gnueabihf-gcc', HOST: 'arm-linux-gnueabihf', ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2, VALGRIND_EXTRA_PACKAGES: 'valgrind:armhf' }
+          - runner: ubuntu-24.04-arm
+            binary_arch: armhf
+            env_vars: { CC: 'clang --target=arm-linux-gnueabihf -isystem /usr/arm-linux-gnueabihf/include', HOST: 'arm-linux-gnueabihf', ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2, VALGRIND_EXTRA_PACKAGES: 'valgrind:armhf' }
           - runner: ubuntu-24.04-arm
             binary_arch: arm64
             env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
