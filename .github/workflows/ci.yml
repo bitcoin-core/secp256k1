@@ -302,6 +302,9 @@ jobs:
             binary_arch: i686
             env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'auto' }
           - runner: ubuntu-24.04-arm
+            binary_arch: armhf
+            env_vars: { CC: 'arm-linux-gnueabihf-gcc', HOST: 'arm-linux-gnueabihf', ASM: 'auto' }
+          - runner: ubuntu-24.04-arm
             binary_arch: arm64
             env_vars: { CC: 'clang',                                      ASM: 'auto' }
           - runner: ubuntu-latest
@@ -310,6 +313,9 @@ jobs:
           - runner: ubuntu-latest
             binary_arch: i686
             env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
+          - runner: ubuntu-24.04-arm
+            binary_arch: armhf
+            env_vars: { CC: 'arm-linux-gnueabihf-gcc', HOST: 'arm-linux-gnueabihf', ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
           - runner: ubuntu-24.04-arm
             binary_arch: arm64
             env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
