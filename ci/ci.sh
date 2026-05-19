@@ -13,6 +13,7 @@ print_environment() {
     # does not rely on bash.
     for var in WERROR_CFLAGS MAKEFLAGS BUILD \
             ECMULTWINDOW ECMULTGENKB ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
+            VALGRIND_EXTRA_PACKAGES \
             EXPERIMENTAL ECDH RECOVERY EXTRAKEYS MUSIG SCHNORRSIG ELLSWIFT \
             SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS SYMBOL_CHECK \
             EXAMPLES \
@@ -44,6 +45,13 @@ esac
 if [ -n "${CC+x}" ]; then
     # The MSVC compiler "cl" doesn't understand "-v"
     $CC -v || true
+fi
+if [ -n "${VALGRIND_EXTRA_PACKAGES+x}" ]; then
+    # Install an architecture-specific Valgrind build when the job requests it.
+    # This is used for armhf memcheck jobs on arm64 runners.
+    # shellcheck disable=SC2086
+    DEBIAN_FRONTEND=noninteractive apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y $VALGRIND_EXTRA_PACKAGES
 fi
 if [ "$WITH_VALGRIND" = "yes" ]; then
     valgrind --version
