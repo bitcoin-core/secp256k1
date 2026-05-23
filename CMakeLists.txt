@@ -141,16 +141,40 @@ option(SECP256K1_BUILD_EXHAUSTIVE_TESTS "Build exhaustive tests." ON)
 option(SECP256K1_BUILD_CTIME_TESTS "Build constant-time tests." ${SECP256K1_VALGRIND})
 option(SECP256K1_BUILD_EXAMPLES "Build examples." OFF)
 
+# Set the default build configuration.
+if(PROJECT_IS_TOP_LEVEL)
+  get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  set(default_build_type "RelWithDebInfo")
+  if(is_multi_config)
+    set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
+      "Supported configuration types."
+      FORCE
+    )
+  else()
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
+      STRINGS "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage"
+    )
+    if(NOT CMAKE_BUILD_TYPE)
+      message(STATUS "Setting build type to \"${default_build_type}\" as none was specified")
+      set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
+        "Choose the type of build."
+        FORCE
+      )
+    endif()
+  endif()
+endif()
+
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
-if(MSVC)
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-  string(REGEX REPLACE "/DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
-else()
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-  string(REGEX REPLACE "-DNDEBUG[ \t\r\n]*" "" CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL}")
+foreach(config IN LISTS CMAKE_BUILD_TYPE CMAKE_CONFIGURATION_TYPES)
+  if(config)
+    string(TOUPPER "${config}" config)
+    string(REGEX REPLACE "(^| )[-/]DNDEBUG( |$)" " " CMAKE_C_FLAGS_${config} "${CMAKE_C_FLAGS_${config}}")
+    string(STRIP "${CMAKE_C_FLAGS_${config}}" CMAKE_C_FLAGS_${config})
+  endif()
+endforeach()
+
+if(NOT MSVC)
   # Prefer -O2 optimization level. (-O3 is CMake's default for Release for many compilers.)
   string(REGEX REPLACE "-O3( |$)" "-O2\\1" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 endif()
@@ -173,28 +197,6 @@ mark_as_advanced(
   CMAKE_EXE_LINKER_FLAGS_COVERAGE
   CMAKE_SHARED_LINKER_FLAGS_COVERAGE
 )
-
-if(PROJECT_IS_TOP_LEVEL)
-  get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-  set(default_build_type "RelWithDebInfo")
-  if(is_multi_config)
-    set(CMAKE_CONFIGURATION_TYPES "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage" CACHE STRING
-      "Supported configuration types."
-      FORCE
-    )
-  else()
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
-      STRINGS "${default_build_type}" "Release" "Debug" "MinSizeRel" "Coverage"
-    )
-    if(NOT CMAKE_BUILD_TYPE)
-      message(STATUS "Setting build type to \"${default_build_type}\" as none was specified")
-      set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING
-        "Choose the type of build."
-        FORCE
-      )
-    endif()
-  endif()
-endif()
 
 include(TryAppendCFlags)
 if(MSVC)
