@@ -79,10 +79,55 @@ static void test_group_serialize(void) {
     }
 }
 
+static void test_fe_set_b32_mod(void) {
+    /* arbitrary 32-byte value well below p */
+    unsigned char in[32] = {
+        0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,
+        0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f,0x10,
+        0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,
+        0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,0x20
+    };
+    unsigned char out[32];
+    secp256k1_fe r;
+
+    secp256k1_export_fe_set_b32_mod(&r, in);
+    secp256k1_export_fe_normalize(&r);
+    secp256k1_export_fe_get_b32(out, &r);
+
+    CHECK(memcmp(in, out, 32) == 0);
+}
+
+static void test_fe_set_b32_limit(void) {
+    /* value < p: should succeed and round-trip */
+    unsigned char in[32] = {
+        0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,
+        0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f,0x10,
+        0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,
+        0x19,0x1a,0x1b,0x1c,0x1d,0x1e,0x1f,0x20
+    };
+    unsigned char out[32];
+    secp256k1_fe r;
+    int ret;
+
+    ret = secp256k1_export_fe_set_b32_limit(&r, in);
+    CHECK(ret == 1);
+    secp256k1_export_fe_get_b32(out, &r);
+    CHECK(memcmp(in, out, 32) == 0);
+
+    /* value >= p (p = fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f):
+       use all-0xff bytes which exceeds p */
+    unsigned char overflow[32];
+    memset(overflow, 0xff, 32);
+    ret = secp256k1_export_fe_set_b32_limit(&r, overflow);
+    CHECK(ret == 0);
+}
+
 static void run_export_tests(void) {
     test_gej_to_ge();
     test_group_serialize();
     test_group_mult();
+    test_fe_set_b32_mod();
+    test_fe_set_b32_limit();
 }
 
 #endif /* SECP256K1_MODULE_EXPORT_TESTS_H */

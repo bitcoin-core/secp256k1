@@ -102,6 +102,10 @@ SECP256K1_API void secp256k1_export_fe_normalize(
     secp256k1_fe *r
 );
 
+SECP256K1_API void secp256k1_export_fe_set_b32_mod(secp256k1_fe *r, const unsigned char *a);
+
+SECP256K1_API int secp256k1_export_fe_set_b32_limit(secp256k1_fe *r, const unsigned char *a);
+
 SECP256K1_API void secp256k1_export_fe_set_int(secp256k1_fe *r, int a);
 
 SECP256K1_API void secp256k1_export_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a);
