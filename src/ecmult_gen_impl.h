@@ -51,7 +51,7 @@ static void secp256k1_ecmult_gen_scalar_diff(secp256k1_scalar* diff) {
     secp256k1_scalar_add(diff, diff, &neghalf);
 }
 
-static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp256k1_gej *r, const secp256k1_scalar *gn) {
+static void secp256k1_ecmult_gen_gej(const secp256k1_ecmult_gen_context *ctx, secp256k1_gej *r, const secp256k1_scalar *gn) {
     uint32_t comb_off;
     secp256k1_ge add;
     secp256k1_fe neg;
@@ -283,7 +283,7 @@ static void secp256k1_ecmult_gen(const secp256k1_ecmult_gen_context *ctx, secp25
 
 SECP256K1_INLINE static void secp256k1_ecmult_gen_ge(const secp256k1_ecmult_gen_context *ctx, secp256k1_ge *r, const secp256k1_scalar *a) {
     secp256k1_gej rj;
-    secp256k1_ecmult_gen(ctx, &rj, a);
+    secp256k1_ecmult_gen_gej(ctx, &rj, a);
     secp256k1_ge_set_gej(r, &rj);
     /* Jacobian coordinates resulting from our multiplication algorithm could potentially leak
      * information about the secret input scalar, so clear the memory out to be on the safe side. */

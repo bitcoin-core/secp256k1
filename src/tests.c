@@ -329,7 +329,7 @@ static void run_proper_context_tests(int use_prealloc) {
     /*** attempt to use them ***/
     testutil_random_scalar_order_test(&msg);
     testutil_random_scalar_order_test(&key);
-    secp256k1_ecmult_gen(&my_ctx->ecmult_gen_ctx, &pubj, &key);
+    secp256k1_ecmult_gen_gej(&my_ctx->ecmult_gen_ctx, &pubj, &key);
     secp256k1_ge_set_gej(&pub, &pubj);
 
     /* obtain a working nonce */
@@ -4311,11 +4311,11 @@ static void test_ec_combine(void) {
         secp256k1_scalar s;
         testutil_random_scalar_order_test(&s);
         secp256k1_scalar_add(&sum, &sum, &s);
-        secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &Qj, &s);
+        secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &Qj, &s);
         secp256k1_ge_set_gej(&Q, &Qj);
         secp256k1_pubkey_save(&data[i - 1], &Q);
         d[i - 1] = &data[i - 1];
-        secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &Qj, &sum);
+        secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &Qj, &sum);
         secp256k1_ge_set_gej(&Q, &Qj);
         secp256k1_pubkey_save(&sd, &Q);
         CHECK(secp256k1_ec_pubkey_combine(CTX, &sd2, d, i) == 1);
@@ -4593,9 +4593,9 @@ static void test_ecmult_target(const secp256k1_scalar* target, int mode) {
 
     /* EC multiplications */
     if (mode == 0) {
-        secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &p1j, &n1);
-        secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &p2j, &n2);
-        secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &ptj, target);
+        secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &p1j, &n1);
+        secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &p2j, &n2);
+        secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &ptj, target);
     } else if (mode == 1) {
         secp256k1_ecmult(&p1j, &pj, &n1, &secp256k1_scalar_zero);
         secp256k1_ecmult(&p2j, &pj, &n2, &secp256k1_scalar_zero);
@@ -5162,7 +5162,7 @@ static int test_ecmult_multi_random(secp256k1_scratch *scratch) {
             secp256k1_scalar_mul(&scalars[filled], &sc_tmp, &g_scalar);
             secp256k1_scalar_inverse_var(&sc_tmp, &sc_tmp);
             secp256k1_scalar_negate(&sc_tmp, &sc_tmp);
-            secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &gejs[filled], &sc_tmp);
+            secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &gejs[filled], &sc_tmp);
             ++filled;
             ++mults;
         }
@@ -5642,7 +5642,7 @@ static void test_ecmult_accumulate(secp256k1_sha256* acc, const secp256k1_scalar
     size_t i;
     secp256k1_gej_set_ge(&gj, &secp256k1_ge_const_g);
     secp256k1_gej_set_infinity(&infj);
-    secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &rj[0], x);
+    secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &rj[0], x);
     secp256k1_ecmult(&rj[1], &gj, x, NULL);
     secp256k1_ecmult(&rj[2], &gj, x, &secp256k1_scalar_zero);
     secp256k1_ecmult(&rj[3], &infj, &secp256k1_scalar_zero, x);
@@ -5796,13 +5796,13 @@ static void test_ecmult_gen_blind(void) {
     secp256k1_ge p;
     secp256k1_ge pge;
     testutil_random_scalar_order_test(&key);
-    secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej, &key);
+    secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &pgej, &key);
     testrand256(seed32);
     b = CTX->ecmult_gen_ctx.scalar_offset;
     p = CTX->ecmult_gen_ctx.ge_offset;
     secp256k1_ecmult_gen_blind(&CTX->ecmult_gen_ctx, secp256k1_get_hash_context(CTX), seed32);
     CHECK(!secp256k1_scalar_eq(&b, &CTX->ecmult_gen_ctx.scalar_offset));
-    secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pgej2, &key);
+    secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &pgej2, &key);
     CHECK(!gej_xyz_equals_gej(&pgej, &pgej2));
     CHECK(!secp256k1_ge_eq_var(&p, &CTX->ecmult_gen_ctx.ge_offset));
     secp256k1_ge_set_gej(&pge, &pgej);
@@ -5832,7 +5832,7 @@ static void test_ecmult_gen_edge_cases(void) {
 
     for (i = -1; i < 2; ++i) {
         /* Run test with gn = i - scalar_offset (so that the ecmult_gen recoded value represents i). */
-        secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &res1, &gn);
+        secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &res1, &gn);
         secp256k1_ecmult(&res2, NULL, &secp256k1_scalar_zero, &gn);
         secp256k1_ecmult_const(&res3, &secp256k1_ge_const_g, &gn);
         CHECK(secp256k1_gej_eq_var(&res1, &res2));
@@ -6524,7 +6524,7 @@ static void test_ecdsa_sign_verify(void) {
     int recid;
     testutil_random_scalar_order_test(&msg);
     testutil_random_scalar_order_test(&key);
-    secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &pubj, &key);
+    secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &pubj, &key);
     secp256k1_ge_set_gej(&pub, &pubj);
     getrec = testrand_bits(1);
     /* The specific way in which this conditional is written sidesteps a potential bug in clang.
@@ -7292,7 +7292,7 @@ static void run_ecdsa_edge_cases(void) {
         secp256k1_scalar_negate(&ss, &ss);
         secp256k1_scalar_inverse(&ss, &ss);
         secp256k1_scalar_set_int(&sr, 1);
-        secp256k1_ecmult_gen(&CTX->ecmult_gen_ctx, &keyj, &sr);
+        secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &keyj, &sr);
         secp256k1_ge_set_gej(&key, &keyj);
         msg = ss;
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 0);
