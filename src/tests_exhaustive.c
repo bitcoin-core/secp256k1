@@ -421,12 +421,10 @@ int main(int argc, char** argv) {
             /* Verify against ecmult_gen */
             {
                 secp256k1_scalar scalar_i;
-                secp256k1_gej generatedj;
                 secp256k1_ge generated;
 
                 secp256k1_scalar_set_int(&scalar_i, i);
-                secp256k1_ecmult_gen_gej(&ctx->ecmult_gen_ctx, &generatedj, &scalar_i);
-                secp256k1_ge_set_gej(&generated, &generatedj);
+                secp256k1_ecmult_gen_ge(&ctx->ecmult_gen_ctx, &generated, &scalar_i);
 
                 CHECK(!secp256k1_ge_is_infinity(&group[i]));
                 CHECK(secp256k1_ge_eq_var(&group[i], &generated));
