@@ -425,7 +425,7 @@ int main(int argc, char** argv) {
                 secp256k1_ge generated;
 
                 secp256k1_scalar_set_int(&scalar_i, i);
-                secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &generatedj, &scalar_i);
+                secp256k1_ecmult_gen_gej(&ctx->ecmult_gen_ctx, &generatedj, &scalar_i);
                 secp256k1_ge_set_gej(&generated, &generatedj);
 
                 CHECK(!secp256k1_ge_is_infinity(&group[i]));

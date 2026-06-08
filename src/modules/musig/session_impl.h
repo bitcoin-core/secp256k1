@@ -415,7 +415,7 @@ static int secp256k1_musig_nonce_gen_internal(const secp256k1_context* ctx, secp
 
     /* Compute pubnonce as two gejs */
     for (i = 0; i < 2; i++) {
-        secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &nonce_ptj[i], &k[i]);
+        secp256k1_ecmult_gen_gej(&ctx->ecmult_gen_ctx, &nonce_ptj[i], &k[i]);
         secp256k1_scalar_clear(&k[i]);
     }
 
