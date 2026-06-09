@@ -26,6 +26,14 @@ function(set_libtool_abi_version target current revision age)
       SOVERSION ${current}
       VERSION ${current}.${revision}
     )
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+    # version_type = sunos
+    # major = $current
+    # versuffix = $current.$revision
+    set_target_properties(${target} PROPERTIES
+      # OpenBSD has no `soname_spec` defined in `libtool.m4`.
+      VERSION ${current}.${revision}
+    )
   elseif(APPLE)
     # version_type = darwin
     # major = $current - $age
