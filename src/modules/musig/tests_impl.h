@@ -20,6 +20,7 @@
 #include "../../group.h"
 #include "../../hash.h"
 #include "../../util.h"
+#include "../../testutil.h"
 #include "../../unit_test.h"
 
 #include "vectors.h"
@@ -608,6 +609,110 @@ static void sha256_tag_test(void) {
     }
 }
 
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_musig_pubkey_agg)
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_musig_nonce_gen)
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_musig_nonce_process)
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_musig_partial_sign)
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_musig_partial_sig_verify)
+/* Check that a ctx-provided SHA256 compression override takes effect in every musig
+ * API function that uses the hash context. These functions share the same signing
+ * session, so the setup is built only once with the default compression, then each
+ * function is re-run with its own override enabled. */
+static void musig_ctx_sha256(void) {
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    secp256k1_musig_keyagg_cache keyagg_cache, keyagg_cache_custom;
+    secp256k1_musig_secnonce secnonce, secnonce_tmp, secnonce_unused;
+    secp256k1_musig_pubnonce pubnonce, pubnonce_custom;
+    const secp256k1_musig_pubnonce *pubnonce_ptr[1];
+    secp256k1_musig_aggnonce aggnonce;
+    secp256k1_musig_session session, session_custom;
+    secp256k1_musig_partial_sig partial_sig, partial_sig_custom;
+    const unsigned char sk[32] = {1};
+    const unsigned char msg32[32] = {1};
+    unsigned char secrand[32] = {1};
+    secp256k1_keypair keypair;
+    secp256k1_pubkey pk;
+    const secp256k1_pubkey *pks[1];
+
+    CHECK(secp256k1_keypair_create(ctx, &keypair, sk) == 1);
+    CHECK(secp256k1_keypair_pub(ctx, &pk, &keypair) == 1);
+    pks[0] = &pk;
+    pubnonce_ptr[0] = &pubnonce;
+
+    /* Run a full signing session with the default compression. */
+    CHECK(secp256k1_musig_pubkey_agg(ctx, NULL, &keyagg_cache, pks, 1) == 1);
+    CHECK(secp256k1_musig_nonce_gen(ctx, &secnonce, &pubnonce, secrand, sk, &pk, NULL, NULL, NULL) == 1);
+    CHECK(secp256k1_musig_nonce_agg(ctx, &aggnonce, pubnonce_ptr, 1) == 1);
+    CHECK(secp256k1_musig_nonce_process(ctx, &session, &aggnonce, msg32, &keyagg_cache) == 1);
+    /* partial_sign zeroes the secnonce to prevent reuse, so keep a copy for the override run */
+    memcpy(&secnonce_tmp, &secnonce, sizeof(secnonce_tmp));
+    CHECK(secp256k1_musig_partial_sign(ctx, &partial_sig, &secnonce, &keypair, &keyagg_cache, &session) == 1);
+    CHECK(secp256k1_musig_partial_sig_verify(ctx, &partial_sig, &pubnonce, &pk, &keyagg_cache, &session) == 1);
+    CHECK(!sha256_musig_pubkey_agg_called);
+    CHECK(!sha256_musig_nonce_gen_called);
+    CHECK(!sha256_musig_nonce_process_called);
+    CHECK(!sha256_musig_partial_sign_called);
+    CHECK(!sha256_musig_partial_sig_verify_called);
+
+    /* Re-run each function with its SHA256 compression override, set directly to bypass
+     * the ctx setter sanity checks. Each override must change the output relative to the
+     * default run above. The override runs reuse the default inputs from above, so each
+     * function is exercised in isolation. */
+    ctx->hash_ctx.fn_sha256_compression = sha256_musig_pubkey_agg;
+    CHECK(secp256k1_musig_pubkey_agg(ctx, NULL, &keyagg_cache_custom, pks, 1) == 1);
+    CHECK(sha256_musig_pubkey_agg_called);
+    CHECK(secp256k1_memcmp_var(keyagg_cache.data, keyagg_cache_custom.data, sizeof(keyagg_cache.data)) != 0);
+
+    /* Restore secrand (nonce_gen zeroed it). */
+    secrand[0] = 1;
+    ctx->hash_ctx.fn_sha256_compression = sha256_musig_nonce_gen;
+    CHECK(secp256k1_musig_nonce_gen(ctx, &secnonce_unused, &pubnonce_custom, secrand, sk, &pk, NULL, NULL, NULL) == 1);
+    CHECK(sha256_musig_nonce_gen_called);
+    CHECK(secp256k1_memcmp_var(pubnonce.data, pubnonce_custom.data, sizeof(pubnonce.data)) != 0);
+
+    ctx->hash_ctx.fn_sha256_compression = sha256_musig_nonce_process;
+    CHECK(secp256k1_musig_nonce_process(ctx, &session_custom, &aggnonce, msg32, &keyagg_cache) == 1);
+    CHECK(sha256_musig_nonce_process_called);
+    CHECK(secp256k1_memcmp_var(session.data, session_custom.data, sizeof(session.data)) != 0);
+
+    ctx->hash_ctx.fn_sha256_compression = sha256_musig_partial_sign;
+    CHECK(secp256k1_musig_partial_sign(ctx, &partial_sig_custom, &secnonce_tmp, &keypair, &keyagg_cache, &session) == 1);
+    CHECK(sha256_musig_partial_sign_called);
+    CHECK(secp256k1_memcmp_var(partial_sig.data, partial_sig_custom.data, sizeof(partial_sig.data)) != 0);
+
+    /* The default partial sig no longer verifies once the override changes the KeyAgg coefficient. */
+    ctx->hash_ctx.fn_sha256_compression = sha256_musig_partial_sig_verify;
+    CHECK(secp256k1_musig_partial_sig_verify(ctx, &partial_sig, &pubnonce, &pk, &keyagg_cache, &session) == 0);
+    CHECK(sha256_musig_partial_sig_verify_called);
+
+    secp256k1_context_destroy(ctx);
+}
+
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_musig_nonce_gen_counter)
+static void musig_nonce_gen_counter_ctx_sha256(void) {
+    /* Check ctx-provided SHA256 compression override takes effect */
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    secp256k1_musig_secnonce secnonce;
+    secp256k1_musig_pubnonce pubnonce_default, pubnonce_custom;
+    const unsigned char sk[32] = {1};
+    secp256k1_keypair keypair;
+
+    CHECK(secp256k1_keypair_create(ctx, &keypair, sk) == 1);
+
+    /* Default behavior. No ctx-provided SHA256 compression */
+    CHECK(secp256k1_musig_nonce_gen_counter(ctx, &secnonce, &pubnonce_default, 0, &keypair, NULL, NULL, NULL) == 1);
+    CHECK(!sha256_musig_nonce_gen_counter_called);
+
+    /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
+    ctx->hash_ctx.fn_sha256_compression = sha256_musig_nonce_gen_counter;
+    CHECK(secp256k1_musig_nonce_gen_counter(ctx, &secnonce, &pubnonce_custom, 0, &keypair, NULL, NULL, NULL) == 1);
+    CHECK(sha256_musig_nonce_gen_counter_called);
+    /* Outputs must differ if custom compression was used */
+    CHECK(secp256k1_memcmp_var(pubnonce_default.data, pubnonce_custom.data, sizeof(pubnonce_default.data)) != 0);
+
+    secp256k1_context_destroy(ctx);
+}
+
 /* Attempts to create a signature for the aggregate public key using given secret
  * keys and keyagg_cache. */
 static void musig_tweak_test_helper(const secp256k1_xonly_pubkey* agg_pk, const unsigned char *sk0, const unsigned char *sk1, secp256k1_musig_keyagg_cache *keyagg_cache) {
@@ -1149,6 +1254,8 @@ static const struct tf_test_entry tests_musig[] = {
     CASE1(musig_nonce_test),
     CASE1(musig_tweak_test),
     CASE1(sha256_tag_test),
+    CASE1(musig_ctx_sha256),
+    CASE1(musig_nonce_gen_counter_ctx_sha256),
     CASE1(musig_test_vectors_keyagg),
     CASE1(musig_test_vectors_noncegen),
     CASE1(musig_test_vectors_nonceagg),
