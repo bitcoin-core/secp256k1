@@ -5781,6 +5781,25 @@ static void run_ecmult_constants(void) {
     }
 }
 
+static void run_ecmult_gen_ge(void) {
+    /* Test that secp256k1_ecmult_gen_ge result matches secp256k1_ecmult_gen_gej with
+     * manual Jacobian-to-affine conversion (secp256k1_ge_set_gej) over random scalars */
+    int i;
+
+    for (i = 0; i < COUNT; i++) {
+        secp256k1_scalar scalar;
+        secp256k1_gej result_gej;
+        secp256k1_ge result_ge, expected_ge;
+
+        testutil_random_scalar_order_test(&scalar);
+        secp256k1_ecmult_gen_gej(&CTX->ecmult_gen_ctx, &result_gej, &scalar);
+        secp256k1_ge_set_gej(&expected_ge, &result_gej);
+        secp256k1_ecmult_gen_ge(&CTX->ecmult_gen_ctx, &result_ge, &scalar);
+
+        CHECK(secp256k1_ge_eq_var(&result_ge, &expected_ge));
+    }
+}
+
 static void test_ecmult_gen_blind(void) {
     /* Test ecmult_gen() blinding and confirm that the blinding changes, the affine points match, and the z's don't match. */
     secp256k1_scalar key;
@@ -7960,6 +7979,7 @@ static const struct tf_test_entry tests_ecmult[] = {
     CASE(ecmult_near_split_bound),
     CASE(ecmult_chain),
     CASE(ecmult_constants),
+    CASE(ecmult_gen_ge),
     CASE(ecmult_gen_blind),
     CASE(ecmult_const_tests),
     CASE(ecmult_multi_tests),
