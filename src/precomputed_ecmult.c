@@ -7,7 +7,7 @@
 #include "precomputed_ecmult.h"
 #define S(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) SECP256K1_GE_STORAGE_CONST(0x##a##u,0x##b##u,0x##c##u,0x##d##u,0x##e##u,0x##f##u,0x##g##u,0x##h##u,0x##i##u,0x##j##u,0x##k##u,0x##l##u,0x##m##u,0x##n##u,0x##o##u,0x##p##u)
 #if ECMULT_WINDOW_SIZE > 15
-   #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. Try deleting precomputed_ecmult.c before the build.
+   #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. If this is an Autotools build, try deleting precomputed_ecmult.c before the build. If this is a CMake build, pass -DSECP256K1_BUILD_PRECOMPUTED=ON to cmake.
 #endif
 #ifdef EXHAUSTIVE_TEST_ORDER
 #    error Cannot compile precomputed_ecmult.c in exhaustive test mode
