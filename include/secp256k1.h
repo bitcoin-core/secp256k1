@@ -178,12 +178,12 @@ typedef int (*secp256k1_nonce_function)(
 /* Warning attributes
  * NONNULL is not used if SECP256K1_BUILD is set to avoid the compiler optimizing out
  * some paranoid null checks. */
-# if defined(__GNUC__) && SECP256K1_GNUC_PREREQ(3, 4)
+# if defined(__GNUC__)
 #  define SECP256K1_WARN_UNUSED_RESULT __attribute__ ((__warn_unused_result__))
 # else
 #  define SECP256K1_WARN_UNUSED_RESULT
 # endif
-# if !defined(SECP256K1_BUILD) && defined(__GNUC__) && SECP256K1_GNUC_PREREQ(3, 4)
+# if !defined(SECP256K1_BUILD) && defined(__GNUC__)
 #  define SECP256K1_ARG_NONNULL(_x)  __attribute__ ((__nonnull__(_x)))
 # else
 #  define SECP256K1_ARG_NONNULL(_x)
