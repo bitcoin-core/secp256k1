@@ -164,6 +164,10 @@ if(SECP256K1_BUILD_TESTS)
     add_executable_and_tests(tests VERIFY)
   endif()
   unset(TEST_DEFINITIONS)
+
+  add_executable(public_headers_test test_public_headers.c)
+  target_link_libraries(public_headers_test secp256k1)
+  add_test(NAME secp256k1.public_headers_test COMMAND public_headers_test)
 endif()
 
 if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
