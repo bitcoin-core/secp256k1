@@ -31,6 +31,11 @@
 #include "testutil.h"
 #include "util.h"
 
+#if defined(__GNUC__)
+# pragma GCC diagnostic push
+# pragma GCC diagnostic warning "-Wunused-function"
+#endif
+
 static int count = 2;
 
 static uint32_t num_cores = 1;
@@ -467,3 +472,7 @@ int main(int argc, char** argv) {
     printf("no problems found\n");
     return EXIT_SUCCESS;
 }
+
+#if defined(__GNUC__)
+# pragma GCC diagnostic pop
+#endif

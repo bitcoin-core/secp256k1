@@ -37,6 +37,11 @@
 #include "int128_impl.h"
 #endif
 
+#if defined(__GNUC__)
+# pragma GCC diagnostic push
+# pragma GCC diagnostic warning "-Wunused-function"
+#endif
+
 #define CONDITIONAL_TEST(cnt, nam) if (COUNT < (cnt)) { printf("Skipping %s (iteration count too low)\n", nam); } else
 
 static secp256k1_context *CTX = NULL;
@@ -8091,3 +8096,7 @@ int main(int argc, char **argv) {
     if (tf_init(&tf, argc, argv) != 0) return EXIT_FAILURE;
     return tf_run(&tf);
 }
+
+#if defined(__GNUC__)
+# pragma GCC diagnostic pop
+#endif
