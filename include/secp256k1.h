@@ -101,15 +101,6 @@ typedef int (*secp256k1_nonce_function)(
     unsigned int attempt
 );
 
-# if !defined(SECP256K1_GNUC_PREREQ)
-#  if defined(__GNUC__)&&defined(__GNUC_MINOR__)
-#   define SECP256K1_GNUC_PREREQ(_maj,_min) \
- ((__GNUC__<<16)+__GNUC_MINOR__>=((_maj)<<16)+(_min))
-#  else
-#   define SECP256K1_GNUC_PREREQ(_maj,_min) 0
-#  endif
-# endif
-
 /*  When this header is used at build-time the SECP256K1_BUILD define needs to be set
  *  to correctly setup export attributes and nullness checks.  This is normally done
  *  by secp256k1.c but to guard against this header being included before secp256k1.c
