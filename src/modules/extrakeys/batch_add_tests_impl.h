@@ -11,11 +11,12 @@
 static void batch_xonlypub_tweak_randomizer_gen_bitflip(secp256k1_sha256 *sha, unsigned char **args, size_t n_flip, size_t n_bytes) {
     unsigned char randomizers[2][32];
     secp256k1_sha256 sha_cpy;
+    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(CTX);
     sha_cpy = *sha;
-    secp256k1_batch_xonlypub_tweak_randomizer_gen(randomizers[0], &sha_cpy, args[0], args[1], args[2], args[3]);
+    secp256k1_batch_xonlypub_tweak_randomizer_gen(hash_ctx, randomizers[0], &sha_cpy, args[0], args[1], args[2], args[3]);
     testrand_flip(args[n_flip], n_bytes);
     sha_cpy = *sha;
-    secp256k1_batch_xonlypub_tweak_randomizer_gen(randomizers[1], &sha_cpy, args[0], args[1], args[2], args[3]);
+    secp256k1_batch_xonlypub_tweak_randomizer_gen(hash_ctx, randomizers[1], &sha_cpy, args[0], args[1], args[2], args[3]);
     CHECK(secp256k1_memcmp_var(randomizers[0], randomizers[1], 32) != 0);
 }
 
@@ -29,6 +30,7 @@ static void run_batch_xonlypub_tweak_randomizer_gen_tests(void) {
     unsigned char *args[4];
     size_t i; /* loops through n_checks */
     int j; /* loops through count */
+    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(CTX);
 
     secp256k1_batch_sha256_tagged(&sha);
 
@@ -58,10 +60,10 @@ static void run_batch_xonlypub_tweak_randomizer_gen_tests(void) {
 
         /* write i-th tweak check data to the sha object
          * this is required for generating the next randomizer */
-        secp256k1_sha256_write(&sha, tweaked_pk, 32);
-        secp256k1_sha256_write(&sha, &tweaked_pk_parity, 1);
-        secp256k1_sha256_write(&sha, tweak, 32);
-        secp256k1_sha256_write(&sha, internal_pk, 33);
+        secp256k1_sha256_write(hash_ctx, &sha, tweaked_pk, 32);
+        secp256k1_sha256_write(hash_ctx, &sha, &tweaked_pk_parity, 1);
+        secp256k1_sha256_write(hash_ctx, &sha, tweak, 32);
+        secp256k1_sha256_write(hash_ctx, &sha, internal_pk, 33);
     }
 
 }

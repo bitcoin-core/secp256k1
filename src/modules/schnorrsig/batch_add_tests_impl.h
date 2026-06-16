@@ -11,11 +11,12 @@
 static void batch_schnorrsig_randomizer_gen_bitflip(secp256k1_sha256 *sha, unsigned char **args, size_t n_flip, size_t n_bytes, size_t msglen) {
     unsigned char randomizers[2][32];
     secp256k1_sha256 sha_cpy;
+    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(CTX);
     sha_cpy = *sha;
-    secp256k1_batch_schnorrsig_randomizer_gen(randomizers[0], &sha_cpy, args[0], args[1], msglen, args[2]);
+    secp256k1_batch_schnorrsig_randomizer_gen(hash_ctx, randomizers[0], &sha_cpy, args[0], args[1], msglen, args[2]);
     testrand_flip(args[n_flip], n_bytes);
     sha_cpy = *sha;
-    secp256k1_batch_schnorrsig_randomizer_gen(randomizers[1], &sha_cpy, args[0], args[1], msglen, args[2]);
+    secp256k1_batch_schnorrsig_randomizer_gen(hash_ctx, randomizers[1], &sha_cpy, args[0], args[1], msglen, args[2]);
     CHECK(secp256k1_memcmp_var(randomizers[0], randomizers[1], 32) != 0);
 }
 
@@ -29,6 +30,7 @@ static void run_batch_schnorrsig_randomizer_gen_tests(void) {
     unsigned char *args[3];
     size_t i; /* loops through n_sigs */
     int j; /* loops through count */
+    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(CTX);
 
     secp256k1_batch_sha256_tagged(&sha);
 
@@ -60,7 +62,7 @@ static void run_batch_schnorrsig_randomizer_gen_tests(void) {
 
         /* different msglen should generate different randomizers */
         sha_cpy = sha;
-        secp256k1_batch_schnorrsig_randomizer_gen(randomizer, &sha_cpy, sig, msg, msglen, compressed_pk);
+        secp256k1_batch_schnorrsig_randomizer_gen(hash_ctx, randomizer, &sha_cpy, sig, msg, msglen, compressed_pk);
 
         for (j = 0; j < COUNT; j++) {
             unsigned char randomizer2[32];
@@ -68,15 +70,15 @@ static void run_batch_schnorrsig_randomizer_gen_tests(void) {
             size_t msglen_tmp = (msglen + offset) % msglen;
 
             sha_cpy = sha;
-            secp256k1_batch_schnorrsig_randomizer_gen(randomizer2, &sha_cpy, sig, msg, msglen_tmp, compressed_pk);
+            secp256k1_batch_schnorrsig_randomizer_gen(hash_ctx, randomizer2, &sha_cpy, sig, msg, msglen_tmp, compressed_pk);
             CHECK(secp256k1_memcmp_var(randomizer, randomizer2, 32) != 0);
         }
 
         /* write i-th schnorrsig verify data to the sha object
          * this is required for generating the next randomizer */
-        secp256k1_sha256_write(&sha, sig, 64);
-        secp256k1_sha256_write(&sha, msg, msglen);
-        secp256k1_sha256_write(&sha, compressed_pk, 33);
+        secp256k1_sha256_write(hash_ctx, &sha, sig, 64);
+        secp256k1_sha256_write(hash_ctx, &sha, msg, msglen);
+        secp256k1_sha256_write(hash_ctx, &sha, compressed_pk, 33);
     }
 
 }

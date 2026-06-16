@@ -11,20 +11,20 @@
 
 /** Computes a 16-byte deterministic randomizer by
  *  SHA256(batch_add_tag || tweaked pubkey || parity || tweak || internal pubkey) */
-static void secp256k1_batch_xonlypub_tweak_randomizer_gen(unsigned char *randomizer32, secp256k1_sha256 *sha256, const unsigned char *tweaked_pubkey32, const unsigned char *tweaked_pk_parity, const unsigned char *internal_pk33, const unsigned char *tweak32) {
+static void secp256k1_batch_xonlypub_tweak_randomizer_gen(const secp256k1_hash_ctx *hash_ctx, unsigned char *randomizer32, secp256k1_sha256 *sha256, const unsigned char *tweaked_pubkey32, const unsigned char *tweaked_pk_parity, const unsigned char *internal_pk33, const unsigned char *tweak32) {
     secp256k1_sha256 sha256_cpy;
     unsigned char batch_add_type = (unsigned char) tweak_check;
 
-    secp256k1_sha256_write(sha256, &batch_add_type, sizeof(batch_add_type));
+    secp256k1_sha256_write(hash_ctx, sha256, &batch_add_type, sizeof(batch_add_type));
     /* add tweaked pubkey check data to sha object */
-    secp256k1_sha256_write(sha256, tweaked_pubkey32, 32);
-    secp256k1_sha256_write(sha256, tweaked_pk_parity, 1);
-    secp256k1_sha256_write(sha256, tweak32, 32);
-    secp256k1_sha256_write(sha256, internal_pk33, 33);
+    secp256k1_sha256_write(hash_ctx, sha256, tweaked_pubkey32, 32);
+    secp256k1_sha256_write(hash_ctx, sha256, tweaked_pk_parity, 1);
+    secp256k1_sha256_write(hash_ctx, sha256, tweak32, 32);
+    secp256k1_sha256_write(hash_ctx, sha256, internal_pk33, 33);
 
     /* generate randomizer */
     sha256_cpy = *sha256;
-    secp256k1_sha256_finalize(&sha256_cpy, randomizer32);
+    secp256k1_sha256_finalize(hash_ctx, &sha256_cpy, randomizer32);
     /* 16 byte randomizer is sufficient */
     memset(randomizer32, 0, 16);
 }
@@ -46,7 +46,7 @@ static int secp256k1_batch_xonlypub_tweak_randomizer_set(const secp256k1_context
         return 0;
     }
 
-    secp256k1_batch_xonlypub_tweak_randomizer_gen(randomizer, &batch->sha256, tweaked_pubkey32, &parity, internal_buf, tweak32);
+    secp256k1_batch_xonlypub_tweak_randomizer_gen(secp256k1_get_hash_context(ctx), randomizer, &batch->sha256, tweaked_pubkey32, &parity, internal_buf, tweak32);
     secp256k1_scalar_set_b32(r, randomizer, &overflow);
     /* Shift scalar to range [-2^127, 2^127-1] */
     secp256k1_scalar_negate(&t, &t);

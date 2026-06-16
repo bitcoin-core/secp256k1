@@ -30,7 +30,7 @@ static void test_batch_sha256_tagged(void) {
     secp256k1_sha256 sha;
     secp256k1_sha256 sha_optimized;
 
-    secp256k1_sha256_initialize_tagged(&sha, (unsigned char *) tag, sizeof(tag));
+    secp256k1_sha256_initialize_tagged(secp256k1_get_hash_context(CTX), &sha, (unsigned char *) tag, sizeof(tag));
     secp256k1_batch_sha256_tagged(&sha_optimized);
     test_batch_sha256_eq(&sha, &sha_optimized);
 }

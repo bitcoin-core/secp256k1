@@ -136,10 +136,10 @@ secp256k1_batch* secp256k1_batch_create(const secp256k1_context* ctx, size_t max
         secp256k1_scalar_set_int(&batch->sc_g, 0);
         secp256k1_batch_sha256_tagged(&batch->sha256);
         if (aux_rand16 != NULL) {
-            secp256k1_sha256_write(&batch->sha256, aux_rand16, 16);
+            secp256k1_sha256_write(secp256k1_get_hash_context(ctx), &batch->sha256, aux_rand16, 16);
         } else {
             /* use 16 bytes of 0x0000...000, if no fresh randomness provided */
-            secp256k1_sha256_write(&batch->sha256, zeros, 16);
+            secp256k1_sha256_write(secp256k1_get_hash_context(ctx), &batch->sha256, zeros, 16);
         }
         batch->len = 0;
         batch->result = 1;
