@@ -286,6 +286,38 @@ jobs:
       - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
+  x86_64_debian_wheezy:
+    name: "x86_64: Linux (Debian Wheezy)"
+    runs-on: ubuntu-latest
+
+    env:
+      ASM: 'auto'
+      WITH_VALGRIND: 'no'
+      ECDH: 'yes'
+      RECOVERY: 'yes'
+      EXTRAKEYS: 'yes'
+      SCHNORRSIG: 'yes'
+      MUSIG: 'yes'
+      ELLSWIFT: 'yes'
+      CTIMETESTS: 'no'
+      # On Linux, the examples include <sys/random.h>, which was
+      # added in glibc 2.25, while Debian 7 ships glibc 2.13.
+      EXAMPLES: 'no'
+      CC: 'gcc'
+      CFLAGS: '-Wno-error=missing-braces -Wno-error=missing-field-initializers -Wno-error=shadow -Wno-error=unused-function'
+
+    steps:
+      - *CHECKOUT
+
+      - name: CI script
+        uses: ./.github/actions/run-in-docker-action
+        with:
+          dockerfile: ./ci/linux-debian7.Dockerfile
+          scope: ${{ runner.arch }}
+          command: ./ci/ci.sh
+
+      - *PRINT_LOGS
+
   valgrind_debian:
     name: "Valgrind ${{ matrix.configuration.binary_arch }} (memcheck)"
     runs-on: ${{ matrix.configuration.runner }}
