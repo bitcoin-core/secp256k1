@@ -5,7 +5,7 @@ set -eux
 export LC_ALL=C
 
 # Print commit and relevant CI environment to allow reproducing the job outside of CI.
-git show --no-patch
+git show -s
 print_environment() {
     # Turn off -x because it messes up the output
     set +x
@@ -93,16 +93,20 @@ file .libs/* || true
 
 if [ "$SYMBOL_CHECK" = "yes" ]
 then
-    python3 --version
-    case "$HOST" in
-        *mingw*)
-            ls -l .libs
-            python3 ./tools/symbol-check.py .libs/libsecp256k1-*.dll
-            ;;
-        *)
-            python3 ./tools/symbol-check.py .libs/libsecp256k1.so
-            ;;
-    esac
+    if command -v python3 >/dev/null 2>&1; then
+        python3 --version
+        case "$HOST" in
+            *mingw*)
+                ls -l .libs
+                python3 ./tools/symbol-check.py .libs/libsecp256k1-*.dll
+                ;;
+            *)
+                python3 ./tools/symbol-check.py .libs/libsecp256k1.so
+                ;;
+        esac
+    else
+        echo "python3 not found, skipping symbol check."
+    fi
 fi
 
 # This tells `make check` to wrap test invocations.
@@ -138,8 +142,14 @@ fi
 # Rebuild precomputed files (if not cross-compiling).
 if [ -z "$HOST" ]
 then
-    make clean-precomp clean-testvectors
-    make precomp testvectors
+    make clean-precomp
+    make precomp
+    if command -v python3 >/dev/null 2>&1; then
+        make clean-testvectors
+        make testvectors
+    else
+        echo "python3 not found, skipping rebuild test vectors."
+    fi
 fi
 
 # Check that no repo files have been modified by the build.
