@@ -374,7 +374,7 @@ static void musig_api_tests(void) {
         secp256k1_ge aggnonce_pt[2];
         secp256k1_musig_aggnonce_load(CTX, aggnonce_pt, &aggnonce);
         for (i = 0; i < 2; i++) {
-            secp256k1_ge_is_infinity(&aggnonce_pt[i]);
+            CHECK(secp256k1_ge_is_infinity(&aggnonce_pt[i]) == 1);
         }
     }
     CHECK(secp256k1_musig_nonce_agg(CTX, &aggnonce, pubnonce_ptr, 2) == 1);
