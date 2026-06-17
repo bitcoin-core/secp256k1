@@ -29,13 +29,6 @@
  * implementation also provides a secp256k1_fe_verify routine to verify that
  * these fields match the run-time value and perform internal consistency
  * checks. */
-#ifdef VERIFY
-#  define SECP256K1_FE_VERIFY_FIELDS \
-    int magnitude; \
-    int normalized;
-#else
-#  define SECP256K1_FE_VERIFY_FIELDS
-#endif
 
 #if defined(SECP256K1_WIDEMUL_INT128)
 #include "field_5x52.h"
