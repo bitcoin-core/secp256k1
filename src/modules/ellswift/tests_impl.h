@@ -308,7 +308,7 @@ void ellswift_compute_shared_secret_tests(void) {
          * because the "hasher" function we use here ignores the ell64 arguments. */
         ret = secp256k1_ellswift_xdh(CTX, share32, ell64, ell64, sec32, i & 1, &ellswift_xdh_hash_x32, NULL);
         CHECK(ret);
-        (void)secp256k1_fe_set_b32_limit(&share_x, share32); /* no overflow is possible */
+        { int _r_ = secp256k1_fe_set_b32_limit(&share_x, share32); (void)_r_; }
         SECP256K1_FE_VERIFY(&share_x);
         /* Compute seckey*pubkey directly. */
         secp256k1_ecmult(&resj, &decj, &sec, NULL);

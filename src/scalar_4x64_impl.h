@@ -111,7 +111,7 @@ static int secp256k1_scalar_add(secp256k1_scalar *r, const secp256k1_scalar *a, 
     r->d[3] = secp256k1_u128_to_u64(&t); secp256k1_u128_rshift(&t, 64);
     overflow = secp256k1_u128_to_u64(&t) + secp256k1_scalar_check_overflow(r);
     VERIFY_CHECK(overflow == 0 || overflow == 1);
-    secp256k1_scalar_reduce(r, overflow);
+    { int _r_ = secp256k1_scalar_reduce(r, overflow); (void)_r_; }
 
     SECP256K1_SCALAR_VERIFY(r);
     return overflow;
@@ -674,7 +674,7 @@ static void secp256k1_scalar_reduce_512(secp256k1_scalar *r, const uint64_t *l) 
 #endif
 
     /* Final reduction of r. */
-    secp256k1_scalar_reduce(r, c + secp256k1_scalar_check_overflow(r));
+    { int _r_ = secp256k1_scalar_reduce(r, c + secp256k1_scalar_check_overflow(r)); (void)_r_; }
 }
 
 static void secp256k1_scalar_mul_512(uint64_t *l8, const secp256k1_scalar *a, const secp256k1_scalar *b) {

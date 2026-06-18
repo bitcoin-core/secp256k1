@@ -143,7 +143,7 @@ static void secp256k1_ellswift_xswiftec_var(secp256k1_fe *x, const secp256k1_fe 
 static void secp256k1_ellswift_swiftec_var(secp256k1_ge *p, const secp256k1_fe *u, const secp256k1_fe *t) {
     secp256k1_fe x;
     secp256k1_ellswift_xswiftec_var(&x, u, t);
-    VERIFY_CHECK(secp256k1_ge_set_xo_var(p, &x, secp256k1_fe_is_odd(t)));
+    { int _r_ = secp256k1_ge_set_xo_var(p, &x, secp256k1_fe_is_odd(t)); (void)_r_; }
 }
 
 /* Try to complete an ElligatorSwift encoding (u, t) for X coordinate x, given u and x.
@@ -558,7 +558,7 @@ int secp256k1_ellswift_xdh(const secp256k1_context *ctx, unsigned char *output, 
     secp256k1_scalar_cmov(&s, &secp256k1_scalar_one, overflow);
 
     /* Compute shared X coordinate. */
-    (void)secp256k1_ecmult_const_xonly(&px, &xn, &xd, &s, 1);
+    { int _r_ = secp256k1_ecmult_const_xonly(&px, &xn, &xd, &s, 1); (void)_r_; }
     secp256k1_fe_normalize(&px);
     secp256k1_fe_get_b32(sx, &px);
 

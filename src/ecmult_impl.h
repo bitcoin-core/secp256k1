@@ -725,7 +725,7 @@ static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_pippenger_batch(const s
         point_idx++;
     }
 
-    secp256k1_ecmult_pippenger_wnaf(buckets, bucket_window, state_space, r, scalars, points, idx);
+    { int _r_ = secp256k1_ecmult_pippenger_wnaf(buckets, bucket_window, state_space, r, scalars, points, idx); (void)_r_; }
     secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
     return 1;
 }

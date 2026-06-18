@@ -208,7 +208,7 @@ int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pub
     }
 
     if (agg_pk != NULL) {
-        secp256k1_extrakeys_ge_even_y(&pkp);
+        { int _r_ = secp256k1_extrakeys_ge_even_y(&pkp); (void)_r_; }
         secp256k1_xonly_pubkey_save(agg_pk, &pkp);
     }
     return 1;
