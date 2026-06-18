@@ -23,12 +23,12 @@ extern "C" {
  *
  *  Returns: 1 if a nonce was successfully generated. 0 will cause signing to
  *           return an error.
- *  Out:  nonce32: pointer to a 32-byte array to be filled by the function
+ *  Out:  secnonce32: pointer to a 32-byte array to be filled by the function
  *  In:       msg: the message being verified. Is NULL if and only if msglen
  *                 is 0.
  *         msglen: the length of the message
- *          key32: pointer to a 32-byte secret key (will not be NULL)
- *     xonly_pk32: the 32-byte serialized xonly pubkey corresponding to key32
+ *       seckey32: pointer to a 32-byte secret key (will not be NULL)
+ *     xonly_pk32: the 32-byte serialized xonly pubkey corresponding to seckey32
  *                 (will not be NULL)
  *           algo: pointer to an array describing the signature
  *                 algorithm (will not be NULL)
@@ -39,10 +39,10 @@ extern "C" {
  *  the message, the key, the pubkey, the algorithm description, and data.
  */
 typedef int (*secp256k1_nonce_function_hardened)(
-    unsigned char *nonce32,
+    unsigned char *secnonce32,
     const unsigned char *msg,
     size_t msglen,
-    const unsigned char *key32,
+    const unsigned char *seckey32,
     const unsigned char *xonly_pk32,
     const unsigned char *algo,
     size_t algolen,
@@ -110,7 +110,7 @@ typedef struct secp256k1_schnorrsig_extraparams {
  *  Out:   sig64: pointer to a 64-byte array to store the serialized signature.
  *  In:    msg32: the 32-byte message being signed.
  *       keypair: pointer to an initialized keypair.
- *    aux_rand32: 32 bytes of fresh randomness. While recommended to provide
+ * aux_secrand32: 32 bytes of fresh randomness. While recommended to provide
  *                this, it is only supplemental to security and can be NULL. A
  *                NULL argument is treated the same as an all-zero one. See
  *                BIP-340 "Default Signing" for a full explanation of this
@@ -121,7 +121,7 @@ SECP256K1_API int secp256k1_schnorrsig_sign32(
     unsigned char *sig64,
     const unsigned char *msg32,
     const secp256k1_keypair *keypair,
-    const unsigned char *aux_rand32
+    const unsigned char *aux_secrand32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
 /** Same as secp256k1_schnorrsig_sign32, but DEPRECATED. Will be removed in
@@ -131,7 +131,7 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
     unsigned char *sig64,
     const unsigned char *msg32,
     const secp256k1_keypair *keypair,
-    const unsigned char *aux_rand32
+    const unsigned char *aux_secrand32
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4)
   SECP256K1_DEPRECATED("Use secp256k1_schnorrsig_sign32 instead");
 
@@ -141,11 +141,11 @@ SECP256K1_API int secp256k1_schnorrsig_sign(
  *  variable length messages and accepts a pointer to an extraparams object that
  *  allows customizing signing by passing additional arguments.
  *
- *  Equivalent to secp256k1_schnorrsig_sign32(..., aux_rand32) if msglen is 32
+ *  Equivalent to secp256k1_schnorrsig_sign32(..., aux_secrand32) if msglen is 32
  *  and extraparams is initialized as follows:
  *  ```
  *  secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
- *  extraparams.ndata = (unsigned char*)aux_rand32;
+ *  extraparams.ndata = (unsigned char*)aux_secrand32;
  *  ```
  *
  *  Returns 1 on success, 0 on failure.

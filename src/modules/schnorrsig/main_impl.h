@@ -37,7 +37,7 @@ static const unsigned char bip340_algo[] = {'B', 'I', 'P', '0', '3', '4', '0', '
 
 static const unsigned char schnorrsig_extraparams_magic[4] = SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC;
 
-static int nonce_function_bip340_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+static int nonce_function_bip340_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *secnonce32, const unsigned char *msg, size_t msglen, const unsigned char *seckey32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
     secp256k1_sha256 sha;
     unsigned char masked_key[32];
     int i;
@@ -51,7 +51,7 @@ static int nonce_function_bip340_impl(const secp256k1_hash_ctx *hash_ctx, unsign
         secp256k1_sha256_write(hash_ctx, &sha, data, 32);
         secp256k1_sha256_finalize(hash_ctx, &sha, masked_key);
         for (i = 0; i < 32; i++) {
-            masked_key[i] ^= key32[i];
+            masked_key[i] ^= seckey32[i];
         }
     } else {
         /* Precomputed TaggedHash("BIP0340/aux", 0x0000...00); */
@@ -62,7 +62,7 @@ static int nonce_function_bip340_impl(const secp256k1_hash_ctx *hash_ctx, unsign
              170, 247, 175, 105, 39,  10, 165,  20
         };
         for (i = 0; i < 32; i++) {
-            masked_key[i] = key32[i] ^ ZERO_MASK[i];
+            masked_key[i] = seckey32[i] ^ ZERO_MASK[i];
         }
     }
 
@@ -80,15 +80,15 @@ static int nonce_function_bip340_impl(const secp256k1_hash_ctx *hash_ctx, unsign
     secp256k1_sha256_write(hash_ctx, &sha, masked_key, 32);
     secp256k1_sha256_write(hash_ctx, &sha, xonly_pk32, 32);
     secp256k1_sha256_write(hash_ctx, &sha, msg, msglen);
-    secp256k1_sha256_finalize(hash_ctx, &sha, nonce32);
+    secp256k1_sha256_finalize(hash_ctx, &sha, secnonce32);
     secp256k1_sha256_clear(&sha);
     secp256k1_memclear_explicit(masked_key, sizeof(masked_key));
 
     return 1;
 }
 
-static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
-    return nonce_function_bip340_impl(secp256k1_get_hash_context(secp256k1_context_static), nonce32, msg, msglen, key32, xonly_pk32, algo, algolen, data);
+static int nonce_function_bip340(unsigned char *secnonce32, const unsigned char *msg, size_t msglen, const unsigned char *seckey32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+    return nonce_function_bip340_impl(secp256k1_get_hash_context(secp256k1_context_static), secnonce32, msg, msglen, seckey32, xonly_pk32, algo, algolen, data);
 }
 
 const secp256k1_nonce_function_hardened secp256k1_nonce_function_bip340 = nonce_function_bip340;
@@ -185,13 +185,13 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
     return ret;
 }
 
-int secp256k1_schnorrsig_sign32(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg32, const secp256k1_keypair *keypair, const unsigned char *aux_rand32) {
-    /* We cast away const from the passed aux_rand32 argument since we know the default nonce function does not modify it. */
-    return secp256k1_schnorrsig_sign_internal(ctx, sig64, msg32, 32, keypair, secp256k1_nonce_function_bip340, (unsigned char*)aux_rand32);
+int secp256k1_schnorrsig_sign32(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg32, const secp256k1_keypair *keypair, const unsigned char *aux_secrand32) {
+    /* We cast away const from the passed aux_secrand32 argument since we know the default nonce function does not modify it. */
+    return secp256k1_schnorrsig_sign_internal(ctx, sig64, msg32, 32, keypair, secp256k1_nonce_function_bip340, (unsigned char*)aux_secrand32);
 }
 
-int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg32, const secp256k1_keypair *keypair, const unsigned char *aux_rand32) {
-    return secp256k1_schnorrsig_sign32(ctx, sig64, msg32, keypair, aux_rand32);
+int secp256k1_schnorrsig_sign(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg32, const secp256k1_keypair *keypair, const unsigned char *aux_secrand32) {
+    return secp256k1_schnorrsig_sign32(ctx, sig64, msg32, keypair, aux_secrand32);
 }
 
 int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_keypair *keypair, secp256k1_schnorrsig_extraparams *extraparams) {
