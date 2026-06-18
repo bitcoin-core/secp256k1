@@ -164,8 +164,6 @@ if(SECP256K1_BUILD_TESTS)
     add_executable_and_tests(tests VERIFY)
   endif()
   unset(TEST_DEFINITIONS)
-
-
 endif()
 
 if(SECP256K1_BUILD_EXHAUSTIVE_TESTS)
