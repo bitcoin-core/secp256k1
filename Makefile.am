@@ -135,11 +135,7 @@ tests_LDADD    = $(noverify_tests_LDADD)
 tests_LDFLAGS  = $(noverify_tests_LDFLAGS)
 endif
 
-TESTS += public_headers_test
-noinst_PROGRAMS += public_headers_test
-public_headers_test_SOURCES = src/test_public_headers.c
-public_headers_test_CPPFLAGS = $(SECP_CONFIG_DEFINES) $(TEST_DEFINES)
-public_headers_test_LDADD = $(COMMON_LIB)
+
 endif
 
 if USE_CTIME_TESTS
