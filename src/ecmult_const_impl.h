@@ -265,7 +265,7 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
     secp256k1_fe_mul(&r->z, &r->z, &global_z);
 }
 
-static int secp256k1_ecmult_const_xonly(secp256k1_fe* r, const secp256k1_fe *n, const secp256k1_fe *d, const secp256k1_scalar *q, int known_on_curve) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_const_xonly(secp256k1_fe* r, const secp256k1_fe *n, const secp256k1_fe *d, const secp256k1_scalar *q, int known_on_curve) {
 
     /* This algorithm is a generalization of Peter Dettman's technique for
      * avoiding the square root in a random-basepoint x-only multiplication

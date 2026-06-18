@@ -59,7 +59,7 @@ SECP256K1_INLINE static uint32_t secp256k1_scalar_get_bits_var(const secp256k1_s
     }
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_check_overflow(const secp256k1_scalar *a) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_check_overflow(const secp256k1_scalar *a) {
     int yes = 0;
     int no = 0;
     no |= (a->d[3] < SECP256K1_N_3); /* No need for a > check. */
@@ -71,7 +71,7 @@ SECP256K1_INLINE static int secp256k1_scalar_check_overflow(const secp256k1_scal
     return yes;
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_reduce(secp256k1_scalar *r, unsigned int overflow) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_reduce(secp256k1_scalar *r, unsigned int overflow) {
     secp256k1_uint128 t;
     VERIFY_CHECK(overflow <= 1);
 
@@ -165,7 +165,7 @@ static void secp256k1_scalar_get_b32(unsigned char *bin, const secp256k1_scalar*
     secp256k1_write_be64(&bin[24], a->d[0]);
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_is_zero(const secp256k1_scalar *a) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_zero(const secp256k1_scalar *a) {
     SECP256K1_SCALAR_VERIFY(a);
 
     return (a->d[0] | a->d[1] | a->d[2] | a->d[3]) == 0;
@@ -233,13 +233,13 @@ static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a
 #endif
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_is_one(const secp256k1_scalar *a) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_one(const secp256k1_scalar *a) {
     SECP256K1_SCALAR_VERIFY(a);
 
     return ((a->d[0] ^ 1) | a->d[1] | a->d[2] | a->d[3]) == 0;
 }
 
-static int secp256k1_scalar_is_high(const secp256k1_scalar *a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_high(const secp256k1_scalar *a) {
     int yes = 0;
     int no = 0;
     SECP256K1_SCALAR_VERIFY(a);
@@ -881,7 +881,7 @@ static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r
     SECP256K1_SCALAR_VERIFY(r2);
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const secp256k1_scalar *b) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_eq(const secp256k1_scalar *a, const secp256k1_scalar *b) {
     SECP256K1_SCALAR_VERIFY(a);
     SECP256K1_SCALAR_VERIFY(b);
 
@@ -994,7 +994,7 @@ static void secp256k1_scalar_inverse_var(secp256k1_scalar *r, const secp256k1_sc
     VERIFY_CHECK(secp256k1_scalar_is_zero(r) == zero_in);
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
     SECP256K1_SCALAR_VERIFY(a);
 
     return !(a->d[0] & 1);

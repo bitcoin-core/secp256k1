@@ -10,7 +10,7 @@
 #include "../../../include/secp256k1_ecdh.h"
 #include "../../ecmult_const_impl.h"
 
-static int ecdh_hash_function_sha256_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data) {
+static SECP256K1_WARN_UNUSED_RESULT int ecdh_hash_function_sha256_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data) {
     unsigned char version = (y32[31] & 0x01) | 0x02;
     secp256k1_sha256 sha;
     (void)data;
@@ -24,7 +24,7 @@ static int ecdh_hash_function_sha256_impl(const secp256k1_hash_ctx *hash_ctx, un
     return 1;
 }
 
-static int ecdh_hash_function_sha256(unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data) {
+static SECP256K1_WARN_UNUSED_RESULT int ecdh_hash_function_sha256(unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data) {
     return ecdh_hash_function_sha256_impl(secp256k1_get_hash_context(secp256k1_context_static), output, x32, y32, data);
 }
 
@@ -45,7 +45,9 @@ int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *output, const se
     ARG_CHECK(point != NULL);
     ARG_CHECK(scalar != NULL);
 
-    secp256k1_pubkey_load(ctx, &pt, point);
+    if (!secp256k1_pubkey_load(ctx, &pt, point)) {
+        return 0;
+    }
     secp256k1_scalar_set_b32(&s, scalar, &overflow);
 
     overflow |= secp256k1_scalar_is_zero(&s);

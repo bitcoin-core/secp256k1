@@ -143,7 +143,7 @@ static void secp256k1_ellswift_xswiftec_var(secp256k1_fe *x, const secp256k1_fe 
 static void secp256k1_ellswift_swiftec_var(secp256k1_ge *p, const secp256k1_fe *u, const secp256k1_fe *t) {
     secp256k1_fe x;
     secp256k1_ellswift_xswiftec_var(&x, u, t);
-    secp256k1_ge_set_xo_var(p, &x, secp256k1_fe_is_odd(t));
+    VERIFY_CHECK(secp256k1_ge_set_xo_var(p, &x, secp256k1_fe_is_odd(t)));
 }
 
 /* Try to complete an ElligatorSwift encoding (u, t) for X coordinate x, given u and x.
@@ -165,7 +165,7 @@ static void secp256k1_ellswift_swiftec_var(secp256k1_ge *p, const secp256k1_fe *
  * encoding more closely: c=0 through c=3 match branches 1..4 in the paper, while c=4 through
  * c=7 are copies of those with an additional negation of sqrt(w).
  */
-static int secp256k1_ellswift_xswiftec_inv_var(secp256k1_fe *t, const secp256k1_fe *x_in, const secp256k1_fe *u_in, int c) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ellswift_xswiftec_inv_var(secp256k1_fe *t, const secp256k1_fe *x_in, const secp256k1_fe *u_in, int c) {
     /* The implemented algorithm is this (all arithmetic, except involving c, is mod p):
      *
      * - If (c & 2) = 0:
@@ -482,7 +482,7 @@ int secp256k1_ellswift_decode(const secp256k1_context *ctx, secp256k1_pubkey *pu
     return 1;
 }
 
-static int ellswift_xdh_hash_function_prefix_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
+static SECP256K1_WARN_UNUSED_RESULT int ellswift_xdh_hash_function_prefix_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
     secp256k1_sha256 sha;
 
     secp256k1_sha256_initialize(&sha);
@@ -496,7 +496,7 @@ static int ellswift_xdh_hash_function_prefix_impl(const secp256k1_hash_ctx *hash
     return 1;
 }
 
-static int ellswift_xdh_hash_function_prefix(unsigned char *output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
+static SECP256K1_WARN_UNUSED_RESULT int ellswift_xdh_hash_function_prefix(unsigned char *output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
     return ellswift_xdh_hash_function_prefix_impl(secp256k1_get_hash_context(secp256k1_context_static), output, x32, ell_a64, ell_b64, data);
 }
 
@@ -509,7 +509,7 @@ static void secp256k1_ellswift_sha256_init_bip324(secp256k1_sha256* hash) {
     secp256k1_sha256_initialize_midstate(hash, 64, midstate);
 }
 
-static int ellswift_xdh_hash_function_bip324_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char* output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
+static SECP256K1_WARN_UNUSED_RESULT int ellswift_xdh_hash_function_bip324_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char* output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
     secp256k1_sha256 sha;
 
     (void)data;
@@ -524,7 +524,7 @@ static int ellswift_xdh_hash_function_bip324_impl(const secp256k1_hash_ctx *hash
     return 1;
 }
 
-static int ellswift_xdh_hash_function_bip324(unsigned char* output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
+static SECP256K1_WARN_UNUSED_RESULT int ellswift_xdh_hash_function_bip324(unsigned char* output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
     return ellswift_xdh_hash_function_bip324_impl(secp256k1_get_hash_context(secp256k1_context_static), output, x32, ell_a64, ell_b64, data);
 }
 
@@ -558,7 +558,7 @@ int secp256k1_ellswift_xdh(const secp256k1_context *ctx, unsigned char *output, 
     secp256k1_scalar_cmov(&s, &secp256k1_scalar_one, overflow);
 
     /* Compute shared X coordinate. */
-    secp256k1_ecmult_const_xonly(&px, &xn, &xd, &s, 1);
+    (void)secp256k1_ecmult_const_xonly(&px, &xn, &xd, &s, 1);
     secp256k1_fe_normalize(&px);
     secp256k1_fe_get_b32(sx, &px);
 

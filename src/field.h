@@ -128,13 +128,13 @@ static void secp256k1_fe_normalize_var(secp256k1_fe *r);
  * On input, r must be a valid field element.
  * Returns whether r = 0 (mod p).
  */
-static int secp256k1_fe_normalizes_to_zero(const secp256k1_fe *r);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_normalizes_to_zero(const secp256k1_fe *r);
 
 /** Determine whether r represents field element 0, without constant-time guarantee.
  *
  * Identical in behavior to secp256k1_normalizes_to_zero, but not constant time in r.
  */
-static int secp256k1_fe_normalizes_to_zero_var(const secp256k1_fe *r);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_normalizes_to_zero_var(const secp256k1_fe *r);
 
 /** Set a field element to an integer in range [0,0x7FFF].
  *
@@ -154,14 +154,14 @@ static void secp256k1_fe_clear(secp256k1_fe *a);
  * This behaves identical to secp256k1_normalizes_to_zero{,_var}, but requires
  * normalized input (and is much faster).
  */
-static int secp256k1_fe_is_zero(const secp256k1_fe *a);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_is_zero(const secp256k1_fe *a);
 
 /** Determine whether a (mod p) is odd.
  *
  * On input, a must be a valid normalized field element.
  * Returns (int(a) mod p) & 1.
  */
-static int secp256k1_fe_is_odd(const secp256k1_fe *a);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_is_odd(const secp256k1_fe *a);
 
 /** Determine whether two field elements are equal.
  *
@@ -169,7 +169,7 @@ static int secp256k1_fe_is_odd(const secp256k1_fe *a);
  * 1 and 31, respectively.
  * Returns a = b (mod p).
  */
-static int secp256k1_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b);
 
 /** Compare the values represented by 2 field elements, without constant-time guarantee.
  *
@@ -177,7 +177,7 @@ static int secp256k1_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b);
  * Returns 1 if a > b, -1 if a < b, and 0 if a = b (comparisons are done as integers
  * in range 0..p-1).
  */
-static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
 
 /** Set a field element equal to the element represented by a provided 32-byte big endian value
  * interpreted modulo p.
@@ -193,7 +193,7 @@ static void secp256k1_fe_set_b32_mod(secp256k1_fe *r, const unsigned char *a);
  * On output, r = a if (a < p), it will be normalized with magnitude 1, and 1 is returned.
  * If a >= p, 0 is returned, and r will be made invalid (and must not be used without overwriting).
  */
-static int secp256k1_fe_set_b32_limit(secp256k1_fe *r, const unsigned char *a);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_set_b32_limit(secp256k1_fe *r, const unsigned char *a);
 
 /** Convert a field element to 32-byte big endian byte array.
  * On input, a must be a valid normalized field element, and r a pointer to a 32-byte array.
@@ -275,7 +275,7 @@ static void secp256k1_fe_sqr(secp256k1_fe *r, const secp256k1_fe *a);
  * Variables r and a must not point to the same object.
  * On output, r will have magnitude 1 but will not be normalized.
  */
-static int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k1_fe * SECP256K1_RESTRICT a);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k1_fe * SECP256K1_RESTRICT a);
 
 /** Compute the modular inverse of a field element.
  *
@@ -338,7 +338,7 @@ static void secp256k1_fe_get_bounds(secp256k1_fe *r, int m);
  *
  * On input, a must be a valid field element.
  */
-static int secp256k1_fe_is_square_var(const secp256k1_fe *a);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_is_square_var(const secp256k1_fe *a);
 
 /** Check invariants on a field element (no-op unless VERIFY is enabled). */
 static void secp256k1_fe_verify(const secp256k1_fe *a);

@@ -84,7 +84,7 @@ int secp256k1_ecdsa_recoverable_signature_convert(const secp256k1_context* ctx, 
     return 1;
 }
 
-static int secp256k1_ecdsa_sig_recover(const secp256k1_scalar *sigr, const secp256k1_scalar* sigs, secp256k1_ge *pubkey, const secp256k1_scalar *message, int recid) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdsa_sig_recover(const secp256k1_scalar *sigr, const secp256k1_scalar* sigs, secp256k1_ge *pubkey, const secp256k1_scalar *message, int recid) {
     unsigned char brx[32];
     secp256k1_fe fx;
     secp256k1_ge x;

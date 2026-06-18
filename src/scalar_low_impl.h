@@ -13,7 +13,7 @@
 
 #include <string.h>
 
-SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
     SECP256K1_SCALAR_VERIFY(a);
 
     return !(*a & 1);
@@ -42,7 +42,7 @@ SECP256K1_INLINE static uint32_t secp256k1_scalar_get_bits_var(const secp256k1_s
     return secp256k1_scalar_get_bits_limb32(a, offset, count);
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_check_overflow(const secp256k1_scalar *a) { return *a >= EXHAUSTIVE_TEST_ORDER; }
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_check_overflow(const secp256k1_scalar *a) { return *a >= EXHAUSTIVE_TEST_ORDER; }
 
 static int secp256k1_scalar_add(secp256k1_scalar *r, const secp256k1_scalar *a, const secp256k1_scalar *b) {
     SECP256K1_SCALAR_VERIFY(a);
@@ -90,7 +90,7 @@ static void secp256k1_scalar_get_b32(unsigned char *bin, const secp256k1_scalar*
     bin[28] = *a >> 24; bin[29] = *a >> 16; bin[30] = *a >> 8; bin[31] = *a;
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_is_zero(const secp256k1_scalar *a) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_zero(const secp256k1_scalar *a) {
     SECP256K1_SCALAR_VERIFY(a);
 
     return *a == 0;
@@ -108,13 +108,13 @@ static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar 
     SECP256K1_SCALAR_VERIFY(r);
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_is_one(const secp256k1_scalar *a) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_one(const secp256k1_scalar *a) {
     SECP256K1_SCALAR_VERIFY(a);
 
     return *a == 1;
 }
 
-static int secp256k1_scalar_is_high(const secp256k1_scalar *a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_high(const secp256k1_scalar *a) {
     SECP256K1_SCALAR_VERIFY(a);
 
     return *a > EXHAUSTIVE_TEST_ORDER / 2;
@@ -149,7 +149,7 @@ static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r
     SECP256K1_SCALAR_VERIFY(r2);
 }
 
-SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const secp256k1_scalar *b) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_eq(const secp256k1_scalar *a, const secp256k1_scalar *b) {
     SECP256K1_SCALAR_VERIFY(a);
     SECP256K1_SCALAR_VERIFY(b);
 

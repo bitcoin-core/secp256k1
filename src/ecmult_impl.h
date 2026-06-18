@@ -159,7 +159,7 @@ SECP256K1_INLINE static void secp256k1_ecmult_table_get_ge_storage(secp256k1_ge 
  *  - the number of set values in wnaf is returned. This number is at most 256, and at most one more
  *    than the number of bits in the (absolute value) of the input.
  */
-static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, int w) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, int w) {
     secp256k1_scalar s;
     int last_set_bit = -1;
     int bit = 0;
@@ -221,7 +221,7 @@ static int secp256k1_ecmult_wnaf(int *wnaf, int len, const secp256k1_scalar *a, 
 }
 
 /* Same as secp256k1_ecmult_wnaf, but stores to int8_t array. Requires w <= 8. */
-static int secp256k1_ecmult_wnaf_small(int8_t *wnaf, int len, const secp256k1_scalar *a, int w) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_wnaf_small(int8_t *wnaf, int len, const secp256k1_scalar *a, int w) {
     int wnaf_tmp[256];
     int ret, i;
 
@@ -379,7 +379,7 @@ static size_t secp256k1_strauss_scratch_size(size_t n_points) {
     return n_points*point_size;
 }
 
-static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points, size_t cb_offset) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points, size_t cb_offset) {
     secp256k1_gej* points;
     secp256k1_scalar* scalars;
     struct secp256k1_strauss_state state;
@@ -419,7 +419,7 @@ static int secp256k1_ecmult_strauss_batch(const secp256k1_callback* error_callba
 }
 
 /* Wrapper for secp256k1_ecmult_multi_func interface */
-static int secp256k1_ecmult_strauss_batch_single(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_strauss_batch_single(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
     return secp256k1_ecmult_strauss_batch(error_callback, scratch, r, inp_g_sc, cb, cbdata, n, 0);
 }
 
@@ -434,7 +434,7 @@ static size_t secp256k1_strauss_max_points(const secp256k1_callback* error_callb
  *  - the number of words set is always WNAF_SIZE(w)
  *  - the returned skew is 0 or 1
  */
-static int secp256k1_wnaf_fixed(int *wnaf, const secp256k1_scalar *s, int w) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_wnaf_fixed(int *wnaf, const secp256k1_scalar *s, int w) {
     int skew = 0;
     int pos;
     int max_pos;
@@ -513,7 +513,7 @@ struct secp256k1_pippenger_state {
  * to the point's wnaf[i]. Second, the buckets are added together such that
  * r += 1*bucket[0] + 3*bucket[1] + 5*bucket[2] + ...
  */
-static int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_window, struct secp256k1_pippenger_state *state, secp256k1_gej *r, const secp256k1_scalar *sc, const secp256k1_ge *pt, size_t num) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_pippenger_wnaf(secp256k1_gej *buckets, int bucket_window, struct secp256k1_pippenger_state *state, secp256k1_gej *r, const secp256k1_scalar *sc, const secp256k1_ge *pt, size_t num) {
     size_t n_wnaf = WNAF_SIZE(bucket_window+1);
     size_t np;
     size_t no = 0;
@@ -667,7 +667,7 @@ static size_t secp256k1_pippenger_scratch_size(size_t n_points, int bucket_windo
     return (sizeof(secp256k1_gej) << bucket_window) + sizeof(struct secp256k1_pippenger_state) + entries * entry_size;
 }
 
-static int secp256k1_ecmult_pippenger_batch(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points, size_t cb_offset) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_pippenger_batch(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points, size_t cb_offset) {
     const size_t scratch_checkpoint = secp256k1_scratch_checkpoint(error_callback, scratch);
     /* Use 2(n+1) with the endomorphism, when calculating batch
      * sizes. The reason for +1 is that we add the G scalar to the list of
@@ -731,7 +731,7 @@ static int secp256k1_ecmult_pippenger_batch(const secp256k1_callback* error_call
 }
 
 /* Wrapper for secp256k1_ecmult_multi_func interface */
-static int secp256k1_ecmult_pippenger_batch_single(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_pippenger_batch_single(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
     return secp256k1_ecmult_pippenger_batch(error_callback, scratch, r, inp_g_sc, cb, cbdata, n, 0);
 }
 
@@ -776,7 +776,7 @@ static size_t secp256k1_pippenger_max_points(const secp256k1_callback* error_cal
 
 /* Computes ecmult_multi by simply multiplying and adding each point. Does not
  * require a scratch space */
-static int secp256k1_ecmult_multi_simple_var(secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_multi_simple_var(secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points) {
     size_t point_idx;
     secp256k1_gej tmpj;
 
@@ -801,7 +801,7 @@ static int secp256k1_ecmult_multi_simple_var(secp256k1_gej *r, const secp256k1_s
 
 /* Compute the number of batches and the batch size given the maximum batch size and the
  * total number of points */
-static int secp256k1_ecmult_multi_batch_size_helper(size_t *n_batches, size_t *n_batch_points, size_t max_n_batch_points, size_t n) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_multi_batch_size_helper(size_t *n_batches, size_t *n_batch_points, size_t max_n_batch_points, size_t n) {
     if (max_n_batch_points == 0) {
         return 0;
     }
@@ -820,7 +820,7 @@ static int secp256k1_ecmult_multi_batch_size_helper(size_t *n_batches, size_t *n
 }
 
 typedef int (*secp256k1_ecmult_multi_func)(const secp256k1_callback* error_callback, secp256k1_scratch*, secp256k1_gej*, const secp256k1_scalar*, secp256k1_ecmult_multi_callback cb, void*, size_t);
-static int secp256k1_ecmult_multi_var(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_multi_var(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
     size_t i;
 
     int (*f)(const secp256k1_callback* error_callback, secp256k1_scratch*, secp256k1_gej*, const secp256k1_scalar*, secp256k1_ecmult_multi_callback cb, void*, size_t, size_t);

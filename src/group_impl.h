@@ -140,7 +140,7 @@ static void secp256k1_ge_set_xy(secp256k1_ge *r, const secp256k1_fe *x, const se
     SECP256K1_GE_VERIFY(r);
 }
 
-static int secp256k1_ge_is_infinity(const secp256k1_ge *a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ge_is_infinity(const secp256k1_ge *a) {
     SECP256K1_GE_VERIFY(a);
 
     return a->infinity;
@@ -344,7 +344,7 @@ static void secp256k1_ge_clear(secp256k1_ge *r) {
     secp256k1_memclear_explicit(r, sizeof(secp256k1_ge));
 }
 
-static int secp256k1_ge_set_xo_var(secp256k1_ge *r, const secp256k1_fe *x, int odd) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ge_set_xo_var(secp256k1_ge *r, const secp256k1_fe *x, int odd) {
     secp256k1_fe x2, x3;
     int ret;
     SECP256K1_FE_VERIFY(x);
@@ -375,7 +375,7 @@ static void secp256k1_gej_set_ge(secp256k1_gej *r, const secp256k1_ge *a) {
    SECP256K1_GEJ_VERIFY(r);
 }
 
-static int secp256k1_gej_eq_var(const secp256k1_gej *a, const secp256k1_gej *b) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_gej_eq_var(const secp256k1_gej *a, const secp256k1_gej *b) {
     secp256k1_gej tmp;
     SECP256K1_GEJ_VERIFY(b);
     SECP256K1_GEJ_VERIFY(a);
@@ -385,7 +385,7 @@ static int secp256k1_gej_eq_var(const secp256k1_gej *a, const secp256k1_gej *b) 
     return secp256k1_gej_is_infinity(&tmp);
 }
 
-static int secp256k1_gej_eq_ge_var(const secp256k1_gej *a, const secp256k1_ge *b) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_gej_eq_ge_var(const secp256k1_gej *a, const secp256k1_ge *b) {
     secp256k1_gej tmp;
     SECP256K1_GEJ_VERIFY(a);
     SECP256K1_GE_VERIFY(b);
@@ -395,7 +395,7 @@ static int secp256k1_gej_eq_ge_var(const secp256k1_gej *a, const secp256k1_ge *b
     return secp256k1_gej_is_infinity(&tmp);
 }
 
-static int secp256k1_ge_eq_var(const secp256k1_ge *a, const secp256k1_ge *b) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ge_eq_var(const secp256k1_ge *a, const secp256k1_ge *b) {
     secp256k1_fe tmp;
     SECP256K1_GE_VERIFY(a);
     SECP256K1_GE_VERIFY(b);
@@ -414,7 +414,7 @@ static int secp256k1_ge_eq_var(const secp256k1_ge *a, const secp256k1_ge *b) {
     return 1;
 }
 
-static int secp256k1_gej_eq_x_var(const secp256k1_fe *x, const secp256k1_gej *a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_gej_eq_x_var(const secp256k1_fe *x, const secp256k1_gej *a) {
     secp256k1_fe r;
     SECP256K1_FE_VERIFY(x);
     SECP256K1_GEJ_VERIFY(a);
@@ -437,13 +437,13 @@ static void secp256k1_gej_neg(secp256k1_gej *r, const secp256k1_gej *a) {
     SECP256K1_GEJ_VERIFY(r);
 }
 
-static int secp256k1_gej_is_infinity(const secp256k1_gej *a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_gej_is_infinity(const secp256k1_gej *a) {
     SECP256K1_GEJ_VERIFY(a);
 
     return a->infinity;
 }
 
-static int secp256k1_ge_is_valid_var(const secp256k1_ge *a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ge_is_valid_var(const secp256k1_ge *a) {
     secp256k1_fe y2, x3;
     SECP256K1_GE_VERIFY(a);
 
@@ -923,7 +923,7 @@ static void secp256k1_ge_mul_lambda(secp256k1_ge *r, const secp256k1_ge *a) {
     SECP256K1_GE_VERIFY(r);
 }
 
-static int secp256k1_ge_is_in_correct_subgroup(const secp256k1_ge* ge) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ge_is_in_correct_subgroup(const secp256k1_ge* ge) {
 #ifdef EXHAUSTIVE_TEST_ORDER
     secp256k1_gej out;
     int i;
@@ -947,7 +947,7 @@ static int secp256k1_ge_is_in_correct_subgroup(const secp256k1_ge* ge) {
 #endif
 }
 
-static int secp256k1_ge_x_on_curve_var(const secp256k1_fe *x) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ge_x_on_curve_var(const secp256k1_fe *x) {
     secp256k1_fe c;
     secp256k1_fe_sqr(&c, x);
     secp256k1_fe_mul(&c, &c, x);
@@ -955,7 +955,7 @@ static int secp256k1_ge_x_on_curve_var(const secp256k1_fe *x) {
     return secp256k1_fe_is_square_var(&c);
 }
 
-static int secp256k1_ge_x_frac_on_curve_var(const secp256k1_fe *xn, const secp256k1_fe *xd) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ge_x_frac_on_curve_var(const secp256k1_fe *xn, const secp256k1_fe *xd) {
     /* We want to determine whether (xn/xd) is on the curve.
      *
      * (xn/xd)^3 + 7 is square <=> xd*xn^3 + 7*xd^4 is square (multiplying by xd^4, a square).

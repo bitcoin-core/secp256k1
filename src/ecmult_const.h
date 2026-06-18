@@ -27,7 +27,7 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
  *
  * Constant time in the value of q, but not any other inputs.
  */
-static int secp256k1_ecmult_const_xonly(
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecmult_const_xonly(
     secp256k1_fe *r,
     const secp256k1_fe *n,
     const secp256k1_fe *d,

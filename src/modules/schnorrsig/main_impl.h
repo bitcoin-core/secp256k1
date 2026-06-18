@@ -37,7 +37,7 @@ static const unsigned char bip340_algo[] = {'B', 'I', 'P', '0', '3', '4', '0', '
 
 static const unsigned char schnorrsig_extraparams_magic[4] = SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC;
 
-static int nonce_function_bip340_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+static SECP256K1_WARN_UNUSED_RESULT int nonce_function_bip340_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
     secp256k1_sha256 sha;
     unsigned char masked_key[32];
     int i;
@@ -87,7 +87,7 @@ static int nonce_function_bip340_impl(const secp256k1_hash_ctx *hash_ctx, unsign
     return 1;
 }
 
-static int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+static SECP256K1_WARN_UNUSED_RESULT int nonce_function_bip340(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
     return nonce_function_bip340_impl(secp256k1_get_hash_context(secp256k1_context_static), nonce32, msg, msglen, key32, xonly_pk32, algo, algolen, data);
 }
 
@@ -119,7 +119,7 @@ static void secp256k1_schnorrsig_challenge(const secp256k1_hash_ctx *hash_ctx, s
     secp256k1_scalar_set_b32(e, buf, NULL);
 }
 
-static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_keypair *keypair, secp256k1_nonce_function_hardened noncefp, void *ndata) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_keypair *keypair, secp256k1_nonce_function_hardened noncefp, void *ndata) {
     secp256k1_scalar sk;
     secp256k1_scalar e;
     secp256k1_scalar k;

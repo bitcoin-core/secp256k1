@@ -37,7 +37,7 @@ static void secp256k1_scalar_set_b32(secp256k1_scalar *r, const unsigned char *b
 
 /** Set a scalar from a big endian byte array and returns 1 if it is a valid
  *  seckey and 0 otherwise. */
-static int secp256k1_scalar_set_b32_seckey(secp256k1_scalar *r, const unsigned char *bin);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_set_b32_seckey(secp256k1_scalar *r, const unsigned char *bin);
 
 /** Set a scalar to an unsigned integer. */
 static void secp256k1_scalar_set_int(secp256k1_scalar *r, unsigned int v);
@@ -67,23 +67,23 @@ static void secp256k1_scalar_negate(secp256k1_scalar *r, const secp256k1_scalar 
 static void secp256k1_scalar_half(secp256k1_scalar *r, const secp256k1_scalar *a);
 
 /** Check whether a scalar equals zero. */
-static int secp256k1_scalar_is_zero(const secp256k1_scalar *a);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_zero(const secp256k1_scalar *a);
 
 /** Check whether a scalar equals one. */
-static int secp256k1_scalar_is_one(const secp256k1_scalar *a);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_one(const secp256k1_scalar *a);
 
 /** Check whether a scalar, considered as an nonnegative integer, is even. */
-static int secp256k1_scalar_is_even(const secp256k1_scalar *a);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_even(const secp256k1_scalar *a);
 
 /** Check whether a scalar is higher than the group order divided by 2. */
-static int secp256k1_scalar_is_high(const secp256k1_scalar *a);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_is_high(const secp256k1_scalar *a);
 
 /** Conditionally negate a number, in constant time. Flag must be 0 or 1.
  * Returns -1 if the number was negated, 1 otherwise */
 static int secp256k1_scalar_cond_negate(secp256k1_scalar *a, int flag);
 
 /** Compare two scalars. */
-static int secp256k1_scalar_eq(const secp256k1_scalar *a, const secp256k1_scalar *b);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_eq(const secp256k1_scalar *a, const secp256k1_scalar *b);
 
 /** Find r1 and r2 such that r1+r2*2^128 = k. */
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *k);

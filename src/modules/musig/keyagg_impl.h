@@ -43,7 +43,7 @@ static void secp256k1_keyagg_cache_save(secp256k1_musig_keyagg_cache *cache, con
     secp256k1_scalar_get_b32(ptr, &cache_i->tweak);
 }
 
-static int secp256k1_keyagg_cache_load(const secp256k1_context* ctx, secp256k1_keyagg_cache_internal *cache_i, const secp256k1_musig_keyagg_cache *cache) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_keyagg_cache_load(const secp256k1_context* ctx, secp256k1_keyagg_cache_internal *cache_i, const secp256k1_musig_keyagg_cache *cache) {
     const unsigned char *ptr = cache->data;
     ARG_CHECK(secp256k1_memcmp_var(ptr, secp256k1_musig_keyagg_cache_magic, 4) == 0);
     ptr += 4;
@@ -70,7 +70,7 @@ static void secp256k1_musig_keyagglist_sha256(secp256k1_sha256 *sha) {
 }
 
 /* Computes pks_hash = tagged_hash(pk[0], ..., pk[np-1]) */
-static int secp256k1_musig_compute_pks_hash(const secp256k1_context *ctx, unsigned char *pks_hash, const secp256k1_pubkey * const* pks, size_t np) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_compute_pks_hash(const secp256k1_context *ctx, unsigned char *pks_hash, const secp256k1_pubkey * const* pks, size_t np) {
     secp256k1_sha256 sha;
     size_t i;
 
@@ -138,7 +138,7 @@ typedef struct {
 } secp256k1_musig_pubkey_agg_ecmult_data;
 
 /* Callback for batch EC multiplication to compute keyaggcoef_0*P0 + keyaggcoef_1*P1 + ...  */
-static int secp256k1_musig_pubkey_agg_callback(secp256k1_scalar *sc, secp256k1_ge *pt, size_t idx, void *data) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_pubkey_agg_callback(secp256k1_scalar *sc, secp256k1_ge *pt, size_t idx, void *data) {
     secp256k1_musig_pubkey_agg_ecmult_data *ctx = (secp256k1_musig_pubkey_agg_ecmult_data *) data;
     int ret;
     ret = secp256k1_pubkey_load(ctx->ctx, pt, ctx->pks[idx]);
@@ -228,7 +228,7 @@ int secp256k1_musig_pubkey_get(const secp256k1_context* ctx, secp256k1_pubkey *a
     return 1;
 }
 
-static int secp256k1_musig_pubkey_tweak_add_internal(const secp256k1_context* ctx, secp256k1_pubkey *output_pubkey, secp256k1_musig_keyagg_cache *keyagg_cache, const unsigned char *tweak32, int xonly) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_pubkey_tweak_add_internal(const secp256k1_context* ctx, secp256k1_pubkey *output_pubkey, secp256k1_musig_keyagg_cache *keyagg_cache, const unsigned char *tweak32, int xonly) {
     secp256k1_keyagg_cache_internal cache_i;
     int overflow = 0;
     secp256k1_scalar tweak;

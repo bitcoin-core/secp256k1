@@ -81,7 +81,7 @@ const secp256k1_context * const secp256k1_context_no_precomp = &secp256k1_contex
  * This is intended for "context" functions such as secp256k1_context_clone. Functions that need specific
  * features of a context should still check for these features directly. For example, a function that needs
  * ecmult_gen should directly check for the existence of the ecmult_gen context. */
-static int secp256k1_context_is_proper(const secp256k1_context* ctx) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_context_is_proper(const secp256k1_context* ctx) {
     return secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx);
 }
 
@@ -256,7 +256,7 @@ static SECP256K1_INLINE void secp256k1_declassify(const secp256k1_context* ctx, 
     if (EXPECT(ctx->declassify, 0)) SECP256K1_CHECKMEM_DEFINE(p, len);
 }
 
-static int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge, const secp256k1_pubkey* pubkey) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge, const secp256k1_pubkey* pubkey) {
     secp256k1_ge_from_bytes(ge, pubkey->data);
     ARG_CHECK(!secp256k1_fe_is_zero(&ge->x));
     return 1;
@@ -336,7 +336,7 @@ int secp256k1_ec_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_pubkey
     return secp256k1_memcmp_var(out[0], out[1], sizeof(out[0]));
 }
 
-static int secp256k1_ec_pubkey_sort_cmp(const void* pk1, const void* pk2, void *ctx) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_sort_cmp(const void* pk1, const void* pk2, void *ctx) {
     return secp256k1_ec_pubkey_cmp((secp256k1_context *)ctx,
                                      *(secp256k1_pubkey **)pk1,
                                      *(secp256k1_pubkey **)pk2);
@@ -495,7 +495,7 @@ static SECP256K1_INLINE void buffer_append(unsigned char *buf, unsigned int *off
     *offset += len;
 }
 
-static int nonce_function_rfc6979_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+static SECP256K1_WARN_UNUSED_RESULT int nonce_function_rfc6979_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
    unsigned char keydata[112];
    unsigned int offset = 0;
    secp256k1_rfc6979_hmac_sha256 rng;
@@ -531,14 +531,14 @@ static int nonce_function_rfc6979_impl(const secp256k1_hash_ctx *hash_ctx, unsig
    return 1;
 }
 
-static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+static SECP256K1_WARN_UNUSED_RESULT int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
     return nonce_function_rfc6979_impl(secp256k1_get_hash_context(secp256k1_context_static), nonce32, msg32, key32, algo16, data, counter);
 }
 
 const secp256k1_nonce_function secp256k1_nonce_function_rfc6979 = nonce_function_rfc6979;
 const secp256k1_nonce_function secp256k1_nonce_function_default = nonce_function_rfc6979;
 
-static int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_scalar* r, secp256k1_scalar* s, int* recid, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, const void* noncedata) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_scalar* r, secp256k1_scalar* s, int* recid, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, const void* noncedata) {
     secp256k1_scalar sec, non, msg;
     int ret = 0;
     int is_sec_valid;
@@ -623,7 +623,7 @@ int secp256k1_ec_seckey_verify(const secp256k1_context* ctx, const unsigned char
     return ret;
 }
 
-static int secp256k1_ec_pubkey_create_helper(const secp256k1_ecmult_gen_context *ecmult_gen_ctx, secp256k1_scalar *seckey_scalar, secp256k1_ge *p, const unsigned char *seckey) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_create_helper(const secp256k1_ecmult_gen_context *ecmult_gen_ctx, secp256k1_scalar *seckey_scalar, secp256k1_ge *p, const unsigned char *seckey) {
     int ret;
 
     ret = secp256k1_scalar_set_b32_seckey(seckey_scalar, seckey);
@@ -682,7 +682,7 @@ int secp256k1_ec_pubkey_negate(const secp256k1_context* ctx, secp256k1_pubkey *p
 }
 
 
-static int secp256k1_ec_seckey_tweak_add_helper(secp256k1_scalar *sec, const unsigned char *tweak32) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_seckey_tweak_add_helper(secp256k1_scalar *sec, const unsigned char *tweak32) {
     secp256k1_scalar term;
     int overflow = 0;
     int ret = 0;
@@ -709,7 +709,7 @@ int secp256k1_ec_seckey_tweak_add(const secp256k1_context* ctx, unsigned char *s
     return ret;
 }
 
-static int secp256k1_ec_pubkey_tweak_add_helper(secp256k1_ge *p, const unsigned char *tweak32) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_ec_pubkey_tweak_add_helper(secp256k1_ge *p, const unsigned char *tweak32) {
     secp256k1_scalar term;
     int overflow = 0;
     secp256k1_scalar_set_b32(&term, tweak32, &overflow);
@@ -801,7 +801,9 @@ int secp256k1_ec_pubkey_combine(const secp256k1_context* ctx, secp256k1_pubkey *
 
     for (i = 0; i < n; i++) {
         ARG_CHECK(pubnonces[i] != NULL);
-        secp256k1_pubkey_load(ctx, &Q, pubnonces[i]);
+        if (!secp256k1_pubkey_load(ctx, &Q, pubnonces[i])) {
+            return 0;
+        }
         secp256k1_gej_add_ge(&Qj, &Qj, &Q);
     }
     if (secp256k1_gej_is_infinity(&Qj)) {

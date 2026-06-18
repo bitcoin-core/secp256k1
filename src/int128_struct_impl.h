@@ -103,7 +103,7 @@ static SECP256K1_INLINE void secp256k1_u128_from_u64(secp256k1_uint128 *r, uint6
    r->lo = a;
 }
 
-static SECP256K1_INLINE int secp256k1_u128_check_bits(const secp256k1_uint128 *r, unsigned int n) {
+static SECP256K1_INLINE SECP256K1_WARN_UNUSED_RESULT int secp256k1_u128_check_bits(const secp256k1_uint128 *r, unsigned int n) {
    VERIFY_CHECK(n < 128);
    return n >= 64 ? r->hi >> (n - 64) == 0
                   : r->hi == 0 && r->lo >> n == 0;
@@ -191,11 +191,11 @@ static SECP256K1_INLINE void secp256k1_i128_from_i64(secp256k1_int128 *r, int64_
    r->lo = (uint64_t)a;
 }
 
-static SECP256K1_INLINE int secp256k1_i128_eq_var(const secp256k1_int128 *a, const secp256k1_int128 *b) {
+static SECP256K1_INLINE SECP256K1_WARN_UNUSED_RESULT int secp256k1_i128_eq_var(const secp256k1_int128 *a, const secp256k1_int128 *b) {
    return a->hi == b->hi && a->lo == b->lo;
 }
 
-static SECP256K1_INLINE int secp256k1_i128_check_pow2(const secp256k1_int128 *r, unsigned int n, int sign) {
+static SECP256K1_INLINE SECP256K1_WARN_UNUSED_RESULT int secp256k1_i128_check_pow2(const secp256k1_int128 *r, unsigned int n, int sign) {
     VERIFY_CHECK(n < 127);
     VERIFY_CHECK(sign == 1 || sign == -1);
     return n >= 64 ? r->hi == (uint64_t)sign << (n - 64) && r->lo == 0

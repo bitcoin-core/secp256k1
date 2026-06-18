@@ -19,6 +19,6 @@ typedef struct {
     secp256k1_scalar s_part;
 } secp256k1_musig_session_internal;
 
-static int secp256k1_musig_session_load(const secp256k1_context* ctx, secp256k1_musig_session_internal *session_i, const secp256k1_musig_session *session);
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_session_load(const secp256k1_context* ctx, secp256k1_musig_session_internal *session_i, const secp256k1_musig_session *session);
 
 #endif

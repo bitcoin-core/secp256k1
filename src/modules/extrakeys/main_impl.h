@@ -11,7 +11,7 @@
 #include "../../../include/secp256k1_extrakeys.h"
 #include "../../util.h"
 
-static SECP256K1_INLINE int secp256k1_xonly_pubkey_load(const secp256k1_context* ctx, secp256k1_ge *ge, const secp256k1_xonly_pubkey *pubkey) {
+static SECP256K1_INLINE SECP256K1_WARN_UNUSED_RESULT int secp256k1_xonly_pubkey_load(const secp256k1_context* ctx, secp256k1_ge *ge, const secp256k1_xonly_pubkey *pubkey) {
     return secp256k1_pubkey_load(ctx, ge, (const secp256k1_pubkey *) pubkey);
 }
 
@@ -85,7 +85,7 @@ int secp256k1_xonly_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_xon
 /** Keeps a group element as is if it has an even Y and otherwise negates it.
  *  y_parity is set to 0 in the former case and to 1 in the latter case.
  *  Requires that the coordinates of r are normalized. */
-static int secp256k1_extrakeys_ge_even_y(secp256k1_ge *r) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_extrakeys_ge_even_y(secp256k1_ge *r) {
     int y_parity = 0;
     VERIFY_CHECK(!secp256k1_ge_is_infinity(r));
 
@@ -159,7 +159,7 @@ static void secp256k1_keypair_save(secp256k1_keypair *keypair, const secp256k1_s
 }
 
 
-static int secp256k1_keypair_seckey_load(const secp256k1_context* ctx, secp256k1_scalar *sk, const secp256k1_keypair *keypair) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_keypair_seckey_load(const secp256k1_context* ctx, secp256k1_scalar *sk, const secp256k1_keypair *keypair) {
     int ret;
 
     ret = secp256k1_scalar_set_b32_seckey(sk, &keypair->data[0]);
@@ -173,7 +173,7 @@ static int secp256k1_keypair_seckey_load(const secp256k1_context* ctx, secp256k1
 /* Load a keypair into pk and sk (if non-NULL). This function declassifies pk
  * and ARG_CHECKs that the keypair is not invalid. It always initializes sk and
  * pk with dummy values. */
-static int secp256k1_keypair_load(const secp256k1_context* ctx, secp256k1_scalar *sk, secp256k1_ge *pk, const secp256k1_keypair *keypair) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_keypair_load(const secp256k1_context* ctx, secp256k1_scalar *sk, secp256k1_ge *pk, const secp256k1_keypair *keypair) {
     int ret;
     const secp256k1_pubkey *pubkey = (const secp256k1_pubkey *)&keypair->data[32];
 

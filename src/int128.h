@@ -45,7 +45,7 @@ static SECP256K1_INLINE void secp256k1_u128_from_u64(secp256k1_uint128 *r, uint6
 /* Tests if r is strictly less than to 2^n.
  * n must be strictly less than 128.
  */
-static SECP256K1_INLINE int secp256k1_u128_check_bits(const secp256k1_uint128 *r, unsigned int n);
+static SECP256K1_INLINE SECP256K1_WARN_UNUSED_RESULT int secp256k1_u128_check_bits(const secp256k1_uint128 *r, unsigned int n);
 
 /* Construct an signed 128-bit value from a high and a low 64-bit value. */
 static SECP256K1_INLINE void secp256k1_i128_load(secp256k1_int128 *r, int64_t hi, uint64_t lo);
@@ -78,12 +78,12 @@ static SECP256K1_INLINE int64_t secp256k1_i128_to_i64(const secp256k1_int128 *a)
 static SECP256K1_INLINE void secp256k1_i128_from_i64(secp256k1_int128 *r, int64_t a);
 
 /* Compare two 128-bit values for equality. */
-static SECP256K1_INLINE int secp256k1_i128_eq_var(const secp256k1_int128 *a, const secp256k1_int128 *b);
+static SECP256K1_INLINE SECP256K1_WARN_UNUSED_RESULT int secp256k1_i128_eq_var(const secp256k1_int128 *a, const secp256k1_int128 *b);
 
 /* Tests if r is equal to sign*2^n (sign must be 1 or -1).
  * n must be strictly less than 127.
  */
-static SECP256K1_INLINE int secp256k1_i128_check_pow2(const secp256k1_int128 *r, unsigned int n, int sign);
+static SECP256K1_INLINE SECP256K1_WARN_UNUSED_RESULT int secp256k1_i128_check_pow2(const secp256k1_int128 *r, unsigned int n, int sign);
 
 #endif
 

@@ -31,7 +31,7 @@ SECP256K1_INLINE static void secp256k1_scalar_clear(secp256k1_scalar *r) {
     secp256k1_memclear_explicit(r, sizeof(secp256k1_scalar));
 }
 
-static int secp256k1_scalar_set_b32_seckey(secp256k1_scalar *r, const unsigned char *bin) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_scalar_set_b32_seckey(secp256k1_scalar *r, const unsigned char *bin) {
     int overflow;
     secp256k1_scalar_set_b32(r, bin, &overflow);
 

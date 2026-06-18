@@ -22,7 +22,7 @@ SECP256K1_INLINE static void secp256k1_fe_clear(secp256k1_fe *a) {
     secp256k1_memclear_explicit(a, sizeof(secp256k1_fe));
 }
 
-SECP256K1_INLINE static int secp256k1_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
     secp256k1_fe na;
     SECP256K1_FE_VERIFY(a);
     SECP256K1_FE_VERIFY(b);
@@ -34,7 +34,7 @@ SECP256K1_INLINE static int secp256k1_fe_equal(const secp256k1_fe *a, const secp
     return secp256k1_fe_normalizes_to_zero(&na);
 }
 
-static int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k1_fe * SECP256K1_RESTRICT a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_sqrt(secp256k1_fe * SECP256K1_RESTRICT r, const secp256k1_fe * SECP256K1_RESTRICT a) {
     /** Given that p is congruent to 3 mod 4, we can compute the square root of
      *  a mod p as the (p+1)/4'th power of a.
      *
@@ -199,15 +199,15 @@ SECP256K1_INLINE static void secp256k1_fe_normalize_var(secp256k1_fe *r) {
     SECP256K1_FE_VERIFY(r);
 }
 
-static int secp256k1_fe_impl_normalizes_to_zero(const secp256k1_fe *r);
-SECP256K1_INLINE static int secp256k1_fe_normalizes_to_zero(const secp256k1_fe *r) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_normalizes_to_zero(const secp256k1_fe *r);
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_normalizes_to_zero(const secp256k1_fe *r) {
     SECP256K1_FE_VERIFY(r);
 
     return secp256k1_fe_impl_normalizes_to_zero(r);
 }
 
-static int secp256k1_fe_impl_normalizes_to_zero_var(const secp256k1_fe *r);
-SECP256K1_INLINE static int secp256k1_fe_normalizes_to_zero_var(const secp256k1_fe *r) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_normalizes_to_zero_var(const secp256k1_fe *r);
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_normalizes_to_zero_var(const secp256k1_fe *r) {
     SECP256K1_FE_VERIFY(r);
 
     return secp256k1_fe_impl_normalizes_to_zero_var(r);
@@ -236,24 +236,24 @@ SECP256K1_INLINE static void secp256k1_fe_add_int(secp256k1_fe *r, int a) {
     SECP256K1_FE_VERIFY(r);
 }
 
-static int secp256k1_fe_impl_is_zero(const secp256k1_fe *a);
-SECP256K1_INLINE static int secp256k1_fe_is_zero(const secp256k1_fe *a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_is_zero(const secp256k1_fe *a);
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_is_zero(const secp256k1_fe *a) {
     SECP256K1_FE_VERIFY(a);
     VERIFY_CHECK(a->normalized);
 
     return secp256k1_fe_impl_is_zero(a);
 }
 
-static int secp256k1_fe_impl_is_odd(const secp256k1_fe *a);
-SECP256K1_INLINE static int secp256k1_fe_is_odd(const secp256k1_fe *a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_is_odd(const secp256k1_fe *a);
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_is_odd(const secp256k1_fe *a) {
     SECP256K1_FE_VERIFY(a);
     VERIFY_CHECK(a->normalized);
 
     return secp256k1_fe_impl_is_odd(a);
 }
 
-static int secp256k1_fe_impl_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
-SECP256K1_INLINE static int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b);
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
     SECP256K1_FE_VERIFY(a);
     SECP256K1_FE_VERIFY(b);
     VERIFY_CHECK(a->normalized);
@@ -271,8 +271,8 @@ SECP256K1_INLINE static void secp256k1_fe_set_b32_mod(secp256k1_fe *r, const uns
     SECP256K1_FE_VERIFY(r);
 }
 
-static int secp256k1_fe_impl_set_b32_limit(secp256k1_fe *r, const unsigned char *a);
-SECP256K1_INLINE static int secp256k1_fe_set_b32_limit(secp256k1_fe *r, const unsigned char *a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_set_b32_limit(secp256k1_fe *r, const unsigned char *a);
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_set_b32_limit(secp256k1_fe *r, const unsigned char *a) {
     if (secp256k1_fe_impl_set_b32_limit(r, a)) {
         r->magnitude = 1;
         r->normalized = 1;
@@ -416,8 +416,8 @@ SECP256K1_INLINE static void secp256k1_fe_inv_var(secp256k1_fe *r, const secp256
     SECP256K1_FE_VERIFY(r);
 }
 
-static int secp256k1_fe_impl_is_square_var(const secp256k1_fe *x);
-SECP256K1_INLINE static int secp256k1_fe_is_square_var(const secp256k1_fe *x) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_is_square_var(const secp256k1_fe *x);
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_is_square_var(const secp256k1_fe *x) {
     int ret;
     secp256k1_fe tmp = *x, sqrt;
     SECP256K1_FE_VERIFY(x);

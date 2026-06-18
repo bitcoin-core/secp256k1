@@ -175,7 +175,7 @@ static void secp256k1_fe_impl_normalize_var(secp256k1_fe *r) {
     r->n[5] = t5; r->n[6] = t6; r->n[7] = t7; r->n[8] = t8; r->n[9] = t9;
 }
 
-static int secp256k1_fe_impl_normalizes_to_zero(const secp256k1_fe *r) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_normalizes_to_zero(const secp256k1_fe *r) {
     uint32_t t0 = r->n[0], t1 = r->n[1], t2 = r->n[2], t3 = r->n[3], t4 = r->n[4],
              t5 = r->n[5], t6 = r->n[6], t7 = r->n[7], t8 = r->n[8], t9 = r->n[9];
 
@@ -204,7 +204,7 @@ static int secp256k1_fe_impl_normalizes_to_zero(const secp256k1_fe *r) {
     return (z0 == 0) | (z1 == 0x3FFFFFFUL);
 }
 
-static int secp256k1_fe_impl_normalizes_to_zero_var(const secp256k1_fe *r) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_normalizes_to_zero_var(const secp256k1_fe *r) {
     uint32_t t0, t1, t2, t3, t4, t5, t6, t7, t8, t9;
     uint32_t z0, z1;
     uint32_t x;
@@ -261,16 +261,16 @@ SECP256K1_INLINE static void secp256k1_fe_impl_set_int(secp256k1_fe *r, int a) {
     r->n[1] = r->n[2] = r->n[3] = r->n[4] = r->n[5] = r->n[6] = r->n[7] = r->n[8] = r->n[9] = 0;
 }
 
-SECP256K1_INLINE static int secp256k1_fe_impl_is_zero(const secp256k1_fe *a) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_is_zero(const secp256k1_fe *a) {
     const uint32_t *t = a->n;
     return (t[0] | t[1] | t[2] | t[3] | t[4] | t[5] | t[6] | t[7] | t[8] | t[9]) == 0;
 }
 
-SECP256K1_INLINE static int secp256k1_fe_impl_is_odd(const secp256k1_fe *a) {
+SECP256K1_INLINE static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_is_odd(const secp256k1_fe *a) {
     return a->n[0] & 1;
 }
 
-static int secp256k1_fe_impl_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_cmp_var(const secp256k1_fe *a, const secp256k1_fe *b) {
     int i;
     for (i = 9; i >= 0; i--) {
         if (a->n[i] > b->n[i]) {
@@ -296,7 +296,7 @@ static void secp256k1_fe_impl_set_b32_mod(secp256k1_fe *r, const unsigned char *
     r->n[9] = (uint32_t)((a[2] >> 2) & 0x3f) | ((uint32_t)a[1] << 6) | ((uint32_t)a[0] << 14);
 }
 
-static int secp256k1_fe_impl_set_b32_limit(secp256k1_fe *r, const unsigned char *a) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_set_b32_limit(secp256k1_fe *r, const unsigned char *a) {
     secp256k1_fe_impl_set_b32_mod(r, a);
     return !((r->n[9] == 0x3FFFFFUL) & ((r->n[8] & r->n[7] & r->n[6] & r->n[5] & r->n[4] & r->n[3] & r->n[2]) == 0x3FFFFFFUL) & ((r->n[1] + 0x40UL + ((r->n[0] + 0x3D1UL) >> 26)) > 0x3FFFFFFUL));
 }
@@ -1208,7 +1208,7 @@ static void secp256k1_fe_impl_inv_var(secp256k1_fe *r, const secp256k1_fe *x) {
     secp256k1_fe_from_signed30(r, &s);
 }
 
-static int secp256k1_fe_impl_is_square_var(const secp256k1_fe *x) {
+static SECP256K1_WARN_UNUSED_RESULT int secp256k1_fe_impl_is_square_var(const secp256k1_fe *x) {
     secp256k1_fe tmp;
     secp256k1_modinv32_signed30 s;
     int jac, ret;
