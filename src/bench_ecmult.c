@@ -135,7 +135,7 @@ static void bench_ecmult_const_xonly(void* arg, int iters) {
         const secp256k1_ge* pubkey = &data->pubkeys[(data->offset1+i) % POINTS];
         const secp256k1_scalar* scalar = &data->scalars[(data->offset2+i) % POINTS];
         int known_on_curve = 1;
-        secp256k1_ecmult_const_xonly(&data->output_xonly[i], &pubkey->x, NULL, scalar, known_on_curve);
+        { int _r_ = secp256k1_ecmult_const_xonly(&data->output_xonly[i], &pubkey->x, NULL, scalar, known_on_curve); (void)_r_; }
     }
 }
 

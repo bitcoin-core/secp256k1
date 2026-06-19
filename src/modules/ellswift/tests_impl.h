@@ -251,7 +251,7 @@ void ellswift_encode_decode_roundtrip_tests(void) {
         /* Convert the public key to ElligatorSwift and back. */
         secp256k1_ellswift_encode(CTX, ell64, &pubkey, rnd32);
         secp256k1_ellswift_decode(CTX, &pubkey2, ell64);
-        secp256k1_pubkey_load(CTX, &g2, &pubkey2);
+        CHECK(secp256k1_pubkey_load(CTX, &g2, &pubkey2));
         /* Compare with original. */
         CHECK(secp256k1_ge_eq_var(&g, &g2));
     }
@@ -277,7 +277,7 @@ void ellswift_create_tests(void) {
         CHECK(ret);
         /* Decode it, and compare with traditionally-computed public key. */
         secp256k1_ellswift_decode(CTX, &pub, ell64);
-        secp256k1_pubkey_load(CTX, &dec, &pub);
+        CHECK(secp256k1_pubkey_load(CTX, &dec, &pub));
         secp256k1_ecmult(&res, NULL, &secp256k1_scalar_zero, &sec);
         CHECK(secp256k1_gej_eq_ge_var(&res, &dec));
     }
@@ -301,7 +301,7 @@ void ellswift_compute_shared_secret_tests(void) {
         testrand256_test(ell64);
         testrand256_test(ell64 + 32);
         secp256k1_ellswift_decode(CTX, &pub, ell64);
-        secp256k1_pubkey_load(CTX, &dec, &pub);
+        CHECK(secp256k1_pubkey_load(CTX, &dec, &pub));
         secp256k1_gej_set_ge(&decj, &dec);
         /* Compute the X coordinate of seckey*pubkey using ellswift_xdh. Note that we
          * pass ell64 as claimed (but incorrect) encoding for sec32 here; this works
