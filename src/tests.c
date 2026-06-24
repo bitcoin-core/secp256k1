@@ -372,7 +372,6 @@ static void run_scratch_tests(void) {
     size_t checkpoint;
     size_t checkpoint_2;
     secp256k1_scratch_space *scratch;
-    secp256k1_scratch_space local_scratch;
 
     /* Test public API */
     scratch = secp256k1_scratch_space_create(CTX, 1000);
@@ -413,12 +412,11 @@ static void run_scratch_tests(void) {
     CHECK_ERROR_VOID(CTX, secp256k1_scratch_apply_checkpoint(&CTX->error_callback, scratch, (size_t) -1)); /* this is just wildly invalid */
 
     /* try to use badly initialized scratch space */
-    secp256k1_scratch_space_destroy(CTX, scratch);
-    memset(&local_scratch, 0, sizeof(local_scratch));
-    scratch = &local_scratch;
+    memset(scratch, 0, sizeof(*scratch));
     CHECK_ERROR(CTX, secp256k1_scratch_max_allocation(&CTX->error_callback, scratch, 0));
     CHECK_ERROR(CTX, secp256k1_scratch_alloc(&CTX->error_callback, scratch, 500));
     CHECK_ERROR_VOID(CTX, secp256k1_scratch_space_destroy(CTX, scratch));
+    free(scratch);
 
     /* Test that large integers do not wrap around in a bad way */
     scratch = secp256k1_scratch_space_create(CTX, 1000);
