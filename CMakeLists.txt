@@ -135,11 +135,12 @@ if(SECP256K1_VALGRIND)
   endif()
 endif()
 
-option(SECP256K1_BUILD_BENCHMARK "Build benchmarks." ON)
+include(CMakeDependentOption)
+cmake_dependent_option(SECP256K1_BUILD_BENCHMARK "Build benchmarks." ON "NOT SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS" OFF)
 option(SECP256K1_BUILD_TESTS "Build tests." ON)
 option(SECP256K1_BUILD_EXHAUSTIVE_TESTS "Build exhaustive tests." ON)
-option(SECP256K1_BUILD_CTIME_TESTS "Build constant-time tests." ${SECP256K1_VALGRIND})
-option(SECP256K1_BUILD_EXAMPLES "Build examples." OFF)
+cmake_dependent_option(SECP256K1_BUILD_CTIME_TESTS "Build constant-time tests." ${SECP256K1_VALGRIND} "NOT SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS" OFF)
+cmake_dependent_option(SECP256K1_BUILD_EXAMPLES "Build examples." ON "NOT SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS" OFF)
 
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
