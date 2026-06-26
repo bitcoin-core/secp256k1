@@ -3064,6 +3064,18 @@ static int fe_equal(const secp256k1_fe *a, const secp256k1_fe *b) {
     return secp256k1_fe_equal(&an, &bn);
 }
 
+static void run_fe_equal_magnitude_boundaries(void) {
+    int i;
+    secp256k1_fe a, b;
+    for (i = 0; i < 100 * COUNT; ++i) {
+        testutil_random_fe(&a);
+        b = a;
+        testutil_random_fe_magnitude(&a, 1);
+        testutil_random_fe_magnitude(&b, 30);
+        CHECK(secp256k1_fe_equal(&a, &b));
+    }
+}
+
 static void run_field_convert(void) {
     static const unsigned char b32[32] = {
         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -7970,6 +7982,7 @@ static const struct tf_test_entry tests_scalar[] = {
 static const struct tf_test_entry tests_field[] = {
     CASE(field_half),
     CASE(field_misc),
+    CASE(fe_equal_magnitude_boundaries),
     CASE(field_convert),
     CASE(field_be32_overflow),
     CASE(fe_mul),
