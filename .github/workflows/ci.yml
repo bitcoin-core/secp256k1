@@ -610,6 +610,12 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cl.exe -c -WX -TP include/*.h
 
+      - name: C (public headers)
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl.exe -c -WX -TC include/*.h
+
   cxx_fpermissive_debian:
     name: "C++ -fpermissive (entire project)"
     runs-on: ubuntu-latest
@@ -653,6 +659,23 @@ jobs:
           command: |
             g++ -Werror include/*.h
             clang -Werror -x c++-header include/*.h
+
+  c_headers_debian:
+    name: "C (public headers)"
+    runs-on: ubuntu-latest
+    needs: docker_cache
+
+    steps:
+      - *CHECKOUT
+
+      - name: CI script
+        uses: ./.github/actions/run-in-docker-action
+        with:
+          dockerfile: ./ci/linux-debian.Dockerfile
+          scope: ${{ runner.arch }}-${{ needs.docker_cache.outputs.cache_scope }}
+          command: |
+            gcc -Werror -pedantic-errors -std=c89 include/*.h
+            clang -Werror -pedantic-errors -std=c89 -x c-header include/*.h
 
   sage:
     name: "SageMath prover"
