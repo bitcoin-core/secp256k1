@@ -7,6 +7,7 @@ exhaustive_tests
 precompute_ecmult_gen
 precompute_ecmult
 ctime_tests
+recovery_example
 ecdh_example
 ecdsa_example
 schnorr_example

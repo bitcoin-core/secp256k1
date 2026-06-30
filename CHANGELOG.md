@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Added
+ - Added usage example for ECDSA public key recovery.
+
 ## [0.7.1] - 2026-01-26
 
 #### Changed
