@@ -454,7 +454,7 @@ int secp256k1_ellswift_create(const secp256k1_context *ctx, unsigned char *ell64
     secp256k1_ellswift_sha256_init_create(&hash);
     secp256k1_sha256_write(secp256k1_get_hash_context(ctx), &hash, seckey32, 32);
     secp256k1_sha256_write(secp256k1_get_hash_context(ctx), &hash, zero32, sizeof(zero32));
-    secp256k1_declassify(ctx, &hash, sizeof(hash)); /* private key is hashed now */
+    secp256k1_declassify(ctx, &hash.s, sizeof(hash.s)); /* The private key has been hashed, but sk remains in the buffer */
     if (auxrnd32) secp256k1_sha256_write(secp256k1_get_hash_context(ctx), &hash, auxrnd32, 32);
 
     /* Compute ElligatorSwift encoding and construct output. */
@@ -463,6 +463,7 @@ int secp256k1_ellswift_create(const secp256k1_context *ctx, unsigned char *ell64
 
     secp256k1_memczero(ell64, 64, !ret);
     secp256k1_scalar_clear(&seckey_scalar);
+    secp256k1_sha256_clear(&hash);
 
     return ret;
 }
