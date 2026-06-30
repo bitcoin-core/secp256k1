@@ -98,6 +98,7 @@ static void secp256k1_ecmult_const_odd_multiples_table_globalz(secp256k1_ge *pre
     } \
     secp256k1_fe_negate(&neg_y, &(r)->y, 1); \
     secp256k1_fe_cmov(&(r)->y, &neg_y, negative); \
+    secp256k1_fe_clear(&neg_y); \
 } while(0)
 
 /* For K as defined in the comment of secp256k1_ecmult_const, we have several precomputed
@@ -247,6 +248,7 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
         int j;
 
         ECMULT_CONST_TABLE_GET_GE(&t, pre_a, bits1);
+        secp256k1_memclear_explicit(&bits1, sizeof(bits1));
         if (group == ECMULT_CONST_GROUPS - 1) {
             /* Directly set r in the first iteration. */
             secp256k1_gej_set_ge(r, &t);
@@ -258,11 +260,18 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
             secp256k1_gej_add_ge(r, r, &t);
         }
         ECMULT_CONST_TABLE_GET_GE(&t, pre_a_lam, bits2);
+        secp256k1_memclear_explicit(&bits2, sizeof(bits2));
         secp256k1_gej_add_ge(r, r, &t);
+        secp256k1_ge_clear(&t);
     }
 
     /* Map the result back to the secp256k1 curve from the isomorphic curve. */
     secp256k1_fe_mul(&r->z, &r->z, &global_z);
+
+    /* Clear local variables computed from scalar q */
+    secp256k1_scalar_clear(&s);
+    secp256k1_scalar_clear(&v1);
+    secp256k1_scalar_clear(&v2);
 }
 
 static int secp256k1_ecmult_const_xonly(secp256k1_fe* r, const secp256k1_fe *n, const secp256k1_fe *d, const secp256k1_scalar *q, int known_on_curve) {
