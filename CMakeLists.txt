@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.22)
 
+if(POLICY CMP0171)
+  # `codegen` is a reserved target name.
+  # See: https://cmake.org/cmake/help/latest/policy/CMP0171.html
+  cmake_policy(SET CMP0171 NEW)
+endif()
+
 #=============================
 # Project / Package metadata
 #=============================
@@ -140,6 +146,11 @@ option(SECP256K1_BUILD_TESTS "Build tests." ON)
 option(SECP256K1_BUILD_EXHAUSTIVE_TESTS "Build exhaustive tests." ON)
 option(SECP256K1_BUILD_CTIME_TESTS "Build constant-time tests." ${SECP256K1_VALGRIND})
 option(SECP256K1_BUILD_EXAMPLES "Build examples." OFF)
+
+option(SECP256K1_BUILD_PRECOMPUTED "Generate the precomputed files in the build tree." OFF)
+if(SECP256K1_BUILD_PRECOMPUTED AND CMAKE_CROSSCOMPILING)
+  message(FATAL_ERROR "SECP256K1_BUILD_PRECOMPUTED requires executing precompute tools, which is not supported when cross compiling.")
+endif()
 
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.

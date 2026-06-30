@@ -538,6 +538,10 @@ jobs:
     name: ${{ matrix.configuration.job_name }}
     # See: https://github.com/actions/runner-images#available-images.
     runs-on: windows-2022
+    defaults:
+      run:
+        # Enforce fail-fast behavior for PowerShell.
+        shell: pwsh -Command "$PSNativeCommandUseErrorActionPreference = $true; $ErrorActionPreference = 'Stop'; & '{0}'"
 
     strategy:
       fail-fast: false
@@ -570,7 +574,13 @@ jobs:
       - *CHECKOUT
 
       - name: Generate buildsystem
-        run: cmake -E env CFLAGS="/WX ${{ matrix.configuration.cpp_flags }}" cmake -B build -DSECP256K1_ENABLE_MODULE_RECOVERY=ON -DSECP256K1_BUILD_EXAMPLES=ON ${{ matrix.configuration.cmake_options }}
+        run: |
+          cmake -E env CFLAGS="/WX ${{ matrix.configuration.cpp_flags }}" `
+          cmake -B build `
+            -DSECP256K1_BUILD_PRECOMPUTED=ON `
+            -DSECP256K1_ENABLE_MODULE_RECOVERY=ON `
+            -DSECP256K1_BUILD_EXAMPLES=ON `
+            ${{ matrix.configuration.cmake_options }}
 
       - name: Build
         run: cmake --build build --config RelWithDebInfo -- /p:UseMultiToolTask=true /maxCpuCount
@@ -595,6 +605,11 @@ jobs:
           build\bin\RelWithDebInfo\bench_ecmult.exe
           build\bin\RelWithDebInfo\bench_internal.exe
           build\bin\RelWithDebInfo\bench.exe
+
+      - name: Check precomputed files
+        run: |
+          cmake -E copy build/src/precomputed_ecmult.c build/src/precomputed_ecmult_gen.c -t src
+          git diff --exit-code
 
   win64-native-headers:
     name: "x64 (MSVC): C++ (public headers)"
