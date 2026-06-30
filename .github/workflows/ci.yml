@@ -286,6 +286,34 @@ jobs:
       - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
+  x86_64_debian_oldold:
+    name: "x86_64: Linux (Debian oldoldstable)"
+    runs-on: ubuntu-latest
+
+    env:
+      ASM: 'auto'
+      WITH_VALGRIND: 'no'
+      ECDH: 'yes'
+      RECOVERY: 'yes'
+      EXTRAKEYS: 'yes'
+      SCHNORRSIG: 'yes'
+      MUSIG: 'yes'
+      ELLSWIFT: 'yes'
+      CTIMETESTS: 'no'
+      CC: 'gcc'
+
+    steps:
+      - *CHECKOUT
+
+      - name: CI script
+        uses: ./.github/actions/run-in-docker-action
+        with:
+          dockerfile: ./ci/linux-debian-oldold.Dockerfile
+          scope: ${{ runner.arch }}
+          command: ./ci/ci.sh
+
+      - *PRINT_LOGS
+
   valgrind_debian:
     name: "Valgrind ${{ matrix.configuration.binary_arch }} (memcheck)"
     runs-on: ${{ matrix.configuration.runner }}

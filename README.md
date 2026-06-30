@@ -30,7 +30,6 @@ Implementation details
   * No runtime heap allocation.
   * Extensive testing infrastructure.
   * Structured to facilitate review and analysis.
-  * Intended to be portable to any system with a C89 compiler and uint64_t support.
   * No use of floating types.
   * Expose only higher level interfaces to minimize the API surface and improve application security. ("Be difficult to use insecurely.")
 * Field operations
@@ -98,8 +97,15 @@ This can be done with the following steps:
         Subkey fingerprint: 2840 EAAB F4BC 9F0F FD71  6AFA FBAF CC46 DE2D 3FE2
    ```
 
-Building with Autotools
------------------------
+## Building from source
+
+The project is intended to be portable to any system with a C89/C90-compatible toolchain.
+Additionally, the C standard library must provide the `<stdint.h>` header.
+
+Toolchains older than the default one shipped in the current Debian "oldoldstable" release
+are not tested and are not recommended for building the project.
+
+### Building with Autotools
 
     $ ./autogen.sh       # Generate a ./configure script
     $ ./configure        # Generate a build system
@@ -109,12 +115,11 @@ Building with Autotools
 
 To compile optional modules (such as Schnorr signatures), you need to run `./configure` with additional flags (such as `--enable-module-schnorrsig`). Run `./configure --help` to see the full list of available flags.
 
-Building with CMake
--------------------
+### Building with CMake
 
 To maintain a pristine source tree, CMake encourages to perform an out-of-source build by using a separate dedicated build tree.
 
-### Building on POSIX systems
+#### Building on POSIX systems
 
     $ cmake -B build              # Generate a build system in subdirectory "build"
     $ cmake --build build         # Run the actual build process
@@ -123,7 +128,7 @@ To maintain a pristine source tree, CMake encourages to perform an out-of-source
 
 To compile optional modules (such as Schnorr signatures), you need to run `cmake` with additional flags (such as `-DSECP256K1_ENABLE_MODULE_SCHNORRSIG=ON`). Run `cmake -B build -LH` or `ccmake -B build` to see the full list of available flags.
 
-### Cross compiling
+#### Cross compiling
 
 To alleviate issues with cross compiling, preconfigured toolchain files are available in the `cmake` directory.
 For example, to cross compile for Windows:
@@ -134,7 +139,7 @@ To cross compile for Android with [NDK](https://developer.android.com/ndk/guides
 
     $ cmake -B build -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake" -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=28
 
-### Building on Windows
+#### Building on Windows
 
 The following example assumes Visual Studio 2022. Using clang-cl is recommended.
 
