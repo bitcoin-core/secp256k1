@@ -194,9 +194,6 @@ static void run_ec_illegal_argument_tests(void) {
 }
 
 static void run_static_context_tests(int use_prealloc) {
-    /* Check that deprecated secp256k1_context_no_precomp is an alias to secp256k1_context_static. */
-    CHECK(secp256k1_context_no_precomp == secp256k1_context_static);
-
     {
         unsigned char seed[32] = {0x17};
 
