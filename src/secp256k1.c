@@ -842,6 +842,10 @@ int secp256k1_tagged_sha256(const secp256k1_context* ctx, unsigned char *hash32,
 # include "modules/schnorrsig/main_impl.h"
 #endif
 
+#if defined(ENABLE_MODULE_SCHNORRSIG_FULLAGG) || defined(ENABLE_MODULE_MUSIG)
+# include "modules/nonce_common_impl.h"
+#endif
+
 #ifdef ENABLE_MODULE_SCHNORRSIG_FULLAGG
 # include "modules/schnorrsig_fullagg/main_impl.h"
 #endif

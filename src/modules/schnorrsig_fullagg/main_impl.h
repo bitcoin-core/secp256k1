@@ -13,6 +13,7 @@
 #include "../../../include/secp256k1_extrakeys.h"
 #include "../../../include/secp256k1_schnorrsig_fullagg.h"
 
+#include "../nonce_common.h"
 #include "../../eckey.h"
 #include "../../ecmult.h"
 #include "../../group.h"
@@ -22,67 +23,26 @@
 
 static const unsigned char secp256k1_fullagg_secnonce_magic[4] = { 0xf1, 0x1a, 0x99, 0x01 };
 
-/* TODO: Share with MuSig */
 static void secp256k1_fullagg_secnonce_save(secp256k1_fullagg_secnonce *secnonce, const secp256k1_scalar *k, const secp256k1_ge *pk) {
-    memcpy(&secnonce->data[0], secp256k1_fullagg_secnonce_magic, 4);
-
-    secp256k1_scalar_get_b32(&secnonce->data[4], &k[0]);
-    secp256k1_scalar_get_b32(&secnonce->data[36], &k[1]);
-    secp256k1_ge_to_bytes(&secnonce->data[68], pk);
+    secp256k1_secnonce_save(secnonce->data, secp256k1_fullagg_secnonce_magic, k, pk);
 }
 
-/* TODO: Share with MuSig */
 static int secp256k1_fullagg_secnonce_load(const secp256k1_context* ctx, secp256k1_scalar *k, secp256k1_ge *pk, const secp256k1_fullagg_secnonce *secnonce) {
-    int is_zero;
-
-    ARG_CHECK(secp256k1_memcmp_var(&secnonce->data[0], secp256k1_fullagg_secnonce_magic, 4) == 0);
-    /* We make very sure that the nonce isn't invalidated by checking the values
-     * in addition to the magic. */
-    is_zero = secp256k1_is_zero_array(&secnonce->data[4], 2 * 32);
-    secp256k1_declassify(ctx, &is_zero, sizeof(is_zero));
-    ARG_CHECK(!is_zero);
-
-    secp256k1_scalar_set_b32(&k[0], &secnonce->data[4], NULL);
-    secp256k1_scalar_set_b32(&k[1], &secnonce->data[36], NULL);
-    secp256k1_ge_from_bytes(pk, &secnonce->data[68]);
-    return 1;
+    return secp256k1_secnonce_load(ctx, k, pk, secnonce->data, secp256k1_fullagg_secnonce_magic);
 }
 
-/* TODO: Share with MuSig */
-/* If flag is true, invalidate the secnonce; otherwise leave it. Constant-time. */
 static void secp256k1_fullagg_secnonce_invalidate(const secp256k1_context* ctx, secp256k1_fullagg_secnonce *secnonce, int flag) {
-    secp256k1_memczero(secnonce->data, sizeof(secnonce->data), flag);
-    /* The flag argument is usually classified. So, the line above makes the
-     * magic and public key classified. However, we need both to be
-     * declassified. Note that we don't declassify the entire object, because if
-     * flag is 0, then k[0] and k[1] have not been zeroed. */
-    secp256k1_declassify(ctx, secnonce->data, sizeof(secp256k1_fullagg_secnonce_magic));
-    secp256k1_declassify(ctx, &secnonce->data[68], 64);
+    secp256k1_secnonce_invalidate(ctx, secnonce->data, flag);
 }
 
 static const unsigned char secp256k1_fullagg_pubnonce_magic[4] = { 0xf1, 0x1a, 0x99, 0x02 };
 
-/* TODO: Share with MuSig */
-/* Saves two group elements into a pubnonce. */
 static void secp256k1_fullagg_pubnonce_save(secp256k1_fullagg_pubnonce* nonce, const secp256k1_ge* ges) {
-    int i;
-
-    memcpy(&nonce->data[0], secp256k1_fullagg_pubnonce_magic, 4);
-    for (i = 0; i < 2; i++) {
-        secp256k1_ge_to_bytes(nonce->data + 4 + 64*i, &ges[i]);
-    }
+    secp256k1_nonce_points_save(nonce->data, secp256k1_fullagg_pubnonce_magic, ges);
 }
 
-/* TODO: Share with MuSig */
-/* Loads two group elements from a pubnonce. */
 static int secp256k1_fullagg_pubnonce_load(const secp256k1_context* ctx, secp256k1_ge* ges, const secp256k1_fullagg_pubnonce* nonce) {
-    int i;
-
-    ARG_CHECK(secp256k1_memcmp_var(&nonce->data[0], secp256k1_fullagg_pubnonce_magic, 4) == 0);
-    for (i = 0; i < 2; i++) {
-        secp256k1_ge_from_bytes(&ges[i], nonce->data + 4 + 64*i);
-    }
-    return 1;
+    return secp256k1_nonce_points_load(ctx, ges, nonce->data, secp256k1_fullagg_pubnonce_magic);
 }
 
 static const unsigned char secp256k1_fullagg_aggnonce_magic[4] = { 0xf1, 0x1a, 0x99, 0x03 };
@@ -90,72 +50,41 @@ static const unsigned char secp256k1_fullagg_aggnonce_magic[4] = { 0xf1, 0x1a, 0
 /* Save aggregate nonce. The points are guaranteed not to be the point at
  * infinity because nonce aggregation fails in that case. */
 static void secp256k1_fullagg_aggnonce_save(secp256k1_fullagg_aggnonce* nonce, const secp256k1_ge* ges) {
-    int i;
-
-    memcpy(&nonce->data[0], secp256k1_fullagg_aggnonce_magic, 4);
-    for (i = 0; i < 2; i++) {
-        secp256k1_ge_to_bytes(&nonce->data[4 + 64*i], &ges[i]);
-    }
+    secp256k1_nonce_points_save(nonce->data, secp256k1_fullagg_aggnonce_magic, ges);
 }
 
 /* Load aggregate nonce */
 static int secp256k1_fullagg_aggnonce_load(const secp256k1_context* ctx, secp256k1_ge* ges, const secp256k1_fullagg_aggnonce* nonce) {
-    int i;
-
-    ARG_CHECK(secp256k1_memcmp_var(&nonce->data[0], secp256k1_fullagg_aggnonce_magic, 4) == 0);
-    for (i = 0; i < 2; i++) {
-        secp256k1_ge_from_bytes(&ges[i], &nonce->data[4 + 64*i]);
-    }
-    return 1;
+    return secp256k1_nonce_points_load(ctx, ges, nonce->data, secp256k1_fullagg_aggnonce_magic);
 }
 
 static const unsigned char secp256k1_fullagg_partial_sig_magic[4] = { 0xf1, 0x1a, 0x99, 0x05 };
 
-/* TODO: Share with MuSig */
-/* Save partial signature */
 static void secp256k1_fullagg_partial_sig_save(secp256k1_fullagg_partial_sig* sig, secp256k1_scalar *s) {
-    memcpy(&sig->data[0], secp256k1_fullagg_partial_sig_magic, 4);
-    secp256k1_scalar_get_b32(&sig->data[4], s);
+    secp256k1_partial_sig_save(sig->data, secp256k1_fullagg_partial_sig_magic, s);
 }
 
-/* TODO: Share with MuSig */
-/* Load partial signature */
 static int secp256k1_fullagg_partial_sig_load(const secp256k1_context* ctx, secp256k1_scalar *s, const secp256k1_fullagg_partial_sig* sig) {
-    int overflow;
-
-    ARG_CHECK(secp256k1_memcmp_var(&sig->data[0], secp256k1_fullagg_partial_sig_magic, 4) == 0);
-    secp256k1_scalar_set_b32(s, &sig->data[4], &overflow);
-    /* Parsed signatures can not overflow */
-    VERIFY_CHECK(!overflow);
-    return 1;
+    return secp256k1_partial_sig_load(ctx, s, sig->data, secp256k1_fullagg_partial_sig_magic);
 }
 
-/* TODO: Share with MuSig */
 /* Parse/serialize functions for public interface */
 int secp256k1_fullagg_pubnonce_parse(const secp256k1_context* ctx, secp256k1_fullagg_pubnonce* nonce, const unsigned char *in66) {
     secp256k1_ge ges[2];
-    int i;
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(nonce != NULL);
     ARG_CHECK(in66 != NULL);
 
-    for (i = 0; i < 2; i++) {
-        if (!secp256k1_eckey_pubkey_parse(&ges[i], &in66[33*i], 33)) {
-            return 0;
-        }
-        if (!secp256k1_ge_is_in_correct_subgroup(&ges[i])) {
-            return 0;
-        }
+    if (!secp256k1_nonce_points_parse(ges, in66)) {
+        return 0;
     }
     secp256k1_fullagg_pubnonce_save(nonce, ges);
     return 1;
 }
 
-/* TODO: Share with MuSig */
 int secp256k1_fullagg_pubnonce_serialize(const secp256k1_context* ctx, unsigned char *out66, const secp256k1_fullagg_pubnonce* nonce) {
     secp256k1_ge ges[2];
-    int i;
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(out66 != NULL);
@@ -165,15 +94,12 @@ int secp256k1_fullagg_pubnonce_serialize(const secp256k1_context* ctx, unsigned 
     if (!secp256k1_fullagg_pubnonce_load(ctx, ges, nonce)) {
         return 0;
     }
-    for (i = 0; i < 2; i++) {
-        secp256k1_eckey_pubkey_serialize33(&ges[i], &out66[33*i]);
-    }
+    secp256k1_nonce_points_serialize(out66, ges);
     return 1;
 }
 
 int secp256k1_fullagg_aggnonce_parse(const secp256k1_context* ctx, secp256k1_fullagg_aggnonce* nonce, const unsigned char *in66) {
     secp256k1_ge ges[2];
-    int i;
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(nonce != NULL);
@@ -182,13 +108,8 @@ int secp256k1_fullagg_aggnonce_parse(const secp256k1_context* ctx, secp256k1_ful
     /* The aggregate nonce consists of two compressed points. There is no
      * encoding for the point at infinity because nonce aggregation fails in
      * that case. */
-    for (i = 0; i < 2; i++) {
-        if (!secp256k1_eckey_pubkey_parse(&ges[i], &in66[33*i], 33)) {
-            return 0;
-        }
-        if (!secp256k1_ge_is_in_correct_subgroup(&ges[i])) {
-            return 0;
-        }
+    if (!secp256k1_nonce_points_parse(ges, in66)) {
+        return 0;
     }
     secp256k1_fullagg_aggnonce_save(nonce, ges);
     return 1;
@@ -196,7 +117,6 @@ int secp256k1_fullagg_aggnonce_parse(const secp256k1_context* ctx, secp256k1_ful
 
 int secp256k1_fullagg_aggnonce_serialize(const secp256k1_context* ctx, unsigned char *out66, const secp256k1_fullagg_aggnonce* nonce) {
     secp256k1_ge ges[2];
-    int i;
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(out66 != NULL);
@@ -206,13 +126,10 @@ int secp256k1_fullagg_aggnonce_serialize(const secp256k1_context* ctx, unsigned 
     if (!secp256k1_fullagg_aggnonce_load(ctx, ges, nonce)) {
         return 0;
     }
-    for (i = 0; i < 2; i++) {
-        secp256k1_eckey_pubkey_serialize33(&ges[i], &out66[33*i]);
-    }
+    secp256k1_nonce_points_serialize(out66, ges);
     return 1;
 }
 
-/* TODO: Share with MuSig */
 int secp256k1_fullagg_partial_sig_parse(const secp256k1_context* ctx, secp256k1_fullagg_partial_sig* sig, const unsigned char *in32) {
     secp256k1_scalar tmp;
     int overflow;
@@ -230,7 +147,6 @@ int secp256k1_fullagg_partial_sig_parse(const secp256k1_context* ctx, secp256k1_
     return 1;
 }
 
-/* TODO: Share with MuSig */
 int secp256k1_fullagg_partial_sig_serialize(const secp256k1_context* ctx, unsigned char *out32, const secp256k1_fullagg_partial_sig* sig) {
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(out32 != NULL);
@@ -630,16 +546,6 @@ static int secp256k1_fullagg_session_load(const secp256k1_context* ctx,
 }
 
 
-/* TODO: Share with MuSig */
-/* out_nonce = nonce_pts[0] + b*nonce_pts[1] */
-static void secp256k1_fullagg_effective_nonce(secp256k1_gej *out_nonce, const secp256k1_ge *nonce_pts, const secp256k1_scalar *b) {
-    secp256k1_gej tmp;
-
-    secp256k1_gej_set_ge(&tmp, &nonce_pts[1]);
-    secp256k1_ecmult(out_nonce, &tmp, b, NULL);
-    secp256k1_gej_add_ge_var(out_nonce, out_nonce, &nonce_pts[0], NULL);
-}
-
 /* Initialize a FullAgg session. This implements GetSessionValues. */
 int secp256k1_fullagg_session_init(const secp256k1_context* ctx, secp256k1_fullagg_session *session,
                                    const secp256k1_fullagg_aggnonce *aggnonce,
@@ -685,7 +591,7 @@ int secp256k1_fullagg_session_init(const secp256k1_context* ctx, secp256k1_fulla
 
     /* Compute final nonce R = R1 + b*R2 and fail if it is the point at
      * infinity */
-    secp256k1_fullagg_effective_nonce(&rj, aggnonce_pts, &noncecoef);
+    secp256k1_effective_nonce(&rj, aggnonce_pts, &noncecoef);
     secp256k1_ge_set_gej(&r, &rj);
     if (secp256k1_ge_is_infinity(&r)) {
         return 0;
@@ -698,13 +604,6 @@ int secp256k1_fullagg_session_init(const secp256k1_context* ctx, secp256k1_fulla
 
     secp256k1_fullagg_session_save(session, fin_nonce, fin_nonce_parity, &noncecoef, aggnonce_ser, n_signers);
     return 1;
-}
-
-/* TODO: Share with MuSig */
-static void secp256k1_fullagg_partial_sign_clear(secp256k1_scalar *sk, secp256k1_scalar *k) {
-    secp256k1_scalar_clear(sk);
-    secp256k1_scalar_clear(&k[0]);
-    secp256k1_scalar_clear(&k[1]);
 }
 
 /* Create a partial signature */
@@ -751,19 +650,19 @@ int secp256k1_fullagg_partial_sign(const secp256k1_context* ctx, secp256k1_fulla
     /* Always clear the secnonce to avoid nonce reuse */
     secp256k1_memzero_explicit(secnonce, sizeof(*secnonce));
     if (!ret) {
-        secp256k1_fullagg_partial_sign_clear(&sk, k);
+        secp256k1_partial_sign_clear(&sk, k);
         return 0;
     }
 
     if (!secp256k1_keypair_load(ctx, &sk, &keypair_pk, keypair)) {
-        secp256k1_fullagg_partial_sign_clear(&sk, k);
+        secp256k1_partial_sign_clear(&sk, k);
         return 0;
     }
 
     /* Verify the keypair matches the secnonce. The secnonce stores the point
      * with even Y, so only the X coordinates are compared. */
     if (!secp256k1_fe_equal(&pk.x, &keypair_pk.x)) {
-        secp256k1_fullagg_partial_sign_clear(&sk, k);
+        secp256k1_partial_sign_clear(&sk, k);
         return 0;
     }
 
@@ -774,13 +673,13 @@ int secp256k1_fullagg_partial_sign(const secp256k1_context* ctx, secp256k1_fulla
     }
 
     if (!secp256k1_fullagg_session_load(ctx, fin_nonce, &fin_nonce_parity, &noncecoef, aggnonce_ser, &n_session_signers, session)) {
-        secp256k1_fullagg_partial_sign_clear(&sk, k);
+        secp256k1_partial_sign_clear(&sk, k);
         return 0;
     }
     ARG_CHECK(n_signers == n_session_signers);
 
     if (signer_index >= n_signers) {
-        secp256k1_fullagg_partial_sign_clear(&sk, k);
+        secp256k1_partial_sign_clear(&sk, k);
         return 0;
     }
 
@@ -792,16 +691,16 @@ int secp256k1_fullagg_partial_sign(const secp256k1_context* ctx, secp256k1_fulla
     {
         secp256k1_ge signer_pk;
         if (!secp256k1_xonly_pubkey_load(ctx, &signer_pk, pubkeys[signer_index])) {
-            secp256k1_fullagg_partial_sign_clear(&sk, k);
+            secp256k1_partial_sign_clear(&sk, k);
             return 0;
         }
         if (!secp256k1_fe_equal(&keypair_pk.x, &signer_pk.x)) {
-            secp256k1_fullagg_partial_sign_clear(&sk, k);
+            secp256k1_partial_sign_clear(&sk, k);
             return 0;
         }
     }
     if (secp256k1_memcmp_var(messages[signer_index], msg32, 32) != 0) {
-        secp256k1_fullagg_partial_sign_clear(&sk, k);
+        secp256k1_partial_sign_clear(&sk, k);
         return 0;
     }
 
@@ -829,7 +728,7 @@ int secp256k1_fullagg_partial_sign(const secp256k1_context* ctx, secp256k1_fulla
          * either. */
         for (j = 0; j < n_signers; j++) {
             if (!secp256k1_fullagg_pubnonce_load(ctx, nonce_pts, pubnonces[j])) {
-                secp256k1_fullagg_partial_sign_clear(&sk, k);
+                secp256k1_partial_sign_clear(&sk, k);
                 return 0;
             }
 
@@ -843,7 +742,7 @@ int secp256k1_fullagg_partial_sign(const secp256k1_context* ctx, secp256k1_fulla
 
         /* R2 must appear exactly once and at the signer's index */
         if (found_count != 1 || found_index != (int)signer_index) {
-            secp256k1_fullagg_partial_sign_clear(&sk, k);
+            secp256k1_partial_sign_clear(&sk, k);
             return 0;
         }
     }
@@ -856,12 +755,12 @@ int secp256k1_fullagg_partial_sign(const secp256k1_context* ctx, secp256k1_fulla
         secp256k1_scalar noncecoef_check;
         if (!secp256k1_fullagg_compute_noncehash(ctx, noncehash, aggnonce_ser, pubkeys,
                                                  messages, pubnonces, n_signers)) {
-            secp256k1_fullagg_partial_sign_clear(&sk, k);
+            secp256k1_partial_sign_clear(&sk, k);
             return 0;
         }
         secp256k1_scalar_set_b32(&noncecoef_check, noncehash, NULL);
         if (!secp256k1_scalar_eq(&noncecoef_check, &noncecoef)) {
-            secp256k1_fullagg_partial_sign_clear(&sk, k);
+            secp256k1_partial_sign_clear(&sk, k);
             return 0;
         }
     }
@@ -876,7 +775,7 @@ int secp256k1_fullagg_partial_sign(const secp256k1_context* ctx, secp256k1_fulla
     /* Compute signer's challenge c_i */
     if (!secp256k1_fullagg_compute_sighash(ctx, &c_i, pubkeys, messages, n_signers,
                                            fin_nonce, signer_index)) {
-        secp256k1_fullagg_partial_sign_clear(&sk, k);
+        secp256k1_partial_sign_clear(&sk, k);
         return 0;
     }
 
@@ -889,7 +788,7 @@ int secp256k1_fullagg_partial_sign(const secp256k1_context* ctx, secp256k1_fulla
     secp256k1_fullagg_partial_sig_save(partial_sig, &s);
 
     /* Clear sensitive data */
-    secp256k1_fullagg_partial_sign_clear(&sk, k);
+    secp256k1_partial_sign_clear(&sk, k);
     secp256k1_scalar_clear(&s);
 
     return 1;
@@ -954,7 +853,7 @@ int secp256k1_fullagg_partial_sig_verify(const secp256k1_context* ctx, const sec
         return 0;
     }
     secp256k1_scalar_set_b32(&noncecoef, noncehash, NULL);
-    secp256k1_fullagg_effective_nonce(&rj, aggnonce_pts, &noncecoef);
+    secp256k1_effective_nonce(&rj, aggnonce_pts, &noncecoef);
     secp256k1_ge_set_gej(&r, &rj);
     if (secp256k1_ge_is_infinity(&r)) {
         return 0;
@@ -968,7 +867,7 @@ int secp256k1_fullagg_partial_sig_verify(const secp256k1_context* ctx, const sec
     if (!secp256k1_fullagg_pubnonce_load(ctx, nonce_pts, pubnonces[signer_index])) {
         return 0;
     }
-    secp256k1_fullagg_effective_nonce(&rj, nonce_pts, &noncecoef);
+    secp256k1_effective_nonce(&rj, nonce_pts, &noncecoef);
 
     /* Multiply by e: negate if R has odd Y */
     if (fin_nonce_parity) {
