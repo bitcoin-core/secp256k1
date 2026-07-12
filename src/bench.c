@@ -35,6 +35,9 @@ static void help(const char *executable_path, int default_iters) {
 #ifdef ENABLE_MODULE_SILENTPAYMENTS
     printf("    - Silent payments (optional module)\n");
 #endif
+#ifdef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+    printf("    - Schnorr signature half aggregation (optional module)\n");
+#endif
 
     printf("\n");
     printf("The default number of iterations for each benchmark is %d. This can be\n", default_iters);
@@ -76,6 +79,12 @@ static void help(const char *executable_path, int default_iters) {
     printf("    silentpayments                       : all Silent payments benchmarks (scan_nomatch, scan_worstcase)\n");
     printf("    silentpayments_scan_nomatch          : Silent payments scanning common case (no match)\n");
     printf("    silentpayments_scan_worstcase        : Silent payments scanning worst case (block-sized tx, all match)\n");
+#endif
+
+#ifdef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+    printf("    halfagg           : all half aggregation algorithms (aggregate, verify)\n");
+    printf("    halfagg_aggregate : half aggregation of Schnorr signatures\n");
+    printf("    halfagg_verify    : half aggregate signature verification\n");
 #endif
 
     printf("\n");
@@ -183,6 +192,9 @@ static void bench_keygen_run(void *arg, int iters) {
 #ifdef ENABLE_MODULE_SILENTPAYMENTS
 # include "modules/silentpayments/bench_impl.h"
 #endif
+#ifdef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+# include "modules/schnorrsig_halfagg/bench_impl.h"
+#endif
 
 int main(int argc, char** argv) {
     int i;
@@ -197,7 +209,8 @@ int main(int argc, char** argv) {
                          "ecdsa_recover", "schnorrsig", "schnorrsig_verify", "schnorrsig_sign", "ec",
                          "keygen", "ec_keygen", "ellswift", "encode", "ellswift_encode", "decode",
                          "ellswift_decode", "ellswift_keygen", "ellswift_ecdh", "silentpayments",
-                         "silentpayments_scan_nomatch", "silentpayments_scan_worstcase"};
+                         "silentpayments_scan_nomatch", "silentpayments_scan_worstcase",
+                         "halfagg", "halfagg_aggregate", "halfagg_verify"};
     int invalid_args = have_invalid_args(argc, argv, valid_args, ARRAY_SIZE(valid_args));
 
     int default_iters = 20000;
@@ -263,6 +276,13 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 #endif
+#ifndef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+    if (have_flag(argc, argv, "halfagg") || have_flag(argc, argv, "halfagg_aggregate") || have_flag(argc, argv, "halfagg_verify")) {
+        fprintf(stderr, "./bench: Schnorr signature half aggregation module not enabled.\n");
+        fprintf(stderr, "See README.md for configuration instructions.\n\n");
+        return EXIT_FAILURE;
+    }
+#endif
 
     /* ECDSA benchmark */
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
@@ -313,6 +333,10 @@ int main(int argc, char** argv) {
     run_silentpayments_bench(iters, argc, argv);
 #endif
 
+#ifdef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+    /* Schnorr signature half aggregation benchmarks */
+    run_halfagg_bench(iters, argc, argv);
+#endif
 
     return EXIT_SUCCESS;
 }
