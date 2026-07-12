@@ -210,6 +210,17 @@ musig_example_LDFLAGS += -lbcrypt
 endif
 TESTS += musig_example
 endif
+if ENABLE_MODULE_SCHNORRSIG_HALFAGG
+noinst_PROGRAMS += halfagg_example
+halfagg_example_SOURCES = examples/halfagg.c
+halfagg_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+halfagg_example_LDADD = libsecp256k1.la
+halfagg_example_LDFLAGS = -static
+if BUILD_WINDOWS
+halfagg_example_LDFLAGS += -lbcrypt
+endif
+TESTS += halfagg_example
+endif
 endif
 
 ### Precomputed tables
