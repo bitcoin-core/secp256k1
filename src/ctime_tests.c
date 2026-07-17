@@ -189,6 +189,17 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     ret = secp256k1_schnorrsig_sign32(ctx, sig, msg, &keypair, NULL);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
     CHECK(ret == 1);
+
+    /* Also cover the public sign_custom entry point (default nonce path). */
+    SECP256K1_CHECKMEM_UNDEFINE(key, 32);
+    ret = secp256k1_keypair_create(ctx, &keypair, key);
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    CHECK(ret == 1);
+    SECP256K1_CHECKMEM_UNDEFINE(&keypair, sizeof(keypair));
+    SECP256K1_CHECKMEM_UNDEFINE(msg, 32);
+    ret = secp256k1_schnorrsig_sign_custom(ctx, sig, msg, 32, &keypair, NULL);
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    CHECK(ret == 1);
 #endif
 
 #ifdef ENABLE_MODULE_MUSIG
