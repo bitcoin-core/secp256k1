@@ -495,7 +495,7 @@ static SECP256K1_INLINE void buffer_append(unsigned char *buf, unsigned int *off
     *offset += len;
 }
 
-static int nonce_function_rfc6979_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
+static int nonce_function_rfc6979_impl(const secp256k1_hash_ctx *hash_ctx, unsigned char *secnonce32, const unsigned char *msg32, const unsigned char *seckey32, const unsigned char *algo16, void *data, unsigned int counter) {
    unsigned char keydata[112];
    unsigned int offset = 0;
    secp256k1_rfc6979_hmac_sha256 rng;
@@ -512,7 +512,7 @@ static int nonce_function_rfc6979_impl(const secp256k1_hash_ctx *hash_ctx, unsig
     *  different argument mixtures to emulate each other and result in the same
     *  nonces.
     */
-   buffer_append(keydata, &offset, key32, 32);
+   buffer_append(keydata, &offset, seckey32, 32);
    buffer_append(keydata, &offset, msgmod32, 32);
    if (data != NULL) {
        buffer_append(keydata, &offset, data, 32);
@@ -522,7 +522,7 @@ static int nonce_function_rfc6979_impl(const secp256k1_hash_ctx *hash_ctx, unsig
    }
    secp256k1_rfc6979_hmac_sha256_initialize(hash_ctx, &rng, keydata, offset);
    for (i = 0; i <= counter; i++) {
-       secp256k1_rfc6979_hmac_sha256_generate(hash_ctx, &rng, nonce32, 32);
+       secp256k1_rfc6979_hmac_sha256_generate(hash_ctx, &rng, secnonce32, 32);
    }
    secp256k1_rfc6979_hmac_sha256_finalize(&rng);
 
@@ -531,8 +531,8 @@ static int nonce_function_rfc6979_impl(const secp256k1_hash_ctx *hash_ctx, unsig
    return 1;
 }
 
-static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
-    return nonce_function_rfc6979_impl(secp256k1_get_hash_context(secp256k1_context_static), nonce32, msg32, key32, algo16, data, counter);
+static int nonce_function_rfc6979(unsigned char *secnonce32, const unsigned char *msg32, const unsigned char *seckey32, const unsigned char *algo16, void *data, unsigned int counter) {
+    return nonce_function_rfc6979_impl(secp256k1_get_hash_context(secp256k1_context_static), secnonce32, msg32, seckey32, algo16, data, counter);
 }
 
 const secp256k1_nonce_function secp256k1_nonce_function_rfc6979 = nonce_function_rfc6979;
@@ -693,15 +693,15 @@ static int secp256k1_ec_seckey_tweak_add_helper(secp256k1_scalar *sec, const uns
     return ret;
 }
 
-int secp256k1_ec_seckey_tweak_add(const secp256k1_context* ctx, unsigned char *seckey, const unsigned char *tweak32) {
+int secp256k1_ec_seckey_tweak_add(const secp256k1_context* ctx, unsigned char *seckey, const unsigned char *sectweak32) {
     secp256k1_scalar sec;
     int ret = 0;
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(seckey != NULL);
-    ARG_CHECK(tweak32 != NULL);
+    ARG_CHECK(sectweak32 != NULL);
 
     ret = secp256k1_scalar_set_b32_seckey(&sec, seckey);
-    ret &= secp256k1_ec_seckey_tweak_add_helper(&sec, tweak32);
+    ret &= secp256k1_ec_seckey_tweak_add_helper(&sec, sectweak32);
     secp256k1_scalar_cmov(&sec, &secp256k1_scalar_zero, !ret);
     secp256k1_scalar_get_b32(seckey, &sec);
 
@@ -733,16 +733,16 @@ int secp256k1_ec_pubkey_tweak_add(const secp256k1_context* ctx, secp256k1_pubkey
     return ret;
 }
 
-int secp256k1_ec_seckey_tweak_mul(const secp256k1_context* ctx, unsigned char *seckey, const unsigned char *tweak32) {
+int secp256k1_ec_seckey_tweak_mul(const secp256k1_context* ctx, unsigned char *seckey, const unsigned char *sectweak32) {
     secp256k1_scalar factor;
     secp256k1_scalar sec;
     int ret = 0;
     int overflow = 0;
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(seckey != NULL);
-    ARG_CHECK(tweak32 != NULL);
+    ARG_CHECK(sectweak32 != NULL);
 
-    secp256k1_scalar_set_b32(&factor, tweak32, &overflow);
+    secp256k1_scalar_set_b32(&factor, sectweak32, &overflow);
     ret = secp256k1_scalar_set_b32_seckey(&sec, seckey);
     ret &= (!overflow) & secp256k1_eckey_privkey_tweak_mul(&sec, &factor);
     secp256k1_scalar_cmov(&sec, &secp256k1_scalar_zero, !ret);

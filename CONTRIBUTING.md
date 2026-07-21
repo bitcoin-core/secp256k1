@@ -73,6 +73,7 @@ In addition, libsecp256k1 tries to maintain the following coding conventions:
 * Arguments of the publicly-facing API must have a specific order defined in [include/secp256k1.h](include/secp256k1.h).
 * User-facing comment lines in headers should be limited to 80 chars if possible.
 * All identifiers in file scope should start with `secp256k1_`.
+* Function arguments that are considered secret by the function (with respect to side channels, i.e., processed in constant time) should explicitly denote their secret nature using the `sec` prefix (e.g., `seckey`, `secnonce`, `sectweak32`, `secrand32`).
 * Avoid trailing whitespace.
 * Use the constants `EXIT_SUCCESS`/`EXIT_FAILURE` (defined in `stdlib.h`) to indicate program execution status for examples and other binaries.
 
