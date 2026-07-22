@@ -70,6 +70,8 @@ noinst_HEADERS += src/bench.h
 noinst_HEADERS += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h
 noinst_HEADERS += src/hsort.h
 noinst_HEADERS += src/hsort_impl.h
+noinst_HEADERS += src/modules/nonce_common.h
+noinst_HEADERS += src/modules/nonce_common_impl.h
 noinst_HEADERS += contrib/lax_der_parsing.h
 noinst_HEADERS += contrib/lax_der_parsing.c
 noinst_HEADERS += contrib/lax_der_privatekey_parsing.h
@@ -210,6 +212,17 @@ musig_example_LDFLAGS += -lbcrypt
 endif
 TESTS += musig_example
 endif
+if ENABLE_MODULE_SCHNORRSIG_FULLAGG
+noinst_PROGRAMS += fullagg_example
+fullagg_example_SOURCES = examples/fullagg.c
+fullagg_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+fullagg_example_LDADD = libsecp256k1.la
+fullagg_example_LDFLAGS = -static
+if BUILD_WINDOWS
+fullagg_example_LDFLAGS += -lbcrypt
+endif
+TESTS += fullagg_example
+endif
 endif
 
 ### Precomputed tables
@@ -277,7 +290,7 @@ maintainer-clean-local: clean-testvectors
 ### Additional files to distribute
 EXTRA_DIST = autogen.sh CHANGELOG.md SECURITY.md
 EXTRA_DIST += doc/release-process.md doc/safegcd_implementation.md
-EXTRA_DIST += doc/ellswift.md doc/musig.md
+EXTRA_DIST += doc/ellswift.md doc/musig.md doc/fullagg.md
 EXTRA_DIST += examples/EXAMPLES_COPYING
 EXTRA_DIST += sage/gen_exhaustive_groups.sage
 EXTRA_DIST += sage/gen_split_lambda_constants.sage
@@ -309,6 +322,10 @@ endif
 
 if ENABLE_MODULE_MUSIG
 include src/modules/musig/Makefile.am.include
+endif
+
+if ENABLE_MODULE_SCHNORRSIG_FULLAGG
+include src/modules/schnorrsig_fullagg/Makefile.am.include
 endif
 
 if ENABLE_MODULE_ELLSWIFT
