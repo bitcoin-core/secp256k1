@@ -210,6 +210,17 @@ musig_example_LDFLAGS += -lbcrypt
 endif
 TESTS += musig_example
 endif
+if ENABLE_MODULE_SCHNORRSIG_HALFAGG
+noinst_PROGRAMS += halfagg_example
+halfagg_example_SOURCES = examples/halfagg.c
+halfagg_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+halfagg_example_LDADD = libsecp256k1.la
+halfagg_example_LDFLAGS = -static
+if BUILD_WINDOWS
+halfagg_example_LDFLAGS += -lbcrypt
+endif
+TESTS += halfagg_example
+endif
 endif
 
 ### Precomputed tables
@@ -277,7 +288,7 @@ maintainer-clean-local: clean-testvectors
 ### Additional files to distribute
 EXTRA_DIST = autogen.sh CHANGELOG.md SECURITY.md
 EXTRA_DIST += doc/release-process.md doc/safegcd_implementation.md
-EXTRA_DIST += doc/ellswift.md doc/musig.md
+EXTRA_DIST += doc/ellswift.md doc/musig.md doc/halfagg.md
 EXTRA_DIST += examples/EXAMPLES_COPYING
 EXTRA_DIST += sage/gen_exhaustive_groups.sage
 EXTRA_DIST += sage/gen_split_lambda_constants.sage
@@ -313,4 +324,8 @@ endif
 
 if ENABLE_MODULE_ELLSWIFT
 include src/modules/ellswift/Makefile.am.include
+endif
+
+if ENABLE_MODULE_SCHNORRSIG_HALFAGG
+include src/modules/schnorrsig_halfagg/Makefile.am.include
 endif

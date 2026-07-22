@@ -32,6 +32,10 @@ static void help(const char *executable_path, int default_iters) {
     printf("    - ElligatorSwift (optional module)\n");
 #endif
 
+#ifdef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+    printf("    - Schnorr signature half aggregation (optional module)\n");
+#endif
+
     printf("\n");
     printf("The default number of iterations for each benchmark is %d. This can be\n", default_iters);
     printf("customized using the SECP256K1_BENCH_ITERS environment variable.\n");
@@ -66,6 +70,12 @@ static void help(const char *executable_path, int default_iters) {
     printf("    ellswift_decode   : ElligatorSwift decoding\n");
     printf("    ellswift_keygen   : ElligatorSwift key generation\n");
     printf("    ellswift_ecdh     : ECDH on ElligatorSwift keys\n");
+#endif
+
+#ifdef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+    printf("    halfagg           : all half aggregation algorithms (aggregate, verify)\n");
+    printf("    halfagg_aggregate : half aggregation of Schnorr signatures\n");
+    printf("    halfagg_verify    : half aggregate signature verification\n");
 #endif
 
     printf("\n");
@@ -170,6 +180,10 @@ static void bench_keygen_run(void *arg, int iters) {
 # include "modules/ellswift/bench_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+# include "modules/schnorrsig_halfagg/bench_impl.h"
+#endif
+
 int main(int argc, char** argv) {
     int i;
     secp256k1_pubkey pubkey;
@@ -182,7 +196,8 @@ int main(int argc, char** argv) {
     char* valid_args[] = {"ecdsa", "verify", "ecdsa_verify", "sign", "ecdsa_sign", "ecdh", "recover",
                          "ecdsa_recover", "schnorrsig", "schnorrsig_verify", "schnorrsig_sign", "ec",
                          "keygen", "ec_keygen", "ellswift", "encode", "ellswift_encode", "decode",
-                         "ellswift_decode", "ellswift_keygen", "ellswift_ecdh"};
+                         "ellswift_decode", "ellswift_keygen", "ellswift_ecdh", "halfagg",
+                         "halfagg_aggregate", "halfagg_verify"};
     int invalid_args = have_invalid_args(argc, argv, valid_args, ARRAY_SIZE(valid_args));
 
     int default_iters = 20000;
@@ -240,6 +255,14 @@ int main(int argc, char** argv) {
     }
 #endif
 
+#ifndef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+    if (have_flag(argc, argv, "halfagg") || have_flag(argc, argv, "halfagg_aggregate") || have_flag(argc, argv, "halfagg_verify")) {
+        fprintf(stderr, "./bench: Schnorr signature half aggregation module not enabled.\n");
+        fprintf(stderr, "See README.md for configuration instructions.\n\n");
+        return EXIT_FAILURE;
+    }
+#endif
+
     /* ECDSA benchmark */
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
@@ -282,6 +305,11 @@ int main(int argc, char** argv) {
 #ifdef ENABLE_MODULE_ELLSWIFT
     /* ElligatorSwift benchmarks */
     run_ellswift_bench(iters, argc, argv);
+#endif
+
+#ifdef ENABLE_MODULE_SCHNORRSIG_HALFAGG
+    /* Schnorr signature half aggregation benchmarks */
+    run_halfagg_bench(iters, argc, argv);
 #endif
 
     return EXIT_SUCCESS;
