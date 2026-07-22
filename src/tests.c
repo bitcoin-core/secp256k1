@@ -7382,6 +7382,169 @@ static void run_ecdsa_der_parse(void) {
     }
 }
 
+/* Runs ec_privkey_import_der on a heap copy of the input of exactly privkeylen
+ * bytes, so that a read past the end of the input is caught by ASan or
+ * valgrind instead of silently succeeding on adjacent stack bytes. */
+static int privkey_import_der_exact(unsigned char *out32, const unsigned char *privkey, size_t privkeylen) {
+    /* Allocating zero bytes is not portable, so ask for one byte in that case. */
+    unsigned char *copy = checked_malloc(&CTX->error_callback, privkeylen + (privkeylen == 0));
+    int ret;
+    memcpy(copy, privkey, privkeylen);
+    ret = ec_privkey_import_der(CTX, out32, copy, privkeylen);
+    free(copy);
+    return ret;
+}
+
+/* ec_privkey_import_der accepts a BER SEQUENCE whose length is encoded in long
+ * form, and rejects everything else:
+ *
+ *   30 (80|lenb) <lenb length bytes> 02 01 01 04 <keylen> <key bytes> ...
+ *
+ * ec_privkey_export_der emits lenb = 1 for compressed and lenb = 2 for
+ * uncompressed keys, so the offsets behind the length shift accordingly. This
+ * mutates every field of an exported key and checks that it is rejected. */
+static void test_privkey_import_der_mutations(int compressed) {
+    unsigned char seckey[32];
+    unsigned char privkey[300];
+    unsigned char out[32];
+    size_t privkeylen = sizeof(privkey);
+    int lenb = compressed ? 1 : 2;
+    int ver = 2 + lenb; /* offset of the version field */
+    int oct = ver + 3;  /* offset of the octet string header */
+    size_t len;
+
+    testutil_random_scalar_order_b32(seckey);
+    CHECK(ec_privkey_export_der(CTX, privkey, &privkeylen, seckey, compressed) == 1);
+
+    /* The mutations below rely on this layout. */
+    CHECK(privkey[0] == 0x30);
+    CHECK(privkey[1] == (0x80 | lenb));
+    CHECK(privkey[ver] == 0x02 && privkey[ver + 1] == 0x01 && privkey[ver + 2] == 0x01);
+    CHECK(privkey[oct] == 0x04 && privkey[oct + 1] == 0x20);
+
+    /* The unmodified encoding round-trips. */
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 1);
+    CHECK(secp256k1_memcmp_var(out, seckey, sizeof(out)) == 0);
+
+    /* Any truncation of a valid encoding is rejected. */
+    for (len = 0; len < privkeylen; len++) {
+        CHECK(privkey_import_der_exact(out, privkey, len) == 0);
+        CHECK(all_bytes_equal(out, 0, sizeof(out)));
+    }
+
+    /* Wrong outer sequence tag (expected 0x30). */
+    privkey[0] ^= 0xff;
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 0);
+    privkey[0] ^= 0xff;
+
+    /* Sequence length constructor without the high bit set. */
+    privkey[1] &= 0x7f;
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 0);
+
+    /* Sequence length byte count above the accepted {1, 2} range. */
+    privkey[1] = 0x80 | 3;
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 0);
+    privkey[1] = (unsigned char)(0x80 | lenb);
+
+    /* Every byte of the version field must match 02 01 01. */
+    privkey[ver] ^= 0xff;
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 0);
+    privkey[ver] ^= 0xff;
+    privkey[ver + 1] ^= 0xff;
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 0);
+    privkey[ver + 1] ^= 0xff;
+    privkey[ver + 2] ^= 0xff;
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 0);
+    privkey[ver + 2] ^= 0xff;
+
+    /* Octet string tag must be 0x04. */
+    privkey[oct] ^= 0xff;
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 0);
+    privkey[oct] ^= 0xff;
+
+    /* Octet string longer than 32 bytes is rejected. */
+    privkey[oct + 1] = 0x21;
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 0);
+    privkey[oct + 1] = 0x20;
+
+    /* A structurally valid encoding of an out-of-range key is rejected, and
+     * the output is cleared. */
+    memset(privkey + oct + 2, 0x00, 32);
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 0);
+    CHECK(all_bytes_equal(out, 0, sizeof(out)));
+    memset(privkey + oct + 2, 0xff, 32);
+    CHECK(privkey_import_der_exact(out, privkey, privkeylen) == 0);
+    CHECK(all_bytes_equal(out, 0, sizeof(out)));
+}
+
+/* Malformed encodings which are not truncations of a valid key. A truncated
+ * valid encoding is always caught by the sequence length check, so these are
+ * the only way to reach the length checks behind it. */
+static void test_privkey_import_der_malformed(void) {
+    static const struct {
+        size_t len;
+        unsigned char der[9];
+    } invalid[] = {
+        /* Sequence length constructor announcing zero length bytes. */
+        { 2, { 0x30, 0x80 } },
+        /* Sequence length exceeding the input. */
+        { 4, { 0x30, 0x82, 0xff, 0xff } },
+        /* Version field does not fit in the sequence. */
+        { 3, { 0x30, 0x81, 0x00 } },
+        /* Octet string header does not fit in the sequence. */
+        { 6, { 0x30, 0x81, 0x03, 0x02, 0x01, 0x01 } },
+        /* Octet string length exceeding the input. */
+        { 8, { 0x30, 0x81, 0x05, 0x02, 0x01, 0x01, 0x04, 0x20 } },
+        /* Empty octet string: the resulting all-zero key is out of range. */
+        { 8, { 0x30, 0x81, 0x05, 0x02, 0x01, 0x01, 0x04, 0x00 } }
+    };
+    /* A key shorter than 32 bytes is accepted and left-padded with zeroes. */
+    static const unsigned char short_key[] = {
+        0x30, 0x81, 0x06, 0x02, 0x01, 0x01, 0x04, 0x01, 0x2a
+    };
+    unsigned char expected[32];
+    unsigned char out[32];
+    size_t i;
+
+    for (i = 0; i < ARRAY_SIZE(invalid); i++) {
+        memset(out, 0xff, sizeof(out));
+        CHECK(privkey_import_der_exact(out, invalid[i].der, invalid[i].len) == 0);
+        CHECK(all_bytes_equal(out, 0, sizeof(out)));
+    }
+
+    /* An indefinite-length sequence is rejected even when the encoding behind
+     * it is well-formed and long enough to satisfy every later length check. */
+    {
+        unsigned char indefinite[130];
+        memset(indefinite, 0, sizeof(indefinite));
+        indefinite[0] = 0x30;
+        indefinite[1] = 0x80;
+        indefinite[2] = 0x02;
+        indefinite[3] = 0x01;
+        indefinite[4] = 0x01;
+        indefinite[5] = 0x04;
+        indefinite[6] = 0x20;
+        memset(indefinite + 7, 0x01, 32);
+        memset(out, 0xff, sizeof(out));
+        CHECK(privkey_import_der_exact(out, indefinite, sizeof(indefinite)) == 0);
+        CHECK(all_bytes_equal(out, 0, sizeof(out)));
+    }
+
+    memset(expected, 0, sizeof(expected));
+    expected[31] = 0x2a;
+    CHECK(privkey_import_der_exact(out, short_key, sizeof(short_key)) == 1);
+    CHECK(secp256k1_memcmp_var(out, expected, sizeof(out)) == 0);
+}
+
+static void run_privkey_import_der(void) {
+    int i;
+    test_privkey_import_der_malformed();
+    for (i = 0; i < COUNT; i++) {
+        test_privkey_import_der_mutations(0);
+        test_privkey_import_der_mutations(1);
+    }
+}
+
 /* Tests several edge cases. */
 static void run_ecdsa_edge_cases(void) {
     int t;
@@ -8099,6 +8262,7 @@ static const struct tf_test_entry tests_ecdsa[] = {
     CASE(pubkey_sort),
     CASE(random_pubkeys),
     CASE(ecdsa_der_parse),
+    CASE(privkey_import_der),
     CASE(ecdsa_sign_verify),
     CASE(ecdsa_end_to_end),
     CASE(ecdsa_edge_cases),
