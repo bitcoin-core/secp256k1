@@ -6873,7 +6873,7 @@ static void test_sort_helper(secp256k1_pubkey *pk, size_t *pk_order, size_t n_pk
     for (i = 0; i < n_pk; i++) {
         pk_test[i] = &pk[pk_order[i]];
     }
-    secp256k1_ec_pubkey_sort(CTX, pk_test, n_pk);
+    CHECK(secp256k1_ec_pubkey_sort(CTX, pk_test, n_pk) == 1);
     for (i = 0; i < n_pk; i++) {
         CHECK(secp256k1_memcmp_var(pk_test[i], &pk[i], sizeof(*pk_test[i])) == 0);
     }
@@ -6962,7 +6962,7 @@ static void test_sort(void) {
             testutil_random_pubkey_test(&pk[j]);
             pk_ptr[j] = &pk[j];
         }
-        secp256k1_ec_pubkey_sort(CTX, pk_ptr, 5);
+        CHECK(secp256k1_ec_pubkey_sort(CTX, pk_ptr, 5) == 1);
         for (j = 1; j < 5; j++) {
             CHECK(secp256k1_ec_pubkey_sort_cmp(&pk_ptr[j - 1], &pk_ptr[j], CTX) <= 0);
         }
