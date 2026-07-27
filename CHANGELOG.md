@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Added
+ - New module `silentpayments` implements sending and receiving of Silent Payments according to [BIP 352](https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki). See:
+   - Header file `include/secp256k1_silentpayments.h` which defines the new API.
+   - Usage example `examples/silentpayments.c`.
+ - The `silentpayments` API currently requires full access to the transaction data (light client scanning is not implemented).
+
 ## [0.7.1] - 2026-01-26
 
 #### Changed
