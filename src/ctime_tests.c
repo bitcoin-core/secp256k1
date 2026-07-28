@@ -42,6 +42,15 @@
 
 #ifdef ENABLE_MODULE_SILENTPAYMENTS
 #include "../include/secp256k1_silentpayments.h"
+
+static int label_lookups;
+
+static const unsigned char *label_lookup_none(const unsigned char *label33, const void *label_context) {
+    (void)label_context;
+    SECP256K1_CHECKMEM_CHECK(label33, 33);
+    label_lookups++;
+    return NULL;
+}
 #endif
 
 #if defined(__GNUC__)
@@ -340,14 +349,16 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
 
     found_outputs_ptrs[0] = &found_outputs[0];
     found_outputs_ptrs[1] = &found_outputs[1];
-    n_found_outputs = 1;
     SECP256K1_CHECKMEM_DEFINE(&recipient.spend_pubkey, sizeof(recipient.spend_pubkey));
     tx_outputs[0] = &sp_xonly_pubkey;
     tx_outputs[1] = &generated_output;
-    /* It is sufficient to check _recipient_scan_outputs without a label lookup function, since the shared secret is created once (which is where the constant timeness matters)
-     * and then reused for the rest of the scanning logic.
-     */
-    CHECK(secp256k1_silentpayments_recipient_scan_outputs(ctx, found_outputs_ptrs, &n_found_outputs, tx_outputs, 2, key, &prevouts_summary, &recipient.spend_pubkey, NULL, NULL));
+    label_lookups = 0;
+    CHECK(secp256k1_silentpayments_recipient_scan_outputs(ctx, found_outputs_ptrs, &n_found_outputs, tx_outputs, 2, key, &prevouts_summary, &recipient.spend_pubkey, label_lookup_none, NULL));
+    CHECK(n_found_outputs == 1);
+    CHECK(found_outputs[0].found_with_label == 0);
+    /* Two candidates flush right before the direct k=0 match, four at the final
+     * k=1 miss; both flush paths run as long as LABEL_BATCH_SIZE stays >= 2. */
+    CHECK(label_lookups == 2 + 4);
 
 #endif
 }
