@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Removed
 - Removed previously deprecated pointer `secp256k1_context_no_precomp`. Use `secp256k1_context_static` instead.
 - Removed previously deprecated function alias `secp256k1_schnorrsig_sign`. Use `secp256k1_schnorrsig_sign32` instead.
+- Removed macro SECP256K1_GNUC_PREREQ defined in the header file `include/secp256k1.h`. This macro was used in the library headers to check for GNU C extensions. The macro was not actually meant to be part of the public API of libsecp256k1. If you happened to use it in your code nevertheless, use the macros `__GNUC__` and `__GNUC_MINOR__` (defined by compilers with GNU C extensions) directly, or copy the macro definition from an old libsecp256k1 header file into your code.
 
 ## [0.7.1] - 2026-01-26
 
