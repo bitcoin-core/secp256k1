@@ -558,7 +558,7 @@ static int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_sc
     while (1) {
         int is_nonce_valid;
 
-        if (noncefp == NULL) {
+        if (noncefp == NULL || noncefp == secp256k1_nonce_function_rfc6979) {
             /* Use ctx-aware function by default */
             ret = nonce_function_rfc6979_impl(secp256k1_get_hash_context(ctx), nonce32, msg32, seckey, NULL, (void*)noncedata, count);
         } else {

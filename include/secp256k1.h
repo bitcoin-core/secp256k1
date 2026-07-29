@@ -413,7 +413,7 @@ typedef void (*secp256k1_sha256_compression_function)(
 /**
  * Set a callback function to override the internal SHA256 compression function.
  *
- * This installs a function to replace the built-in block-compression
+ * This installs a callback to replace the built-in block-compression
  * step used by the library's internal SHA256 implementation.
  * The provided callback must exactly implement the effect of n_blocks
  * repeated applications of the SHA256 compression function.
@@ -422,6 +422,14 @@ typedef void (*secp256k1_sha256_compression_function)(
  * SHA256 compression step through a hardware-accelerated or otherwise
  * specialized implementation. It is NOT meant for replacing SHA256
  * with a different hash function.
+ *
+ * Since auxiliary functions exposed by the library via a function
+ * pointer such as secp256k1_nonce_function_default do not take a
+ * context object, they will not use the callback when called directly
+ * from user code. (But they will use the callback when called from
+ * other library functions that do take a context object, e.g., when
+ * noncefp==NULL or noncefp==secp256k1_nonce_function_default is passed
+ * as an argument to secp256k1_ecdsa_sign.)
  *
  * Args:    ctx:             pointer to a context object.
  * In:      fn_compression:  pointer to a function implementing the compression function;
