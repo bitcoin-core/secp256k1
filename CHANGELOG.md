@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - CMake: Shared libraries built with CMake on OpenBSD and NetBSD now create the full versioned filename (e.g. `libsecp256k1.so.6.2` instead of `libsecp256k1.so.6`) and symlink chain, matching the behavior of GNU Autotools builds.
 
 #### Removed
+- Removed previously deprecated pointer `secp256k1_context_no_precomp`. Use `secp256k1_context_static` instead.
 - Removed previously deprecated function alias `secp256k1_schnorrsig_sign`. Use `secp256k1_schnorrsig_sign32` instead.
 
 ## [0.7.1] - 2026-01-26
