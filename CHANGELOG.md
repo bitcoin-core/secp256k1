@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - The `silentpayments` API currently requires full access to the transaction data (light client scanning is not implemented).
 
 #### Changed
+ - The field multiplication and squaring routines of the 5x52 (64-bit) implementation are now force-inlined. This speeds up many library functions with GCC and MSVC (Clang is largely unaffected), e.g. `secp256k1_ecdsa_verify` and `secp256k1_schnorrsig_verify` by up to ~11%, at the cost of a somewhat larger compiled library. Force-inlining is disabled in unoptimized builds and when optimizing for size.
  - CMake: Shared libraries built with CMake on OpenBSD and NetBSD now create the full versioned filename (e.g. `libsecp256k1.so.6.2` instead of `libsecp256k1.so.6`) and symlink chain, matching the behavior of GNU Autotools builds.
 
 #### Removed
