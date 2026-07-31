@@ -58,7 +58,8 @@ You can see your default key by running `echo "test" | gpg --sign --verbose > /d
    * if this is not a patch release,
        * updates `_PKG_VERSION_*` and `_LIB_VERSION_*`  in `configure.ac`, and
        * updates `project(libsecp256k1 VERSION ...)` and `${PROJECT_NAME}_LIB_VERSION_*` in `CMakeLists.txt`.
-2. Perform the [sanity checks](#sanity-checks) on the PR branch.
+2. Perform the [sanity checks](#sanity-checks) on the PR branch
+   and attach the output of the [`check-abi`](/tools/check-abi.sh) tool (screenshot of the generated compatibility HTML report) to the PR description.
 3. After the PR has been merged, tag the commit, and push the tag:
    ```
    RELEASE_COMMIT=<merge commit of step 1>
