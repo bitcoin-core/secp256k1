@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 #include <time.h>
@@ -483,6 +484,79 @@ static void run_plug_sha256_compression_tests(void) {
 
     secp256k1_context_destroy(ctx);
     secp256k1_context_destroy(ctx_cloned);
+}
+
+/* Hashes the first block over and over instead of moving on. */
+static void sha256_transform_noadvance(uint32_t *s, const unsigned char *chunk, size_t blocks) {
+    size_t i;
+    for (i = 0; i < blocks; i++) {
+        secp256k1_sha256_transform(s, chunk, 1);
+    }
+}
+
+/* Drops the last block of a multi-block call. */
+static void sha256_transform_short(uint32_t *s, const unsigned char *chunk, size_t blocks) {
+    secp256k1_sha256_transform(s, chunk, blocks > 0 ? blocks - 1 : 0);
+}
+
+/* Starts from the IV instead of the state it was given. */
+static void sha256_transform_ivreset(uint32_t *s, const unsigned char *chunk, size_t blocks) {
+    secp256k1_sha256 h;
+    secp256k1_sha256_initialize(&h);
+    memcpy(s, h.s, sizeof(h.s));
+    secp256k1_sha256_transform(s, chunk, blocks);
+}
+
+/* Correct only on multiples of four blocks. */
+static void sha256_transform_batch4(uint32_t *s, const unsigned char *chunk, size_t blocks) {
+    secp256k1_sha256_transform(s, chunk, blocks - (blocks & 3));
+}
+
+/* Right digest, one bit off. */
+static void sha256_transform_corrupt(uint32_t *s, const unsigned char *chunk, size_t blocks) {
+    secp256k1_sha256_transform(s, chunk, blocks);
+    s[0] ^= 1;
+}
+
+#ifdef UINTPTR_MAX
+
+/* Wrong when input is 64-byte aligned, like a broken SIMD fast path. */
+static void sha256_transform_align64_fail(uint32_t *s, const unsigned char *chunk, size_t blocks) {
+    int aligned = ((uintptr_t)chunk % 64) == 0;
+    secp256k1_sha256_transform(s, chunk, blocks);
+    if (aligned) s[0] ^= 1;
+}
+
+/* Wrong when input is 32-byte aligned but not 64 */
+static void sha256_transform_align32_fail(uint32_t *s, const unsigned char *chunk, size_t blocks) {
+    int align32_not64 = (((uintptr_t)chunk % 32) == 0) && (((uintptr_t)chunk % 64) != 0);
+    secp256k1_sha256_transform(s, chunk, blocks);
+    if (align32_not64) {
+        s[0] ^= 1;
+    }
+}
+
+/* Wrong on any unaligned input. */
+static void sha256_transform_unaligned_fail(uint32_t *s, const unsigned char *chunk, size_t blocks) {
+    int aligned = ((uintptr_t)chunk % 64) == 0;
+    secp256k1_sha256_transform(s, chunk, blocks);
+    if (!aligned) s[0] ^= 1;
+}
+
+#endif /* UINTPTR_MAX */
+
+static void run_sha256_compression_smoke_test_tests(void) {
+    CHECK(secp256k1_sha256_smoke_test(sha256_transform_noadvance) == 0);
+    CHECK(secp256k1_sha256_smoke_test(sha256_transform_short) == 0);
+    CHECK(secp256k1_sha256_smoke_test(sha256_transform_ivreset) == 0);
+    CHECK(secp256k1_sha256_smoke_test(sha256_transform_batch4) == 0);
+    CHECK(secp256k1_sha256_smoke_test(sha256_transform_corrupt) == 0);
+#ifdef UINTPTR_MAX
+    CHECK(secp256k1_sha256_smoke_test(sha256_transform_align64_fail) == 0);
+    CHECK(secp256k1_sha256_smoke_test(sha256_transform_align32_fail) == 0);
+    CHECK(secp256k1_sha256_smoke_test(sha256_transform_unaligned_fail) == 0);
+#endif
+    CHECK(secp256k1_sha256_smoke_test(good_sha256_compression) == 1);
 }
 
 static void run_sha256_multi_block_compression_tests(void) {
@@ -7955,6 +8029,7 @@ static const struct tf_test_entry tests_general[] = {
     CASE(scratch_tests),
     CASE(invalid_scratch_space_tests),
     CASE(plug_sha256_compression_tests),
+    CASE(sha256_compression_smoke_test_tests),
     CASE(sha256_multi_block_compression_tests),
 };
 
