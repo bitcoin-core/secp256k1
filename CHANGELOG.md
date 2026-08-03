@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The symbols `secp256k1_context_no_precomp` and `secp256k1_schnorrsig_sign` were removed.
 Otherwise, the library maintains backward compatibility with versions 0.7.0 and 0.7.1.
 
+#### Added
+ - Added usage example for ECDSA public key recovery.
+
 ## [0.7.1] - 2026-01-26
 
 #### Changed

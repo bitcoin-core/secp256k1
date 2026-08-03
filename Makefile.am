@@ -166,6 +166,17 @@ if BUILD_WINDOWS
 ecdsa_example_LDFLAGS += -lbcrypt
 endif
 TESTS += ecdsa_example
+if ENABLE_MODULE_RECOVERY
+noinst_PROGRAMS += recovery_example
+recovery_example_SOURCES = examples/recovery.c
+recovery_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+recovery_example_LDADD = libsecp256k1.la
+recovery_example_LDFLAGS = -static
+if BUILD_WINDOWS
+recovery_example_LDFLAGS += -lbcrypt
+endif
+TESTS += recovery_example
+endif
 if ENABLE_MODULE_ECDH
 noinst_PROGRAMS += ecdh_example
 ecdh_example_SOURCES = examples/ecdh.c
