@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.8.0] - 2026-08-03
 
 #### Added
  - New function `secp256k1_context_set_sha256_compression` for overriding the internal SHA256 compression function used by the library at runtime (e.g., to route SHA256 through a hardware-accelerated implementation).
@@ -24,7 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Removed
 - Removed previously deprecated pointer `secp256k1_context_no_precomp`. Use `secp256k1_context_static` instead.
 - Removed previously deprecated function alias `secp256k1_schnorrsig_sign`. Use `secp256k1_schnorrsig_sign32` instead.
-- Removed macro SECP256K1_GNUC_PREREQ defined in the header file `include/secp256k1.h`. This macro was used in the library headers to check for GNU C extensions. The macro was not actually meant to be part of the public API of libsecp256k1. If you happened to use it in your code nevertheless, use the macros `__GNUC__` and `__GNUC_MINOR__` (defined by compilers with GNU C extensions) directly, or copy the macro definition from an old libsecp256k1 header file into your code.
+- Removed macro `SECP256K1_GNUC_PREREQ` defined in the header file `include/secp256k1.h`. This macro was used in the library headers to check for GNU C extensions. The macro was not actually meant to be part of the public API of libsecp256k1. If you happened to use it in your code nevertheless, use the macros `__GNUC__` and `__GNUC_MINOR__` (defined by compilers with GNU C extensions) directly, or copy the macro definition from an old libsecp256k1 header file into your code.
+
+#### ABI Compatibility
+The symbols `secp256k1_context_no_precomp` and `secp256k1_schnorrsig_sign` were removed.
+Otherwise, the library maintains backward compatibility with versions 0.7.0 and 0.7.1.
 
 ## [0.7.1] - 2026-01-26
 
@@ -219,7 +223,7 @@ This version was in fact never released.
 The number was given by the build system since the introduction of autotools in Jan 2014 (ea0fe5a5bf0c04f9cc955b2966b614f5f378c6f6).
 Therefore, this version number does not uniquely identify a set of source files.
 
-[Unreleased]: https://github.com/bitcoin-core/secp256k1/compare/v0.7.1...HEAD
+[0.8.0]: https://github.com/bitcoin-core/secp256k1/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/bitcoin-core/secp256k1/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/bitcoin-core/secp256k1/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/bitcoin-core/secp256k1/compare/v0.5.1...v0.6.0
