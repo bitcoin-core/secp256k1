@@ -431,6 +431,13 @@ typedef void (*secp256k1_sha256_compression_function)(
  * noncefp==NULL or noncefp==secp256k1_nonce_function_default is passed
  * as an argument to secp256k1_ecdsa_sign.)
  *
+ * Note: The provided function is tested against a set of known SHA256
+ * digests; invokes the context's illegal callback on any mismatch
+ * (which aborts by default), in order to catch basic misbehavior early.
+ * It takes well under 2.5 ms on a desktop machine.
+ * This is NOT a substitute for having proper test coverage of the
+ * supplied function outside this library.
+ *
  * Args:    ctx:             pointer to a context object.
  * In:      fn_compression:  pointer to a function implementing the compression function;
  *                           passing NULL restores the default implementation.
