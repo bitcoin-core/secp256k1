@@ -308,6 +308,7 @@ EXTRA_DIST += src/wycheproof/WYCHEPROOF_COPYING
 EXTRA_DIST += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json
 EXTRA_DIST += src/modules/silentpayments/bip352_send_and_receive_test_vectors.json
 EXTRA_DIST += src/wycheproof/ecdh_secp256k1_test.json
+EXTRA_DIST += tools/ecmult_multi_calib.py
 EXTRA_DIST += tools/tests_wycheproof_generate_ecdsa.py
 EXTRA_DIST += tools/tests_wycheproof_generate_ecdh.py
 EXTRA_DIST += tools/tests_silentpayments_generate.py
