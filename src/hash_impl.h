@@ -137,6 +137,94 @@ static void secp256k1_sha256_transform(uint32_t *state, const unsigned char *blo
     }
 }
 
+/* Perform a smoke test on a supplied SHA256 compression function. */
+static int secp256k1_sha256_smoke_test(const secp256k1_sha256_compression_function fn_compression) {
+    secp256k1_hash_ctx ctx;
+    secp256k1_sha256 sha_msg, sha_accum;
+    unsigned char out[32];
+    size_t i, j;
+    size_t alignment, offset;
+    unsigned char* msg;
+
+    /* SHA256 works on 64 byte blocks, secp256k1_sha256_write gives as many blocks
+     * at once to compression, so the count is what varies here. A SIMD implementation
+     * typically hashes four or eight at a time, then any left over one by one.
+     * These lengths cover every number from 1 to 9, which includes counts that
+     * divide evenly and counts leaving one, two or three over. */
+    #define LONGEST 576  /* local macro, undef'd below */
+    static const size_t msg_lens[] = {
+        0, 1, 28,               /* Shorter than a block, so padding makes up the rest */
+        55, 56,                 /* Final 0x80 and 8 byte length fit in the last block, and don't */
+        64, 128, 192, 256, 320, /* 1 to 5 blocks */
+        384, 448, 512, LONGEST  /* 6 to 9 blocks */
+    };
+
+    /* Max alignment to test; even AVX512 needs at most 64 byte alignment. */
+    #define MAX_ALIGNMENT 64 /* local macro, undef'd below */
+    /* sizeof(msg) = length of longest message
+     *               + 2 * MAX_ALIGNMENT - 1 for the offset in the initial value of m
+     *               + 2 * MAX_ALIGNMENT - 1 for the offset in the final value of m */
+    unsigned char msg_buf[LONGEST + 2 * (2 * MAX_ALIGNMENT - 1)];
+
+    /* Accumulated digest of every message, hashed with the built-in secp256k1_sha256_transform.
+     * Note: To regenerate set 'ctx.fn_sha256_compression = secp256k1_sha256_transform' below
+     * and print the sha_accum digest. */
+    static const unsigned char accum_expected[32] = {
+        0x1E, 0x2A, 0xD6, 0x29, 0x16, 0x9D, 0x46, 0xF0,
+        0xD2, 0x31, 0x94, 0xF0, 0xBC, 0x8C, 0x4B, 0x87,
+        0x37, 0x68, 0xA0, 0xFB, 0xD2, 0x9E, 0xF6, 0xB9,
+        0x3E, 0x0C, 0xFA, 0xCE, 0xDE, 0x5F, 0xD3, 0x72,
+    };
+    /* The purpose of this VERIFY_CHECK is to make anyone aware that they
+     * should also change the size of msg_buf when changing the length of the
+     * longest message. */
+    VERIFY_CHECK(msg_lens[ARRAY_SIZE(msg_lens) - 1] == 576);
+
+    VERIFY_CHECK(fn_compression != NULL);
+    secp256k1_hash_ctx_init(&ctx);
+    ctx.fn_sha256_compression = fn_compression;
+    secp256k1_sha256_initialize(&sha_accum);
+
+    /* Make msg a pointer into msg_buf aligned to 2 * MAX_ALIGNMENT boundary. */
+    offset = ((2 * MAX_ALIGNMENT) - ((uintptr_t)msg_buf % (2 * MAX_ALIGNMENT))) % (2 * MAX_ALIGNMENT);
+    VERIFY_CHECK(offset < 2 * MAX_ALIGNMENT);
+    msg = msg_buf + offset;
+
+    /* No two blocks of a message are equal, so a function that doesn't advance the block
+     * pointer gives a different digest. 251 is prime, so its repeats only line up with
+     * block starts every 251 blocks; wrapping at 256 would do so every 4. */
+    for (i = 0; i < sizeof(msg_buf) - offset; i++) {
+        msg[i] = (unsigned char)(i % 251);
+    }
+
+    /* Test with msg
+     *  - aligned to MAX_ALIGNMENT     but not to 2 * MAX_ALIGNMENT
+     *  - aligned to MAX_ALIGNMENT / 2 but not to     MAX_ALIGNMENT
+     *  - aligned to MAX_ALIGNMENT / 4 but not to     MAX_ALIGNMENT / 2
+     *  - ...
+     *  - "aligned" to 1               but not to 2 (i.e., not aligned at all).
+     */
+    for (alignment = MAX_ALIGNMENT; alignment > 0; alignment /= 2) {
+        VERIFY_CHECK(msg + alignment + msg_lens[ARRAY_SIZE(msg_lens) - 1] < msg_buf + sizeof(msg_buf));
+        msg += alignment;
+        msg[0] ^= 0xff; /* Changes the first byte, so every state after it changes too */
+        for (j = 0; j < ARRAY_SIZE(msg_lens); j++) {
+            secp256k1_sha256_initialize(&sha_msg);
+            secp256k1_sha256_write(&ctx, &sha_msg, msg, msg_lens[j]);
+            secp256k1_sha256_finalize(&ctx, &sha_msg, out);
+            secp256k1_sha256_write(&ctx, &sha_accum, out, 32);
+        }
+        msg[0] ^= 0xff; /* Reset first byte */
+    }
+
+    /* Compare against pre-computed accumulated digest */
+    secp256k1_sha256_finalize(&ctx, &sha_accum, out);
+
+    return (secp256k1_memcmp_var(accum_expected, out, 32) == 0);
+    #undef LONGEST
+    #undef MAX_ALIGNMENT
+}
+
 static void secp256k1_hash_ctx_init(secp256k1_hash_ctx *hash_ctx) {
     VERIFY_CHECK(hash_ctx != NULL);
     hash_ctx->fn_sha256_compression = secp256k1_sha256_transform;
