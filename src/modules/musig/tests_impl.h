@@ -20,6 +20,7 @@
 #include "../../group.h"
 #include "../../hash.h"
 #include "../../util.h"
+#include "../../testutil.h"
 #include "../../unit_test.h"
 
 #include "vectors.h"
@@ -608,6 +609,97 @@ static void sha256_tag_test(void) {
     }
 }
 
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_musig_pubkey_agg)
+static void musig_pubkey_agg_ctx_sha256(void) {
+    /* Check ctx-provided SHA256 compression override takes effect */
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    secp256k1_musig_keyagg_cache cache_default, cache_custom;
+    const unsigned char sk[32] = {1};
+    secp256k1_pubkey pk;
+    const secp256k1_pubkey *pks[1];
+
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pk, sk));
+    pks[0] = &pk;
+
+    /* Default behavior. No ctx-provided SHA256 compression */
+    CHECK(secp256k1_musig_pubkey_agg(ctx, NULL, &cache_default, pks, 1));
+    CHECK(!sha256_musig_pubkey_agg_called);
+
+    /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
+    ctx->hash_ctx.fn_sha256_compression = sha256_musig_pubkey_agg;
+    CHECK(secp256k1_musig_pubkey_agg(ctx, NULL, &cache_custom, pks, 1));
+    CHECK(sha256_musig_pubkey_agg_called);
+    /* Outputs must differ if custom compression was used */
+    CHECK(secp256k1_memcmp_var(cache_default.data, cache_custom.data, sizeof(cache_default.data)) != 0);
+
+    secp256k1_context_destroy(ctx);
+}
+
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_musig_nonce_gen)
+static void musig_nonce_gen_ctx_sha256(void) {
+    /* Check ctx-provided SHA256 compression override takes effect */
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    secp256k1_musig_secnonce secnonce;
+    secp256k1_musig_pubnonce pubnonce_default, pubnonce_custom;
+    const unsigned char sk[32] = {1};
+    unsigned char secrand[32] = {1};
+    secp256k1_pubkey pk;
+
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pk, sk));
+
+    /* Default behavior. No ctx-provided SHA256 compression */
+    CHECK(secp256k1_musig_nonce_gen(ctx, &secnonce, &pubnonce_default, secrand, sk, &pk, NULL, NULL, NULL));
+    CHECK(!sha256_musig_nonce_gen_called);
+
+    /* Restore secrand: nonce_gen zeroes it to prevent reuse, but a second call is required */
+    secrand[0] = 1;
+    /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
+    ctx->hash_ctx.fn_sha256_compression = sha256_musig_nonce_gen;
+    CHECK(secp256k1_musig_nonce_gen(ctx, &secnonce, &pubnonce_custom, secrand, sk, &pk, NULL, NULL, NULL));
+    CHECK(sha256_musig_nonce_gen_called);
+    /* Outputs must differ if custom compression was used */
+    CHECK(secp256k1_memcmp_var(pubnonce_default.data, pubnonce_custom.data, sizeof(pubnonce_default.data)) != 0);
+
+    secp256k1_context_destroy(ctx);
+}
+
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_musig_nonce_process)
+static void musig_nonce_process_ctx_sha256(void) {
+    /* Check ctx-provided SHA256 compression override takes effect */
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    secp256k1_musig_session session_default, session_custom;
+    const unsigned char sk[32] = {1};
+    const unsigned char msg32[32] = {1};
+    unsigned char secrand[32] = {1};
+    secp256k1_pubkey pk;
+    const secp256k1_pubkey *pks[1];
+    secp256k1_musig_keyagg_cache keyagg_cache;
+    secp256k1_musig_secnonce secnonce;
+    secp256k1_musig_pubnonce pubnonce;
+    const secp256k1_musig_pubnonce *pubnonce_ptr[1];
+    secp256k1_musig_aggnonce aggnonce;
+
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pk, sk));
+    pks[0] = &pk;
+    CHECK(secp256k1_musig_pubkey_agg(ctx, NULL, &keyagg_cache, pks, 1));
+    pubnonce_ptr[0] = &pubnonce;
+    CHECK(secp256k1_musig_nonce_gen(ctx, &secnonce, &pubnonce, secrand, sk, &pk, NULL, NULL, NULL));
+    CHECK(secp256k1_musig_nonce_agg(ctx, &aggnonce, pubnonce_ptr, 1));
+
+    /* Default behavior. No ctx-provided SHA256 compression */
+    CHECK(secp256k1_musig_nonce_process(ctx, &session_default, &aggnonce, msg32, &keyagg_cache));
+    CHECK(!sha256_musig_nonce_process_called);
+
+    /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
+    ctx->hash_ctx.fn_sha256_compression = sha256_musig_nonce_process;
+    CHECK(secp256k1_musig_nonce_process(ctx, &session_custom, &aggnonce, msg32, &keyagg_cache));
+    CHECK(sha256_musig_nonce_process_called);
+    /* Outputs must differ if custom compression was used */
+    CHECK(secp256k1_memcmp_var(session_default.data, session_custom.data, sizeof(session_default.data)) != 0);
+
+    secp256k1_context_destroy(ctx);
+}
+
 /* Attempts to create a signature for the aggregate public key using given secret
  * keys and keyagg_cache. */
 static void musig_tweak_test_helper(const secp256k1_xonly_pubkey* agg_pk, const unsigned char *sk0, const unsigned char *sk1, secp256k1_musig_keyagg_cache *keyagg_cache) {
@@ -1149,6 +1241,9 @@ static const struct tf_test_entry tests_musig[] = {
     CASE1(musig_nonce_test),
     CASE1(musig_tweak_test),
     CASE1(sha256_tag_test),
+    CASE1(musig_pubkey_agg_ctx_sha256),
+    CASE1(musig_nonce_gen_ctx_sha256),
+    CASE1(musig_nonce_process_ctx_sha256),
     CASE1(musig_test_vectors_keyagg),
     CASE1(musig_test_vectors_noncegen),
     CASE1(musig_test_vectors_nonceagg),
