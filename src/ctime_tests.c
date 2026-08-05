@@ -42,6 +42,15 @@
 
 #ifdef ENABLE_MODULE_SILENTPAYMENTS
 #include "../include/secp256k1_silentpayments.h"
+
+static int label_lookups;
+
+static const unsigned char *label_lookup_none(const unsigned char *label33, const void *label_context) {
+    (void)label_context;
+    SECP256K1_CHECKMEM_CHECK(label33, 33);
+    label_lookups++;
+    return NULL;
+}
 #endif
 
 #if defined(__GNUC__)
@@ -113,10 +122,10 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     secp256k1_keypair sp_keypair;
     const secp256k1_keypair *sp_keypairs[1];
     const unsigned char *sp_seckeys[1];
-    secp256k1_silentpayments_found_output found_outputs[1];
-    secp256k1_silentpayments_found_output *found_outputs_ptrs[1];
+    secp256k1_silentpayments_found_output found_outputs[2];
+    secp256k1_silentpayments_found_output *found_outputs_ptrs[2];
     uint32_t n_found_outputs;
-    const secp256k1_xonly_pubkey *tx_outputs[1];
+    const secp256k1_xonly_pubkey *tx_outputs[2];
     secp256k1_silentpayments_prevouts_summary prevouts_summary;
     unsigned char label_tweak[32] = { 0 };
     secp256k1_xonly_pubkey sp_xonly_pubkey;
@@ -301,7 +310,6 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     generated_outputs[0] = &generated_output;
 
     /* Initialize recipient */
-    CHECK(secp256k1_ec_pubkey_create(ctx, &recipient.scan_pubkey, key));
     key[31] ^= 1;
     CHECK(secp256k1_ec_pubkey_create(ctx, &recipient.spend_pubkey, key));
     key[31] ^= (1 << 1);
@@ -316,9 +324,6 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     key[31] ^= (1 << 2);
     sp_keypairs[0] = &sp_keypair;
     sp_seckeys[0] = key;
-
-    ret = secp256k1_silentpayments_sender_create_outputs(ctx, generated_outputs, recipients, 1, outpoint_smallest, sp_keypairs, 1, sp_seckeys, 1);
-    CHECK(ret == 1);
 
     ret = secp256k1_silentpayments_recipient_label_create(ctx, &label, label_tweak, key, 0);
     key[31] ^= (1 << 3);
@@ -337,14 +342,23 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     ret = secp256k1_silentpayments_recipient_prevouts_summary_create(ctx, &prevouts_summary, outpoint_smallest, sp_xonly_pubkeys, 1, sp_pubkeys, 1);
     CHECK(ret == 1);
 
-    tx_outputs[0] = generated_outputs[0];
+    /* key is also the scan seckey at scan time, so sp_pubkey doubles as the
+     * scan pubkey, making the generated output match during scanning. */
+    recipient.scan_pubkey = sp_pubkey;
+    CHECK(secp256k1_silentpayments_sender_create_outputs(ctx, generated_outputs, recipients, 1, outpoint_smallest, sp_keypairs, 1, sp_seckeys, 1));
+
     found_outputs_ptrs[0] = &found_outputs[0];
-    n_found_outputs = 1;
+    found_outputs_ptrs[1] = &found_outputs[1];
     SECP256K1_CHECKMEM_DEFINE(&recipient.spend_pubkey, sizeof(recipient.spend_pubkey));
-    /* It is sufficient to check _recipient_scan_outputs without a label lookup function, since the shared secret is created once (which is where the constant timeness matters)
-     * and then reused for the rest of the scanning logic.
-     */
-    CHECK(secp256k1_silentpayments_recipient_scan_outputs(ctx, found_outputs_ptrs, &n_found_outputs, tx_outputs, 1, key, &prevouts_summary, &recipient.spend_pubkey, NULL, NULL));
+    tx_outputs[0] = &sp_xonly_pubkey;
+    tx_outputs[1] = &generated_output;
+    label_lookups = 0;
+    CHECK(secp256k1_silentpayments_recipient_scan_outputs(ctx, found_outputs_ptrs, &n_found_outputs, tx_outputs, 2, key, &prevouts_summary, &recipient.spend_pubkey, label_lookup_none, NULL));
+    CHECK(n_found_outputs == 1);
+    CHECK(found_outputs[0].found_with_label == 0);
+    /* Two candidates flush right before the direct k=0 match, four at the final
+     * k=1 miss; both flush paths run as long as LABEL_BATCH_SIZE stays >= 2. */
+    CHECK(label_lookups == 2 + 4);
 
 #endif
 }
