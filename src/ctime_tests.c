@@ -49,6 +49,30 @@
 # pragma GCC diagnostic warning "-Wunused-function"
 #endif
 
+#ifdef ENABLE_MODULE_SCHNORRSIG
+static int nonce_function_custom(
+    unsigned char *nonce32,
+    const unsigned char *msg,
+    size_t msglen,
+    const unsigned char *key32,
+    const unsigned char *xonly_pk32,
+    const unsigned char *algo,
+    size_t algolen,
+    void *data
+) {
+    return secp256k1_nonce_function_bip340(
+        nonce32,
+        msg,
+        msglen,
+        key32,
+        xonly_pk32,
+        algo,
+        algolen,
+        data
+    );
+}
+#endif
+
 static void run_tests(secp256k1_context *ctx, unsigned char *key);
 
 int main(void) {
@@ -98,6 +122,10 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
 #endif
 #ifdef ENABLE_MODULE_EXTRAKEYS
     secp256k1_keypair keypair;
+#endif
+#ifdef ENABLE_MODULE_SCHNORRSIG
+    secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
+    unsigned char aux_rand[32] = { 0 };
 #endif
 #ifdef ENABLE_MODULE_ELLSWIFT
     unsigned char ellswift[64];
@@ -212,6 +240,42 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
     CHECK(ret == 1);
     ret = secp256k1_schnorrsig_sign32(ctx, sig, msg, &keypair, NULL);
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    CHECK(ret == 1);
+
+    SECP256K1_CHECKMEM_UNDEFINE(key, 32);
+    ret = secp256k1_keypair_create(ctx, &keypair, key);
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    CHECK(ret == 1);
+    SECP256K1_CHECKMEM_UNDEFINE(&keypair, sizeof(keypair));
+    SECP256K1_CHECKMEM_UNDEFINE(msg, 32);
+    ret = secp256k1_schnorrsig_sign_custom(ctx, sig, msg, 32, &keypair, NULL);
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    CHECK(ret == 1);
+
+    extraparams.noncefp = NULL;
+    extraparams.ndata = aux_rand;
+    SECP256K1_CHECKMEM_UNDEFINE(key, 32);
+    ret = secp256k1_keypair_create(ctx, &keypair, key);
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    CHECK(ret == 1);
+    SECP256K1_CHECKMEM_UNDEFINE(&keypair, sizeof(keypair));
+    SECP256K1_CHECKMEM_UNDEFINE(msg, 32);
+    SECP256K1_CHECKMEM_UNDEFINE(aux_rand, sizeof(aux_rand));
+    ret = secp256k1_schnorrsig_sign_custom(ctx, sig, msg, 32, &keypair, &extraparams);
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    CHECK(ret == 1);
+
+    extraparams.noncefp = nonce_function_custom;
+    extraparams.ndata = aux_rand;
+    SECP256K1_CHECKMEM_UNDEFINE(key, 32);
+    ret = secp256k1_keypair_create(ctx, &keypair, key);
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    CHECK(ret == 1);
+    SECP256K1_CHECKMEM_UNDEFINE(&keypair, sizeof(keypair));
+    SECP256K1_CHECKMEM_UNDEFINE(msg, sizeof(msg) - 1);
+    SECP256K1_CHECKMEM_UNDEFINE(aux_rand, sizeof(aux_rand));
+    ret = secp256k1_schnorrsig_sign_custom(ctx, sig, msg, sizeof(msg) - 1, &keypair, &extraparams);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
     CHECK(ret == 1);
 #endif
