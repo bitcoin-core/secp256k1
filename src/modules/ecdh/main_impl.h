@@ -25,7 +25,7 @@ static int ecdh_hash_function_sha256_impl(const secp256k1_hash_ctx *hash_ctx, un
 }
 
 static int ecdh_hash_function_sha256(unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data) {
-    return ecdh_hash_function_sha256_impl(secp256k1_get_hash_context(secp256k1_context_static), output, x32, y32, data);
+    return ecdh_hash_function_sha256_impl(&secp256k1_context_static->hash_ctx, output, x32, y32, data);
 }
 
 const secp256k1_ecdh_hash_function secp256k1_ecdh_hash_function_sha256 = ecdh_hash_function_sha256;
@@ -62,7 +62,7 @@ int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *output, const se
 
     if (hashfp == NULL || hashfp == secp256k1_ecdh_hash_function_sha256) {
         /* Use ctx-aware function by default */
-        ret = ecdh_hash_function_sha256_impl(secp256k1_get_hash_context(ctx), output, x, y, data);
+        ret = ecdh_hash_function_sha256_impl(&ctx->hash_ctx, output, x, y, data);
     } else {
         ret = hashfp(output, x, y, data);
     }

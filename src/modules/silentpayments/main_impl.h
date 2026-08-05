@@ -116,7 +116,7 @@ static void secp256k1_silentpayments_sha256_init_sharedsecret(secp256k1_sha256* 
 }
 
 static int secp256k1_silentpayments_create_output_tweak(const secp256k1_context *ctx, secp256k1_scalar *t_k_scalar, const unsigned char *shared_secret33, uint32_t k) {
-    const secp256k1_hash_ctx *hash_ctx = secp256k1_get_hash_context(ctx);
+    const secp256k1_hash_ctx *hash_ctx = &ctx->hash_ctx;
     secp256k1_sha256 hash;
     unsigned char hash_ser[32];
     unsigned char k_serialized[4];
@@ -281,7 +281,7 @@ int secp256k1_silentpayments_sender_create_outputs(
      * curve order, which is statistically improbable. Returning an error here results in an untestable branch in the
      * code, but we do this anyways to ensure strict compliance with BIP0352.
      */
-    if (!secp256k1_silentpayments_calculate_input_hash_scalar(secp256k1_get_hash_context(ctx), &input_hash_scalar, outpoint_smallest36, &prevouts_pubkey_sum_ge)) {
+    if (!secp256k1_silentpayments_calculate_input_hash_scalar(&ctx->hash_ctx, &input_hash_scalar, outpoint_smallest36, &prevouts_pubkey_sum_ge)) {
         secp256k1_scalar_clear(&seckey_sum_scalar);
         return 0;
     }
@@ -410,10 +410,10 @@ int secp256k1_silentpayments_recipient_label_create(const secp256k1_context *ctx
 
     /* Compute hash(ser_256(b_scan) || ser_32(m))  [sha256 with tag "BIP0352/Label"] */
     secp256k1_silentpayments_sha256_init_label(&hash);
-    secp256k1_sha256_write(secp256k1_get_hash_context(ctx), &hash, scan_key32, 32);
+    secp256k1_sha256_write(&ctx->hash_ctx, &hash, scan_key32, 32);
     secp256k1_write_be32(m_serialized, m);
-    secp256k1_sha256_write(secp256k1_get_hash_context(ctx), &hash, m_serialized, sizeof(m_serialized));
-    secp256k1_sha256_finalize(secp256k1_get_hash_context(ctx), &hash, label_tweak32);
+    secp256k1_sha256_write(&ctx->hash_ctx, &hash, m_serialized, sizeof(m_serialized));
+    secp256k1_sha256_finalize(&ctx->hash_ctx, &hash, label_tweak32);
 
     ret &= secp256k1_ec_pubkey_create_helper(&ctx->ecmult_gen_ctx, &label_tweak_scalar, &label_ge, label_tweak32);
     secp256k1_silentpayments_label_save(label, &label_ge);
@@ -552,7 +552,7 @@ int secp256k1_silentpayments_recipient_prevouts_summary_create(
      * curve order, which is statistically improbable. Returning an error here results in an untestable branch in the
      * code, but we do this anyways to ensure strict compliance with BIP0352.
      */
-    if (!secp256k1_silentpayments_calculate_input_hash_scalar(secp256k1_get_hash_context(ctx), &input_hash_scalar, outpoint_smallest36, &prevouts_pubkey_sum_ge)) {
+    if (!secp256k1_silentpayments_calculate_input_hash_scalar(&ctx->hash_ctx, &input_hash_scalar, outpoint_smallest36, &prevouts_pubkey_sum_ge)) {
         return 0;
     }
     memcpy(&prevouts_summary->data[0], secp256k1_silentpayments_prevouts_summary_magic, 4);

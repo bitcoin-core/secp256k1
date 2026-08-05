@@ -82,9 +82,9 @@ static int secp256k1_musig_compute_pks_hash(const secp256k1_context *ctx, unsign
             return 0;
         }
         VERIFY_CHECK(ser_len == sizeof(ser));
-        secp256k1_sha256_write(secp256k1_get_hash_context(ctx), &sha, ser, sizeof(ser));
+        secp256k1_sha256_write(&ctx->hash_ctx, &sha, ser, sizeof(ser));
     }
-    secp256k1_sha256_finalize(secp256k1_get_hash_context(ctx), &sha, pks_hash);
+    secp256k1_sha256_finalize(&ctx->hash_ctx, &sha, pks_hash);
     return 1;
 }
 
@@ -149,7 +149,7 @@ static int secp256k1_musig_pubkey_agg_callback(secp256k1_scalar *sc, secp256k1_g
 #else
     (void) ret;
 #endif
-    secp256k1_musig_keyaggcoef_internal(secp256k1_get_hash_context(ctx->ctx), sc, ctx->pks_hash, pt, &ctx->second_pk);
+    secp256k1_musig_keyaggcoef_internal(&ctx->ctx->hash_ctx, sc, ctx->pks_hash, pt, &ctx->second_pk);
     return 1;
 }
 
