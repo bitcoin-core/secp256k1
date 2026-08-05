@@ -420,6 +420,12 @@ static void run_scratch_tests(void) {
     CHECK(secp256k1_scratch_alloc(&CTX->error_callback, scratch, SIZE_MAX) == NULL);
     secp256k1_scratch_space_destroy(CTX, scratch);
 
+    /* Creating a scratch space whose size would wrap around when the aligned
+     * header size is added to it fails, both for SIZE_MAX and for the smallest
+     * size that still wraps. */
+    CHECK(secp256k1_scratch_space_create(CTX, SIZE_MAX) == NULL);
+    CHECK(secp256k1_scratch_space_create(CTX, SIZE_MAX - ROUND_TO_ALIGN(sizeof(secp256k1_scratch)) + 1) == NULL);
+
     /* cleanup */
     secp256k1_scratch_space_destroy(CTX, NULL); /* no-op */
 }
