@@ -53,6 +53,21 @@ static void print_table(FILE* fp, int blocks, int teeth) {
     free(table);
 }
 
+static void print_scalar_diff(FILE* fp, int blocks, int teeth) {
+    int spacing = CEIL_DIV(256, blocks * teeth);
+    secp256k1_scalar diff;
+    int limb;
+
+    secp256k1_ecmult_gen_compute_scalar_diff(&diff, blocks, teeth, spacing);
+    fprintf(fp, "#elif (COMB_BLOCKS == %d) && (COMB_TEETH == %d) && (COMB_SPACING == %d)\n", blocks, teeth, spacing);
+    fprintf(fp, "    SECP256K1_SCALAR_CONST(");
+    for (limb = 7; limb >= 0; limb--) {
+        fprintf(fp, "0x%08x", secp256k1_scalar_get_bits_var(&diff, limb*32, 32));
+        if (limb != 0) fprintf(fp, ",");
+    }
+    fprintf(fp, ")\n");
+}
+
 int main(int argc, char **argv) {
     const char outfile[] = "src/precomputed_ecmult_gen.c";
     FILE* fp;
@@ -92,9 +107,21 @@ int main(int argc, char **argv) {
     fprintf(fp, "#else\n");
     fprintf(fp, "#    error Configuration mismatch, invalid COMB_* parameters. Try deleting precomputed_ecmult_gen.c before the build.\n");
     fprintf(fp, "#endif\n");
-
     fprintf(fp, "};\n");
-    fprintf(fp, "#undef S\n");
+    fprintf(fp, "#undef S\n\n");
+
+    fprintf(fp, "const secp256k1_scalar secp256k1_ecmult_gen_scalar_diff =\n");
+    fprintf(fp, "#if 0\n");
+    for (config = 0; config < ARRAY_SIZE(CONFIGS); ++config) {
+        print_scalar_diff(fp, CONFIGS[config][0], CONFIGS[config][1]);
+    }
+    if (!did_current_config) {
+        print_scalar_diff(fp, COMB_BLOCKS, COMB_TEETH);
+    }
+    fprintf(fp, "#else\n");
+    fprintf(fp, "#    error Configuration mismatch, invalid COMB_* parameters. Try deleting precomputed_ecmult_gen.c before the build.\n");
+    fprintf(fp, "#endif\n");
+    fprintf(fp, ";\n");
     fclose(fp);
 
     return EXIT_SUCCESS;
