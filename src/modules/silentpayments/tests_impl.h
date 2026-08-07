@@ -844,7 +844,7 @@ void run_silentpayments_test_vector_receive(const struct bip352_test_vector *tes
     secp256k1_pubkey recipient_scan_pubkey;
     secp256k1_pubkey recipient_spend_pubkey;
     secp256k1_silentpayments_label label;
-    size_t i,j;
+    size_t i,j,v;
     int ret;
     uint32_t n_found = 0;
     unsigned char found_output[32];
@@ -899,76 +899,89 @@ void run_silentpayments_test_vector_receive(const struct bip352_test_vector *tes
         CHECK(secp256k1_silentpayments_recipient_label_serialize(CTX, cache_entry->label, &label));
         labels_cache.entries_used++;
     }
-    CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX,
-        found_outputs, &n_found,
-        tx_outputs, subtest->num_to_scan_outputs,
-        subtest->scan_seckey,
-        &prevouts_summary,
-        &recipient_spend_pubkey,
-        label_lookup, &labels_cache)
-    );
-    if (subtest->full_check) {
-        /* compare expected and scanned outputs (including calculated seckey tweaks and signatures) */
-#ifdef ENABLE_MODULE_SCHNORRSIG
-        static unsigned char found_signatures[MAX_OUTPUTS_PER_TEST_CASE][64];
-        /* sha256("message") */
-        static unsigned char MSG32[32] = {
-            0xab,0x53,0x0a,0x13,0xe4,0x59,0x14,0x98,
-            0x2b,0x79,0xf9,0xb7,0xe3,0xfb,0xa9,0x94,
-            0xcf,0xd1,0xf3,0xfb,0x22,0xf7,0x1c,0xea,
-            0x1a,0xfb,0xf0,0x2b,0x46,0x0c,0x6d,0x1d
-        };
-        /* sha256("random auxiliary data") */
-        static unsigned char AUX32[32] = {
-            0x0b,0x3f,0xdd,0xfd,0x67,0xbf,0x76,0xae,
-            0x76,0x39,0xee,0x73,0x5b,0x70,0xff,0x15,
-            0x83,0xfd,0x92,0x48,0xc0,0x57,0xd2,0x86,
-            0x07,0xa2,0x15,0xf4,0x0b,0x0a,0x3e,0xcc
-        };
-        for (i = 0; i < n_found; i++) {
-            unsigned char full_seckey[32];
-            secp256k1_keypair keypair;
-            unsigned char signature[64];
-            memcpy(&full_seckey, subtest->spend_seckey, 32);
-            CHECK(secp256k1_ec_seckey_tweak_add(CTX, full_seckey, found_outputs[i]->tweak));
-            CHECK(secp256k1_keypair_create(CTX, &keypair, full_seckey));
-            CHECK(secp256k1_schnorrsig_sign32(CTX, signature, MSG32, &keypair, AUX32));
-            memcpy(found_signatures[i], signature, 64);
+    /* Scan the outputs three times, using an equivalent prevouts_summary object each time: the one
+     * created from the transaction input data (combined = 0, the full node case), and the results of
+     * serializing and parsing that object back in both the compressed and the uncompressed format
+     * (combined = 1, the light client case). All variants must lead to identical scan results. */
+    for (v = 0; v < 3; v++) {
+        secp256k1_silentpayments_prevouts_summary scan_prevouts_summary = prevouts_summary;
+        if (v > 0) {
+            size_t serlen = (v == 1) ? 33 : 65;
+            unsigned char prevouts_summary_ser[65];
+            CHECK(secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, prevouts_summary_ser, serlen, &prevouts_summary));
+            CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &scan_prevouts_summary, prevouts_summary_ser, serlen));
         }
+        CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX,
+            found_outputs, &n_found,
+            tx_outputs, subtest->num_to_scan_outputs,
+            subtest->scan_seckey,
+            &scan_prevouts_summary,
+            &recipient_spend_pubkey,
+            label_lookup, &labels_cache)
+        );
+        if (subtest->full_check) {
+            /* compare expected and scanned outputs (including calculated seckey tweaks and signatures) */
+#ifdef ENABLE_MODULE_SCHNORRSIG
+            static unsigned char found_signatures[MAX_OUTPUTS_PER_TEST_CASE][64];
+            /* sha256("message") */
+            static unsigned char MSG32[32] = {
+                0xab,0x53,0x0a,0x13,0xe4,0x59,0x14,0x98,
+                0x2b,0x79,0xf9,0xb7,0xe3,0xfb,0xa9,0x94,
+                0xcf,0xd1,0xf3,0xfb,0x22,0xf7,0x1c,0xea,
+                0x1a,0xfb,0xf0,0x2b,0x46,0x0c,0x6d,0x1d
+            };
+            /* sha256("random auxiliary data") */
+            static unsigned char AUX32[32] = {
+                0x0b,0x3f,0xdd,0xfd,0x67,0xbf,0x76,0xae,
+                0x76,0x39,0xee,0x73,0x5b,0x70,0xff,0x15,
+                0x83,0xfd,0x92,0x48,0xc0,0x57,0xd2,0x86,
+                0x07,0xa2,0x15,0xf4,0x0b,0x0a,0x3e,0xcc
+            };
+            for (i = 0; i < n_found; i++) {
+                unsigned char full_seckey[32];
+                secp256k1_keypair keypair;
+                unsigned char signature[64];
+                memcpy(&full_seckey, subtest->spend_seckey, 32);
+                CHECK(secp256k1_ec_seckey_tweak_add(CTX, full_seckey, found_outputs[i]->tweak));
+                CHECK(secp256k1_keypair_create(CTX, &keypair, full_seckey));
+                CHECK(secp256k1_schnorrsig_sign32(CTX, signature, MSG32, &keypair, AUX32));
+                memcpy(found_signatures[i], signature, 64);
+            }
 #endif
 
-        for (i = 0; i < n_found; i++) {
-            int match = 0;
-            CHECK(secp256k1_xonly_pubkey_serialize(CTX, found_output, &found_outputs[i]->output));
-            for (j = 0; j < subtest->num_found_output_pubkeys; j++) {
-                if (secp256k1_memcmp_var(&found_output, subtest->found_output_pubkeys[j], 32) == 0) {
-                    CHECK(secp256k1_memcmp_var(found_outputs[i]->tweak, subtest->found_seckey_tweaks[j], 32) == 0);
+            for (i = 0; i < n_found; i++) {
+                int match = 0;
+                CHECK(secp256k1_xonly_pubkey_serialize(CTX, found_output, &found_outputs[i]->output));
+                for (j = 0; j < subtest->num_found_output_pubkeys; j++) {
+                    if (secp256k1_memcmp_var(&found_output, subtest->found_output_pubkeys[j], 32) == 0) {
+                        CHECK(secp256k1_memcmp_var(found_outputs[i]->tweak, subtest->found_seckey_tweaks[j], 32) == 0);
 #ifdef ENABLE_MODULE_SCHNORRSIG
-                    CHECK(secp256k1_memcmp_var(found_signatures[i], subtest->found_signatures[j], 64) == 0);
+                        CHECK(secp256k1_memcmp_var(found_signatures[i], subtest->found_signatures[j], 64) == 0);
 #endif
-                    match = 1;
-                    break;
+                        match = 1;
+                        break;
+                    }
+                }
+                CHECK(match);
+
+                if (subtest->num_labels == 0) {
+                    /* if the test case doesn't involve labels, we must not have any labeled matches */
+                    CHECK(!found_outputs[i]->found_with_label);
+                } else if (found_outputs[i]->found_with_label) {
+                    /* if the test case involves labels and we have a labeled match, verify that the returned
+                     * label is in the list of expected ones by manually checking against the label cache
+                     * (note that the test vectors only contain a list of used labels, but not exactly which one
+                     * of these have been applied for each individual output, so that's the best we can do) */
+                    unsigned char found_label_ser[33];
+                    const unsigned char *found_label_tweak;
+                    CHECK(secp256k1_silentpayments_recipient_label_serialize(CTX, found_label_ser, &found_outputs[i]->label));
+                    found_label_tweak = label_lookup(found_label_ser, &labels_cache);
+                    CHECK(found_label_tweak != NULL);
                 }
             }
-            CHECK(match);
-
-            if (subtest->num_labels == 0) {
-                /* if the test case doesn't involve labels, we must not have any labeled matches */
-                CHECK(!found_outputs[i]->found_with_label);
-            } else if (found_outputs[i]->found_with_label) {
-                /* if the test case involves labels and we have a labeled match, verify that the returned
-                 * label is in the list of expected ones by manually checking against the label cache
-                 * (note that the test vectors only contain a list of used labels, but not exactly which one
-                 * of these have been applied for each individual output, so that's the best we can do) */
-                unsigned char found_label_ser[33];
-                const unsigned char *found_label_tweak;
-                CHECK(secp256k1_silentpayments_recipient_label_serialize(CTX, found_label_ser, &found_outputs[i]->label));
-                found_label_tweak = label_lookup(found_label_ser, &labels_cache);
-                CHECK(found_label_tweak != NULL);
-            }
         }
+        CHECK(n_found == subtest->num_found_output_pubkeys);
     }
-    CHECK(n_found == subtest->num_found_output_pubkeys);
 }
 
 static void silentpayments_sha256_tag_test(void) {
