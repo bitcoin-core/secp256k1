@@ -235,11 +235,57 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipien
  *  guaranteed to be portable between different platforms or versions. It is
  *  however guaranteed to be 101 bytes in size, and can be safely copied/moved.
  *  This structure does not contain secret data. It can be created with
- *  `secp256k1_silentpayments_recipient_prevouts_summary_create`.
+ *  `secp256k1_silentpayments_recipient_prevouts_summary_create`. Serialized and
+ *  parsed with `secp256k1_silentpayments_recipient_prevouts_summary_serialize`
+ *  and `secp256k1_silentpayments_recipient_prevouts_summary_parse`.
  */
 typedef struct secp256k1_silentpayments_prevouts_summary {
     unsigned char data[101];
 } secp256k1_silentpayments_prevouts_summary;
+
+/** Parse a 33-byte or 65-byte sequence into a silentpayments_prevouts_summary object.
+ *
+ *  Both sizes are accepted; see `secp256k1_silentpayments_recipient_prevouts_summary_serialize`
+ *  for the size-vs-parse-speed tradeoff.
+ *
+ *  Returns: 1 when the prevouts_summary could be parsed, 0 otherwise.
+ *
+ *  Args:              ctx: pointer to a context object.
+ *  Out:  prevouts_summary: pointer to a silentpayments_prevouts_summary object.
+ *  In:              input: pointer to a serialized silentpayments_prevouts_summary.
+ *                inputlen: size of the serialized input. Must be either 33 or 65.
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipient_prevouts_summary_parse(
+    const secp256k1_context *ctx,
+    secp256k1_silentpayments_prevouts_summary *prevouts_summary,
+    const unsigned char *input,
+    size_t inputlen
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
+/** Serialize a silentpayments_prevouts_summary object into a 33-byte or 65-byte sequence.
+ *
+ *  The 33-byte variant saves bandwidth and is preferred in general. The 65-byte variant
+ *  is slightly faster to parse, at the cost of about double the size.
+ *
+ *  Serializing a prevouts_summary object created with `_recipient_prevouts_summary_create`
+ *  will result in an EC multiplication. This allows for a more compact serialization, but
+ *  also means a serialized prevouts_summary will not parse back to the same
+ *  prevouts_summary object (due to the EC multiplication).
+ *
+ *  Returns: 1 always.
+ *
+ *  Args:            ctx: pointer to a context object
+ *  Out:          output: pointer to a byte array to store the serialized
+ *                        `silentpayments_prevouts_summary`.
+ *  In:        outputlen: size of the byte array. Must be either 33 or 65.
+ *      prevouts_summary: pointer to an initialized `silentpayments_prevouts_summary` object
+ */
+SECP256K1_API int secp256k1_silentpayments_recipient_prevouts_summary_serialize(
+    const secp256k1_context *ctx,
+    unsigned char *output,
+    size_t outputlen,
+    const secp256k1_silentpayments_prevouts_summary *prevouts_summary
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(4);
 
 /** Compute Silent Payments prevouts summary from prevout public keys and transaction
  *  inputs.
