@@ -542,6 +542,68 @@ static void test_recipient_api(void) {
     CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, NULL, 0, NULL, 0));
     CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
 
+    /* Test prevouts_summary _serialize and _parse. */
+    {
+        secp256k1_silentpayments_prevouts_summary malformed_ps;  /* not created by us, must be rejected */
+        secp256k1_silentpayments_prevouts_summary ps_parsed;     /* _parse target, so that ps stays valid */
+        unsigned char o33[33];                                   /* serialized prevouts_summary, compressed */
+        unsigned char o65[65];                                   /* serialized prevouts_summary, uncompressed */
+        unsigned char malformed33[33] = { 0x01 };                /* invalid header byte */
+        unsigned char malformed65[65] = { 0x04 };                /* valid header byte, but (0, 0) is not on the curve */
+
+        /* Check that a prevouts_summary that was not created by us (missing magic bytes) is rejected. */
+        memset(&malformed_ps, 0, sizeof(malformed_ps));
+        malformed_ps.data[4] = 1; /* combined = true, but magic is still zero */
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o33, 33, &malformed_ps));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o65, 65, &malformed_ps));
+
+        /* Check that NULL and invalid outputlen arguments are handled by _serialize. */
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, NULL, 33, &ps));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o33, 33, NULL));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o33, 0, &ps));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o33, 32, &ps));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o33, 64, &ps));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o33, 66, &ps));
+
+        /* Check that NULL and invalid inputlen arguments are handled by _parse. */
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, NULL, o33, 33));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, NULL, 33));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, o33, 0));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, o33, 32));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, o33, 64));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, o33, 66));
+
+        /* Check that malformed serializations (valid length but not a valid pubkey) are rejected,
+         * for both the compressed and the uncompressed length. */
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, malformed33, 33) == 0);
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, malformed65, 65) == 0);
+
+        /* Round-trip: parse a valid 33-byte pubkey, then serialize compressed and uncompressed, then parse both back.
+         * Since a serialized prevouts_summary is just (input_hash * prevouts_pubkey_sum) represented as a pubkey,
+         * BOB_ADDRESS[0] (a valid compressed pubkey) is itself a valid serialized prevouts_summary. */
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, BOB_ADDRESS[0], 33));
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o33, 33, &ps_parsed));
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o65, 65, &ps_parsed));
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, o33, 33));
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, o65, 65));
+
+        /* Round-trip the actually created prevouts_summary (combined=0): serialize, parse, then re-serialize.
+         * After _parse the object has combined=1, so re-serializing must yield the same bytes as the first
+         * serialization (the input hash is already absorbed into the pubkey). */
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o33, 33, &ps));
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o65, 65, &ps));
+        {
+            unsigned char o33_2[33];
+            unsigned char o65_2[65];
+            CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, o33, 33));
+            CHECK(secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o33_2, 33, &ps_parsed));
+            CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps_parsed, o65, 65));
+            CHECK(secp256k1_silentpayments_recipient_prevouts_summary_serialize(CTX, o65_2, 65, &ps_parsed));
+            CHECK(secp256k1_memcmp_var(o33, o33_2, 33) == 0);
+            CHECK(secp256k1_memcmp_var(o65, o65_2, 65) == 0);
+        }
+    }
+
     /* check the _recipient_scan_outputs cornercase where internal tweaking would fail;
        this is the case if the recipient spend public key is P = -(create_output_tweak(shared_secret, k))*G */
     {
