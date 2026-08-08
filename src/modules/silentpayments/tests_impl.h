@@ -686,6 +686,54 @@ static void test_recipient_api(void) {
     CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp, 1, MALFORMED_SECKEY, &ps, &p, NULL, NULL) == 0);
     memset(&ps, 0, sizeof(ps));
     CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp, 1, ALICE_SECKEY, &ps, &p, NULL, NULL));
+    /* Reset ps to a valid prevouts_summary object */
+    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps, BOB_ADDRESS[0], 33));
+
+    /* Test recipient light client API */
+    {
+        secp256k1_xonly_pubkey outputs[2];            /* array of generated xonly pks */
+        secp256k1_xonly_pubkey *output_ptrs[2];       /* array of pointers to generated xonly pks */
+        secp256k1_pubkey spend_pubkeys[2];            /* array of spend public keys */
+        secp256k1_pubkey const *spend_pubkey_ptrs[2]; /* array of pointers to spend public keys */
+        size_t i;
+
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &spend_pubkeys[0], BOB_ADDRESS[0], 33));
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &spend_pubkeys[1], BOB_ADDRESS[0], 33));
+        spend_pubkey_ptrs[0] = &spend_pubkeys[0];
+        spend_pubkey_ptrs[1] = &spend_pubkeys[1];
+        output_ptrs[0] = &outputs[0];
+        output_ptrs[1] = &outputs[1];
+
+        CHECK(secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, output_ptrs, ALICE_SECKEY, &ps, spend_pubkey_ptrs, 2));
+
+        /* Check that NULL in "array of pointers" arguments is not allowed */
+        for (i = 0; i < 2; i++) {
+            secp256k1_xonly_pubkey *original_ptr_output = output_ptrs[i];
+            const secp256k1_pubkey *original_ptr_pubkey = spend_pubkey_ptrs[i];
+
+            output_ptrs[i] = NULL;
+            CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, output_ptrs, ALICE_SECKEY, &ps, spend_pubkey_ptrs, 2));
+            output_ptrs[i] = original_ptr_output;
+
+            spend_pubkey_ptrs[i] = NULL;
+            CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, output_ptrs, ALICE_SECKEY, &ps, spend_pubkey_ptrs, 2));
+            spend_pubkey_ptrs[i] = original_ptr_pubkey;
+        }
+
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, NULL, ALICE_SECKEY, &ps, spend_pubkey_ptrs, 2));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, output_ptrs, NULL, &ps, spend_pubkey_ptrs, 2));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, output_ptrs, ALICE_SECKEY, NULL, spend_pubkey_ptrs, 2));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, output_ptrs, ALICE_SECKEY, &ps, NULL, 2));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, output_ptrs, ALICE_SECKEY, &ps, spend_pubkey_ptrs, 0));
+        memset(&ps, 0, sizeof(ps));
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, output_ptrs, ALICE_SECKEY, &ps, spend_pubkey_ptrs, 2));
+        /* Reset ps to a valid prevouts_summary object */
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(CTX, &ps, BOB_ADDRESS[0], 33));
+        CHECK(secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, output_ptrs, MALFORMED_SECKEY, &ps, spend_pubkey_ptrs, 2) == 0);
+        /* Create uncombined prevouts_summary */
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
+        CHECK(secp256k1_silentpayments_recipient_create_output_pubkeys(CTX, output_ptrs, ALICE_SECKEY, &ps, spend_pubkey_ptrs, 2));
+    }
 }
 
 static void test_recipient_scan_label_precedes_direct_match(void) {

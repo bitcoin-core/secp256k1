@@ -879,4 +879,54 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     return 1;
 }
 
+int secp256k1_silentpayments_recipient_create_output_pubkeys(
+    const secp256k1_context *ctx,
+    secp256k1_xonly_pubkey **outputs_xonly,
+    const unsigned char *scan_key32,
+    const secp256k1_silentpayments_prevouts_summary *prevouts_summary,
+    const secp256k1_pubkey * const *spend_pubkeys, size_t n_spend_pubkeys
+) {
+    secp256k1_scalar scan_key_scalar;
+    secp256k1_ge prevouts_pubkey_sum_ge, spend_pubkey_ge;
+    size_t i;
+    int ret, combined, valid_scan_key;
+    unsigned char shared_secret[33];
+
+    /* Sanity check inputs */
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(outputs_xonly != NULL);
+    ARG_CHECK(scan_key32 != NULL);
+    ARG_CHECK(prevouts_summary != NULL);
+    ARG_CHECK(secp256k1_memcmp_var(&prevouts_summary->data[0], secp256k1_silentpayments_prevouts_summary_magic, 4) == 0);
+    ARG_CHECK(spend_pubkeys != NULL);
+    ARG_CHECK(n_spend_pubkeys > 0);
+    for (i = 0; i < n_spend_pubkeys; i++) {
+        ARG_CHECK(outputs_xonly[i] != NULL);
+        ARG_CHECK(spend_pubkeys[i] != NULL);
+        /* Validate each spend pubkey object early so malformed pubkeys are always rejected. */
+        if (!secp256k1_pubkey_load(ctx, &spend_pubkey_ge, spend_pubkeys[i])) {
+            return 0;
+        }
+    }
+    valid_scan_key = secp256k1_scalar_set_b32_seckey(&scan_key_scalar, scan_key32);
+    secp256k1_declassify(ctx, &valid_scan_key, sizeof(valid_scan_key));
+    if (!valid_scan_key) {
+        secp256k1_scalar_clear(&scan_key_scalar);
+        return 0;
+    }
+
+    secp256k1_ge_from_bytes(&prevouts_pubkey_sum_ge, &prevouts_summary->data[5]);
+    combined = (int)prevouts_summary->data[4];
+    if (!combined) {
+        secp256k1_scalar input_hash_scalar;
+        secp256k1_scalar_set_b32(&input_hash_scalar, &prevouts_summary->data[5 + 64], NULL);
+        secp256k1_scalar_mul(&scan_key_scalar, &scan_key_scalar, &input_hash_scalar);
+    }
+    secp256k1_silentpayments_create_shared_secret(shared_secret, &prevouts_pubkey_sum_ge, &scan_key_scalar);
+    secp256k1_scalar_clear(&scan_key_scalar);
+    ret = secp256k1_silentpayments_create_output_pubkeys(ctx, outputs_xonly, shared_secret, spend_pubkeys, n_spend_pubkeys, 0);
+    secp256k1_memclear_explicit(shared_secret, sizeof(shared_secret));
+    return ret;
+}
+
 #endif
