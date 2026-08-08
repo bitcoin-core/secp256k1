@@ -148,9 +148,9 @@ static int secp256k1_silentpayments_create_output_tweak(const secp256k1_context 
     return (!secp256k1_scalar_is_zero(t_k_scalar)) & (!overflow);
 }
 
-static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context *ctx, secp256k1_xonly_pubkey *output_xonly, const unsigned char *shared_secret33, const secp256k1_pubkey *spend_pubkey, uint32_t k) {
-    secp256k1_ge output_ge;
+static int secp256k1_silentpayments_create_output_pubkeys(const secp256k1_context *ctx, secp256k1_xonly_pubkey **outputs_xonly, const unsigned char *shared_secret33, const secp256k1_pubkey * const *spend_pubkeys, size_t n_spend_pubkeys, uint32_t k) {
     secp256k1_scalar t_k_scalar;
+    size_t i;
     /* Calculate the output tweak t_k and convert it to a scalar.
      *
      * Note: _create_output_tweak can only fail if the output of the hash function is zero or greater than or equal to
@@ -162,26 +162,39 @@ static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context
         return 0;
     }
 
-    if (!secp256k1_pubkey_load(ctx, &output_ge, spend_pubkey)) {
-        secp256k1_scalar_clear(&t_k_scalar);
-        return 0;
+    for (i = 0; i < n_spend_pubkeys; i++) {
+        secp256k1_ge output_ge;
+        if (!secp256k1_pubkey_load(ctx, &output_ge, spend_pubkeys[i])) {
+            secp256k1_scalar_clear(&t_k_scalar);
+            return 0;
+        }
+        /* `tweak_add` only fails if t_k_scalar * G = -spend_pubkey. Considering t_k is the output of a hash function, this
+         * will happen only with negligible probability for honestly created spend_pubkey, but we handle this error anyway
+         * to protect against this function being called with malicious inputs, i.e.,
+         *     spend_pubkey = -(_create_output_tweak(shared_secret33, k))*G
+         */
+        if (!secp256k1_eckey_pubkey_tweak_add(&output_ge, &t_k_scalar)) {
+            secp256k1_scalar_clear(&t_k_scalar);
+            return 0;
+        }
+        secp256k1_fe_normalize_var(&output_ge.y);
+        secp256k1_extrakeys_ge_even_y(&output_ge);
+        secp256k1_xonly_pubkey_save(outputs_xonly[i], &output_ge);
     }
-    /* `tweak_add` only fails if t_k_scalar * G = -spend_pubkey. Considering t_k is the output of a hash function, this
-     * will happen only with negligible probability for honestly created spend_pubkey, but we handle this error anyway
-     * to protect against this function being called with malicious inputs, i.e.,
-     *     spend_pubkey = -(_create_output_tweak(shared_secret33, k))*G
-     */
-    if (!secp256k1_eckey_pubkey_tweak_add(&output_ge, &t_k_scalar)) {
-        secp256k1_scalar_clear(&t_k_scalar);
-        return 0;
-    }
-    secp256k1_fe_normalize_var(&output_ge.y);
-    secp256k1_extrakeys_ge_even_y(&output_ge);
-    secp256k1_xonly_pubkey_save(output_xonly, &output_ge);
 
     /* Leaking this value would break indistinguishability of the transaction, so clear it. */
     secp256k1_scalar_clear(&t_k_scalar);
     return 1;
+}
+
+SECP256K1_INLINE static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context *ctx, secp256k1_xonly_pubkey *output_xonly, const unsigned char *shared_secret33, const secp256k1_pubkey *spend_pubkey, uint32_t k) {
+    secp256k1_xonly_pubkey *outputs_xonly[1];
+    const secp256k1_pubkey *spend_pubkeys[1];
+
+    outputs_xonly[0] = output_xonly;
+    spend_pubkeys[0] = spend_pubkey;
+
+    return secp256k1_silentpayments_create_output_pubkeys(ctx, outputs_xonly, shared_secret33, spend_pubkeys, 1, k);
 }
 
 int secp256k1_silentpayments_sender_create_outputs(
