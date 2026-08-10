@@ -1029,6 +1029,40 @@ void run_silentpayments_test_vector_receive(const struct bip352_test_vector *tes
             }
         }
         CHECK(n_found == subtest->num_found_output_pubkeys);
+        /* Check that the output public key creation function (intended for light clients) matches
+         * the first found output (k=0) of the full scanning function. If the full scan didn't find
+         * anything, the created k=0 output must not be among the transaction outputs either. */
+        {
+            secp256k1_pubkey pubkey = recipient_spend_pubkey;
+            const secp256k1_pubkey *pubkey_ptrs[1];
+            secp256k1_xonly_pubkey output;
+            secp256k1_xonly_pubkey *output_ptrs[1];
+            size_t n_found_k0;
+
+            pubkey_ptrs[0] = &pubkey;
+            output_ptrs[0] = &output;
+            if (n_found > 0 && found_outputs[0]->found_with_label) {
+                CHECK(secp256k1_silentpayments_recipient_create_labeled_spend_pubkey(CTX,
+                    &pubkey, &recipient_spend_pubkey, &found_outputs[0]->label));
+            }
+            CHECK(secp256k1_silentpayments_recipient_create_output_pubkeys(CTX,
+                output_ptrs,
+                subtest->scan_seckey,
+                &scan_prevouts_summary,
+                pubkey_ptrs, ARRAY_SIZE(pubkey_ptrs)));
+            n_found_k0 = 0;
+            for (i = 0; i < subtest->num_to_scan_outputs; i++) {
+                if (secp256k1_xonly_pubkey_cmp(CTX, &output, tx_outputs[i]) == 0) {
+                    n_found_k0++;
+                }
+            }
+            if (n_found > 0) {
+                CHECK(secp256k1_xonly_pubkey_cmp(CTX, &output, &found_outputs[0]->output) == 0);
+                CHECK(n_found_k0 == 1);
+            } else {
+                CHECK(n_found_k0 == 0);
+            }
+        }
     }
 }
 
