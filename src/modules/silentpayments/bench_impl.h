@@ -24,6 +24,7 @@ typedef struct {
     secp256k1_context *ctx;
     secp256k1_pubkey spend_pubkey;
     unsigned char scan_key[32];
+    const secp256k1_pubkey **pubkeys_ptrs;
     secp256k1_xonly_pubkey *tx_outputs;
     secp256k1_xonly_pubkey **tx_outputs_ptrs;
     secp256k1_xonly_pubkey tx_inputs[SP_BENCH_MAX_INPUTS];
@@ -33,6 +34,8 @@ typedef struct {
     unsigned char smallest_outpoint[36];
     unsigned char label[33];
     unsigned char label_tweak[32];
+    unsigned char light_client_data[33];
+    int num_pubkeys;
     int num_outputs;
     int num_matches;
 } bench_silentpayments_data;
@@ -127,8 +130,10 @@ static void bench_silentpayments_scan_setup(void* arg) {
             }
             recipients[i].index = i;
         }
-        CHECK(secp256k1_silentpayments_sender_create_outputs(data->ctx, data->tx_outputs_ptrs, recipients_ptrs,
-            data->num_outputs, data->smallest_outpoint, keypairs_ptrs, SP_BENCH_MAX_INPUTS, NULL, 0));
+        if (data->num_pubkeys == 0) { /* for the create_pubkeys benchmarks, we don't need any actual tx outputs (only the memory) */
+            CHECK(secp256k1_silentpayments_sender_create_outputs(data->ctx, data->tx_outputs_ptrs, recipients_ptrs,
+                data->num_outputs, data->smallest_outpoint, keypairs_ptrs, SP_BENCH_MAX_INPUTS, NULL, 0));
+        }
 
         for (i = 0; i < data->num_outputs; i++) {
             data->found_outputs_ptrs[i] = &data->found_outputs[i];
@@ -144,16 +149,45 @@ static void bench_silentpayments_scan_setup(void* arg) {
         free(recipients_ptrs);
         free(recipients);
     }
+
+    /* Prepare serialized prevouts_summary for light client scanning. */
+    {
+        secp256k1_silentpayments_prevouts_summary prevouts_summary;
+        data->pubkeys_ptrs = malloc(sizeof(secp256k1_pubkey*) * data->num_pubkeys);
+        for (i = 0; i < data->num_pubkeys; i++) {
+            data->pubkeys_ptrs[i] = &data->spend_pubkey; /* use same spend pubkey repeatedly to keep it simple for now */
+        }
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(data->ctx, &prevouts_summary,
+            data->smallest_outpoint, data->tx_inputs_ptrs, SP_BENCH_MAX_INPUTS, NULL, 0));
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_serialize(data->ctx, data->light_client_data, 33, &prevouts_summary));
+    }
 }
 
 static void bench_silentpayments_scan_teardown(void* arg, int iters) {
     bench_silentpayments_data *data = (bench_silentpayments_data*)arg;
     (void)iters;
 
+    free(data->pubkeys_ptrs);
     free(data->tx_outputs);
     free(data->tx_outputs_ptrs);
     free(data->found_outputs);
     free(data->found_outputs_ptrs);
+}
+
+static void bench_silentpayments_create_pubkeys(void* arg, int iters) {
+    bench_silentpayments_data *data = (bench_silentpayments_data*)arg;
+    secp256k1_silentpayments_prevouts_summary prevouts_summary;
+    int i;
+
+    for (i = 0; i < iters; i++) {
+        CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(data->ctx, &prevouts_summary, data->light_client_data, 33));
+        CHECK(secp256k1_silentpayments_recipient_create_output_pubkeys(data->ctx,
+            data->tx_outputs_ptrs,
+            data->scan_key,
+            &prevouts_summary,
+            data->pubkeys_ptrs, data->num_pubkeys)
+        );
+    }
 }
 
 static void bench_silentpayments_scan(void* arg, int iters) {
@@ -185,12 +219,32 @@ static void run_silentpayments_bench(int iters, int argc, char** argv) {
 
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
+    if (d || have_flag(argc, argv, "silentpayments") || have_flag(argc, argv, "silentpayments_create_pubkeys")) {
+        const int num_pubkeys_bench[] = {1, 2, 5, 10, 100, 1000, 10000};
+        size_t p;
+        for (p = 0; p < ARRAY_SIZE(num_pubkeys_bench); p++) {
+            const int num_pubkeys = num_pubkeys_bench[p];
+            char str[64];
+            data.num_pubkeys = num_pubkeys;
+            data.num_outputs = num_pubkeys;
+            data.num_matches = 0;
+            sprintf(str, "silentpayments_create_pubkeys_P=%i", num_pubkeys);
+            /* Don't run these slow benchmarks with low iterations (as used e.g. in CI) to prevent slow down */
+            if (iters <= 2 && num_pubkeys > 10) {
+                printf("Skipping benchmark \"%s\" due to SECP256K1_BENCH_ITERS <= 2\n", str);
+            } else {
+                run_benchmark(str, bench_silentpayments_create_pubkeys, bench_silentpayments_scan_setup, bench_silentpayments_scan_teardown, &data, 10, num_pubkeys <= 10 ? iters : 1);
+            }
+        }
+    }
+
     if (d || have_flag(argc, argv, "silentpayments") || have_flag(argc, argv, "silentpayments_scan_nomatch")) {
         const int num_outputs_bench[] = {2, 5, 10, 100, 1000, 2323, MAX_P2TR_OUTPUTS_PER_BLOCK};
         size_t o;
         for (o = 0; o < ARRAY_SIZE(num_outputs_bench); o++) {
             const int num_outputs = num_outputs_bench[o];
             char str[64];
+            data.num_pubkeys = 0;
             data.num_outputs = num_outputs;
             data.num_matches = 0;
             sprintf(str, "silentpayments_scan_nomatch_N=%i", num_outputs);
@@ -209,6 +263,7 @@ static void run_silentpayments_bench(int iters, int argc, char** argv) {
         for (k = 0; k < ARRAY_SIZE(num_matches_bench); k++) {
             const int num_matches = num_matches_bench[k];
             char str[64];
+            data.num_pubkeys = 0;
             data.num_outputs = MAX_P2TR_OUTPUTS_PER_BLOCK;
             data.num_matches = num_matches;
             sprintf(str, "silentpayments_scan_worstcase_K=%i", num_matches);
