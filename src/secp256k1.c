@@ -128,6 +128,8 @@ secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigne
     }
     VERIFY_CHECK(prealloc != NULL);
     ret = (secp256k1_context*)prealloc;
+    /* Initialize padding before member writes leave it untouched. */
+    memset(ret, 0, sizeof(*ret));
     ret->illegal_callback = default_illegal_callback;
     ret->error_callback = default_error_callback;
     secp256k1_hash_ctx_init(&ret->hash_ctx);
@@ -158,6 +160,8 @@ secp256k1_context* secp256k1_context_preallocated_clone(const secp256k1_context*
     ARG_CHECK(secp256k1_context_is_proper(ctx));
 
     ret = (secp256k1_context*)prealloc;
+    /* Initialize padding if structure assignment leaves it untouched. */
+    memset(ret, 0, sizeof(*ret));
     *ret = *ctx;
     return ret;
 }

@@ -258,7 +258,7 @@ static void run_proper_context_tests(int use_prealloc) {
     } else {
         my_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     }
-    SECP256K1_CHECKMEM_DEFINE(my_ctx, sizeof(*my_ctx)); /* TODO: Require defined padding. */
+    SECP256K1_CHECKMEM_CHECK(my_ctx, sizeof(*my_ctx));
 
     /* Randomize and reset randomization */
     CHECK(context_eq(my_ctx, my_ctx_fresh));
@@ -311,7 +311,7 @@ static void run_proper_context_tests(int use_prealloc) {
             free(prealloc_tmp);
         }
     }
-    SECP256K1_CHECKMEM_DEFINE(my_ctx, sizeof(*my_ctx)); /* TODO: Require defined padding. */
+    SECP256K1_CHECKMEM_CHECK(my_ctx, sizeof(*my_ctx));
 
     /* Verify that the error callback makes it across the clone. */
     CHECK(my_ctx->error_callback.fn != secp256k1_default_error_callback_fn);
