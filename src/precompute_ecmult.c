@@ -42,16 +42,16 @@ static void print_table(FILE *fp, const char *name, int window_g, const secp256k
 }
 
 static void print_two_tables(FILE *fp, int window_g) {
-    secp256k1_ge_storage* table = malloc(ECMULT_TABLE_SIZE(window_g) * sizeof(secp256k1_ge_storage));
-    secp256k1_ge_storage* table_128 = malloc(ECMULT_TABLE_SIZE(window_g) * sizeof(secp256k1_ge_storage));
+    secp256k1_ge_storage* table = checked_malloc(&default_error_callback, ECMULT_TABLE_SIZE(window_g) * sizeof(secp256k1_ge_storage));
+    secp256k1_ge_storage* table_128 = checked_malloc(&default_error_callback, ECMULT_TABLE_SIZE(window_g) * sizeof(secp256k1_ge_storage));
 
     secp256k1_ecmult_compute_two_tables(table, table_128, window_g, &secp256k1_ge_const_g);
 
     print_table(fp, "secp256k1_pre_g", window_g, table);
     print_table(fp, "secp256k1_pre_g_128", window_g, table_128);
 
-    free(table);
-    free(table_128);
+    checked_free(table, ECMULT_TABLE_SIZE(window_g) * sizeof(secp256k1_ge_storage));
+    checked_free(table_128, ECMULT_TABLE_SIZE(window_g) * sizeof(secp256k1_ge_storage));
 }
 
 int main(void) {

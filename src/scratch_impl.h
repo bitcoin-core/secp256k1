@@ -37,7 +37,7 @@ static void secp256k1_scratch_destroy(const secp256k1_callback* error_callback, 
         }
         VERIFY_CHECK(scratch->alloc_size == 0); /* all checkpoints should be applied */
         memset(scratch->magic, 0, sizeof(scratch->magic));
-        free(scratch);
+        checked_free(scratch, ROUND_TO_ALIGN(sizeof(secp256k1_scratch)) + scratch->max_size);
     }
 }
 

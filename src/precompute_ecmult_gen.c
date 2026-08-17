@@ -50,7 +50,7 @@ static void print_table(FILE* fp, int blocks, int teeth) {
             fprintf(fp,"}\n");
         }
     }
-    free(table);
+    checked_free(table, blocks * points * sizeof(secp256k1_ge_storage));
 }
 
 int main(int argc, char **argv) {
