@@ -206,12 +206,11 @@ static void run_static_context_tests(int use_prealloc) {
         if (use_prealloc) {
             CHECK_ILLEGAL(STATIC_CTX, secp256k1_context_preallocated_clone_size(STATIC_CTX));
             {
-                secp256k1_context *my_static_ctx = malloc(sizeof(*STATIC_CTX));
-                CHECK(my_static_ctx != NULL);
+                secp256k1_context *my_static_ctx = checked_malloc(&CTX->error_callback, sizeof(*STATIC_CTX));
                 memset(my_static_ctx, 0x2a, sizeof(*my_static_ctx));
                 CHECK_ILLEGAL(STATIC_CTX, secp256k1_context_preallocated_clone(STATIC_CTX, my_static_ctx));
                 CHECK(all_bytes_equal(my_static_ctx, 0x2a, sizeof(*my_static_ctx)));
-                free(my_static_ctx);
+                checked_free(my_static_ctx, sizeof(*STATIC_CTX));
             }
             CHECK_ILLEGAL_VOID(STATIC_CTX, secp256k1_context_preallocated_destroy(STATIC_CTX));
         } else {
@@ -252,8 +251,7 @@ static void run_proper_context_tests(int use_prealloc) {
     my_ctx_fresh = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
     if (use_prealloc) {
-        my_ctx_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
-        CHECK(my_ctx_prealloc != NULL);
+        my_ctx_prealloc = checked_malloc(&CTX->error_callback, secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
         my_ctx = secp256k1_context_preallocated_create(my_ctx_prealloc, SECP256K1_CONTEXT_NONE);
     } else {
         my_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
@@ -285,9 +283,8 @@ static void run_proper_context_tests(int use_prealloc) {
             CHECK(context_eq(ctx_tmp, my_ctx));
             secp256k1_context_preallocated_destroy(ctx_tmp);
 
-            free(my_ctx_prealloc);
-            my_ctx_prealloc = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
-            CHECK(my_ctx_prealloc != NULL);
+            checked_free(my_ctx_prealloc, secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
+            my_ctx_prealloc = checked_malloc(&CTX->error_callback, secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
             ctx_tmp = my_ctx;
             my_ctx = secp256k1_context_preallocated_clone(my_ctx, my_ctx_prealloc);
             CHECK(context_eq(ctx_tmp, my_ctx));
@@ -296,8 +293,7 @@ static void run_proper_context_tests(int use_prealloc) {
             /* clone into a preallocated context and then again into a new non-preallocated one. */
             void *prealloc_tmp;
 
-            prealloc_tmp = malloc(secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
-            CHECK(prealloc_tmp != NULL);
+            prealloc_tmp = checked_malloc(&CTX->error_callback, secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
             ctx_tmp = my_ctx;
             my_ctx = secp256k1_context_preallocated_clone(my_ctx, prealloc_tmp);
             CHECK(context_eq(ctx_tmp, my_ctx));
@@ -307,7 +303,7 @@ static void run_proper_context_tests(int use_prealloc) {
             my_ctx = secp256k1_context_clone(my_ctx);
             CHECK(context_eq(ctx_tmp, my_ctx));
             secp256k1_context_preallocated_destroy(ctx_tmp);
-            free(prealloc_tmp);
+            checked_free(prealloc_tmp, secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
         }
     }
 
@@ -347,7 +343,7 @@ static void run_proper_context_tests(int use_prealloc) {
     /* cleanup */
     if (use_prealloc) {
         secp256k1_context_preallocated_destroy(my_ctx);
-        free(my_ctx_prealloc);
+        checked_free(my_ctx_prealloc, secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE));
     } else {
         secp256k1_context_destroy(my_ctx);
     }
@@ -442,7 +438,7 @@ static void run_invalid_scratch_space_tests(void) {
     CHECK_ERROR(CTX, secp256k1_scratch_alloc(&CTX->error_callback, scratch, 500));
     CHECK_ERROR_VOID(CTX, secp256k1_scratch_space_destroy(CTX, scratch));
 
-    free(scratch);
+    checked_free(scratch, sizeof(*scratch));
 }
 
 /* A compression function that does nothing */
@@ -4124,7 +4120,7 @@ static void test_ge(void) {
             secp256k1_gej_add_var(&sum, &sum, &gej_shuffled[i], NULL);
         }
         CHECK(secp256k1_gej_is_infinity(&sum));
-        free(gej_shuffled);
+        checked_free(gej_shuffled, (4 * runs + 1) * sizeof(secp256k1_gej));
     }
 
     /* Test batch gej -> ge conversion without known z ratios. */
@@ -4160,8 +4156,8 @@ static void test_ge(void) {
         secp256k1_ge_set_all_gej_var(NULL, NULL, 0);
         secp256k1_ge_set_all_gej(NULL, NULL, 0);
 
-        free(ge_set_all_var);
-        free(ge_set_all);
+        checked_free(ge_set_all_var, (4 * runs + 1) * sizeof(secp256k1_ge));
+        checked_free(ge_set_all, (4 * runs + 1) * sizeof(secp256k1_ge));
     }
 
     /* Test that all elements have X coordinates on the curve. */
@@ -4217,8 +4213,8 @@ static void test_ge(void) {
         CHECK(secp256k1_ge_is_infinity(&ge[i]));
     }
 
-    free(ge);
-    free(gej);
+    checked_free(ge, sizeof(secp256k1_ge) * (1 + 4 * runs));
+    checked_free(gej, sizeof(secp256k1_gej) * (1 + 4 * runs));
 }
 
 static void test_initialized_inf(void) {
@@ -5535,8 +5531,8 @@ static void test_ecmult_multi_batching(void) {
         CHECK(secp256k1_gej_is_infinity(&r));
         secp256k1_scratch_destroy(&CTX->error_callback, scratch);
     }
-    free(sc);
-    free(pt);
+    checked_free(sc, sizeof(secp256k1_scalar) * n_points);
+    checked_free(pt, sizeof(secp256k1_ge) * n_points);
 }
 
 static void run_ecmult_multi_tests(void) {
@@ -8289,8 +8285,7 @@ static int setup(void) {
        that write to the context. The API does not support cloning the static context, so we use
        memcpy instead. The user is not supposed to copy a context but we should still ensure that
        the API functions handle copies of the static context gracefully. */
-    STATIC_CTX = malloc(sizeof(*secp256k1_context_static));
-    CHECK(STATIC_CTX != NULL);
+    STATIC_CTX = checked_malloc(&CTX->error_callback, sizeof(*secp256k1_context_static));
     memcpy(STATIC_CTX, secp256k1_context_static, sizeof(secp256k1_context));
     CHECK(!secp256k1_context_is_proper(STATIC_CTX));
     return 0;
@@ -8298,7 +8293,7 @@ static int setup(void) {
 
 /* Shutdown test environment */
 static int teardown(void) {
-    free(STATIC_CTX);
+    checked_free(STATIC_CTX, sizeof(*secp256k1_context_static));
     secp256k1_context_destroy(CTX);
     return 0;
 }

@@ -262,6 +262,17 @@ SECP256K1_API void secp256k1_selftest(void);
  *  memory allocation entirely, see secp256k1_context_static and the functions in
  *  secp256k1_preallocated.h.
  *
+ *  The macros SECP256K1_MALLOC and SECP256K1_FREE can be defined when
+ *  compiling the library to replace malloc and free, for example with
+ *  -DSECP256K1_MALLOC=my_malloc -DSECP256K1_FREE=my_free -include my_alloc.h.
+ *  The replacements do not need the full semantics of malloc and free. The
+ *  library guarantees only the following:
+ *   - SECP256K1_MALLOC(size) is called with size > 0 and must return memory
+ *     suitably aligned for any object type, or NULL on failure.
+ *   - SECP256K1_FREE(ptr, size) is called exactly once for every successful
+ *     allocation, ptr is never NULL and size is the allocated size.
+ *   - There are no other allocations and no ordering guarantees.
+ *
  *  Returns: pointer to a newly created context object.
  *  In:      flags: Always set to SECP256K1_CONTEXT_NONE (see below).
  *

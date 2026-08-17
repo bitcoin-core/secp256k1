@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Added
+ - The preprocessor macros `SECP256K1_MALLOC` and `SECP256K1_FREE` can be defined when compiling the library to replace `malloc` and `free`. `SECP256K1_FREE` also receives the size of the allocation.
+
 ## [0.8.0] - 2026-08-03
 
 #### Added

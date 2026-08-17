@@ -364,10 +364,10 @@ static void test_send_api(void) {
         CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, outputs_ptrs, recipients_ptrs,
             test_num_recipients, SMALLEST_OUTPOINT, NULL, 0, p, 1) == 0);
 
-        free(outputs_ptrs);
-        free(outputs);
-        free(recipients_ptrs);
-        free(recipients);
+        checked_free(outputs_ptrs, sizeof(*outputs_ptrs) * total_recipients);
+        checked_free(outputs, sizeof(*outputs) * total_recipients);
+        checked_free(recipients_ptrs, sizeof(*recipients_ptrs) * total_recipients);
+        checked_free(recipients, sizeof(*recipients) * total_recipients);
     }
 }
 
