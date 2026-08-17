@@ -30,6 +30,8 @@ env:
   ASM: 'no'
   WIDEMUL: 'auto'
   WITH_VALGRIND: 'yes'
+  MALLOC_OVERRIDE: 'no'
+  NO_MALLOC: 'no'
   EXTRAFLAGS:
   ### secp256k1 modules
   EXPERIMENTAL: 'no'
@@ -111,6 +113,8 @@ jobs:
           - env_vars: { CFLAGS: '-O1',     RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', SILENTPAYMENTS: 'yes' }
           - env_vars: { ECMULTGENKB: 2, ECMULTWINDOW: 2 }
           - env_vars: { ECMULTGENKB: 86, ECMULTWINDOW: 4 }
+          - env_vars: { MALLOC_OVERRIDE: 'yes', EXTRAFLAGS: '--disable-benchmark', BENCH: 'no', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', SILENTPAYMENTS: 'yes' }
+          - env_vars: { NO_MALLOC: 'yes', EXTRAFLAGS: '--disable-tests --disable-exhaustive-tests --disable-benchmark', BENCH: 'no', CTIMETESTS: 'no', EXAMPLES: 'no', RECOVERY: 'yes', ECDH: 'yes', EXTRAKEYS: 'yes', SCHNORRSIG: 'yes', MUSIG: 'yes', ELLSWIFT: 'yes', SILENTPAYMENTS: 'yes' }
         cc:
           - 'gcc'
           - 'clang'

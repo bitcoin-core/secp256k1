@@ -12,7 +12,7 @@ print_environment() {
     # There are many ways to print variable names and their content. This one
     # does not rely on bash.
     for var in WERROR_CFLAGS MAKEFLAGS BUILD \
-            ECMULTWINDOW ECMULTGENKB ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
+            ECMULTWINDOW ECMULTGENKB ASM WIDEMUL WITH_VALGRIND MALLOC_OVERRIDE NO_MALLOC EXTRAFLAGS \
             EXPERIMENTAL ECDH RECOVERY EXTRAKEYS MUSIG SCHNORRSIG ELLSWIFT SILENTPAYMENTS \
             SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS SYMBOL_CHECK \
             EXAMPLES \
@@ -54,6 +54,18 @@ fi
 
 ./autogen.sh
 
+# Build with custom memory allocation functions.
+if [ "$MALLOC_OVERRIDE" = "yes" ]
+then
+    export CPPFLAGS="${CPPFLAGS:-} -DSECP256K1_MALLOC=secp256k1_ci_malloc -DSECP256K1_FREE=secp256k1_ci_free -include $(pwd)/ci/malloc_override.h"
+fi
+
+# Build without heap allocation.
+if [ "$NO_MALLOC" = "yes" ]
+then
+    export CPPFLAGS="${CPPFLAGS:-} -DSECP256K1_NO_MALLOC"
+fi
+
 ./configure \
     --enable-experimental="$EXPERIMENTAL" \
     --with-test-override-wide-multiply="$WIDEMUL" --with-asm="$ASM" \
@@ -91,6 +103,15 @@ fi
 file *tests* || true
 file bench* || true
 file .libs/* || true
+
+if [ "$NO_MALLOC" = "yes" ]
+then
+    # The library must not reference malloc and free.
+    if nm -u .libs/libsecp256k1.so | grep -w -e malloc -e free
+    then
+        exit 1
+    fi
+fi
 
 if [ "$SYMBOL_CHECK" = "yes" ]
 then
