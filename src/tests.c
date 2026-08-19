@@ -6852,11 +6852,9 @@ static void test_random_pubkeys(void) {
     secp256k1_ge elem;
     secp256k1_ge elem2;
     unsigned char in[65];
-    /* Generate some randomly sized pubkeys. */
-    size_t len = testrand_bits(2) == 0 ? 65 : 33;
-    if (testrand_bits(2) == 0) {
-        len = testrand_bits(6);
-    }
+    int res;
+    /* Generate some random pubkeys with the two supported serialization sizes. */
+    size_t len = testrand_bits(1) == 0 ? 65 : 33;
     if (len == 65) {
       in[0] = testrand_bits(1) ? 4 : (testrand_bits(1) ? 6 : 7);
     } else {
@@ -6865,17 +6863,14 @@ static void test_random_pubkeys(void) {
     if (testrand_bits(3) == 0) {
         in[0] = testrand_bits(8);
     }
-    if (len > 1) {
-        testrand256(&in[1]);
-    }
-    if (len > 33) {
+    testrand256(&in[1]);
+    if (len == 65) {
         testrand256(&in[33]);
     }
-    if (secp256k1_ge_parse(&elem, in, len)) {
+    res = (len == 33) ? secp256k1_ge_parse33(&elem, in) : secp256k1_ge_parse_with_hybrid65(&elem, in);
+    if (res) {
         unsigned char out[65];
         unsigned char firstb;
-        int res;
-        size_t size = len;
         firstb = in[0];
         /* If the pubkey can be parsed, it should round-trip... */
         if (len == 33) {
@@ -6888,13 +6883,13 @@ static void test_random_pubkeys(void) {
         if ((in[0] != 6) && (in[0] != 7)) {
             CHECK(in[0] == out[0]);
         }
-        size = 65;
         secp256k1_ge_serialize65(&elem, in);
-        CHECK(secp256k1_ge_parse(&elem2, in, size));
+        CHECK(secp256k1_ge_parse65(&elem2, in));
         CHECK(secp256k1_ge_eq_var(&elem2, &elem));
         /* Check that the X9.62 hybrid type is checked. */
         in[0] = testrand_bits(1) ? 6 : 7;
-        res = secp256k1_ge_parse(&elem2, in, size);
+        CHECK(secp256k1_ge_parse65(&elem2, in) == 0);
+        res = secp256k1_ge_parse_with_hybrid65(&elem2, in);
         if (firstb == 2 || firstb == 3) {
             if (in[0] == firstb + 4) {
               CHECK(res);
@@ -7550,7 +7545,7 @@ static void run_ecdsa_edge_cases(void) {
         secp256k1_scalar_set_int(&ss, 1);
         secp256k1_scalar_set_int(&msg, 0);
         secp256k1_scalar_set_int(&sr, 0);
-        CHECK(secp256k1_ge_parse(&key, pubkey_mods_zero, 33));
+        CHECK(secp256k1_ge_parse33(&key, pubkey_mods_zero));
         CHECK(secp256k1_ecdsa_sig_verify( &sr, &ss, &key, &msg) == 0);
     }
 
@@ -7569,7 +7564,7 @@ static void run_ecdsa_edge_cases(void) {
         secp256k1_scalar_set_int(&ss, 0);
         secp256k1_scalar_set_int(&msg, 0);
         secp256k1_scalar_set_int(&sr, 1);
-        CHECK(secp256k1_ge_parse(&key, pubkey, 33));
+        CHECK(secp256k1_ge_parse33(&key, pubkey));
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 0);
     }
 
@@ -7596,8 +7591,8 @@ static void run_ecdsa_edge_cases(void) {
         secp256k1_scalar_set_int(&ss, 2);
         secp256k1_scalar_set_int(&msg, 0);
         secp256k1_scalar_set_int(&sr, 2);
-        CHECK(secp256k1_ge_parse(&key, pubkey, 33));
-        CHECK(secp256k1_ge_parse(&key2, pubkey2, 33));
+        CHECK(secp256k1_ge_parse33(&key, pubkey));
+        CHECK(secp256k1_ge_parse33(&key2, pubkey2));
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 1);
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg) == 1);
         secp256k1_scalar_negate(&ss, &ss);
@@ -7637,8 +7632,8 @@ static void run_ecdsa_edge_cases(void) {
         secp256k1_scalar_set_int(&ss, 1);
         secp256k1_scalar_set_int(&msg, 1);
         secp256k1_scalar_set_b32(&sr, csr, NULL);
-        CHECK(secp256k1_ge_parse(&key, pubkey, 33));
-        CHECK(secp256k1_ge_parse(&key2, pubkey2, 33));
+        CHECK(secp256k1_ge_parse33(&key, pubkey));
+        CHECK(secp256k1_ge_parse33(&key2, pubkey2));
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 1);
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key2, &msg) == 1);
         secp256k1_scalar_negate(&ss, &ss);
@@ -7672,7 +7667,7 @@ static void run_ecdsa_edge_cases(void) {
         secp256k1_scalar_set_int(&msg, 1);
         secp256k1_scalar_negate(&msg, &msg);
         secp256k1_scalar_set_b32(&sr, csr, NULL);
-        CHECK(secp256k1_ge_parse(&key, pubkey, 33));
+        CHECK(secp256k1_ge_parse33(&key, pubkey));
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 1);
         secp256k1_scalar_negate(&ss, &ss);
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 1);
