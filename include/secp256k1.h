@@ -345,14 +345,16 @@ SECP256K1_API void secp256k1_context_destroy(
  *
  *  When this function has not been called (or called with fun==NULL), then the
  *  default callback will be used. The library provides a default callback which
- *  writes the message to stderr and calls abort. This default callback can be
- *  replaced at link time if the preprocessor macro
- *  USE_EXTERNAL_DEFAULT_CALLBACKS is defined, which is the case if the build
- *  has been configured with --enable-external-default-callbacks (GNU Autotools) or
- *  -DSECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS=ON (CMake). Then the
- *  following two symbols must be provided to link against:
- *   - void secp256k1_default_illegal_callback_fn(const char *message, void *data);
- *   - void secp256k1_default_error_callback_fn(const char *message, void *data);
+ *  writes the message to stderr and calls abort. The default callbacks can be
+ *  replaced by defining the macros SECP256K1_ILLEGAL_CALLBACK_FN and
+ *  SECP256K1_ERROR_CALLBACK_FN when compiling the library, in the same way as
+ *  SECP256K1_MALLOC and SECP256K1_FREE (see secp256k1_context_create). The
+ *  replacements must have the same signature as the fun argument below.
+ *  The deprecated macro USE_EXTERNAL_DEFAULT_CALLBACKS (set via
+ *  --enable-external-default-callbacks or
+ *  -DSECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS=ON) instead requires the
+ *  functions secp256k1_default_illegal_callback_fn and
+ *  secp256k1_default_error_callback_fn to be provided at link time.
  *  The library may call a default callback even before a proper callback data
  *  pointer could have been set using secp256k1_context_set_illegal_callback or
  *  secp256k1_context_set_error_callback, e.g., when the creation of a context
