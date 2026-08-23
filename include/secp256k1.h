@@ -273,6 +273,11 @@ SECP256K1_API void secp256k1_selftest(void);
  *     allocation, ptr is never NULL and size is the allocated size.
  *   - There are no other allocations and no ordering guarantees.
  *
+ *  Defining SECP256K1_NO_MALLOC instead removes all dynamic memory allocation
+ *  from the library. This function, secp256k1_context_clone, and
+ *  secp256k1_context_destroy are then not built, and secp256k1_context_static
+ *  or the functions in secp256k1_preallocated.h must be used.
+ *
  *  Returns: pointer to a newly created context object.
  *  In:      flags: Always set to SECP256K1_CONTEXT_NONE (see below).
  *

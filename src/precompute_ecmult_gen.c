@@ -8,6 +8,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef SECP256K1_NO_MALLOC
+    #pragma message("Ignoring SECP256K1_NO_MALLOC in precompute_ecmult_gen.")
+    #undef SECP256K1_NO_MALLOC
+#endif
+
 #include "../include/secp256k1.h"
 
 #include "assumptions.h"
