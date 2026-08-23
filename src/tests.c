@@ -15,6 +15,11 @@
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in tests.")
     #undef USE_EXTERNAL_DEFAULT_CALLBACKS
 #endif
+#ifdef SECP256K1_ILLEGAL_CALLBACK_FN
+    #pragma message("Ignoring SECP256K1_ILLEGAL_CALLBACK_FN and SECP256K1_ERROR_CALLBACK_FN in tests.")
+    #undef SECP256K1_ILLEGAL_CALLBACK_FN
+    #undef SECP256K1_ERROR_CALLBACK_FN
+#endif
 #if defined(VERIFY) && defined(COVERAGE)
     #pragma message("Defining VERIFY for tests being built for coverage analysis support is meaningless.")
 #endif

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added
  - The preprocessor macros `SECP256K1_MALLOC` and `SECP256K1_FREE` can be defined when compiling the library to replace `malloc` and `free`. `SECP256K1_FREE` also receives the size of the allocation.
+ - The preprocessor macros `SECP256K1_ILLEGAL_CALLBACK_FN` and `SECP256K1_ERROR_CALLBACK_FN` can be defined when compiling the library to replace the default callbacks.
+
+#### Deprecated
+ - The preprocessor macro `USE_EXTERNAL_DEFAULT_CALLBACKS` and the corresponding build options `--enable-external-default-callbacks` and `SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS`. Define `SECP256K1_ILLEGAL_CALLBACK_FN` and `SECP256K1_ERROR_CALLBACK_FN` instead.
 
 ## [0.8.0] - 2026-08-03
 

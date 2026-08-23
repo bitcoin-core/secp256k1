@@ -69,8 +69,8 @@ struct secp256k1_context_struct {
 static const secp256k1_context secp256k1_context_static_ = {
     { 0 },
     { secp256k1_sha256_transform },
-    { secp256k1_default_illegal_callback_fn, 0 },
-    { secp256k1_default_error_callback_fn, 0 },
+    { SECP256K1_ILLEGAL_CALLBACK_FN, 0 },
+    { SECP256K1_ERROR_CALLBACK_FN, 0 },
     0
 };
 const secp256k1_context * const secp256k1_context_static = &secp256k1_context_static_;
@@ -208,7 +208,7 @@ void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(
        it's harmless and makes testing easier. */
     ARG_CHECK_VOID(ctx != secp256k1_context_static);
     if (fun == NULL) {
-        fun = secp256k1_default_illegal_callback_fn;
+        fun = SECP256K1_ILLEGAL_CALLBACK_FN;
     }
     ctx->illegal_callback.fn = fun;
     ctx->illegal_callback.data = data;
@@ -220,7 +220,7 @@ void secp256k1_context_set_error_callback(secp256k1_context* ctx, void (*fun)(co
        it's harmless and makes testing easier. */
     ARG_CHECK_VOID(ctx != secp256k1_context_static);
     if (fun == NULL) {
-        fun = secp256k1_default_error_callback_fn;
+        fun = SECP256K1_ERROR_CALLBACK_FN;
     }
     ctx->error_callback.fn = fun;
     ctx->error_callback.data = data;
