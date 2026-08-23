@@ -10,6 +10,7 @@
 #include "util.h"
 #include "scratch.h"
 
+#ifndef SECP256K1_NO_MALLOC
 static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* error_callback, size_t size) {
     const size_t base_alloc = ROUND_TO_ALIGN(sizeof(secp256k1_scratch));
     void *alloc;
@@ -40,6 +41,7 @@ static void secp256k1_scratch_destroy(const secp256k1_callback* error_callback, 
         checked_free(scratch, ROUND_TO_ALIGN(sizeof(secp256k1_scratch)) + scratch->max_size);
     }
 }
+#endif /* !SECP256K1_NO_MALLOC */
 
 static size_t secp256k1_scratch_checkpoint(const secp256k1_callback* error_callback, const secp256k1_scratch* scratch) {
     if (secp256k1_memcmp_var(scratch->magic, "scratch", 8) != 0) {

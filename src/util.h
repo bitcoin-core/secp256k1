@@ -186,13 +186,18 @@ static const secp256k1_callback default_error_callback = {
 #endif
 
 /* Memory allocation functions, overridable by defining SECP256K1_MALLOC and
- * SECP256K1_FREE (see secp256k1_context_create for the exact guarantees). */
+ * SECP256K1_FREE (see secp256k1_context_create for the exact guarantees).
+ * Defining SECP256K1_NO_MALLOC removes all uses of these functions instead. */
+#if defined(SECP256K1_NO_MALLOC) && (defined(SECP256K1_MALLOC) || defined(SECP256K1_FREE))
+#  error "SECP256K1_NO_MALLOC cannot be combined with SECP256K1_MALLOC and SECP256K1_FREE"
+#endif
 #if defined(SECP256K1_MALLOC) && !defined(SECP256K1_FREE)
 #  error "SECP256K1_FREE must be defined if SECP256K1_MALLOC is defined"
 #endif
 #if !defined(SECP256K1_MALLOC) && defined(SECP256K1_FREE)
 #  error "SECP256K1_MALLOC must be defined if SECP256K1_FREE is defined"
 #endif
+#ifndef SECP256K1_NO_MALLOC
 #ifndef SECP256K1_MALLOC
 #  define SECP256K1_MALLOC malloc
 #  define SECP256K1_FREE(ptr, size) ((void)(size), free(ptr))
@@ -214,6 +219,7 @@ static SECP256K1_INLINE void checked_free(void *ptr, size_t size) {
     VERIFY_CHECK(size != 0);
     SECP256K1_FREE(ptr, size);
 }
+#endif /* !SECP256K1_NO_MALLOC */
 
 #if defined(__BIGGEST_ALIGNMENT__)
 #define ALIGNMENT __BIGGEST_ALIGNMENT__

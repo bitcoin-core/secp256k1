@@ -25,6 +25,9 @@
     #undef SECP256K1_ILLEGAL_CALLBACK_FN
     #undef SECP256K1_ERROR_CALLBACK_FN
 #endif
+#ifdef SECP256K1_NO_MALLOC
+    #error "The exhaustive tests cannot be built with SECP256K1_NO_MALLOC"
+#endif
 #include "secp256k1.c"
 
 #include "../include/secp256k1.h"

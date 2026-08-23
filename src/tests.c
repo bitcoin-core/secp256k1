@@ -20,6 +20,9 @@
     #undef SECP256K1_ILLEGAL_CALLBACK_FN
     #undef SECP256K1_ERROR_CALLBACK_FN
 #endif
+#ifdef SECP256K1_NO_MALLOC
+    #error "The tests cannot be built with SECP256K1_NO_MALLOC"
+#endif
 #if defined(VERIFY) && defined(COVERAGE)
     #pragma message("Defining VERIFY for tests being built for coverage analysis support is meaningless.")
 #endif
