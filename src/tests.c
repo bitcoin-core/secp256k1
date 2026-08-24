@@ -4646,27 +4646,52 @@ static void test_point_times_order(const secp256k1_gej *point) {
  *     - Output (a*LAMBDA + (ORDER+b)/2) % ORDER
  */
 static const secp256k1_scalar scalars_near_split_bounds[20] = {
-    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0x3aa0585c, 0xc5ea2367, 0xe1b660db, 0x0209e6fc),
-    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0x3aa0585c, 0xc5ea2367, 0xe1b660db, 0x0209e6fd),
-    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0x3aa0585c, 0xc5ea2367, 0xe1b660db, 0x0209e6fe),
-    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0x3aa0585c, 0xc5ea2367, 0xe1b660db, 0x0209e6ff),
-    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0xb294b893, 0x3722e9a5, 0x00e698ca, 0x4cf7632d),
-    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0xb294b893, 0x3722e9a5, 0x00e698ca, 0x4cf7632e),
-    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0xb294b893, 0x3722e9a5, 0x00e698ca, 0x4cf7632f),
-    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0xb294b893, 0x3722e9a5, 0x00e698ca, 0x4cf76330),
-    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xd576e735, 0x57a4501d, 0xdfe92f46, 0x681b209f),
-    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xd576e735, 0x57a4501d, 0xdfe92f46, 0x681b20a0),
-    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xd576e735, 0x57a4501d, 0xdfe92f46, 0x681b20a1),
-    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xd576e735, 0x57a4501d, 0xdfe92f46, 0x681b20a2),
-    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0xf85915d7, 0x7825b696, 0xbeebc5c2, 0x833ede11),
-    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0xf85915d7, 0x7825b696, 0xbeebc5c2, 0x833ede12),
-    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0xf85915d7, 0x7825b696, 0xbeebc5c2, 0x833ede13),
-    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0xf85915d7, 0x7825b696, 0xbeebc5c2, 0x833ede14),
-    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0x704d760e, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a42),
-    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0x704d760e, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a43),
-    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0x704d760e, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a44),
-    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0x704d760e, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a45)
+    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0xf3aa0585, 0xc5ea2367, 0xe1b660db, 0x0209e6fc),
+    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0xf3aa0585, 0xc5ea2367, 0xe1b660db, 0x0209e6fd),
+    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0xf3aa0585, 0xc5ea2367, 0xe1b660db, 0x0209e6fe),
+    SECP256K1_SCALAR_CONST(0xd938a566, 0x7f479e3e, 0xb5b3c7fa, 0xefdb3749, 0xf3aa0585, 0xc5ea2367, 0xe1b660db, 0x0209e6ff),
+    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0x4b294b89, 0x3722e9a5, 0x00e698ca, 0x4cf7632d),
+    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0x4b294b89, 0x3722e9a5, 0x00e698ca, 0x4cf7632e),
+    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0x4b294b89, 0x3722e9a5, 0x00e698ca, 0x4cf7632f),
+    SECP256K1_SCALAR_CONST(0x2c9c52b3, 0x3fa3cf1f, 0x5ad9e3fd, 0x77ed9ba5, 0x4b294b89, 0x3722e9a5, 0x00e698ca, 0x4cf76330),
+    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x5d576e73, 0x57a4501d, 0xdfe92f46, 0x681b209f),
+    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x5d576e73, 0x57a4501d, 0xdfe92f46, 0x681b20a0),
+    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x5d576e73, 0x57a4501d, 0xdfe92f46, 0x681b20a1),
+    SECP256K1_SCALAR_CONST(0x7fffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0x5d576e73, 0x57a4501d, 0xdfe92f46, 0x681b20a2),
+    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0x6f85915d, 0x7825b696, 0xbeebc5c2, 0x833ede11),
+    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0x6f85915d, 0x7825b696, 0xbeebc5c2, 0x833ede12),
+    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0x6f85915d, 0x7825b696, 0xbeebc5c2, 0x833ede13),
+    SECP256K1_SCALAR_CONST(0xd363ad4c, 0xc05c30e0, 0xa5261c02, 0x88126459, 0x6f85915d, 0x7825b696, 0xbeebc5c2, 0x833ede14),
+    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0xc704d760, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a42),
+    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0xc704d760, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a43),
+    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0xc704d760, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a44),
+    SECP256K1_SCALAR_CONST(0x26c75a99, 0x80b861c1, 0x4a4c3805, 0x1024c8b4, 0xc704d760, 0xe95e7cd3, 0xde1bfdb1, 0xce2c5a45)
 };
+
+static void test_scalar_split_bound_vectors(void) {
+    static const int a_values[] = {-2, -1, 0, 1, 2};
+    static const int b_values[] = {-3, -1, 1, 3};
+    size_t i, j;
+
+    for (i = 0; i < ARRAY_SIZE(a_values); ++i) {
+        for (j = 0; j < ARRAY_SIZE(b_values); ++j) {
+            secp256k1_scalar a, b, expected;
+
+            secp256k1_scalar_set_int(&a, a_values[i] < 0 ? -a_values[i] : a_values[i]);
+            if (a_values[i] < 0) {
+                secp256k1_scalar_negate(&a, &a);
+            }
+            secp256k1_scalar_mul(&a, &a, &secp256k1_const_lambda);
+            secp256k1_scalar_set_int(&b, b_values[j] < 0 ? -b_values[j] : b_values[j]);
+            if (b_values[j] < 0) {
+                secp256k1_scalar_negate(&b, &b);
+            }
+            secp256k1_scalar_half(&b, &b);
+            secp256k1_scalar_add(&expected, &a, &b);
+            CHECK(secp256k1_scalar_eq(&expected, &scalars_near_split_bounds[i * ARRAY_SIZE(b_values) + j]));
+        }
+    }
+}
 
 static void test_ecmult_target(const secp256k1_scalar* target, int mode) {
     /* Mode: 0=ecmult_gen, 1=ecmult, 2=ecmult_const */
@@ -4709,6 +4734,8 @@ static void test_ecmult_target(const secp256k1_scalar* target, int mode) {
 static void run_ecmult_near_split_bound(void) {
     int i;
     unsigned j;
+
+    test_scalar_split_bound_vectors();
     for (i = 0; i < 4*COUNT; ++i) {
         for (j = 0; j < ARRAY_SIZE(scalars_near_split_bounds); ++j) {
             test_ecmult_target(&scalars_near_split_bounds[j], 0);
