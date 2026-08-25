@@ -559,7 +559,7 @@ SECP256K1_INLINE static void secp256k1_gej_impl_double_var(secp256k1_gej *r, con
 static void secp256k1_gej_double_var(secp256k1_gej *r, const secp256k1_gej *a, secp256k1_fe *rzr) {
     SECP256K1_GEJ_VERIFY(a);
     secp256k1_gej_impl_double_var(r, a, rzr);
-    SECP256K1_GEJ_VERIFY(r);
+    SECP256K1_GEJ_VERIFY(r); if (rzr != NULL) SECP256K1_FE_VERIFY(rzr);
 }
 
 SECP256K1_INLINE static void secp256k1_gej_impl_add_var(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_gej *b, secp256k1_fe *rzr) {
@@ -624,7 +624,7 @@ SECP256K1_INLINE static void secp256k1_gej_impl_add_var(secp256k1_gej *r, const 
 static void secp256k1_gej_add_var(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_gej *b, secp256k1_fe *rzr) {
     SECP256K1_GEJ_VERIFY(a); SECP256K1_GEJ_VERIFY(b);
     secp256k1_gej_impl_add_var(r, a, b, rzr);
-    SECP256K1_GEJ_VERIFY(r);
+    SECP256K1_GEJ_VERIFY(r); if (rzr != NULL) SECP256K1_FE_VERIFY(rzr);
 }
 
 SECP256K1_INLINE static void secp256k1_gej_impl_add_ge_var(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_ge *b, secp256k1_fe *rzr) {
