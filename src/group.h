@@ -87,6 +87,15 @@ static void secp256k1_ge_set_all_gej(secp256k1_ge *r, const secp256k1_gej *a, si
 /** Set group elements r[0:len] (affine) equal to group elements a[0:len] (jacobian). */
 static void secp256k1_ge_set_all_gej_var(secp256k1_ge *r, const secp256k1_gej *a, size_t len);
 
+
+/** Set r to the affine coordinates of the Jacobian point (a.x, a.y, 1/zi).
+ *  a must not be infinity. */
+static void secp256k1_ge_set_ge_zinv(secp256k1_ge *r, const secp256k1_ge *a, const secp256k1_fe *zi);
+
+/** Set r to the affine coordinates of the Jacobian point (a.x, a.y, 1/zi), ignoring a.z.
+ *  a must not be infinity. */
+static void secp256k1_ge_set_gej_zinv(secp256k1_ge *r, const secp256k1_gej *a, const secp256k1_fe *zi);
+
 /** Bring a batch of inputs to the same global z "denominator", based on ratios between
  *  (omitted) z coordinates of adjacent elements.
  *
