@@ -702,7 +702,6 @@ SECP256K1_INLINE static void secp256k1_gej_impl_add_zinv_var(secp256k1_gej *r, c
         secp256k1_fe_mul(&r->x, &b->x, &bzinv2);
         secp256k1_fe_mul(&r->y, &b->y, &bzinv3);
         secp256k1_fe_set_int(&r->z, 1);
-        SECP256K1_GEJ_VERIFY(r);
         return;
     }
     if (b->infinity) {
