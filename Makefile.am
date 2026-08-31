@@ -221,6 +221,19 @@ silentpayments_example_LDFLAGS += -lbcrypt
 endif
 TESTS += silentpayments_example
 endif
+if ENABLE_MODULE_DLEQ
+if ENABLE_MODULE_ECDH
+noinst_PROGRAMS += dleq_example
+dleq_example_SOURCES = examples/dleq.c
+dleq_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
+dleq_example_LDADD = libsecp256k1.la
+dleq_example_LDFLAGS = -static
+if BUILD_WINDOWS
+dleq_example_LDFLAGS += -lbcrypt
+endif
+TESTS += dleq_example
+endif
+endif
 endif
 
 ### Precomputed tables
