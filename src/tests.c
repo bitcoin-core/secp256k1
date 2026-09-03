@@ -6828,6 +6828,18 @@ static void test_ecdsa_end_to_end(void) {
     memset(&signature[0], 0, sizeof(signature[0]));
     CHECK(secp256k1_ecdsa_signature_parse_der(CTX, &signature[0], sig, siglen) == 1);
     CHECK(secp256k1_ecdsa_verify(CTX, &signature[0], message, &pubkey) == 1);
+    /* Serializing into a buffer of exactly the required size succeeds and
+     * yields the same encoding; one byte less fails and reports the size. */
+    {
+        unsigned char sig2[74];
+        size_t siglen2 = siglen;
+        CHECK(secp256k1_ecdsa_signature_serialize_der(CTX, sig2, &siglen2, &signature[0]) == 1);
+        CHECK(siglen2 == siglen);
+        CHECK(secp256k1_memcmp_var(sig2, sig, siglen) == 0);
+        siglen2 = siglen - 1;
+        CHECK(secp256k1_ecdsa_signature_serialize_der(CTX, sig2, &siglen2, &signature[0]) == 0);
+        CHECK(siglen2 == siglen);
+    }
     /* Serialize/destroy/parse DER and verify again. */
     siglen = 74;
     CHECK(secp256k1_ecdsa_signature_serialize_der(CTX, sig, &siglen, &signature[0]) == 1);
