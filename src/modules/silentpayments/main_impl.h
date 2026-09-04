@@ -760,34 +760,25 @@ int secp256k1_silentpayments_recipient_scan_outputs(
             }
         }
         if (found_idx != -1) {
+            secp256k1_scalar final_tweak_scalar = t_k_scalar;
             found_outputs[k]->output = *tx_outputs[found_idx];
-            secp256k1_scalar_get_b32(found_outputs[k]->tweak, &t_k_scalar);
             /* Clear the t_k_scalar since we no longer need it and leaking this value would
              * break indistinguishability of the transaction. */
             secp256k1_scalar_clear(&t_k_scalar);
             if (label_tweak != NULL) {
+                secp256k1_scalar label_tweak_scalar;
                 found_outputs[k]->found_with_label = 1;
-                /* This is extremely unlikely to fail in that it can only really happen if label_tweak
-                 * is the negation of the shared secret tweak. But since both tweak and label_tweak are
-                 * created by hashing data, practically speaking this would only happen if an attacker
-                 * tricked us into using a particular label_tweak (deviating from the protocol).
-                 * Note that this call could also fail due to a malformed label_tweak data from the
-                 * label cache, but we generally assume the passed in data is created using the API
-                 * functions and thus have already been checked for correctness.
-                 *
-                 * Furthermore, although technically a failure for ec_seckey_tweak_add, this is not treated
-                 * as a failure for Silent Payments because the output is still spendable with just the
-                 * spend secret key. We set `tweak = 0` for this case.
-                 */
-                if (!secp256k1_ec_seckey_tweak_add(ctx, found_outputs[k]->tweak, label_tweak)) {
-                    memset(found_outputs[k]->tweak, 0, 32);
-                }
+                secp256k1_scalar_set_b32(&label_tweak_scalar, label_tweak, NULL);
+                secp256k1_scalar_add(&final_tweak_scalar, &final_tweak_scalar, &label_tweak_scalar);
+                secp256k1_scalar_clear(&label_tweak_scalar);
                 secp256k1_silentpayments_label_save(&found_outputs[k]->label, &label_ge);
             } else {
                 found_outputs[k]->found_with_label = 0;
                 /* Set the label to an invalid value. */
                 memset(&found_outputs[k]->label, 0, sizeof(found_outputs[k]->label));
             }
+            secp256k1_scalar_get_b32(found_outputs[k]->tweak, &final_tweak_scalar);
+            secp256k1_scalar_clear(&final_tweak_scalar);
             /* Reset everything for the next round of scanning. */
             label_tweak = NULL;
         } else {
