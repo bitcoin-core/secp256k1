@@ -104,7 +104,7 @@ SECP256K1_INLINE static void secp256k1_ge_impl_set_gej_zinv(secp256k1_ge *r, con
     secp256k1_fe_mul(&zi3, &zi2, zi);
     secp256k1_fe_mul(&r->x, &a->x, &zi2);
     secp256k1_fe_mul(&r->y, &a->y, &zi3);
-    r->infinity = a->infinity;
+    r->infinity = 0;
 }
 static void secp256k1_ge_set_gej_zinv(secp256k1_ge *r, const secp256k1_gej *a, const secp256k1_fe *zi) {
     SECP256K1_GEJ_VERIFY(a); SECP256K1_FE_VERIFY(zi);
@@ -121,7 +121,7 @@ SECP256K1_INLINE static void secp256k1_ge_impl_set_ge_zinv(secp256k1_ge *r, cons
     secp256k1_fe_mul(&zi3, &zi2, zi);
     secp256k1_fe_mul(&r->x, &a->x, &zi2);
     secp256k1_fe_mul(&r->y, &a->y, &zi3);
-    r->infinity = a->infinity;
+    r->infinity = 0;
 }
 static void secp256k1_ge_set_ge_zinv(secp256k1_ge *r, const secp256k1_ge *a, const secp256k1_fe *zi) {
     SECP256K1_GE_VERIFY(a); SECP256K1_FE_VERIFY(zi);
