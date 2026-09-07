@@ -75,7 +75,7 @@ int main(void) {
     fprintf(fp, "#include \"precomputed_ecmult.h\"\n");
     fprintf(fp, "#define S(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) SECP256K1_GE_STORAGE_CONST(0x##a##u,0x##b##u,0x##c##u,0x##d##u,0x##e##u,0x##f##u,0x##g##u,0x##h##u,0x##i##u,0x##j##u,0x##k##u,0x##l##u,0x##m##u,0x##n##u,0x##o##u,0x##p##u)\n");
     fprintf(fp, "#if ECMULT_WINDOW_SIZE > %d\n", window_g);
-    fprintf(fp, "   #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. Try deleting precomputed_ecmult.c before the build.\n");
+    fprintf(fp, "   #error configuration mismatch, invalid ECMULT_WINDOW_SIZE. If this is an Autotools build, try deleting precomputed_ecmult.c before the build. If this is a CMake build, pass -DSECP256K1_BUILD_PRECOMPUTED=ON to cmake.\n");
     fprintf(fp, "#endif\n");
     fprintf(fp, "#ifdef EXHAUSTIVE_TEST_ORDER\n");
     fprintf(fp, "#    error Cannot compile precomputed_ecmult.c in exhaustive test mode\n");
