@@ -210,22 +210,18 @@ int secp256k1_silentpayments_sender_create_outputs(
     ARG_CHECK(recipients != NULL);
     ARG_CHECK(n_recipients > 0);
     ARG_CHECK(outpoint_smallest36 != NULL);
-    ARG_CHECK((seckeys != NULL) || (keypairs != NULL));
-    if (keypairs != NULL) {
-        ARG_CHECK(n_keypairs > 0);
+    ARG_CHECK((n_seckeys > 0) || (n_keypairs > 0));
+    if (n_keypairs > 0) {
+        ARG_CHECK(keypairs != NULL);
         for (i = 0; i < n_keypairs; i++) {
             ARG_CHECK(keypairs[i] != NULL);
         }
-    } else {
-        ARG_CHECK(n_keypairs == 0);
     }
-    if (seckeys != NULL) {
-        ARG_CHECK(n_seckeys > 0);
+    if (n_seckeys > 0) {
+        ARG_CHECK(seckeys != NULL);
         for (i = 0; i < n_seckeys; i++) {
             ARG_CHECK(seckeys[i] != NULL);
         }
-    } else {
-        ARG_CHECK(n_seckeys == 0);
     }
     for (i = 0; i < n_recipients; i++) {
         ARG_CHECK(generated_outputs[i] != NULL);
@@ -504,22 +500,18 @@ int secp256k1_silentpayments_recipient_prevouts_summary_create(
     ARG_CHECK(prevouts_summary != NULL);
     memset(prevouts_summary, 0, sizeof(*prevouts_summary));
     ARG_CHECK(outpoint_smallest36 != NULL);
-    ARG_CHECK((pubkeys != NULL) || (xonly_pubkeys != NULL));
-    if (xonly_pubkeys != NULL) {
-        ARG_CHECK(n_xonly_pubkeys > 0);
+    ARG_CHECK((n_pubkeys > 0) || (n_xonly_pubkeys > 0));
+    if (n_xonly_pubkeys > 0) {
+        ARG_CHECK(xonly_pubkeys != NULL);
         for (i = 0; i < n_xonly_pubkeys; i++) {
             ARG_CHECK(xonly_pubkeys[i] != NULL);
         }
-    } else {
-        ARG_CHECK(n_xonly_pubkeys == 0);
     }
-    if (pubkeys != NULL) {
-        ARG_CHECK(n_pubkeys > 0);
+    if (n_pubkeys > 0) {
+        ARG_CHECK(pubkeys != NULL);
         for (i = 0; i < n_pubkeys; i++) {
             ARG_CHECK(pubkeys[i] != NULL);
         }
-    } else {
-        ARG_CHECK(n_pubkeys == 0);
     }
 
     /* Compute prevouts_pubkey_sum = A_1 + A_2 + ... + A_n.
