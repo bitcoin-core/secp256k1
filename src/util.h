@@ -103,7 +103,24 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
     cb->fn(text, (void*)cb->data);
 }
 
-#ifndef USE_EXTERNAL_DEFAULT_CALLBACKS
+/* Default callbacks, overridable by defining SECP256K1_ILLEGAL_CALLBACK_FN and
+ * SECP256K1_ERROR_CALLBACK_FN (see secp256k1_context_set_illegal_callback). */
+#if defined(SECP256K1_ILLEGAL_CALLBACK_FN) && !defined(SECP256K1_ERROR_CALLBACK_FN)
+#  error "SECP256K1_ERROR_CALLBACK_FN must be defined if SECP256K1_ILLEGAL_CALLBACK_FN is defined"
+#endif
+#if !defined(SECP256K1_ILLEGAL_CALLBACK_FN) && defined(SECP256K1_ERROR_CALLBACK_FN)
+#  error "SECP256K1_ILLEGAL_CALLBACK_FN must be defined if SECP256K1_ERROR_CALLBACK_FN is defined"
+#endif
+#if defined(USE_EXTERNAL_DEFAULT_CALLBACKS)
+/* Deprecated, use the macros above instead. */
+#  if defined(SECP256K1_ILLEGAL_CALLBACK_FN)
+#    error "USE_EXTERNAL_DEFAULT_CALLBACKS cannot be combined with SECP256K1_ILLEGAL_CALLBACK_FN and SECP256K1_ERROR_CALLBACK_FN"
+#  endif
+void secp256k1_default_illegal_callback_fn(const char* str, void* data);
+void secp256k1_default_error_callback_fn(const char* str, void* data);
+#  define SECP256K1_ILLEGAL_CALLBACK_FN secp256k1_default_illegal_callback_fn
+#  define SECP256K1_ERROR_CALLBACK_FN secp256k1_default_error_callback_fn
+#elif !defined(SECP256K1_ILLEGAL_CALLBACK_FN)
 static void secp256k1_default_illegal_callback_fn(const char* str, void* data) {
     (void)data;
     fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
@@ -114,18 +131,17 @@ static void secp256k1_default_error_callback_fn(const char* str, void* data) {
     fprintf(stderr, "[libsecp256k1] internal consistency check failed: %s\n", str);
     abort();
 }
-#else
-void secp256k1_default_illegal_callback_fn(const char* str, void* data);
-void secp256k1_default_error_callback_fn(const char* str, void* data);
+#  define SECP256K1_ILLEGAL_CALLBACK_FN secp256k1_default_illegal_callback_fn
+#  define SECP256K1_ERROR_CALLBACK_FN secp256k1_default_error_callback_fn
 #endif
 
 static const secp256k1_callback default_illegal_callback = {
-    secp256k1_default_illegal_callback_fn,
+    SECP256K1_ILLEGAL_CALLBACK_FN,
     NULL
 };
 
 static const secp256k1_callback default_error_callback = {
-    secp256k1_default_error_callback_fn,
+    SECP256K1_ERROR_CALLBACK_FN,
     NULL
 };
 
@@ -169,13 +185,41 @@ static const secp256k1_callback default_error_callback = {
 #define VERIFY_CHECK(cond)
 #endif
 
+/* Memory allocation functions, overridable by defining SECP256K1_MALLOC and
+ * SECP256K1_FREE (see secp256k1_context_create for the exact guarantees).
+ * Defining SECP256K1_NO_MALLOC removes all uses of these functions instead. */
+#if defined(SECP256K1_NO_MALLOC) && (defined(SECP256K1_MALLOC) || defined(SECP256K1_FREE))
+#  error "SECP256K1_NO_MALLOC cannot be combined with SECP256K1_MALLOC and SECP256K1_FREE"
+#endif
+#if defined(SECP256K1_MALLOC) && !defined(SECP256K1_FREE)
+#  error "SECP256K1_FREE must be defined if SECP256K1_MALLOC is defined"
+#endif
+#if !defined(SECP256K1_MALLOC) && defined(SECP256K1_FREE)
+#  error "SECP256K1_MALLOC must be defined if SECP256K1_FREE is defined"
+#endif
+#ifndef SECP256K1_NO_MALLOC
+#ifndef SECP256K1_MALLOC
+#  define SECP256K1_MALLOC malloc
+#  define SECP256K1_FREE(ptr, size) ((void)(size), free(ptr))
+#endif
+
 static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_t size) {
-    void *ret = malloc(size);
+    void *ret;
+    VERIFY_CHECK(size != 0);
+    ret = SECP256K1_MALLOC(size);
     if (ret == NULL) {
         secp256k1_callback_call(cb, "Out of memory");
     }
     return ret;
 }
+
+/* size must be the size that was passed to checked_malloc for this pointer. */
+static SECP256K1_INLINE void checked_free(void *ptr, size_t size) {
+    VERIFY_CHECK(ptr != NULL);
+    VERIFY_CHECK(size != 0);
+    SECP256K1_FREE(ptr, size);
+}
+#endif /* !SECP256K1_NO_MALLOC */
 
 #if defined(__BIGGEST_ALIGNMENT__)
 #define ALIGNMENT __BIGGEST_ALIGNMENT__

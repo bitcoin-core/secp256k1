@@ -20,6 +20,14 @@
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in exhaustive_tests.")
     #undef USE_EXTERNAL_DEFAULT_CALLBACKS
 #endif
+#ifdef SECP256K1_ILLEGAL_CALLBACK_FN
+    #pragma message("Ignoring SECP256K1_ILLEGAL_CALLBACK_FN and SECP256K1_ERROR_CALLBACK_FN in exhaustive_tests.")
+    #undef SECP256K1_ILLEGAL_CALLBACK_FN
+    #undef SECP256K1_ERROR_CALLBACK_FN
+#endif
+#ifdef SECP256K1_NO_MALLOC
+    #error "The exhaustive tests cannot be built with SECP256K1_NO_MALLOC"
+#endif
 #include "secp256k1.c"
 
 #include "../include/secp256k1.h"
