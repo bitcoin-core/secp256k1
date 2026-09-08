@@ -14,6 +14,7 @@
  * Multiply: R = q*A (in constant-time for q)
  */
 static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, const secp256k1_scalar *q);
+static void secp256k1_ecmult_const_ge(secp256k1_ge *r, const secp256k1_ge *a, const secp256k1_scalar *q);
 
 /**
  * Same as secp256k1_ecmult_const, but takes in an x coordinate of the base point

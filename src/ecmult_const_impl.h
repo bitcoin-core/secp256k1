@@ -265,6 +265,15 @@ static void secp256k1_ecmult_const(secp256k1_gej *r, const secp256k1_ge *a, cons
     secp256k1_fe_mul(&r->z, &r->z, &global_z);
 }
 
+SECP256K1_INLINE static void secp256k1_ecmult_const_ge(secp256k1_ge *r, const secp256k1_ge *a, const secp256k1_scalar *q) {
+    secp256k1_gej rj;
+    secp256k1_ecmult_const(&rj, a, q);
+    secp256k1_ge_set_gej(r, &rj);
+    /* Jacobian coordinates resulting from our multiplication algorithm could potentially leak
+     * information about the secret input scalar, so clear the memory out to be on the safe side. */
+    secp256k1_gej_clear(&rj);
+}
+
 static int secp256k1_ecmult_const_xonly(secp256k1_fe* r, const secp256k1_fe *n, const secp256k1_fe *d, const secp256k1_scalar *q, int known_on_curve) {
 
     /* This algorithm is a generalization of Peter Dettman's technique for

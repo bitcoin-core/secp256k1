@@ -86,14 +86,12 @@ static int secp256k1_silentpayments_calculate_input_hash_scalar(const secp256k1_
 }
 
 static void secp256k1_silentpayments_create_shared_secret(unsigned char *shared_secret33, const secp256k1_ge *public_component, const secp256k1_scalar *secret_component) {
-    secp256k1_gej ss_j;
     secp256k1_ge ss;
 
     VERIFY_CHECK(!secp256k1_ge_is_infinity(public_component));
     VERIFY_CHECK(!secp256k1_scalar_is_zero(secret_component));
 
-    secp256k1_ecmult_const(&ss_j, public_component, secret_component);
-    secp256k1_ge_set_gej(&ss, &ss_j);
+    secp256k1_ecmult_const_ge(&ss, public_component, secret_component);
 
     /* serialize shared secret in constant-time */
     secp256k1_fe_normalize(&ss.x);
@@ -103,7 +101,6 @@ static void secp256k1_silentpayments_create_shared_secret(unsigned char *shared_
 
     /* Leaking these values would break indistinguishability of the transaction, so clear them. */
     secp256k1_ge_clear(&ss);
-    secp256k1_gej_clear(&ss_j);
 }
 
 /** Set hash state to the BIP340 tagged hash midstate for "BIP0352/SharedSecret". */
