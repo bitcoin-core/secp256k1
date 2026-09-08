@@ -4769,21 +4769,15 @@ static void ecmult_const_random_mult(void) {
 static void ecmult_const_commutativity(void) {
     secp256k1_scalar a;
     secp256k1_scalar b;
-    secp256k1_gej res1;
-    secp256k1_gej res2;
     secp256k1_ge mid1;
     secp256k1_ge mid2;
     testutil_random_scalar_order_test(&a);
     testutil_random_scalar_order_test(&b);
 
-    secp256k1_ecmult_const_gej(&res1, &secp256k1_ge_const_g, &a);
-    secp256k1_ecmult_const_gej(&res2, &secp256k1_ge_const_g, &b);
-    secp256k1_ge_set_gej(&mid1, &res1);
-    secp256k1_ge_set_gej(&mid2, &res2);
-    secp256k1_ecmult_const_gej(&res1, &mid1, &b);
-    secp256k1_ecmult_const_gej(&res2, &mid2, &a);
-    secp256k1_ge_set_gej(&mid1, &res1);
-    secp256k1_ge_set_gej(&mid2, &res2);
+    secp256k1_ecmult_const_ge(&mid1, &secp256k1_ge_const_g, &a);
+    secp256k1_ecmult_const_ge(&mid2, &secp256k1_ge_const_g, &b);
+    secp256k1_ecmult_const_ge(&mid1, &mid1, &b);
+    secp256k1_ecmult_const_ge(&mid2, &mid2, &a);
     CHECK(secp256k1_ge_eq_var(&mid1, &mid2));
 }
 
@@ -4923,17 +4917,12 @@ static void ecmult_const_chain_multiply(void) {
         0x5d195d20, 0xe191bf7f, 0x1be3e55f, 0x56a80196,
         0x6071ad01, 0xf1462f66, 0xc997fa94, 0xdb858435
     );
-    secp256k1_gej point;
-    secp256k1_ge res;
+    secp256k1_ge res = secp256k1_ge_const_g;
     int i;
 
-    secp256k1_gej_set_ge(&point, &secp256k1_ge_const_g);
     for (i = 0; i < 100; ++i) {
-        secp256k1_ge tmp;
-        secp256k1_ge_set_gej(&tmp, &point);
-        secp256k1_ecmult_const_gej(&point, &tmp, &scalar);
+        secp256k1_ecmult_const_ge(&res, &res, &scalar);
     }
-    secp256k1_ge_set_gej(&res, &point);
     CHECK(secp256k1_gej_eq_ge_var(&expected_point, &res));
 }
 
