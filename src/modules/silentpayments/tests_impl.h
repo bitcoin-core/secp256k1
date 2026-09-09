@@ -278,6 +278,23 @@ static void test_send_api(void) {
     p[0] = MALFORMED_SECKEY;
     CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p, 1) == 0);
     p[0] = ALICE_SECKEY;
+    /* Check that an invalid plain secret key is caught even when it is passed alongside a valid one.
+     * With a single invalid key, the failure would also be caught by the subsequent zero-sum check,
+     * so use two keys to ensure the seckey loop itself rejects the invalid key. The invalid key is
+     * tested in both positions so that neither the first nor the last key is skipped by the check. */
+    {
+        unsigned char const *p2[2];
+        p2[0] = ALICE_SECKEY;
+        p2[1] = MALFORMED_SECKEY;
+        CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p2, 2) == 0);
+        p2[1] = secp256k1_group_order_bytes;
+        CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p2, 2) == 0);
+        p2[0] = MALFORMED_SECKEY;
+        p2[1] = ALICE_SECKEY;
+        CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p2, 2) == 0);
+        p2[0] = secp256k1_group_order_bytes;
+        CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p2, 2) == 0);
+    }
     /* Create malformed recipients by setting all of the public key bytes to zero.
      * Realistically, this would never happen since a bad public key would get caught when
      * trying to parse the public key with _ec_pubkey_parse
