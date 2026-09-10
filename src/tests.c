@@ -6258,6 +6258,12 @@ static void run_ec_pubkey_parse_test(void) {
         0xA8, 0xFD, 0x17, 0xB4, 0x48, 0xA6, 0x85, 0x54, 0x19, 0x9C, 0x47, 0xD0, 0x8F, 0xFB, 0x10, 0xD4,
         0xB8, 0x00
     };
+    const unsigned char pubkeyc_comp[34] = {
+        /* Compressed serialization of G (y is even, so prefix is 0x02). */
+        0x02, 0x79, 0xBE, 0x66, 0x7E, 0xF9, 0xDC, 0xBB, 0xAC, 0x55, 0xA0, 0x62, 0x95, 0xCE, 0x87, 0x0B,
+        0x07, 0x02, 0x9B, 0xFC, 0xDB, 0x2D, 0xCE, 0x28, 0xD9, 0x59, 0xF2, 0x81, 0x5B, 0x16, 0xF8, 0x17,
+        0x98, 0x00
+    };
     unsigned char sout[65];
     unsigned char shortkey[2] = { 0 };
     secp256k1_ge ge;
@@ -6265,8 +6271,9 @@ static void run_ec_pubkey_parse_test(void) {
     size_t len;
     int32_t i;
 
-    /* Nothing should be reading this far into pubkeyc. */
+    /* Nothing should be reading this far into pubkeyc and pubkeyc_comp. */
     SECP256K1_CHECKMEM_UNDEFINE(&pubkeyc[65], 1);
+    SECP256K1_CHECKMEM_UNDEFINE(&pubkeyc_comp[33], 1);
     /* Zero length claimed, fail, zeroize, no illegal arg error. */
     memset(&pubkey, 0xfe, sizeof(pubkey));
     SECP256K1_CHECKMEM_UNDEFINE(shortkey, 2);
@@ -6294,6 +6301,8 @@ static void run_ec_pubkey_parse_test(void) {
         SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(pubkey));
         CHECK_ILLEGAL(CTX, secp256k1_pubkey_load(CTX, &ge, &pubkey));
     }
+
+    /* Uncompressed public key parsing and serialization. */
     memset(&pubkey, 0xfe, sizeof(pubkey));
     SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
     /* 33 bytes claimed on otherwise valid input starting with 0x04, fail, zeroize output, no illegal arg error. */
@@ -6352,6 +6361,44 @@ static void run_ec_pubkey_parse_test(void) {
     CHECK(len == 65);
     /* Multiple illegal args. Should still set arg error only once. */
     CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_parse(CTX, NULL, NULL, 65));
+
+    /* Compressed public key parsing and serialization. */
+    /* 32 bytes claimed on otherwise valid compressed input starting with 0x02, fail, zeroize output, no illegal arg error. */
+    memset(&pubkey, 0xfe, sizeof(pubkey));
+    SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pubkeyc_comp, 32) == 0);
+    SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(pubkey));
+    CHECK_ILLEGAL(CTX, secp256k1_pubkey_load(CTX, &ge, &pubkey));
+    /* 34 bytes claimed on otherwise valid compressed input starting with 0x02, fail, zeroize output, no illegal arg error. */
+    memset(&pubkey, 0xfe, sizeof(pubkey));
+    SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pubkeyc_comp, 34) == 0);
+    SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(pubkey));
+    CHECK_ILLEGAL(CTX, secp256k1_pubkey_load(CTX, &ge, &pubkey));
+    /* Valid compressed parse at length 33. */
+    memset(&pubkey, 0, sizeof(pubkey));
+    SECP256K1_CHECKMEM_UNDEFINE(&pubkey, sizeof(pubkey));
+    CHECK(secp256k1_ec_pubkey_parse(CTX, &pubkey, pubkeyc_comp, 33) == 1);
+    CHECK(secp256k1_ec_pubkey_parse(secp256k1_context_static, &pubkey, pubkeyc_comp, 33) == 1);
+    SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(pubkey));
+    SECP256K1_CHECKMEM_UNDEFINE(&ge, sizeof(ge));
+    CHECK(secp256k1_pubkey_load(CTX, &ge, &pubkey) == 1);
+    SECP256K1_CHECKMEM_CHECK(&ge.x, sizeof(ge.x));
+    SECP256K1_CHECKMEM_CHECK(&ge.y, sizeof(ge.y));
+    SECP256K1_CHECKMEM_CHECK(&ge.infinity, sizeof(ge.infinity));
+    CHECK(secp256k1_ge_eq_var(&ge, &secp256k1_ge_const_g));
+    /* secp256k1_ec_pubkey_serialize with too small output buffer, illegal arg error. Length is left untouched. */
+    len = 32;
+    CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_serialize(CTX, sout, &len, &pubkey, SECP256K1_EC_COMPRESSED));
+    CHECK(len == 32);
+    /* Valid compressed serialization, must round-trip to the input. */
+    len = 33;
+    SECP256K1_CHECKMEM_UNDEFINE(sout, 65);
+    CHECK(secp256k1_ec_pubkey_serialize(CTX, sout, &len, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
+    SECP256K1_CHECKMEM_CHECK(sout, 33);
+    CHECK(len == 33);
+    CHECK(secp256k1_memcmp_var(sout, pubkeyc_comp, 33) == 0);
+
     /* Try a bunch of prefabbed points with all possible encodings. */
     for (i = 0; i < SECP256K1_EC_PARSE_TEST_NVALID; i++) {
         ec_pubkey_parse_pointtest(valid[i], 1, 1);
