@@ -101,8 +101,7 @@ static void secp256k1_musig_keyaggcoef_sha256(secp256k1_sha256 *sha) {
 /* Compute KeyAgg coefficient which is constant 1 for the second pubkey and
  * otherwise tagged_hash(pks_hash, pk) where pks_hash is the hash of public keys.
  * second_pk is the point at infinity in case there is no second_pk. Assumes
- * that pk is not the point at infinity and that the Y-coordinates of pk and
- * second_pk are normalized. */
+ * that pk is not the point at infinity. */
 static void secp256k1_musig_keyaggcoef_internal(const secp256k1_hash_ctx *hash_ctx, secp256k1_scalar *r, const unsigned char *pks_hash, secp256k1_ge *pk, const secp256k1_ge *second_pk) {
     VERIFY_CHECK(!secp256k1_ge_is_infinity(pk));
 
@@ -123,8 +122,7 @@ static void secp256k1_musig_keyaggcoef_internal(const secp256k1_hash_ctx *hash_c
     }
 }
 
-/* Assumes that pk is not the point at infinity and that the Y-coordinates of pk
- * and cache_i->second_pk are normalized. */
+/* Assumes that pk is not the point at infinity. */
 static void secp256k1_musig_keyaggcoef(const secp256k1_hash_ctx *hash_ctx, secp256k1_scalar *r, const secp256k1_keyagg_cache_internal *cache_i, secp256k1_ge *pk) {
     secp256k1_musig_keyaggcoef_internal(hash_ctx, r, cache_i->pks_hash, pk, &cache_i->second_pk);
 }
@@ -196,7 +194,6 @@ int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pub
         return 0;
     }
     secp256k1_ge_set_gej(&pkp, &pkj);
-    secp256k1_fe_normalize_var(&pkp.y);
     /* The resulting public key is infinity with negligible probability */
     VERIFY_CHECK(!secp256k1_ge_is_infinity(&pkp));
     if (keyagg_cache != NULL) {

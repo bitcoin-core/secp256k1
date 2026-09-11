@@ -19,8 +19,16 @@ typedef struct {
     int infinity; /* whether this represents the point at infinity */
 } secp256k1_ge;
 
-#define SECP256K1_GE_CONST(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) {SECP256K1_FE_CONST((a),(b),(c),(d),(e),(f),(g),(h)), SECP256K1_FE_CONST((i),(j),(k),(l),(m),(n),(o),(p)), 0}
-#define SECP256K1_GE_CONST_INFINITY {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), 1}
+/* Group constants obey the same coordinate contracts as function outputs. */
+#ifdef VERIFY
+#define SECP256K1_GE_VERIFY_CONST(m) , (m), 0
+#else
+#define SECP256K1_GE_VERIFY_CONST(m)
+#endif
+#define SECP256K1_GE_FE_CONST(m, a, b, c, d, e, f, g, h) {SECP256K1_FE_CONST_INNER((a), (b), (c), (d), (e), (f), (g), (h)) SECP256K1_GE_VERIFY_CONST(m)}
+
+#define SECP256K1_GE_CONST(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) {SECP256K1_GE_FE_CONST(SECP256K1_GE_X_MAGNITUDE_MAX, (a),(b),(c),(d),(e),(f),(g),(h)), SECP256K1_GE_FE_CONST(SECP256K1_GE_Y_MAGNITUDE_MAX, (i),(j),(k),(l),(m),(n),(o),(p)), 0}
+#define SECP256K1_GE_CONST_INFINITY {SECP256K1_GE_FE_CONST(SECP256K1_GE_X_MAGNITUDE_MAX, 0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_GE_FE_CONST(SECP256K1_GE_Y_MAGNITUDE_MAX, 0, 0, 0, 0, 0, 0, 0, 0), 1}
 
 /** A group element of the secp256k1 curve, in jacobian coordinates.
  *  Note: For exhastive test mode, secp256k1 is replaced by a small subgroup of a different curve.
@@ -32,8 +40,8 @@ typedef struct {
     int infinity; /* whether this represents the point at infinity */
 } secp256k1_gej;
 
-#define SECP256K1_GEJ_CONST(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) {SECP256K1_FE_CONST((a),(b),(c),(d),(e),(f),(g),(h)), SECP256K1_FE_CONST((i),(j),(k),(l),(m),(n),(o),(p)), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1), 0}
-#define SECP256K1_GEJ_CONST_INFINITY {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), 1}
+#define SECP256K1_GEJ_CONST(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) {SECP256K1_GE_FE_CONST(SECP256K1_GEJ_X_MAGNITUDE_MAX, (a),(b),(c),(d),(e),(f),(g),(h)), SECP256K1_GE_FE_CONST(SECP256K1_GEJ_Y_MAGNITUDE_MAX, (i),(j),(k),(l),(m),(n),(o),(p)), SECP256K1_GE_FE_CONST(SECP256K1_GEJ_Z_MAGNITUDE_MAX, 0, 0, 0, 0, 0, 0, 0, 1), 0}
+#define SECP256K1_GEJ_CONST_INFINITY {SECP256K1_GE_FE_CONST(SECP256K1_GEJ_X_MAGNITUDE_MAX, 0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_GE_FE_CONST(SECP256K1_GEJ_Y_MAGNITUDE_MAX, 0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_GE_FE_CONST(SECP256K1_GEJ_Z_MAGNITUDE_MAX, 0, 0, 0, 0, 0, 0, 0, 0), 1}
 
 typedef struct {
     secp256k1_fe_storage x;
@@ -44,8 +52,10 @@ typedef struct {
 
 #define SECP256K1_GE_STORAGE_CONST_GET(t) SECP256K1_FE_STORAGE_CONST_GET(t.x), SECP256K1_FE_STORAGE_CONST_GET(t.y)
 
-/** Maximum allowed magnitudes for group element coordinates
- *  in affine (x, y) and jacobian (x, y, z) representation. */
+/** Fixed magnitudes of complete group elements at function boundaries.
+ *  Functions must accept these bounds regardless of how their inputs were
+ *  constructed. Outputs are checked before relaxing their metadata to these
+ *  bounds, with normalized = 0. Internal intermediate values may be tighter. */
 #define SECP256K1_GE_X_MAGNITUDE_MAX  4
 #define SECP256K1_GE_Y_MAGNITUDE_MAX  3
 #define SECP256K1_GEJ_X_MAGNITUDE_MAX 4
@@ -240,5 +250,18 @@ static void secp256k1_ge_verify(const secp256k1_ge *a);
 /** Check invariants on a Jacobian group element (no-op unless VERIFY is enabled). */
 static void secp256k1_gej_verify(const secp256k1_gej *a);
 #define SECP256K1_GEJ_VERIFY(a) secp256k1_gej_verify(a)
+
+/** Check the fixed coordinate metadata of a complete group input. */
+static void secp256k1_ge_verify_input(const secp256k1_ge *a);
+static void secp256k1_gej_verify_input(const secp256k1_gej *a);
+#define SECP256K1_GE_VERIFY_INPUT(a) secp256k1_ge_verify_input(a)
+#define SECP256K1_GEJ_VERIFY_INPUT(a) secp256k1_gej_verify_input(a)
+
+/** Check a complete output, then relax its coordinate metadata to the fixed bounds.
+ *  Does not change coordinate values. Not applicable to cleared or partial objects. */
+static void secp256k1_ge_verify_output(secp256k1_ge *r);
+static void secp256k1_gej_verify_output(secp256k1_gej *r);
+#define SECP256K1_GE_VERIFY_OUTPUT(r) secp256k1_ge_verify_output(r)
+#define SECP256K1_GEJ_VERIFY_OUTPUT(r) secp256k1_gej_verify_output(r)
 
 #endif /* SECP256K1_GROUP_H */

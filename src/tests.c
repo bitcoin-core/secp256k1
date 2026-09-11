@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include <time.h>
+#include <signal.h>
 
 #ifdef USE_EXTERNAL_DEFAULT_CALLBACKS
     #pragma message("Ignoring USE_EXTERNAL_CALLBACKS in tests.")
@@ -3942,6 +3943,284 @@ static void run_hsort_tests(void) {
 
 /***** GROUP TESTS *****/
 
+/* Vary the actual limbs, not just the verification metadata. n == 0 keeps
+ * the normalized representation; n > 0 adds a multiple of the modulus. */
+static void test_group_fe_magnitude(secp256k1_fe *r, int n) {
+    secp256k1_fe zero;
+    secp256k1_fe_normalize(r);
+    if (n == 0) return;
+    secp256k1_fe_set_int(&zero, 0);
+    secp256k1_fe_negate(&zero, &zero, 0);
+    secp256k1_fe_mul_int_unchecked(&zero, n - 1);
+    secp256k1_fe_add(r, &zero);
+}
+
+static void check_ge_contract(const secp256k1_ge *a) {
+    SECP256K1_GE_VERIFY(a);
+#ifdef VERIFY
+    CHECK(a->x.magnitude == 4 && a->y.magnitude == 3);
+    CHECK(a->x.normalized == 0 && a->y.normalized == 0);
+#endif
+}
+
+static void check_gej_contract(const secp256k1_gej *a) {
+    SECP256K1_GEJ_VERIFY(a);
+#ifdef VERIFY
+    CHECK(a->x.magnitude == 4 && a->y.magnitude == 4 && a->z.magnitude == 1);
+    CHECK(a->x.normalized == 0 && a->y.normalized == 0 && a->z.normalized == 0);
+#endif
+}
+
+static void run_group_magnitude(void) {
+    const secp256k1_ge inf = SECP256K1_GE_CONST_INFINITY;
+    const secp256k1_gej infj = SECP256K1_GEJ_CONST_INFINITY;
+    const secp256k1_fe noncanonical_one = SECP256K1_FE_CONST(
+        0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
+        0xffffffff, 0xffffffff, 0xfffffffe, 0xfffffc30);
+    secp256k1_ge a, before, b, arr[3];
+    secp256k1_gej aj, bj, beforej, jarr[3];
+    secp256k1_ge_storage storage;
+    secp256k1_fe scale, ratios[3];
+    unsigned char expected[65], serialized[65], zeros[33] = { 0 };
+    int infinity, x, y, z, flag;
+    size_t len;
+
+    check_ge_contract(&secp256k1_ge_const_g);
+    check_ge_contract(&inf);
+    check_gej_contract(&infj);
+    CHECK(!secp256k1_ge_eq_var(&inf, &secp256k1_ge_const_g));
+    CHECK(!secp256k1_ge_eq_var(&secp256k1_ge_const_g, &inf));
+    a = secp256k1_ge_const_g;
+    secp256k1_ge_serialize65(&a, expected);
+    check_ge_contract(&a);
+    for (infinity = 0; infinity < 2; ++infinity) {
+        for (x = 0; x <= 4; ++x) {
+            for (y = 0; y <= 3; ++y) {
+                a = infinity ? inf : secp256k1_ge_const_g;
+                test_group_fe_magnitude(&a.x, x);
+                test_group_fe_magnitude(&a.y, y);
+                before = a;
+                SECP256K1_GE_VERIFY_OUTPUT(&a);
+                check_ge_contract(&a);
+                CHECK(secp256k1_memcmp_var(a.x.n, before.x.n, sizeof(a.x.n)) == 0);
+                CHECK(secp256k1_memcmp_var(a.y.n, before.y.n, sizeof(a.y.n)) == 0);
+                CHECK(a.infinity == before.infinity);
+                SECP256K1_GE_VERIFY_OUTPUT(&a);
+                CHECK(secp256k1_memcmp_var(a.x.n, before.x.n, sizeof(a.x.n)) == 0);
+                CHECK(secp256k1_memcmp_var(a.y.n, before.y.n, sizeof(a.y.n)) == 0);
+                CHECK(secp256k1_ge_eq_var(&a, infinity ? &inf : &secp256k1_ge_const_g));
+                secp256k1_ge_neg(&b, &a);
+                check_ge_contract(&b);
+                secp256k1_ge_neg(&b, &b);
+                check_ge_contract(&b);
+                CHECK(secp256k1_ge_eq_var(&a, &b));
+                secp256k1_gej_set_ge(&aj, &a);
+                check_gej_contract(&aj);
+                secp256k1_ge_set_gej_var(&b, &aj);
+                check_ge_contract(&b);
+                check_gej_contract(&aj);
+                CHECK(secp256k1_ge_eq_var(&a, &b));
+                secp256k1_ge_set_gej(&b, &aj);
+                check_ge_contract(&b);
+                check_gej_contract(&aj);
+                CHECK(secp256k1_ge_eq_var(&a, &b));
+                if (!infinity) {
+                    secp256k1_ge_serialize65(&a, serialized);
+                    check_ge_contract(&a);
+                    CHECK(secp256k1_memcmp_var(expected, serialized, 65) == 0);
+                    secp256k1_ge_to_storage(&storage, &a);
+                    secp256k1_ge_from_storage(&b, &storage);
+                    check_ge_contract(&b);
+                    CHECK(secp256k1_ge_eq_var(&a, &b));
+                }
+            }
+        }
+        for (x = 0; x <= 4; ++x) {
+            for (y = 0; y <= 4; ++y) {
+                for (z = 0; z < 2; ++z) {
+                    secp256k1_gej_set_ge(&aj, infinity ? &inf : &secp256k1_ge_const_g);
+                    test_group_fe_magnitude(&aj.x, x);
+                    test_group_fe_magnitude(&aj.y, y);
+                    /* p+1 exercises a noncanonical magnitude-1 z, which adding
+                     * zero in test_group_fe_magnitude cannot produce. */
+                    if (z) aj.z = noncanonical_one;
+                    beforej = aj;
+                    SECP256K1_GEJ_VERIFY_OUTPUT(&aj);
+                    check_gej_contract(&aj);
+                    CHECK(secp256k1_memcmp_var(aj.x.n, beforej.x.n, sizeof(aj.x.n)) == 0);
+                    CHECK(secp256k1_memcmp_var(aj.y.n, beforej.y.n, sizeof(aj.y.n)) == 0);
+                    CHECK(secp256k1_memcmp_var(aj.z.n, beforej.z.n, sizeof(aj.z.n)) == 0);
+                    CHECK(aj.infinity == beforej.infinity);
+                    CHECK(secp256k1_gej_eq_ge_var(&aj, infinity ? &inf : &secp256k1_ge_const_g));
+                    secp256k1_gej_double(&bj, &aj);
+                    check_gej_contract(&bj);
+                    secp256k1_gej_add_var(&beforej, &aj, &aj, NULL);
+                    check_gej_contract(&beforej);
+                    CHECK(secp256k1_gej_eq_var(&bj, &beforej));
+                    secp256k1_gej_neg(&bj, &aj);
+                    check_gej_contract(&bj);
+                    secp256k1_gej_add_var(&bj, &bj, &aj, NULL);
+                    check_gej_contract(&bj);
+                    CHECK(secp256k1_gej_is_infinity(&bj));
+                    for (flag = 0; flag < 2; ++flag) {
+                        bj = infj;
+                        secp256k1_gej_cmov(&bj, &aj, flag);
+                        check_gej_contract(&bj);
+                        CHECK(secp256k1_gej_eq_var(&bj, flag ? &aj : &infj));
+                    }
+                }
+            }
+        }
+    }
+
+    secp256k1_fe_set_int(&scale, 3);
+    for (len = 0; len < 3; ++len) {
+        secp256k1_gej_set_ge(&jarr[len], &secp256k1_ge_const_g);
+        secp256k1_gej_rescale(&jarr[len], &scale);
+        check_gej_contract(&jarr[len]);
+        ratios[len] = secp256k1_fe_one;
+    }
+    for (len = 0; len <= 3; ++len) {
+        size_t i;
+        secp256k1_ge_set_all_gej(arr, jarr, len);
+        for (i = 0; i < len; ++i) {
+            check_ge_contract(&arr[i]);
+            CHECK(secp256k1_ge_eq_var(&arr[i], &secp256k1_ge_const_g));
+        }
+        secp256k1_ge_table_set_globalz(len, arr, ratios);
+        for (i = 0; i < len; ++i) {
+            check_ge_contract(&arr[i]);
+            CHECK(secp256k1_ge_eq_var(&arr[i], &secp256k1_ge_const_g));
+        }
+    }
+    for (x = 0; x < 8; ++x) {
+        size_t i;
+        for (i = 0; i < 3; ++i) {
+            secp256k1_gej_set_ge(&jarr[i], (x & (1 << i)) ? &inf : &secp256k1_ge_const_g);
+        }
+        secp256k1_ge_set_all_gej_var(arr, jarr, 3);
+        for (i = 0; i < 3; ++i) {
+            check_ge_contract(&arr[i]);
+            CHECK(secp256k1_gej_eq_ge_var(&jarr[i], &arr[i]));
+        }
+    }
+    CHECK(secp256k1_ge_parse(&a, expected, 65));
+    check_ge_contract(&a);
+    secp256k1_ge_serialize33(&a, serialized);
+    check_ge_contract(&a);
+    CHECK(secp256k1_ge_parse_ext33(&b, serialized));
+    check_ge_contract(&b);
+    CHECK(secp256k1_ge_eq_var(&a, &b));
+    CHECK(secp256k1_ge_parse_ext33(&a, zeros));
+    check_ge_contract(&a);
+    secp256k1_ge_serialize_ext33(serialized, &a);
+    check_ge_contract(&a);
+    CHECK(secp256k1_memcmp_var(serialized, zeros, 33) == 0);
+    /* Failed parsing need not initialize the output. */
+    memset(&a, 0xa5, sizeof(a));
+    CHECK(!secp256k1_ge_parse(&a, zeros, 0));
+    memset(serialized, 0xff, 33);
+    serialized[0] = SECP256K1_TAG_PUBKEY_EVEN;
+    CHECK(!secp256k1_ge_parse_ext33(&a, serialized));
+    secp256k1_ge_clear(&a);
+    secp256k1_gej_clear(&aj);
+    CHECK(all_bytes_equal(&a, 0, sizeof(a)));
+    CHECK(all_bytes_equal(&aj, 0, sizeof(aj)));
+}
+
+static void run_group_magnitude_tables(void) {
+    secp256k1_ge table[ECMULT_CONST_TABLE_SIZE], expected, actual;
+    secp256k1_ge_storage storage[ECMULT_CONST_TABLE_SIZE];
+    secp256k1_fe lambda_x[ECMULT_CONST_TABLE_SIZE];
+    secp256k1_gej acc, twice;
+    int i, sign;
+    unsigned int selector;
+
+    secp256k1_gej_set_ge(&acc, &secp256k1_ge_const_g);
+    secp256k1_gej_double(&twice, &acc);
+    for (i = 0; i < ECMULT_CONST_TABLE_SIZE; ++i) {
+        secp256k1_gej tmp = acc;
+        secp256k1_ge_set_gej_var(&table[i], &tmp);
+        test_group_fe_magnitude(&table[i].x, 4);
+        test_group_fe_magnitude(&table[i].y, 3);
+        SECP256K1_GE_VERIFY_OUTPUT(&table[i]);
+        secp256k1_ge_to_storage(&storage[i], &table[i]);
+        secp256k1_fe_mul(&lambda_x[i], &table[i].x, &secp256k1_const_beta);
+        secp256k1_gej_add_var(&acc, &acc, &twice, NULL);
+    }
+    for (i = 0; i < ECMULT_CONST_TABLE_SIZE; ++i) {
+        for (sign = -1; sign <= 1; sign += 2) {
+            int n = sign * (2 * i + 1);
+            expected = table[i];
+            if (sign < 0) secp256k1_ge_neg(&expected, &expected);
+            secp256k1_ecmult_table_get_ge(&actual, table, n, ECMULT_CONST_GROUP_SIZE + 1);
+            check_ge_contract(&actual);
+            CHECK(secp256k1_ge_eq_var(&actual, &expected));
+            secp256k1_ecmult_table_get_ge_storage(&actual, storage, n, ECMULT_CONST_GROUP_SIZE + 1);
+            check_ge_contract(&actual);
+            CHECK(secp256k1_ge_eq_var(&actual, &expected));
+            secp256k1_ge_mul_lambda(&expected, &expected);
+            secp256k1_ecmult_table_get_ge_lambda(&actual, table, lambda_x, n, ECMULT_CONST_GROUP_SIZE + 1);
+            check_ge_contract(&actual);
+            CHECK(secp256k1_ge_eq_var(&actual, &expected));
+        }
+    }
+    for (selector = 0; selector < (1U << ECMULT_CONST_GROUP_SIZE); ++selector) {
+        int n = 2 * (int)selector + 1 - (1 << ECMULT_CONST_GROUP_SIZE);
+        secp256k1_ecmult_table_get_ge_storage(&expected, storage, n, ECMULT_CONST_GROUP_SIZE + 1);
+        ECMULT_CONST_TABLE_GET_GE(&actual, table, selector);
+        check_ge_contract(&actual);
+        CHECK(secp256k1_ge_eq_var(&actual, &expected));
+    }
+}
+
+#if defined(VERIFY) && defined(SUPPORTS_CONCURRENCY)
+static void run_group_magnitude_reject(void) {
+    int coord, failure;
+    secp256k1_ge a = secp256k1_ge_const_g;
+    secp256k1_gej aj;
+    secp256k1_gej_set_ge(&aj, &a);
+    check_ge_contract(&a);
+    check_gej_contract(&aj);
+    for (coord = 0; coord < 5; ++coord) {
+        for (failure = 0; failure < 6; ++failure) {
+            pid_t child;
+            int status;
+            if (failure == 3 && coord != 4) continue;
+            fflush(NULL);
+            child = fork();
+            CHECK(child != -1);
+            if (child == 0) {
+                secp256k1_fe *f = coord == 0 ? &a.x : coord == 1 ? &a.y :
+                    coord == 2 ? &aj.x : coord == 3 ? &aj.y : &aj.z;
+                CHECK(freopen("/dev/null", "w", stderr) != NULL);
+                if (failure == 0 || failure == 3) {
+                    if (failure == 0) f->magnitude--;
+                    else f->normalized = 1;
+                    if (coord < 2) SECP256K1_GE_VERIFY_INPUT(&a);
+                    else SECP256K1_GEJ_VERIFY_INPUT(&aj);
+                } else {
+                    if (failure == 1) f->magnitude++;
+                    else if (failure == 2) { f->magnitude = 2; f->normalized = 1; }
+                    else {
+                        /* These limbs fit every relaxed output bound, but not
+                         * the original magnitude or normalization claim. */
+                        secp256k1_fe_get_bounds(f, 1);
+                        if (failure == 4) f->magnitude = 0;
+                        else f->normalized = 1;
+                    }
+                    if (coord < 2) SECP256K1_GE_VERIFY_OUTPUT(&a);
+                    else SECP256K1_GEJ_VERIFY_OUTPUT(&aj);
+                }
+                _exit(EXIT_SUCCESS);
+            }
+            CHECK(waitpid(child, &status, 0) == child);
+            CHECK(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
+        }
+    }
+}
+#endif
+
 /* This compares jacobian points including their Z, not just their geometric meaning. */
 static int gej_xyz_equals_gej(const secp256k1_gej *a, const secp256k1_gej *b) {
     secp256k1_gej a2;
@@ -4191,7 +4470,9 @@ static void test_ge(void) {
     for (i = 0; i < 4 * runs + 1; i++) {
         int odd;
         testutil_random_ge_test(&ge[i]);
+        secp256k1_fe_normalize(&ge[i].x);
         odd = secp256k1_fe_is_odd(&ge[i].x);
+        SECP256K1_GE_VERIFY_OUTPUT(&ge[i]);
         CHECK(odd == 0 || odd == 1);
         /* randomly set half the points to infinity */
         if (odd == i % 2) {
@@ -4222,6 +4503,7 @@ static void test_ge(void) {
 }
 
 static void test_initialized_inf(void) {
+    const secp256k1_fe zero = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0);
     secp256k1_ge p;
     secp256k1_gej pj, npj, infj1, infj2, infj3;
     secp256k1_fe zinv;
@@ -4233,22 +4515,22 @@ static void test_initialized_inf(void) {
 
     secp256k1_gej_add_var(&infj1, &pj, &npj, NULL);
     CHECK(secp256k1_gej_is_infinity(&infj1));
-    CHECK(secp256k1_fe_is_zero(&infj1.x));
-    CHECK(secp256k1_fe_is_zero(&infj1.y));
-    CHECK(secp256k1_fe_is_zero(&infj1.z));
+    CHECK(secp256k1_memcmp_var(infj1.x.n, zero.n, sizeof(zero.n)) == 0);
+    CHECK(secp256k1_memcmp_var(infj1.y.n, zero.n, sizeof(zero.n)) == 0);
+    CHECK(secp256k1_memcmp_var(infj1.z.n, zero.n, sizeof(zero.n)) == 0);
 
     secp256k1_gej_add_ge_var(&infj2, &npj, &p, NULL);
     CHECK(secp256k1_gej_is_infinity(&infj2));
-    CHECK(secp256k1_fe_is_zero(&infj2.x));
-    CHECK(secp256k1_fe_is_zero(&infj2.y));
-    CHECK(secp256k1_fe_is_zero(&infj2.z));
+    CHECK(secp256k1_memcmp_var(infj2.x.n, zero.n, sizeof(zero.n)) == 0);
+    CHECK(secp256k1_memcmp_var(infj2.y.n, zero.n, sizeof(zero.n)) == 0);
+    CHECK(secp256k1_memcmp_var(infj2.z.n, zero.n, sizeof(zero.n)) == 0);
 
     secp256k1_fe_set_int(&zinv, 1);
     secp256k1_gej_add_zinv_var(&infj3, &npj, &p, &zinv);
     CHECK(secp256k1_gej_is_infinity(&infj3));
-    CHECK(secp256k1_fe_is_zero(&infj3.x));
-    CHECK(secp256k1_fe_is_zero(&infj3.y));
-    CHECK(secp256k1_fe_is_zero(&infj3.z));
+    CHECK(secp256k1_memcmp_var(infj3.x.n, zero.n, sizeof(zero.n)) == 0);
+    CHECK(secp256k1_memcmp_var(infj3.y.n, zero.n, sizeof(zero.n)) == 0);
+    CHECK(secp256k1_memcmp_var(infj3.z.n, zero.n, sizeof(zero.n)) == 0);
 
 
 }
@@ -4440,14 +4722,14 @@ static void test_group_decompress(const secp256k1_fe* x) {
     CHECK(res_even == res_odd);
 
     if (res_even) {
+        /* No infinity allowed. */
+        CHECK(!secp256k1_ge_is_infinity(&ge_even));
+        CHECK(!secp256k1_ge_is_infinity(&ge_odd));
+
         secp256k1_fe_normalize_var(&ge_odd.x);
         secp256k1_fe_normalize_var(&ge_even.x);
         secp256k1_fe_normalize_var(&ge_odd.y);
         secp256k1_fe_normalize_var(&ge_even.y);
-
-        /* No infinity allowed. */
-        CHECK(!secp256k1_ge_is_infinity(&ge_even));
-        CHECK(!secp256k1_ge_is_infinity(&ge_odd));
 
         /* Check that the x coordinates check out. */
         CHECK(secp256k1_fe_equal(&ge_even.x, x));
@@ -4495,6 +4777,8 @@ static void test_pre_g_table(const secp256k1_ge_storage * pre_g, size_t n) {
     secp256k1_gej_double_var(&g2, &g2, NULL);
     secp256k1_ge_set_gej_var(&gg, &g2);
     for (i = 1; i < n; ++i) {
+        secp256k1_fe_normalize_weak(&p.x);
+        secp256k1_fe_normalize_weak(&p.y);
         secp256k1_fe_negate(&dpx, &p.x, 1); secp256k1_fe_add(&dpx, &gg.x); secp256k1_fe_normalize_weak(&dpx);
         secp256k1_fe_negate(&dpy, &p.y, 1); secp256k1_fe_add(&dpy, &gg.y); secp256k1_fe_normalize_weak(&dpy);
         /* Check that p is not equal to gg */
@@ -4502,6 +4786,7 @@ static void test_pre_g_table(const secp256k1_ge_storage * pre_g, size_t n) {
 
         secp256k1_ge_from_storage(&q, &pre_g[i]);
         CHECK(secp256k1_ge_is_valid_var(&q));
+        secp256k1_fe_normalize_weak(&q.x);
 
         secp256k1_fe_negate(&dqx, &q.x, 1); secp256k1_fe_add(&dqx, &gg.x);
         dqy = q.y; secp256k1_fe_add(&dqy, &gg.y);
@@ -8207,6 +8492,11 @@ static const struct tf_test_entry tests_field[] = {
 };
 
 static const struct tf_test_entry tests_group[] = {
+    CASE(group_magnitude),
+    CASE(group_magnitude_tables),
+#if defined(VERIFY) && defined(SUPPORTS_CONCURRENCY)
+    CASE(group_magnitude_reject),
+#endif
     CASE(ge),
     CASE(gej),
     CASE(group_decompress),

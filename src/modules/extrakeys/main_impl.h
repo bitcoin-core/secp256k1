@@ -59,6 +59,7 @@ int secp256k1_xonly_pubkey_serialize(const secp256k1_context* ctx, unsigned char
     if (!secp256k1_xonly_pubkey_load(ctx, &pk, pubkey)) {
         return 0;
     }
+    secp256k1_fe_normalize_var(&pk.x);
     secp256k1_fe_get_b32(output32, &pk.x);
     return 1;
 }
@@ -91,15 +92,17 @@ int secp256k1_xonly_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_xon
 
 /** Keeps a group element as is if it has an even Y and otherwise negates it.
  *  y_parity is set to 0 in the former case and to 1 in the latter case.
- *  Requires that the coordinates of r are normalized. */
+ *  Accepts a complete group element and returns one with fixed metadata. */
 static int secp256k1_extrakeys_ge_even_y(secp256k1_ge *r) {
     int y_parity = 0;
     VERIFY_CHECK(!secp256k1_ge_is_infinity(r));
 
+    secp256k1_fe_normalize_var(&r->y);
     if (secp256k1_fe_is_odd(&r->y)) {
         secp256k1_fe_negate(&r->y, &r->y, 1);
         y_parity = 1;
     }
+    SECP256K1_GE_VERIFY_OUTPUT(r);
     return y_parity;
 }
 
