@@ -23,6 +23,7 @@ Features:
 * Optional module for ElligatorSwift key exchange according to [BIP-324](https://github.com/bitcoin/bips/blob/master/bip-0324.mediawiki).
 * Optional module for MuSig2 Schnorr multi-signatures according to [BIP-327](https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki).
 * Optional module for Silent Payments sending and receiving according to [BIP-352](https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki).
+* Optional module for DLEQ according to [BIP-374](https://github.com/bitcoin/bips/blob/master/bip-0374.mediawiki).
 
 Implementation details
 ----------------------

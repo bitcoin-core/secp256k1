@@ -44,6 +44,10 @@
 #include "../include/secp256k1_silentpayments.h"
 #endif
 
+#ifdef ENABLE_MODULE_DLEQ
+#include "../include/secp256k1_dleq.h"
+#endif
+
 #if defined(__GNUC__)
 # pragma GCC diagnostic push
 # pragma GCC diagnostic warning "-Wunused-function"
@@ -133,6 +137,10 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     const secp256k1_xonly_pubkey *sp_xonly_pubkeys[1];
     secp256k1_pubkey sp_pubkey;
     const secp256k1_pubkey *sp_pubkeys[1];
+#endif
+#ifdef ENABLE_MODULE_DLEQ
+    secp256k1_pubkey dleq_pubkey_B;
+    unsigned char dleq_proof[64];
 #endif
 
     for (i = 0; i < 32; i++) {
@@ -387,6 +395,23 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
      */
     CHECK(secp256k1_silentpayments_recipient_scan_outputs(ctx, found_outputs_ptrs, &n_found_outputs, tx_outputs, 1, key, &prevouts_summary, &recipient.spend_pubkey, NULL, NULL));
 
+#endif
+
+#ifdef ENABLE_MODULE_DLEQ
+    /* B is a public key belonging to someone else, so derive it from a
+     * non-secret key before marking our own key secret again. */
+    SECP256K1_CHECKMEM_DEFINE(key, 32);
+    key[31] ^= (1 << 4);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &dleq_pubkey_B, key));
+    key[31] ^= (1 << 4);
+
+    /* The message is not treated as a secret in dleq_prove. */
+    SECP256K1_CHECKMEM_DEFINE(msg, 32);
+    SECP256K1_CHECKMEM_UNDEFINE(key, 32);
+    ret = secp256k1_dleq_prove(ctx, dleq_proof, key, &dleq_pubkey_B, NULL, msg);
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    SECP256K1_CHECKMEM_DEFINE(dleq_proof, sizeof(dleq_proof));
+    CHECK(ret == 1);
 #endif
 }
 
