@@ -111,7 +111,9 @@ static void test_exhaustive_addition(const secp256k1_ge *group, const secp256k1_
             if (secp256k1_gej_is_infinity(&groupj[j])) {
                 secp256k1_ge_set_infinity(&zless_gej);
             } else {
-                secp256k1_ge_set_xy(&zless_gej, &groupj[j].x, &groupj[j].y);
+                secp256k1_fe y = groupj[j].y;
+                secp256k1_fe_normalize_weak(&y);
+                secp256k1_ge_set_xy(&zless_gej, &groupj[j].x, &y);
             }
             secp256k1_gej_add_zinv_var(&tmp, &groupj[i], &zless_gej, &fe_inv);
             CHECK(secp256k1_gej_eq_ge_var(&tmp, &group[(i + j) % EXHAUSTIVE_TEST_ORDER]));

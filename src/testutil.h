@@ -78,22 +78,27 @@ static void testutil_random_fe_non_zero_test(secp256k1_fe *fe) {
 
 static void testutil_random_ge_x_magnitude(secp256k1_ge *ge) {
     testutil_random_fe_magnitude(&ge->x, SECP256K1_GE_X_MAGNITUDE_MAX);
+    SECP256K1_GE_VERIFY_OUTPUT(ge);
 }
 
 static void testutil_random_ge_y_magnitude(secp256k1_ge *ge) {
     testutil_random_fe_magnitude(&ge->y, SECP256K1_GE_Y_MAGNITUDE_MAX);
+    SECP256K1_GE_VERIFY_OUTPUT(ge);
 }
 
 static void testutil_random_gej_x_magnitude(secp256k1_gej *gej) {
     testutil_random_fe_magnitude(&gej->x, SECP256K1_GEJ_X_MAGNITUDE_MAX);
+    SECP256K1_GEJ_VERIFY_OUTPUT(gej);
 }
 
 static void testutil_random_gej_y_magnitude(secp256k1_gej *gej) {
     testutil_random_fe_magnitude(&gej->y, SECP256K1_GEJ_Y_MAGNITUDE_MAX);
+    SECP256K1_GEJ_VERIFY_OUTPUT(gej);
 }
 
 static void testutil_random_gej_z_magnitude(secp256k1_gej *gej) {
     testutil_random_fe_magnitude(&gej->z, SECP256K1_GEJ_Z_MAGNITUDE_MAX);
+    SECP256K1_GEJ_VERIFY_OUTPUT(gej);
 }
 
 static void testutil_random_ge_test(secp256k1_ge *ge) {
@@ -102,6 +107,7 @@ static void testutil_random_ge_test(secp256k1_ge *ge) {
         testutil_random_fe_test(&fe);
         if (secp256k1_ge_set_xo_var(ge, &fe, testrand_bits(1))) {
             secp256k1_fe_normalize(&ge->y);
+            SECP256K1_GE_VERIFY_OUTPUT(ge);
             break;
         }
     } while(1);
