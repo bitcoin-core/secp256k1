@@ -45,9 +45,15 @@ int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *output, const se
     ARG_CHECK(point != NULL);
     ARG_CHECK(scalar != NULL);
 
-    secp256k1_pubkey_load(ctx, &pt, point);
+    if (!secp256k1_pubkey_load(ctx, &pt, point)) {
+        return 0;
+    }
     is_sec_valid = secp256k1_scalar_set_b32_seckey(&s, scalar);
-    secp256k1_scalar_cmov(&s, &secp256k1_scalar_one, !is_sec_valid);
+    secp256k1_declassify(ctx, &is_sec_valid, sizeof(is_sec_valid));
+    if (!is_sec_valid) {
+        secp256k1_ge_clear(&pt);
+        return 0;
+    }
 
     secp256k1_ecmult_const(&res, &pt, &s);
     secp256k1_ge_set_gej(&pt, &res);
@@ -62,7 +68,7 @@ int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *output, const se
         /* Use ctx-aware function by default */
         ret = ecdh_hash_function_sha256_impl(&ctx->hash_ctx, output, x, y, data);
     } else {
-        ret = hashfp(output, x, y, data);
+        ret = !!hashfp(output, x, y, data);
     }
 
     secp256k1_memclear_explicit(x, sizeof(x));
@@ -71,7 +77,7 @@ int secp256k1_ecdh(const secp256k1_context* ctx, unsigned char *output, const se
     secp256k1_ge_clear(&pt);
     secp256k1_gej_clear(&res);
 
-    return (!!ret) & is_sec_valid;
+    return ret;
 }
 
 #endif /* SECP256K1_MODULE_ECDH_MAIN_H */
