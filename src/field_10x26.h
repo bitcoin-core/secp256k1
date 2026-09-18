@@ -30,7 +30,10 @@ typedef struct {
      *     sum(i=0..9, n[i] << (i*26)) < p
      *     (together these imply n[9] <= 2^22 - 1)
      */
-    SECP256K1_FE_VERIFY_FIELDS
+#ifdef VERIFY
+    int magnitude;
+    int normalized;
+#endif
 } secp256k1_fe;
 
 /* Unpacks a constant into a overlapping multi-limbed FE element. */
