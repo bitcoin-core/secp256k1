@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
         print_table(fp, COMB_BLOCKS, COMB_TEETH);
     }
     fprintf(fp, "#else\n");
-    fprintf(fp, "#    error Configuration mismatch, invalid COMB_* parameters. Try deleting precomputed_ecmult_gen.c before the build.\n");
+    fprintf(fp, "#    error Configuration mismatch, invalid COMB_* parameters. If this is an Autotools build, try deleting precomputed_ecmult_gen.c before the build. If this is a CMake build, pass -DSECP256K1_BUILD_PRECOMPUTED=ON to cmake.\n");
     fprintf(fp, "#endif\n");
 
     fprintf(fp, "};\n");
