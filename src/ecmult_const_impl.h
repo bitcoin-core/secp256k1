@@ -396,6 +396,10 @@ static int secp256k1_ecmult_const_xonly(secp256k1_fe* r, const secp256k1_fe *n, 
     secp256k1_fe_inv(&i, &i);
     secp256k1_fe_mul(r, &rj.x, &i);
 
+    /* Clear local variables computed from secret scalar q */
+    secp256k1_gej_clear(&rj);
+    secp256k1_fe_clear(&i);
+
     return 1;
 }
 
