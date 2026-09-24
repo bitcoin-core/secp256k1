@@ -272,6 +272,10 @@ if ENABLE_MODULE_ECDH
 TESTVECTORS += src/wycheproof/ecdh_secp256k1_test.h
 endif
 
+if ENABLE_MODULE_DLEQ
+TESTVECTORS += src/modules/dleq/vectors.h
+endif
+
 src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.h:
 	mkdir -p $(@D)
 	python3 $(top_srcdir)/tools/tests_wycheproof_generate_ecdsa.py $(top_srcdir)/src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json > $@
@@ -283,6 +287,10 @@ src/wycheproof/ecdh_secp256k1_test.h:
 src/modules/silentpayments/vectors.h:
 	mkdir -p $(@D)
 	python3 $(top_srcdir)/tools/tests_silentpayments_generate.py $(top_srcdir)/src/modules/silentpayments/bip352_send_and_receive_test_vectors.json > $@
+
+src/modules/dleq/vectors.h:
+	mkdir -p $(@D)
+	python3 $(top_srcdir)/tools/test_vectors_dleq_generate.py $(top_srcdir)/src/modules/dleq > $@
 
 testvectors: $(TESTVECTORS)
 
@@ -308,9 +316,12 @@ EXTRA_DIST += src/wycheproof/WYCHEPROOF_COPYING
 EXTRA_DIST += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json
 EXTRA_DIST += src/modules/silentpayments/bip352_send_and_receive_test_vectors.json
 EXTRA_DIST += src/wycheproof/ecdh_secp256k1_test.json
+EXTRA_DIST += src/modules/dleq/test_vectors_generate_proof.csv
+EXTRA_DIST += src/modules/dleq/test_vectors_verify_proof.csv
 EXTRA_DIST += tools/tests_wycheproof_generate_ecdsa.py
 EXTRA_DIST += tools/tests_wycheproof_generate_ecdh.py
 EXTRA_DIST += tools/tests_silentpayments_generate.py
+EXTRA_DIST += tools/test_vectors_dleq_generate.py
 
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include

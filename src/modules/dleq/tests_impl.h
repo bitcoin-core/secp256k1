@@ -6,6 +6,7 @@
 #ifndef SECP256K1_MODULE_DLEQ_TESTS_H
 #define SECP256K1_MODULE_DLEQ_TESTS_H
 
+#include "vectors.h"
 #include "../../unit_test.h"
 
 static void dleq_nonce_bitflip(unsigned char **args, size_t n_flip, size_t n_bytes) {
@@ -150,8 +151,153 @@ static void run_test_dleq_prove_verify(void) {
     }
 }
 
+static void run_test_dleq_bip374_vectors(void) {
+    secp256k1_pubkey A, B, C, output_pubkey_C;
+    unsigned char proof[64];
+    size_t i;
+
+    for (i = 0; i < ARRAY_SIZE(dleq_generate_vectors); ++i) {
+        const struct dleq_generate_vector *vector = &dleq_generate_vectors[i];
+        const unsigned char *msg32 = vector->has_message ? vector->message : NULL;
+
+        /* The public API cannot express B at infinity. prove_internal's
+         * rejection of it is tested in run_test_dleq_prove_verify. */
+        if (vector->point_B_is_infinity) {
+            continue;
+        }
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &B, vector->point_B, sizeof(vector->point_B)) == 1);
+
+        CHECK(secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, vector->scalar_a, &B, vector->auxrand, msg32) == vector->expected_success);
+        if (vector->expected_success) {
+            CHECK(memcmp(proof, vector->expected_proof, sizeof(proof)) == 0);
+            CHECK(secp256k1_ec_pubkey_create(CTX, &A, vector->scalar_a) == 1);
+            /* The proof verifies against the returned output_pubkey_C */
+            CHECK(secp256k1_dleq_verify(CTX, proof, &A, &B, &output_pubkey_C, msg32) == 1);
+        }
+    }
+
+    for (i = 0; i < ARRAY_SIZE(dleq_verify_vectors); ++i) {
+        const struct dleq_verify_vector *vector = &dleq_verify_vectors[i];
+        const unsigned char *msg32 = vector->has_message ? vector->message : NULL;
+
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &A, vector->point_A, sizeof(vector->point_A)) == 1);
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &B, vector->point_B, sizeof(vector->point_B)) == 1);
+        CHECK(secp256k1_ec_pubkey_parse(CTX, &C, vector->point_C, sizeof(vector->point_C)) == 1);
+
+        CHECK(secp256k1_dleq_verify(CTX, vector->proof, &A, &B, &C, msg32) == vector->expected_success);
+    }
+}
+
+static void run_test_dleq_api(void) {
+    secp256k1_pubkey A, B, output_pubkey_C;
+    const secp256k1_pubkey zero_pubkey = { 0 };
+    unsigned char seckey[32];
+    unsigned char proof[64];
+    unsigned char aux_rand[32];
+    unsigned char msg[32];
+    secp256k1_ge B_ge;
+
+    /* Generate prove material */
+    testrand256(seckey);
+    testrand256(aux_rand);
+    testrand256(msg);
+    testutil_random_ge_test(&B_ge);
+    secp256k1_pubkey_save(&B, &B_ge);
+
+    /* Check dleq prove input validation */
+    memset(proof, 0xfe, sizeof(proof));
+    memset(&output_pubkey_C, 0xfe, sizeof(output_pubkey_C));
+    CHECK_ILLEGAL(STATIC_CTX, secp256k1_dleq_prove(STATIC_CTX, proof, &output_pubkey_C, seckey, &B, aux_rand, msg));
+    CHECK(secp256k1_memcmp_var(&output_pubkey_C, &zero_pubkey, sizeof(output_pubkey_C)) == 0);
+    CHECK(secp256k1_is_zero_array(proof, sizeof(proof)));
+    CHECK_ILLEGAL(CTX, secp256k1_dleq_prove(CTX, NULL, &output_pubkey_C, seckey, &B, aux_rand, msg));
+    CHECK_ILLEGAL(CTX, secp256k1_dleq_prove(CTX, proof, NULL, seckey, &B, aux_rand, msg));
+    CHECK_ILLEGAL(CTX, secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, NULL, &B, aux_rand, msg));
+    CHECK_ILLEGAL(CTX, secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, seckey, NULL, aux_rand, msg));
+    CHECK(secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, seckey, &B, NULL, msg) == 1);
+    CHECK(secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, seckey, &B, aux_rand, NULL) == 1);
+    {
+        secp256k1_pubkey invalid_pubkey = { 0 };
+        memset(proof, 0xfe, sizeof(proof));
+        memset(&output_pubkey_C, 0xfe, sizeof(output_pubkey_C));
+        CHECK_ILLEGAL(CTX, secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, seckey, &invalid_pubkey, aux_rand, msg));
+        CHECK(secp256k1_memcmp_var(&output_pubkey_C, &zero_pubkey, sizeof(output_pubkey_C)) == 0);
+        CHECK(secp256k1_is_zero_array(proof, sizeof(proof)));
+    }
+    {
+        unsigned char invalid_seckey[32] = { 0 };
+        /* Test invalid secret key handling */
+        memset(proof, 0xfe, sizeof(proof));
+        memset(&output_pubkey_C, 0xfe, sizeof(output_pubkey_C));
+        CHECK(secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, invalid_seckey, &B, aux_rand, msg) == 0);
+        CHECK(secp256k1_memcmp_var(&output_pubkey_C, &zero_pubkey, sizeof(output_pubkey_C)) == 0);
+        CHECK(secp256k1_is_zero_array(proof, sizeof(proof)));
+        memcpy(invalid_seckey, secp256k1_group_order_bytes, sizeof(invalid_seckey));
+        memset(proof, 0xfe, sizeof(proof));
+        memset(&output_pubkey_C, 0xfe, sizeof(output_pubkey_C));
+        CHECK(secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, invalid_seckey, &B, aux_rand, msg) == 0);
+        CHECK(secp256k1_memcmp_var(&output_pubkey_C, &zero_pubkey, sizeof(output_pubkey_C)) == 0);
+        CHECK(secp256k1_is_zero_array(proof, sizeof(proof)));
+    }
+
+    /* Generate verify material */
+    CHECK(secp256k1_ec_pubkey_create(CTX, &A, seckey) == 1);
+    CHECK(secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, seckey, &B, aux_rand, msg) == 1);
+
+    /* Check dleq verify input validation */
+    CHECK_ILLEGAL(CTX, secp256k1_dleq_verify(CTX, NULL, &A, &B, &output_pubkey_C, msg));
+    CHECK_ILLEGAL(CTX, secp256k1_dleq_verify(CTX, proof, NULL, &B, &output_pubkey_C, msg));
+    CHECK_ILLEGAL(CTX, secp256k1_dleq_verify(CTX, proof, &A, NULL, &output_pubkey_C, msg));
+    CHECK_ILLEGAL(CTX, secp256k1_dleq_verify(CTX, proof, &A, &B, NULL, msg));
+    {
+        secp256k1_pubkey invalid_pubkey = { 0 };
+        CHECK_ILLEGAL(CTX, secp256k1_dleq_verify(CTX, proof, &invalid_pubkey, &B, &output_pubkey_C, msg));
+        CHECK_ILLEGAL(CTX, secp256k1_dleq_verify(CTX, proof, &A, &invalid_pubkey, &output_pubkey_C, msg));
+        CHECK_ILLEGAL(CTX, secp256k1_dleq_verify(CTX, proof, &A, &B, &invalid_pubkey, msg));
+    }
+
+    /* Verify rejects an e or s that overflows the group order */
+    CHECK(secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, seckey, &B, NULL, NULL) == 1);
+    memcpy(&proof[0], secp256k1_group_order_bytes, 32);
+    CHECK(secp256k1_dleq_verify(CTX, proof, &A, &B, &output_pubkey_C, NULL) == 0);
+    CHECK(secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, seckey, &B, NULL, NULL) == 1);
+    memcpy(&proof[32], secp256k1_group_order_bytes, 32);
+    CHECK(secp256k1_dleq_verify(CTX, proof, &A, &B, &output_pubkey_C, NULL) == 0);
+
+    /* A proof over a message verifies only against that message */
+    CHECK(secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, seckey, &B, aux_rand, msg) == 1);
+    CHECK(secp256k1_dleq_verify(CTX, proof, &A, &B, &output_pubkey_C, msg) == 1);
+    CHECK(secp256k1_dleq_verify(CTX, proof, &A, &B, &output_pubkey_C, NULL) == 0);
+    {
+        unsigned char wrong_msg[32];
+        testrand256(wrong_msg);
+        CHECK(secp256k1_dleq_verify(CTX, proof, &A, &B, &output_pubkey_C, wrong_msg) == 0);
+    }
+
+    /* A proof over no message does not verify against a message */
+    CHECK(secp256k1_dleq_prove(CTX, proof, &output_pubkey_C, seckey, &B, NULL, NULL) == 1);
+    CHECK(secp256k1_dleq_verify(CTX, proof, &A, &B, &output_pubkey_C, NULL) == 1);
+    CHECK(secp256k1_dleq_verify(CTX, proof, &A, &B, &output_pubkey_C, msg) == 0);
+
+    /* Verification needs no precomputed generator table */
+    CHECK(secp256k1_dleq_verify(STATIC_CTX, proof, &A, &B, &output_pubkey_C, NULL) == 1);
+
+    {
+        secp256k1_context *ctx = secp256k1_context_clone(CTX);
+        ctx->hash_ctx.fn_sha256_compression = dleq_sha256_zeros;
+        memset(proof, 0xfe, sizeof(proof));
+        memset(&output_pubkey_C, 0xfe, sizeof(output_pubkey_C));
+        CHECK(secp256k1_dleq_prove(ctx, proof, &output_pubkey_C, seckey, &B, aux_rand, msg) == 0);
+        CHECK(secp256k1_memcmp_var(&output_pubkey_C, &zero_pubkey, sizeof(output_pubkey_C)) == 0);
+        CHECK(secp256k1_is_zero_array(proof, sizeof(proof)));
+        secp256k1_context_destroy(ctx);
+    }
+}
+
 static const struct tf_test_entry tests_dleq[] = {
     CASE(test_dleq_prove_verify),
+    CASE(test_dleq_bip374_vectors),
+    CASE(test_dleq_api),
 };
 
 #endif /* SECP256K1_MODULE_DLEQ_TESTS_H */
