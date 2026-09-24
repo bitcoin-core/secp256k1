@@ -817,6 +817,7 @@ static void musig_test_vectors_noncegen(void) {
             secp256k1_keyagg_cache_internal cache_i;
             secp256k1_xonly_pubkey aggpk;
             memset(&cache_i, 0, sizeof(cache_i));
+            secp256k1_ge_set_infinity(&cache_i.second_pk);
             CHECK(secp256k1_xonly_pubkey_parse(CTX, &aggpk, c->aggpk));
             CHECK(secp256k1_xonly_pubkey_load(CTX, &cache_i.pk, &aggpk));
             secp256k1_keyagg_cache_save(&keyagg_cache, &cache_i);

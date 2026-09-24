@@ -373,9 +373,12 @@ static void secp256k1_ellswift_xelligatorswift_var(const secp256k1_context *ctx,
  * one.
  */
 static void secp256k1_ellswift_elligatorswift_var(const secp256k1_context *ctx, unsigned char *u32, secp256k1_fe *t, const secp256k1_ge *p, const secp256k1_sha256 *hasher) {
+    secp256k1_fe y = p->y;
+    SECP256K1_GE_VERIFY_INPUT(p);
+    secp256k1_fe_normalize_var(&y);
     secp256k1_ellswift_xelligatorswift_var(ctx, u32, t, &p->x, hasher);
     secp256k1_fe_normalize_var(t);
-    if (secp256k1_fe_is_odd(t) != secp256k1_fe_is_odd(&p->y)) {
+    if (secp256k1_fe_is_odd(t) != secp256k1_fe_is_odd(&y)) {
         secp256k1_fe_negate(t, t, 1);
         secp256k1_fe_normalize_var(t);
     }
@@ -446,8 +449,6 @@ int secp256k1_ellswift_create(const secp256k1_context *ctx, unsigned char *ell64
     /* Compute (affine) public key */
     ret = secp256k1_ec_pubkey_create_helper(&ctx->ecmult_gen_ctx, &seckey_scalar, &p, seckey32);
     secp256k1_declassify(ctx, &p, sizeof(p)); /* not constant time in produced pubkey */
-    secp256k1_fe_normalize_var(&p.x);
-    secp256k1_fe_normalize_var(&p.y);
 
     /* Set up hasher state. The used RNG is H(seckey32 || "\x00"*32 [|| auxrnd32] || cnt++),
      * using BIP340 tagged hash with tag "secp256k1_ellswift_create". */

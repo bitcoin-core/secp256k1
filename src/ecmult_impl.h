@@ -73,6 +73,7 @@
 static void secp256k1_ecmult_odd_multiples_table(size_t n, secp256k1_ge *pre_a, secp256k1_fe *zr, secp256k1_fe *z, const secp256k1_gej *a) {
     secp256k1_gej d, ai;
     secp256k1_ge d_ge;
+    secp256k1_fe y;
     size_t i;
 
     VERIFY_CHECK(!secp256k1_gej_is_infinity(a));
@@ -92,10 +93,13 @@ static void secp256k1_ecmult_odd_multiples_table(size_t n, secp256k1_ge *pre_a, 
      * In particular phi(d) is easy to represent in affine coordinates under this isomorphism.
      * This lets us use the faster secp256k1_gej_add_ge_var group addition function that we wouldn't be able to use otherwise.
      */
-    secp256k1_ge_set_xy(&d_ge, &d.x, &d.y);
+    y = d.y;
+    secp256k1_fe_normalize_weak(&y);
+    secp256k1_ge_set_xy(&d_ge, &d.x, &y);
     secp256k1_ge_set_gej_zinv(&pre_a[0], a, &d.z);
     secp256k1_gej_set_ge(&ai, &pre_a[0]);
     ai.z = a->z;
+    SECP256K1_GEJ_VERIFY_OUTPUT(&ai);
 
     /* pre_a[0] is the point (a.x*C^2, a.y*C^3, a.z*C) which is equivalent to a.
      * Set zr[0] to C, which is the ratio between the omitted z(pre_a[0]) value and a.z.
@@ -104,7 +108,9 @@ static void secp256k1_ecmult_odd_multiples_table(size_t n, secp256k1_ge *pre_a, 
 
     for (i = 1; i < n; i++) {
         secp256k1_gej_add_ge_var(&ai, &ai, &d_ge, &zr[i]);
-        secp256k1_ge_set_xy(&pre_a[i], &ai.x, &ai.y);
+        y = ai.y;
+        secp256k1_fe_normalize_weak(&y);
+        secp256k1_ge_set_xy(&pre_a[i], &ai.x, &y);
     }
 
     /* Multiply the last z-coordinate by C to undo the isomorphism.
@@ -128,7 +134,7 @@ SECP256K1_INLINE static void secp256k1_ecmult_table_get_ge(secp256k1_ge *r, cons
         *r = pre[(n-1)/2];
     } else {
         *r = pre[(-n-1)/2];
-        secp256k1_fe_negate(&(r->y), &(r->y), 1);
+        secp256k1_ge_neg(r, r);
     }
 }
 
@@ -138,18 +144,21 @@ SECP256K1_INLINE static void secp256k1_ecmult_table_get_ge_lambda(secp256k1_ge *
         secp256k1_ge_set_xy(r, &x[(n-1)/2], &pre[(n-1)/2].y);
     } else {
         secp256k1_ge_set_xy(r, &x[(-n-1)/2], &pre[(-n-1)/2].y);
-        secp256k1_fe_negate(&(r->y), &(r->y), 1);
+        secp256k1_ge_neg(r, r);
     }
 }
 
 SECP256K1_INLINE static void secp256k1_ecmult_table_get_ge_storage(secp256k1_ge *r, const secp256k1_ge_storage *pre, int n, int w) {
+    const secp256k1_ge_storage *a;
+    secp256k1_fe x, y;
     secp256k1_ecmult_table_verify(n,w);
-    if (n > 0) {
-        secp256k1_ge_from_storage(r, &pre[(n-1)/2]);
-    } else {
-        secp256k1_ge_from_storage(r, &pre[(-n-1)/2]);
-        secp256k1_fe_negate(&(r->y), &(r->y), 1);
+    a = &pre[((n > 0 ? n : -n) - 1) / 2];
+    secp256k1_fe_from_storage(&x, &a->x);
+    secp256k1_fe_from_storage(&y, &a->y);
+    if (n < 0) {
+        secp256k1_fe_negate(&y, &y, 1);
     }
+    secp256k1_ge_set_xy(r, &x, &y);
 }
 
 /** Convert a number to WNAF notation. The number becomes represented by sum(2^i * wnaf[i], i=0..bits),
@@ -360,6 +369,7 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
     if (!secp256k1_gej_is_infinity(r)) {
         secp256k1_fe_mul(&r->z, &r->z, &Z);
     }
+    SECP256K1_GEJ_VERIFY_OUTPUT(r);
 }
 
 static void secp256k1_ecmult(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_scalar *na, const secp256k1_scalar *ng) {
