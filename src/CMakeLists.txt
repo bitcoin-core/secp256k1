@@ -168,6 +168,19 @@ if(SECP256K1_BUILD_CTIME_TESTS)
   target_link_libraries(ctime_tests secp256k1)
 endif()
 
+if(SECP256K1_BUILD_THREAD_TESTS)
+  add_executable(thread_tests thread_tests.c)
+  target_link_libraries(thread_tests secp256k1 Threads::Threads)
+  if(MINGW)
+    # Avoid a runtime dependency on the winpthreads DLL.
+    target_link_options(thread_tests PRIVATE -static)
+  endif()
+  add_test(NAME secp256k1.thread_tests COMMAND thread_tests)
+  set_tests_properties(secp256k1.thread_tests PROPERTIES
+    LABELS secp256k1_thread
+  )
+endif()
+
 if(SECP256K1_INSTALL)
   include(GNUInstallDirs)
   target_include_directories(secp256k1 INTERFACE
