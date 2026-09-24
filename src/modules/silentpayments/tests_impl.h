@@ -7,6 +7,7 @@
 #define SECP256K1_MODULE_SILENTPAYMENTS_TESTS_H
 
 #include "../../../include/secp256k1_silentpayments.h"
+#include "../../testutil.h"
 #include "../../unit_test.h"
 #include "../../util.h"
 #include "../../../src/modules/silentpayments/vectors.h"
@@ -931,6 +932,82 @@ static void silentpayments_sha256_tag_test(void) {
     }
 }
 
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_sp_label_create)
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_sp_create_outputs)
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_sp_prevouts_summary_create)
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_sp_scan_outputs)
+/* Check that a ctx-provided SHA256 compression override takes effect in every
+ * silentpayments API function that uses the hash context. A send/receive
+ * round-trip from Alice to Bob is run once with the default compression, then
+ * each function is re-run with the override enabled. */
+static void silentpayments_ctx_sha256(void) {
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    const unsigned char bob_scan_seckey[32] = {1};
+    const unsigned char bob_spend_seckey[32] = {2};
+    secp256k1_silentpayments_recipient bob;
+    const secp256k1_silentpayments_recipient *recipients[1];
+    secp256k1_xonly_pubkey output, output_custom;
+    secp256k1_xonly_pubkey *generated_outputs[1];
+    const secp256k1_xonly_pubkey *tx_outputs[1];
+    const unsigned char *seckeys[1];
+    secp256k1_pubkey alice_pubkey;
+    const secp256k1_pubkey *pubkeys[1];
+    secp256k1_silentpayments_prevouts_summary prevouts_summary, prevouts_summary_custom;
+    secp256k1_silentpayments_found_output found_output;
+    secp256k1_silentpayments_found_output *found_outputs[1];
+    uint32_t n_found_outputs;
+    secp256k1_silentpayments_label label;
+    unsigned char label_tweak[32], label_tweak_custom[32];
+
+    /* Set up Alice (sender) and Bob (recipient) */
+    CHECK(secp256k1_ec_pubkey_create(ctx, &alice_pubkey, ALICE_SECKEY) == 1);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &bob.scan_pubkey, bob_scan_seckey) == 1);
+    CHECK(secp256k1_ec_pubkey_create(ctx, &bob.spend_pubkey, bob_spend_seckey) == 1);
+    bob.index = 0;
+    recipients[0] = &bob;
+    generated_outputs[0] = &output;
+    tx_outputs[0] = &output;
+    seckeys[0] = ALICE_SECKEY;
+    pubkeys[0] = &alice_pubkey;
+    found_outputs[0] = &found_output;
+
+    /* Run a full send/receive round-trip with the default compression. */
+    CHECK(secp256k1_silentpayments_recipient_label_create(ctx, &label, label_tweak, bob_scan_seckey, 0) == 1);
+    CHECK(secp256k1_silentpayments_sender_create_outputs(ctx, generated_outputs, recipients, 1, SMALLEST_OUTPOINT, NULL, 0, seckeys, 1) == 1);
+    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(ctx, &prevouts_summary, SMALLEST_OUTPOINT, NULL, 0, pubkeys, 1) == 1);
+    CHECK(secp256k1_silentpayments_recipient_scan_outputs(ctx, found_outputs, &n_found_outputs, tx_outputs, 1, bob_scan_seckey, &prevouts_summary, &bob.spend_pubkey, NULL, NULL) == 1);
+    CHECK(n_found_outputs == 1);
+    CHECK(!sha256_sp_label_create_called);
+    CHECK(!sha256_sp_create_outputs_called);
+    CHECK(!sha256_sp_prevouts_summary_create_called);
+    CHECK(!sha256_sp_scan_outputs_called);
+
+    /* Override SHA256 compression directly, bypassing the ctx setter sanity checks, and
+     * re-run each function with its own probe. Each output must differ from the default run above. */
+    ctx->hash_ctx.fn_sha256_compression = sha256_sp_label_create;
+    CHECK(secp256k1_silentpayments_recipient_label_create(ctx, &label, label_tweak_custom, bob_scan_seckey, 0) == 1);
+    CHECK(sha256_sp_label_create_called);
+    CHECK(secp256k1_memcmp_var(label_tweak, label_tweak_custom, sizeof(label_tweak)) != 0);
+
+    ctx->hash_ctx.fn_sha256_compression = sha256_sp_create_outputs;
+    generated_outputs[0] = &output_custom;
+    CHECK(secp256k1_silentpayments_sender_create_outputs(ctx, generated_outputs, recipients, 1, SMALLEST_OUTPOINT, NULL, 0, seckeys, 1) == 1);
+    CHECK(sha256_sp_create_outputs_called);
+    CHECK(secp256k1_memcmp_var(output.data, output_custom.data, sizeof(output.data)) != 0);
+
+    ctx->hash_ctx.fn_sha256_compression = sha256_sp_prevouts_summary_create;
+    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(ctx, &prevouts_summary_custom, SMALLEST_OUTPOINT, NULL, 0, pubkeys, 1) == 1);
+    CHECK(sha256_sp_prevouts_summary_create_called);
+    CHECK(secp256k1_memcmp_var(prevouts_summary.data, prevouts_summary_custom.data, sizeof(prevouts_summary.data)) != 0);
+
+    /* The default output is no longer found once the override changes the output tweak (t_k). */
+    ctx->hash_ctx.fn_sha256_compression = sha256_sp_scan_outputs;
+    CHECK(secp256k1_silentpayments_recipient_scan_outputs(ctx, found_outputs, &n_found_outputs, tx_outputs, 1, bob_scan_seckey, &prevouts_summary, &bob.spend_pubkey, NULL, NULL) == 1);
+    CHECK(sha256_sp_scan_outputs_called);
+    CHECK(n_found_outputs == 0);
+
+    secp256k1_context_destroy(ctx);
+}
 
 void run_silentpayments_test_vectors(void) {
     size_t i, j;
@@ -953,6 +1030,7 @@ static const struct tf_test_entry tests_silentpayments[] = {
     CASE1(test_recipient_scan_label_precedes_direct_match),
     CASE1(run_silentpayments_test_vectors),
     CASE1(silentpayments_sha256_tag_test),
+    CASE1(silentpayments_ctx_sha256),
 };
 
 #endif
