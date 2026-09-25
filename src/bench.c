@@ -73,7 +73,8 @@ static void help(const char *executable_path, int default_iters) {
 #endif
 
 #ifdef ENABLE_MODULE_SILENTPAYMENTS
-    printf("    silentpayments                       : all Silent payments benchmarks (scan_nomatch, scan_worstcase)\n");
+    printf("    silentpayments                       : all Silent payments benchmarks (create_pubkeys, scan_nomatch, scan_worstcase)\n");
+    printf("    silentpayments_create_pubkeys        : Silent payments k=0 output pubkey creation (light client filter scenario)\n");
     printf("    silentpayments_scan_nomatch          : Silent payments scanning common case (no match)\n");
     printf("    silentpayments_scan_worstcase        : Silent payments scanning worst case (block-sized tx, all match)\n");
 #endif
@@ -197,7 +198,8 @@ int main(int argc, char** argv) {
                          "ecdsa_recover", "schnorrsig", "schnorrsig_verify", "schnorrsig_sign", "ec",
                          "keygen", "ec_keygen", "ellswift", "encode", "ellswift_encode", "decode",
                          "ellswift_decode", "ellswift_keygen", "ellswift_ecdh", "silentpayments",
-                         "silentpayments_scan_nomatch", "silentpayments_scan_worstcase"};
+                         "silentpayments_create_pubkeys", "silentpayments_scan_nomatch",
+                         "silentpayments_scan_worstcase"};
     int invalid_args = have_invalid_args(argc, argv, valid_args, ARRAY_SIZE(valid_args));
 
     int default_iters = 20000;
@@ -256,8 +258,8 @@ int main(int argc, char** argv) {
 #endif
 
 #ifndef ENABLE_MODULE_SILENTPAYMENTS
-    if (have_flag(argc, argv, "silentpayments") || have_flag(argc, argv, "silentpayments_scan_nomatch") ||
-        have_flag(argc, argv, "silentpayments_scan_worstcase")) {
+    if (have_flag(argc, argv, "silentpayments") || have_flag(argc, argv, "silentpayments_create_pubkeys") ||
+        have_flag(argc, argv, "silentpayments_scan_nomatch") || have_flag(argc, argv, "silentpayments_scan_worstcase")) {
         fprintf(stderr, "./bench: silentpayments module not enabled.\n");
         fprintf(stderr, "See README.md for configuration instructions.\n\n");
         return EXIT_FAILURE;
