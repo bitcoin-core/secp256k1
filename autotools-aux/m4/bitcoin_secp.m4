@@ -61,6 +61,17 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 AC_MSG_RESULT([$msan_enabled])
 ])
 
+dnl Check for pthreads. Keep them out of LIBS so that only thread_tests links against them.
+AC_DEFUN([SECP_PTHREAD_CHECK], [
+  SECP_PTHREAD_CHECK_saved_LIBS="$LIBS"
+  LIBS=""
+  has_pthread=no
+  AC_CHECK_HEADER([pthread.h], [AC_SEARCH_LIBS([pthread_create], [pthread], [has_pthread=yes])])
+  PTHREAD_LIBS="$LIBS"
+  LIBS="$SECP_PTHREAD_CHECK_saved_LIBS"
+  AC_SUBST(PTHREAD_LIBS)
+])
+
 dnl SECP_TRY_APPEND_CFLAGS(flags, VAR)
 dnl Append flags to VAR if CC accepts them.
 AC_DEFUN([SECP_TRY_APPEND_CFLAGS], [

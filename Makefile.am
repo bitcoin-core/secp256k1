@@ -143,6 +143,19 @@ ctime_tests_LDADD = libsecp256k1.la
 ctime_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 endif
 
+if USE_THREAD_TESTS
+noinst_PROGRAMS += thread_tests
+thread_tests_SOURCES = src/thread_tests.c
+thread_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES) -DSECP256K1_STATIC
+thread_tests_LDADD = libsecp256k1.la $(PTHREAD_LIBS)
+thread_tests_LDFLAGS = -static
+if BUILD_WINDOWS
+# Avoid a runtime dependency on the winpthreads DLL.
+thread_tests_LDFLAGS += -all-static
+endif
+TESTS += thread_tests
+endif
+
 if USE_EXHAUSTIVE_TESTS
 noinst_PROGRAMS += exhaustive_tests
 exhaustive_tests_SOURCES = src/tests_exhaustive.c
