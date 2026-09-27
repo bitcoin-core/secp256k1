@@ -124,6 +124,10 @@ To maintain a pristine source tree, CMake encourages to perform an out-of-source
 
 To compile optional modules (such as Schnorr signatures), you need to run `cmake` with additional flags (such as `-DSECP256K1_ENABLE_MODULE_SCHNORRSIG=ON`). Run `cmake -B build -LH` or `ccmake -B build` to see the full list of available flags.
 
+When constant-time tests are built, CTest runs them under MemorySanitizer if enabled, or under Valgrind for native builds if the Valgrind executable is available.
+They can be run separately with `ctest --test-dir build -L secp256k1_ctime --output-on-failure`.
+Use `-DSECP256K1_BUILD_CTIME_TESTS=OFF` to disable building and running these tests.
+
 ### Cross compiling
 
 To alleviate issues with cross compiling, preconfigured toolchain files are available in the `cmake` directory.
