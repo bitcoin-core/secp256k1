@@ -290,7 +290,16 @@ fi
 if test x"$req_asm" = x"auto"; then
   SECP_X86_64_ASM_CHECK
   if test x"$has_x86_64_asm" = x"yes"; then
-    set_asm=x86_64
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [[
+#ifndef __clang__
+#error not clang
+#endif
+    ]])], [compiler_is_clang=yes], [compiler_is_clang=no])
+    if test x"$compiler_is_clang" = x"no"; then
+      set_asm=x86_64
+    else
+      set_asm=no
+    fi
   fi
   if test x"$set_asm" = x; then
     set_asm=no
