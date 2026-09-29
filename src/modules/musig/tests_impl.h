@@ -1138,6 +1138,29 @@ static void musig_test_static_nonce_gen_counter(void) {
     CHECK(secp256k1_memcmp_var(pubnonce66, expected_pubnonce, sizeof(pubnonce66)) == 0);
 }
 
+/* Checks that nonce_gen_counter matches nonce_gen */
+static void musig_nonce_gen_counter_test(void) {
+    secp256k1_musig_secnonce secnonce;
+    secp256k1_musig_pubnonce pubnonce[2];
+    secp256k1_keypair keypair;
+    secp256k1_pubkey pk;
+    unsigned char sk[32];
+    int i;
+
+    testrand256(sk);
+    CHECK(create_keypair_and_pk(&keypair, &pk, sk));
+
+    for (i = 0; i < COUNT; i++) {
+        unsigned char session_secrand32[32] = { 0 };
+        uint64_t nonrepeating_cnt = testrand64();
+
+        secp256k1_write_be64(session_secrand32, nonrepeating_cnt);
+        CHECK(secp256k1_musig_nonce_gen_counter(CTX, &secnonce, &pubnonce[0], nonrepeating_cnt, &keypair, NULL, NULL, NULL) == 1);
+        CHECK(secp256k1_musig_nonce_gen(CTX, &secnonce, &pubnonce[1], session_secrand32, sk, &pk, NULL, NULL, NULL) == 1);
+        CHECK(secp256k1_memcmp_var(&pubnonce[0], &pubnonce[1], sizeof(pubnonce[0])) == 0);
+    }
+}
+
 /* --- Test registry --- */
 REPEAT_TEST(musig_simple_test)
 /* Run multiple times to ensure that pk and nonce have different y parities */
@@ -1156,6 +1179,7 @@ static const struct tf_test_entry tests_musig[] = {
     CASE1(musig_test_vectors_tweak),
     CASE1(musig_test_vectors_sigagg),
     CASE1(musig_test_static_nonce_gen_counter),
+    CASE1(musig_nonce_gen_counter_test),
 };
 
 #endif
