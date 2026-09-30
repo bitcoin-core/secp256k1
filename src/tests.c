@@ -7729,6 +7729,34 @@ static void run_ecdsa_edge_cases(void) {
         CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 0);
     }
 
+    /* Verify signature where r + n overflows p fails. */
+    {
+        /* Scalar r as chars: r = p - n + 1, so that (r + n) mod p = 1 */
+        const unsigned char csr[32] = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x45, 0x51, 0x23, 0x19, 0x50, 0xb7, 0x5f, 0xc4,
+            0x40, 0x2d, 0xa1, 0x72, 0x2f, 0xc9, 0xba, 0xef
+        };
+        /* With s = 1 and msg = 0, verification computes R = r * pubkey.
+         * pubkey = r^-1 * (1, y), so x(R) = 1. */
+        const unsigned char pubkey[33] = {
+            0x02, 0x57, 0xad, 0x61, 0xc8, 0x68, 0x3f, 0xcf,
+            0x06, 0x99, 0x19, 0x11, 0x8c, 0x0f, 0x99, 0xb9,
+            0x38, 0x9f, 0x65, 0x05, 0x9b, 0xa0, 0x71, 0xba,
+            0xbe, 0xa6, 0x32, 0x05, 0x34, 0x14, 0x45, 0xda,
+            0xe8
+        };
+        secp256k1_ge key;
+        secp256k1_scalar msg;
+        secp256k1_scalar sr, ss;
+        secp256k1_scalar_set_int(&ss, 1);
+        secp256k1_scalar_set_int(&msg, 0);
+        secp256k1_scalar_set_b32(&sr, csr, NULL);
+        CHECK(secp256k1_ge_parse33(&key, pubkey));
+        CHECK(secp256k1_ecdsa_sig_verify(&sr, &ss, &key, &msg) == 0);
+    }
+
     /* Signature where s would be zero. */
     {
         secp256k1_pubkey pubkey;
