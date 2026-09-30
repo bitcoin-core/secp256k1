@@ -62,7 +62,76 @@ static void test_exhaustive_extrakeys(const secp256k1_context *ctx, const secp25
         }
     }
 
-    /* TODO: keypair/xonly_pubkey tweak tests */
+     /* Check keypair/xonly_pubkey tweak behavior over all non-zero tweaks. */
+    for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {
+        int j;
+        int xonly_scalar = parities[i - 1] ? EXHAUSTIVE_TEST_ORDER - i : i;
+        secp256k1_scalar scalar_i;
+        unsigned char sk32[32];
+
+        secp256k1_scalar_set_int(&scalar_i, i);
+        secp256k1_scalar_get_b32(sk32, &scalar_i);
+
+        for (j = 0; j < EXHAUSTIVE_TEST_ORDER; j++) {
+            secp256k1_scalar scalar_j;
+            unsigned char tweak32[32];
+            int expected_scalar;
+
+            secp256k1_pubkey tweaked_pk;
+            secp256k1_xonly_pubkey tweaked_xonly_pk;
+            secp256k1_keypair tweaked_keypair;
+            unsigned char serialized_pk[33];
+            unsigned char serialized_xonly_pk[32];
+            unsigned char expected_x[32];
+            size_t serialized_pklen = sizeof(serialized_pk);
+            int expected_ret;
+            int expected_pk_parity;
+            int pk_parity;
+
+            secp256k1_scalar_set_int(&scalar_j, j);
+            secp256k1_scalar_get_b32(tweak32, &scalar_j);
+
+            expected_scalar = (xonly_scalar + j) % EXHAUSTIVE_TEST_ORDER;
+            expected_ret = expected_scalar != 0;
+
+            CHECK(secp256k1_xonly_pubkey_tweak_add(ctx, &tweaked_pk, &xonly_pubkey[i - 1], tweak32) == expected_ret);
+            CHECK(secp256k1_keypair_create(ctx, &tweaked_keypair, sk32) == 1);
+            CHECK(secp256k1_keypair_xonly_tweak_add(ctx, &tweaked_keypair, tweak32) == expected_ret);
+
+            if (!expected_ret) {
+                continue;
+            }
+
+            {
+                secp256k1_fe y = group[expected_scalar].y;
+                secp256k1_fe_normalize_var(&y);
+                expected_pk_parity = secp256k1_fe_is_odd(&y);
+            }
+            {
+                secp256k1_fe x = group[expected_scalar].x;
+                secp256k1_fe_normalize_var(&x);
+                secp256k1_fe_get_b32(expected_x, &x);
+            }
+
+            CHECK(secp256k1_ec_pubkey_serialize(ctx, serialized_pk, &serialized_pklen, &tweaked_pk, SECP256K1_EC_COMPRESSED));
+            CHECK(serialized_pklen == sizeof(serialized_pk));
+            CHECK((serialized_pk[0] == SECP256K1_TAG_PUBKEY_EVEN) || (serialized_pk[0] == SECP256K1_TAG_PUBKEY_ODD));
+            CHECK(serialized_pk[0] == (expected_pk_parity ? SECP256K1_TAG_PUBKEY_ODD : SECP256K1_TAG_PUBKEY_EVEN));
+            CHECK(secp256k1_memcmp_var(&serialized_pk[1], expected_x, 32) == 0);
+
+            CHECK(secp256k1_xonly_pubkey_from_pubkey(ctx, &tweaked_xonly_pk, &pk_parity, &tweaked_pk));
+            CHECK(pk_parity == expected_pk_parity);
+            CHECK(secp256k1_xonly_pubkey_serialize(ctx, serialized_xonly_pk, &tweaked_xonly_pk));
+            CHECK(secp256k1_memcmp_var(serialized_xonly_pk, expected_x, 32) == 0);
+            CHECK(secp256k1_xonly_pubkey_tweak_add_check(ctx, serialized_xonly_pk, pk_parity, &xonly_pubkey[i - 1], tweak32));
+
+            CHECK(secp256k1_keypair_pub(ctx, &tweaked_pk, &tweaked_keypair));
+            serialized_pklen = sizeof(serialized_pk);
+            CHECK(secp256k1_ec_pubkey_serialize(ctx, serialized_pk, &serialized_pklen, &tweaked_pk, SECP256K1_EC_COMPRESSED));
+            CHECK(serialized_pk[0] == (expected_pk_parity ? SECP256K1_TAG_PUBKEY_ODD : SECP256K1_TAG_PUBKEY_EVEN));
+            CHECK(secp256k1_memcmp_var(&serialized_pk[1], expected_x, 32) == 0);
+        }
+    }
 }
 
 #endif
