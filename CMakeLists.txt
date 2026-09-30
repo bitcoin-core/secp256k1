@@ -142,6 +142,20 @@ option(SECP256K1_BUILD_EXHAUSTIVE_TESTS "Build exhaustive tests." ON)
 option(SECP256K1_BUILD_CTIME_TESTS "Build constant-time tests." ${SECP256K1_VALGRIND})
 option(SECP256K1_BUILD_EXAMPLES "Build examples." OFF)
 
+# Look for pthreads only if thread_tests may be built.
+if(SECP256K1_BUILD_THREAD_TESTS OR (SECP256K1_BUILD_TESTS AND NOT DEFINED SECP256K1_BUILD_THREAD_TESTS))
+  find_package(Threads)
+endif()
+set(thread_tests_default OFF)
+if(SECP256K1_BUILD_TESTS AND CMAKE_USE_PTHREADS_INIT)
+  set(thread_tests_default ON)
+endif()
+option(SECP256K1_BUILD_THREAD_TESTS "Build thread-safety tests." ${thread_tests_default})
+unset(thread_tests_default)
+if(SECP256K1_BUILD_THREAD_TESTS AND NOT CMAKE_USE_PTHREADS_INIT)
+  message(FATAL_ERROR "Thread-safety tests requested but pthreads are not available.")
+endif()
+
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
 if(MSVC)
@@ -310,6 +324,7 @@ endif()
 message("  tests ............................... ${tests_status}")
 message("  exhaustive tests .................... ${SECP256K1_BUILD_EXHAUSTIVE_TESTS}")
 message("  ctime_tests ......................... ${SECP256K1_BUILD_CTIME_TESTS}")
+message("  thread_tests ........................ ${SECP256K1_BUILD_THREAD_TESTS}")
 message("  examples ............................ ${SECP256K1_BUILD_EXAMPLES}")
 message("")
 if(CMAKE_CROSSCOMPILING)

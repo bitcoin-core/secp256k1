@@ -157,6 +157,10 @@ AC_ARG_ENABLE(ctime_tests,
     AS_HELP_STRING([--enable-ctime-tests],[compile constant-time tests [default=yes if valgrind enabled]]), [],
     [SECP_SET_DEFAULT([enable_ctime_tests], [auto], [auto])])
 
+AC_ARG_ENABLE(thread_tests,
+    AS_HELP_STRING([--enable-thread-tests],[compile thread-safety tests [default=yes if tests enabled and pthreads available]]), [],
+    [SECP_SET_DEFAULT([enable_thread_tests], [auto], [auto])])
+
 AC_ARG_ENABLE(experimental,
     AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]), [],
     [SECP_SET_DEFAULT([enable_experimental], [no], [yes])])
@@ -267,6 +271,21 @@ if test x"$enable_ctime_tests" = x"yes"; then
   if test x"$msan_enabled" = x"yes"; then
     SECP_TRY_APPEND_CFLAGS([-fno-sanitize-memory-param-retval], SECP_CFLAGS)
     print_msan_notice=yes
+  fi
+fi
+
+if test x"$enable_thread_tests" = x"auto" && test x"$enable_tests" = x"no"; then
+  enable_thread_tests=no
+fi
+if test x"$enable_thread_tests" != x"no"; then
+  SECP_PTHREAD_CHECK
+  if test x"$has_pthread" != x"yes"; then
+    if test x"$enable_thread_tests" = x"yes"; then
+      AC_MSG_ERROR([Thread tests explicitly requested but pthreads are not available])
+    fi
+    enable_thread_tests=no
+  else
+    enable_thread_tests=yes
   fi
 fi
 
@@ -475,6 +494,7 @@ AC_SUBST(SECP_CONFIG_DEFINES)
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"$enable_coverage" = x"yes"])
 AM_CONDITIONAL([USE_TESTS], [test x"$enable_tests" != x"no"])
 AM_CONDITIONAL([USE_CTIME_TESTS], [test x"$enable_ctime_tests" = x"yes"])
+AM_CONDITIONAL([USE_THREAD_TESTS], [test x"$enable_thread_tests" = x"yes"])
 AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$enable_exhaustive_tests" != x"no"])
 AM_CONDITIONAL([USE_EXAMPLES], [test x"$enable_examples" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$enable_benchmark" = x"yes"])
@@ -501,6 +521,7 @@ echo "  with benchmarks         = $enable_benchmark"
 echo "  with tests              = $enable_tests"
 echo "  with exhaustive tests   = $enable_exhaustive_tests"
 echo "  with ctime tests        = $enable_ctime_tests"
+echo "  with thread tests       = $enable_thread_tests"
 echo "  with coverage           = $enable_coverage"
 echo "  with examples           = $enable_examples"
 echo "  module ecdh             = $enable_module_ecdh"
