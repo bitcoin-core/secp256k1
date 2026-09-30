@@ -175,7 +175,6 @@ static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context
         secp256k1_scalar_clear(&t_k_scalar);
         return 0;
     }
-    secp256k1_fe_normalize_var(&output_ge.y);
     secp256k1_extrakeys_ge_even_y(&output_ge);
     secp256k1_xonly_pubkey_save(output_xonly, &output_ge);
 
@@ -251,6 +250,7 @@ int secp256k1_silentpayments_sender_create_outputs(
             secp256k1_scalar_clear(&seckey_sum_scalar);
             return 0;
         }
+        secp256k1_fe_normalize_var(&addend_point.y);
         if (secp256k1_fe_is_odd(&addend_point.y)) {
             secp256k1_scalar_negate(&addend, &addend);
         }
@@ -703,7 +703,6 @@ int secp256k1_silentpayments_recipient_scan_outputs(
         secp256k1_ge_neg(&unlabeled_output_negated_ge, &unlabeled_output_ge);
 
         found_idx = -1;
-        secp256k1_fe_normalize_var(&unlabeled_output_ge.y);
         secp256k1_extrakeys_ge_even_y(&unlabeled_output_ge);
         secp256k1_xonly_pubkey_save(&unlabeled_output_xonly, &unlabeled_output_ge);
         for (j = 0; j < n_tx_outputs; j++) {

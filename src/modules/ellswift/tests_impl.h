@@ -211,6 +211,7 @@ void ellswift_decoding_test_vectors_tests(void) {
         ret = secp256k1_pubkey_load(CTX, &ge, &pubkey);
         CHECK(ret);
         CHECK(fe_equal(&testcase->x, &ge.x));
+        secp256k1_fe_normalize_var(&ge.y);
         CHECK(secp256k1_fe_is_odd(&ge.y) == testcase->odd_y);
     }
 }

@@ -249,9 +249,12 @@ static void secp256k1_ecmult_gen_gej(const secp256k1_ecmult_gen_context *ecmult_
             }
 
             /* Set add=adds or add=-adds, in constant time, based on sign. */
-            secp256k1_ge_from_storage(&add, &adds);
+            secp256k1_fe_from_storage(&add.x, &adds.x);
+            secp256k1_fe_from_storage(&add.y, &adds.y);
+            add.infinity = 0;
             secp256k1_fe_negate(&neg, &add.y, 1);
             secp256k1_fe_cmov(&add.y, &neg, sign);
+            SECP256K1_GE_VERIFY_OUTPUT(&add);
 
             /* Add the looked up and conditionally negated value to r. */
             if (EXPECT(first, 0)) {

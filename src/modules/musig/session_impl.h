@@ -372,6 +372,7 @@ static int secp256k1_musig_nonce_gen_internal(const secp256k1_context* ctx, secp
             return 0;
         }
         /* The loaded point cache_i.pk can not be the point at infinity. */
+        secp256k1_fe_normalize_var(&cache_i.pk.x);
         secp256k1_fe_get_b32(aggpk_ser, &cache_i.pk.x);
         aggpk_ser_ptr = aggpk_ser;
     }
@@ -573,6 +574,7 @@ int secp256k1_musig_nonce_process(const secp256k1_context* ctx, secp256k1_musig_
     if (!secp256k1_keyagg_cache_load(ctx, &cache_i, keyagg_cache)) {
         return 0;
     }
+    secp256k1_fe_normalize_var(&cache_i.pk.x);
     secp256k1_fe_get_b32(agg_pk32, &cache_i.pk.x);
 
     if (!secp256k1_musig_aggnonce_load(ctx, aggnonce_pts, aggnonce)) {
@@ -587,6 +589,7 @@ int secp256k1_musig_nonce_process(const secp256k1_context* ctx, secp256k1_musig_
     if (!secp256k1_scalar_is_zero(&cache_i.tweak)) {
         secp256k1_scalar e_tmp;
         secp256k1_scalar_mul(&e_tmp, &session_i.challenge, &cache_i.tweak);
+        secp256k1_fe_normalize_var(&cache_i.pk.y);
         if (secp256k1_fe_is_odd(&cache_i.pk.y)) {
             secp256k1_scalar_negate(&e_tmp, &e_tmp);
         }
@@ -634,8 +637,7 @@ int secp256k1_musig_partial_sign(const secp256k1_context* ctx, secp256k1_musig_p
         secp256k1_musig_partial_sign_clear(&sk, k);
         return 0;
     }
-    ARG_CHECK(secp256k1_fe_equal(&pk.x, &keypair_pk.x)
-              && secp256k1_fe_equal(&pk.y, &keypair_pk.y));
+    ARG_CHECK(secp256k1_ge_eq_var(&pk, &keypair_pk));
     if (!secp256k1_keyagg_cache_load(ctx, &cache_i, keyagg_cache)) {
         secp256k1_musig_partial_sign_clear(&sk, k);
         return 0;
@@ -644,6 +646,7 @@ int secp256k1_musig_partial_sign(const secp256k1_context* ctx, secp256k1_musig_p
     /* Negate sk if secp256k1_fe_is_odd(&cache_i.pk.y)) XOR cache_i.parity_acc.
      * This corresponds to the line "Let d = g⋅gacc⋅d' mod n" in the
      * specification. */
+    secp256k1_fe_normalize_var(&cache_i.pk.y);
     if ((secp256k1_fe_is_odd(&cache_i.pk.y)
          != cache_i.parity_acc)) {
         secp256k1_scalar_negate(&sk, &sk);
@@ -716,6 +719,7 @@ int secp256k1_musig_partial_sig_verify(const secp256k1_context* ctx, const secp2
     /* Negate e if secp256k1_fe_is_odd(&cache_i.pk.y)) XOR cache_i.parity_acc.
      * This corresponds to the line "Let g' = g⋅gacc mod n" and the multiplication "g'⋅e"
      * in the specification. */
+    secp256k1_fe_normalize_var(&cache_i.pk.y);
     if (secp256k1_fe_is_odd(&cache_i.pk.y)
             != cache_i.parity_acc) {
         secp256k1_scalar_negate(&e, &e);
