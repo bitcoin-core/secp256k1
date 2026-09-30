@@ -905,6 +905,14 @@ void run_silentpayments_test_vector_receive(const struct bip352_test_vector *tes
                 CHECK(found_label_tweak != NULL);
             }
         }
+    } else {
+        /* Not performing a full check, so resort to a structural sanity check: */
+        /* All outputs must have distinct x-only pubkeys.  */
+        for (i = 0; i < n_found; i++) {
+            for (j = i + 1; j < n_found; j++) {
+                CHECK(secp256k1_xonly_pubkey_cmp(CTX, &found_outputs[i]->output, &found_outputs[j]->output) != 0);
+            }
+        }
     }
     CHECK(n_found == subtest->num_found_output_pubkeys);
 }
