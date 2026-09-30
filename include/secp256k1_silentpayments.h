@@ -235,11 +235,57 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipien
  *  guaranteed to be portable between different platforms or versions. It is
  *  however guaranteed to be 101 bytes in size, and can be safely copied/moved.
  *  This structure does not contain secret data. It can be created with
- *  `secp256k1_silentpayments_recipient_prevouts_summary_create`.
+ *  `secp256k1_silentpayments_recipient_prevouts_summary_create`. Serialized and
+ *  parsed with `secp256k1_silentpayments_recipient_prevouts_summary_serialize`
+ *  and `secp256k1_silentpayments_recipient_prevouts_summary_parse`.
  */
 typedef struct secp256k1_silentpayments_prevouts_summary {
     unsigned char data[101];
 } secp256k1_silentpayments_prevouts_summary;
+
+/** Parse a 33-byte or 65-byte sequence into a silentpayments_prevouts_summary object.
+ *
+ *  Both sizes are accepted; see `secp256k1_silentpayments_recipient_prevouts_summary_serialize`
+ *  for the size-vs-parse-speed tradeoff.
+ *
+ *  Returns: 1 when the prevouts_summary could be parsed, 0 otherwise.
+ *
+ *  Args:              ctx: pointer to a context object.
+ *  Out:  prevouts_summary: pointer to a silentpayments_prevouts_summary object.
+ *  In:              input: pointer to a serialized silentpayments_prevouts_summary.
+ *                inputlen: size of the serialized input. Must be either 33 or 65.
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipient_prevouts_summary_parse(
+    const secp256k1_context *ctx,
+    secp256k1_silentpayments_prevouts_summary *prevouts_summary,
+    const unsigned char *input,
+    size_t inputlen
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3);
+
+/** Serialize a silentpayments_prevouts_summary object into a 33-byte or 65-byte sequence.
+ *
+ *  The 33-byte variant saves bandwidth and is preferred in general. The 65-byte variant
+ *  is slightly faster to parse, at the cost of about double the size.
+ *
+ *  Serializing a prevouts_summary object created with `_recipient_prevouts_summary_create`
+ *  will result in an EC multiplication. This allows for a more compact serialization, but
+ *  also means a serialized prevouts_summary will not parse back to the same
+ *  prevouts_summary object (due to the EC multiplication).
+ *
+ *  Returns: 1 always.
+ *
+ *  Args:            ctx: pointer to a context object
+ *  Out:          output: pointer to a byte array to store the serialized
+ *                        `silentpayments_prevouts_summary`.
+ *  In:        outputlen: size of the byte array. Must be either 33 or 65.
+ *      prevouts_summary: pointer to an initialized `silentpayments_prevouts_summary` object
+ */
+SECP256K1_API int secp256k1_silentpayments_recipient_prevouts_summary_serialize(
+    const secp256k1_context *ctx,
+    unsigned char *output,
+    size_t outputlen,
+    const secp256k1_silentpayments_prevouts_summary *prevouts_summary
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(4);
 
 /** Compute Silent Payments prevouts summary from prevout public keys and transaction
  *  inputs.
@@ -388,6 +434,43 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipien
     secp256k1_silentpayments_label_lookup label_lookup,
     const void *label_context
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(6) SECP256K1_ARG_NONNULL(7) SECP256K1_ARG_NONNULL(8);
+
+/** Create Silent Payments output public keys.
+ *
+ *  Given a scan key, a prevouts_summary object, and an array of recipient
+ *  spend public keys, create the Silent Payments output public keys.
+ *
+ *  This function is used by the recipient when scanning for outputs without
+ *  access to the transaction outputs (e.g., using BIP158 block filters). It will
+ *  create the first output (i.e. with k=0) for each of the spend public keys provided.
+ *  It is the caller's responsibility to determine if the created outputs exist.
+ *
+ *  If a match is found, the caller must download the full transaction and call
+ *  `secp256k1_silentpayments_recipient_scan_outputs` to check if there are additional
+ *  outputs for the recipient and get the full output tweak needed to spend the outputs.
+ *
+ *  Returns: 1 if output creation was successful, 0 otherwise.
+ *
+ *  Args:                   ctx: pointer to a context object
+ *  Out:          outputs_xonly: pointer to an array of pointers to the resulting
+ *                               output x-only public keys. The outputs_xonly array
+ *                               MUST have the same size as the spend_pubkeys array.
+ *  In:              scan_key32: pointer to the recipient's 32 byte scan key.
+ *                               The scan key is valid if it passes secp256k1_ec_seckey_verify.
+ *             prevouts_summary: pointer to the transaction prevouts summary data
+ *                               (see `secp256k1_silentpayments_recipient_prevouts_summary_create`).
+ *                spend_pubkeys: pointer to an array of pointers to the recipient's spend public keys
+ *                               (labeled or unlabeled).
+ *              n_spend_pubkeys: the size of the spend_pubkeys array.
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipient_create_output_pubkeys(
+    const secp256k1_context *ctx,
+    secp256k1_xonly_pubkey **outputs_xonly,
+    const unsigned char *scan_key32,
+    const secp256k1_silentpayments_prevouts_summary *prevouts_summary,
+    const secp256k1_pubkey * const *spend_pubkeys,
+    size_t n_spend_pubkeys
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
 
 #ifdef __cplusplus
 }

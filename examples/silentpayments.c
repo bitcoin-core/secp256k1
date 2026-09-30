@@ -324,6 +324,7 @@ int main(void) {
 
     /*** Receiving ***/
     {
+        unsigned char light_client_data33[33];
         {
             /*** Scanning as a full node (Bob) ***
              *
@@ -332,6 +333,16 @@ int main(void) {
              *     1. Collect the relevant prevouts from the transaction and call
              *        `secp256k1_silentpayments_recipient_prevouts_summary_create`
              *     2. Call `secp256k1_silentpayments_recipient_scan_outputs`
+             * Bob collects the prevouts data from the transaction inputs and
+             * creates a `secp256k1_silentpayments_prevouts_summary` object. He uses
+             * this for his own scanning and also serializes the `prevouts_summary`
+             * object to send to light clients. We will use this later for
+             * Carol, who is scanning as a light client. Note, anyone can create
+             * and provide these `prevouts_summary` objects, i.e. you don't need to be
+             * a Silent Payments wallet, just someone interested in providing this
+             * data to light clients, e.g. a wallet service provider. In our
+             * example, Bob is scanning for himself but also sharing this data
+             * with light clients.
              */
             ret = secp256k1_silentpayments_recipient_prevouts_summary_create(ctx,
                 &prevouts_summary,
@@ -346,6 +357,12 @@ int main(void) {
                 printf("This transaction is not valid for Silent Payments, skipping.\n");
                 return EXIT_SUCCESS;
             }
+            /* Serialize the prevouts_summary data object for later use. */
+            ret = secp256k1_silentpayments_recipient_prevouts_summary_serialize(ctx,
+                light_client_data33, 33,
+                &prevouts_summary
+            );
+            assert(ret);
 
             /* Scan the transaction */
             n_found_outputs = 0;
@@ -414,8 +431,23 @@ int main(void) {
             }
         }
         {
-            /*** Scanning as a full node (Carol) ***/
-            /* TODO: switch this part to light client scanning once it is supported */
+            /*** Scanning as a light client (Carol) ***
+             * Being a light client, Carol likely does not have access to the
+             * transaction inputs and prevout information, so she uses the
+             * `prevouts_summary` object created by Bob's full node earlier. This
+             * serialized `prevouts_summary` object contains everything she needs for
+             * generating the shared secret, i.e., `input_hash * prevouts_pubkey_sum`.
+             *
+             * Additionally, she likely does not have access to the transaction outputs.
+             * This means she will need to first generate outputs, check if they exist
+             * in the UTXO set (e.g. BIP158 or some other means of querying), and
+             * proceed to download the full transaction if there is a match.
+             *
+             * Once she has the full transaction, she scans with
+             * `secp256k1_silentpayments_recipient_scan_outputs` to find all of
+             * the outputs and extract the tweaks needed for spending later.
+             */
+            int found;
 
             /* Load Carol's spend public key. */
             ret = secp256k1_ec_pubkey_parse(ctx,
@@ -424,37 +456,88 @@ int main(void) {
                 33
             );
             assert(ret);
-
-            n_found_outputs = 0;
-            ret = secp256k1_silentpayments_recipient_scan_outputs(ctx,
-                found_output_ptrs, &n_found_outputs,
-                (const secp256k1_xonly_pubkey**)tx_output_ptrs, N_OUTPUTS,
-                carol_scan_key,
+            /* Parse the serialized prevouts_summary object. */
+            ret = secp256k1_silentpayments_recipient_prevouts_summary_parse(ctx,
                 &prevouts_summary,
-                &unlabeled_spend_pubkey,
-                NULL, NULL /* NULL, NULL for no labels */
+                light_client_data33, 33
             );
             if (!ret) {
+                printf("\n");
                 printf("This transaction is not valid for Silent Payments, skipping.\n");
                 return EXIT_SUCCESS;
             }
-            if (n_found_outputs > 0) {
-                /* Carol would spend these outputs the same as Bob, by tweaking her
-                 * spend key with the tweak corresponding to the found output. See above
-                 * for an example for Bob's outputs. */
-                printf("\n");
-                printf("Carol found the following outputs: \n");
-                for (i = 0; i < n_found_outputs; i++) {
-                    printf("    ");
-                    ret = secp256k1_xonly_pubkey_serialize(ctx,
-                        serialized_xonly,
-                        &found_outputs[i].output
-                    );
-                    assert(ret);
-                    print_hex(serialized_xonly, sizeof(serialized_xonly));
+
+            {
+                secp256k1_xonly_pubkey *potential_outputs_ptrs[1];
+                secp256k1_xonly_pubkey potential_outputs[1];
+                const secp256k1_pubkey *spend_pubkeys_ptrs[1];
+
+                potential_outputs_ptrs[0] = &potential_outputs[0];
+                spend_pubkeys_ptrs[0] = &unlabeled_spend_pubkey;
+                ret = secp256k1_silentpayments_recipient_create_output_pubkeys(ctx,
+                    potential_outputs_ptrs,
+                    carol_scan_key,
+                    &prevouts_summary,
+                    spend_pubkeys_ptrs, 1
+                );
+                if (!ret) {
+                    printf("This transaction is not valid for Silent Payments, skipping.\n");
+                    return EXIT_SUCCESS;
+                }
+                /* At this point, we check that the UTXO exists with a light
+                 * client protocol. For this example, we'll just iterate
+                 * through the list of transaction outputs.
+                 *
+                 * If we generate an output and it does not exist in the
+                 * UTXO set, we are done scanning this transaction. It is
+                 * sufficient to stop after the first match, since we will be
+                 * doing a full scan of the transaction once we have access to
+                 * all of the outputs.
+                 */
+                found = 0;
+                for (i = 0; i < N_OUTPUTS; i++) {
+                    if (secp256k1_xonly_pubkey_cmp(ctx, &potential_outputs[0], &tx_outputs[i]) == 0) {
+                        found = 1;
+                        break;
+                    }
+                }
+            }
+
+            if (found) {
+                /* Carol now needs to request the full transaction to do a complete scan. */
+                n_found_outputs = 0;
+                ret = secp256k1_silentpayments_recipient_scan_outputs(ctx,
+                    found_output_ptrs, &n_found_outputs,
+                    (const secp256k1_xonly_pubkey**)tx_output_ptrs, N_OUTPUTS,
+                    carol_scan_key,
+                    &prevouts_summary,
+                    &unlabeled_spend_pubkey,
+                    NULL, NULL /* NULL, NULL for no labels */
+                );
+                if (!ret) {
+                    printf("This transaction is not valid for Silent Payments, skipping.\n");
+                    return EXIT_SUCCESS;
+                }
+                if (n_found_outputs > 0) {
+                    /* Carol would spend these outputs the same as Bob, by tweaking her
+                     * spend key with the tweak corresponding to the found output. See above
+                     * for an example for Bob's outputs. */
+                    printf("\n");
+                    printf("Carol found the following outputs: \n");
+                    for (i = 0; i < n_found_outputs; i++) {
+                        printf("    ");
+                        ret = secp256k1_xonly_pubkey_serialize(ctx,
+                            serialized_xonly,
+                            &found_outputs[i].output
+                        );
+                        assert(ret);
+                        print_hex(serialized_xonly, sizeof(serialized_xonly));
+                    }
+                } else {
+                    printf("Carol did not find any outputs in this transaction.\n");
                 }
             } else {
-                printf("Carol did not find any outputs in this transaction.\n");
+                printf("Carol did not find any outputs in this transaction (light client prefilter).\n");
             }
         }
     }
