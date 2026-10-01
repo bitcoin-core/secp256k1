@@ -71,6 +71,24 @@ static SECP256K1_INLINE void secp256k1_u128_accum_u64(secp256k1_uint128 *r, uint
    r->hi += r->lo < a;
 }
 
+static SECP256K1_INLINE int secp256k1_u128_accum_mul_carry(secp256k1_uint128 *r, uint64_t a, uint64_t b) {
+   uint64_t lo, hi;
+   lo = secp256k1_umul128(a, b, &hi);
+   VERIFY_CHECK(hi != UINT64_MAX); /* the high half of a 64x64-bit product is at most 2^64 - 2 */
+   r->lo += lo;
+   hi += r->lo < lo; /* cannot overflow (see above) */
+   r->hi += hi;
+   return r->hi < hi;
+}
+
+static SECP256K1_INLINE int secp256k1_u128_accum_u64_carry(secp256k1_uint128 *r, uint64_t a) {
+   uint64_t c;
+   r->lo += a;
+   c = r->lo < a;
+   r->hi += c;
+   return r->hi < c;
+}
+
 /* Unsigned (logical) right shift.
  * Non-constant time in n.
  */
