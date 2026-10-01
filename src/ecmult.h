@@ -11,12 +11,11 @@
 #include "scalar.h"
 #include "scratch.h"
 
+/* See STATIC_ASSERT(sizeof(secp256k1_ge_storage) == 64) in group_impl.h. */
 /** Larger values for ECMULT_WINDOW_SIZE result in possibly better
  *  performance at the cost of an exponentially larger precomputed
  *  table. The exact table size is
- *      ECMULT_TABLE_SIZE(ECMULT_WINDOW_SIZE) * sizeof(secp256k1_ge_storage) bytes,
- *  where sizeof(secp256k1_ge_storage) is typically 64 bytes but can
- *  be larger due to platform-specific padding and alignment.
+ *      ECMULT_TABLE_SIZE(ECMULT_WINDOW_SIZE) * 64 bytes.
  *  Two tables of this size are used (due to the endomorphism
  *  optimization).
  */
