@@ -5,7 +5,10 @@
 #include "util.h"
 
 static SECP256K1_INLINE void secp256k1_u128_load(secp256k1_uint128 *r, uint64_t hi, uint64_t lo) {
-    *r = (((uint128_t)hi) << 64) + lo;
+    /* Use | instead of the equivalent +. GCC may reassociate a + with adjacent
+     * additions, which can break add-with-carry chains, e.g., in the
+     * accumulator of the 4x64 scalar multiplication. */
+    *r = (((uint128_t)hi) << 64) | lo;
 }
 
 static SECP256K1_INLINE void secp256k1_u128_mul(secp256k1_uint128 *r, uint64_t a, uint64_t b) {
@@ -18,6 +21,38 @@ static SECP256K1_INLINE void secp256k1_u128_accum_mul(secp256k1_uint128 *r, uint
 
 static SECP256K1_INLINE void secp256k1_u128_accum_u64(secp256k1_uint128 *r, uint64_t a) {
    *r += a;
+}
+
+/* With __builtin_add_overflow, GCC 14 and newer emit efficient add-with-carry
+ * (adc) chains when accumulating several values. The fallbacks compute the carry
+ * on 64-bit halves, because computing it as a comparison of 128-bit values can
+ * result in branches (observed with GCC 13 to 16). */
+static SECP256K1_INLINE int secp256k1_u128_accum_mul_carry(secp256k1_uint128 *r, uint64_t a, uint64_t b) {
+#if __has_builtin(__builtin_add_overflow)
+   return __builtin_add_overflow(*r, (uint128_t)a * b, r);
+#else
+   uint128_t t = (uint128_t)a * b;
+   uint64_t tl = (uint64_t)t, th = (uint64_t)(t >> 64);
+   uint64_t lo = (uint64_t)*r + tl;
+   uint64_t hi;
+   VERIFY_CHECK(th != UINT64_MAX); /* the high half of a 64x64-bit product is at most 2^64 - 2 */
+   th += lo < tl; /* cannot overflow (see above) */
+   hi = (uint64_t)(*r >> 64) + th;
+   *r = (((uint128_t)hi) << 64) | lo;
+   return hi < th;
+#endif
+}
+
+static SECP256K1_INLINE int secp256k1_u128_accum_u64_carry(secp256k1_uint128 *r, uint64_t a) {
+#if __has_builtin(__builtin_add_overflow)
+   return __builtin_add_overflow(*r, (uint128_t)a, r);
+#else
+   uint64_t lo = (uint64_t)*r + a;
+   uint64_t c = lo < a;
+   uint64_t hi = (uint64_t)(*r >> 64) + c;
+   *r = (((uint128_t)hi) << 64) | lo;
+   return hi < c;
+#endif
 }
 
 static SECP256K1_INLINE void secp256k1_u128_rshift(secp256k1_uint128 *r, unsigned int n) {

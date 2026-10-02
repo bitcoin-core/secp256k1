@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Changed
+ - The x86_64 assembly implementation of scalar multiplication is no longer enabled by default. With GCC 14 or newer and with recent Clang versions, the C implementation is now about as fast as the assembly or faster. With GCC 13 or older, the assembly may still be noticeably faster. To enable the assembly, configure with `--with-asm=x86_64` (Autotools) or `-DSECP256K1_ASM=x86_64` (CMake), or with `auto` to enable it when supported.
+
 #### Fixed
  - Module `silentpayments`: `secp256k1_silentpayments_sender_create_outputs` and `secp256k1_silentpayments_recipient_prevouts_summary_create` no longer require empty key arrays to be passed as `NULL`. If the corresponding size argument is 0, the array pointer is ignored. This matches the API documentation, which only states that unused arrays *can* be `NULL`, and spares callers from special-casing empty arrays.
 

@@ -88,7 +88,7 @@ if(SECP256K1_TEST_OVERRIDE_WIDE_MULTIPLY)
 endif()
 mark_as_advanced(FORCE SECP256K1_TEST_OVERRIDE_WIDE_MULTIPLY)
 
-set(SECP256K1_ASM "AUTO" CACHE STRING "Assembly to use: \"AUTO\", \"OFF\", \"x86_64\" or \"arm32\" (experimental). [default=AUTO]")
+set(SECP256K1_ASM "OFF" CACHE STRING "Assembly to use: \"AUTO\", \"OFF\", \"x86_64\" or \"arm32\" (experimental). [default=OFF]")
 set_property(CACHE SECP256K1_ASM PROPERTY STRINGS "AUTO" "OFF" "x86_64" "arm32")
 check_string_option_value(SECP256K1_ASM)
 if(SECP256K1_ASM STREQUAL "arm32")
