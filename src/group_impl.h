@@ -1030,12 +1030,12 @@ static int secp256k1_ge_x_frac_on_curve_var(const secp256k1_fe *xn, const secp25
 
 SECP256K1_INLINE static void secp256k1_ge_impl_to_bytes(unsigned char *buf, const secp256k1_ge *a) {
     secp256k1_ge_storage s;
-    VERIFY_CHECK(!a->infinity);
-
     /* We require that the secp256k1_ge_storage type is exactly 64 bytes.
      * This is formally not guaranteed by the C standard, but should hold on any
      * sane compiler in the real world. */
     STATIC_ASSERT(sizeof(secp256k1_ge_storage) == 64);
+
+    VERIFY_CHECK(!a->infinity);
     secp256k1_ge_to_storage(&s, a);
     memcpy(buf, &s, 64);
 }
