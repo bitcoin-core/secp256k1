@@ -445,9 +445,9 @@ jobs:
       - *PRINT_LOGS
 
   arm64-macos-native:
-    name: "ARM64: macOS Sonoma"
+    name: "ARM64: macOS Sequoia"
     # See: https://github.com/actions/runner-images#available-images.
-    runs-on: macos-14
+    runs-on: macos-15
 
     env:
       CC: 'clang'
