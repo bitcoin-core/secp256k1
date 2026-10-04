@@ -3,3 +3,4 @@ noinst_HEADERS += src/modules/ellswift/bench_impl.h
 noinst_HEADERS += src/modules/ellswift/main_impl.h
 noinst_HEADERS += src/modules/ellswift/tests_impl.h
 noinst_HEADERS += src/modules/ellswift/tests_exhaustive_impl.h
+noinst_HEADERS += src/modules/ellswift/fuzz_impl.h
