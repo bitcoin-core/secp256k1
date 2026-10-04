@@ -169,6 +169,13 @@ AC_ARG_ENABLE(examples,
     AS_HELP_STRING([--enable-examples],[compile the examples [default=no]]), [],
     [SECP_SET_DEFAULT([enable_examples], [no], [yes])])
 
+AC_ARG_ENABLE(fuzz,
+    AS_HELP_STRING([--enable-fuzz],[compile the fuzz target [default=no]]), [],
+    [SECP_SET_DEFAULT([enable_fuzz], [no], [no])])
+
+AC_ARG_VAR([FUZZ_LIBS], [libraries and linker flags that provide the fuzzing engine to the fuzz target [default=-fsanitize=fuzzer]])
+: "${FUZZ_LIBS=-fsanitize=fuzzer}"
+
 AC_ARG_ENABLE(module_ecdh,
     AS_HELP_STRING([--enable-module-ecdh],[enable ECDH module [default=yes]]), [],
     [SECP_SET_DEFAULT([enable_module_ecdh], [yes], [yes])])
@@ -477,6 +484,7 @@ AM_CONDITIONAL([USE_TESTS], [test x"$enable_tests" != x"no"])
 AM_CONDITIONAL([USE_CTIME_TESTS], [test x"$enable_ctime_tests" = x"yes"])
 AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$enable_exhaustive_tests" != x"no"])
 AM_CONDITIONAL([USE_EXAMPLES], [test x"$enable_examples" != x"no"])
+AM_CONDITIONAL([USE_FUZZ], [test x"$enable_fuzz" = x"yes"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$enable_benchmark" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
@@ -503,6 +511,7 @@ echo "  with exhaustive tests   = $enable_exhaustive_tests"
 echo "  with ctime tests        = $enable_ctime_tests"
 echo "  with coverage           = $enable_coverage"
 echo "  with examples           = $enable_examples"
+echo "  with fuzz target        = $enable_fuzz"
 echo "  module ecdh             = $enable_module_ecdh"
 echo "  module recovery         = $enable_module_recovery"
 echo "  module extrakeys        = $enable_module_extrakeys"
