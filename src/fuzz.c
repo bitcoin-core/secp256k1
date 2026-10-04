@@ -287,6 +287,14 @@ static void fuzz_ecdsa(fuzz_data_provider *provider) {
 # include "modules/recovery/fuzz_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_EXTRAKEYS
+# include "modules/extrakeys/fuzz_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_SCHNORRSIG
+# include "modules/schnorrsig/fuzz_impl.h"
+#endif
+
 typedef struct {
     const char *name;
     void (*run)(fuzz_data_provider *provider);
@@ -299,6 +307,12 @@ static const fuzz_target fuzz_targets[] = {
 #endif
 #ifdef ENABLE_MODULE_RECOVERY
     {"recovery", fuzz_recovery},
+#endif
+#ifdef ENABLE_MODULE_EXTRAKEYS
+    {"extrakeys", fuzz_extrakeys},
+#endif
+#ifdef ENABLE_MODULE_SCHNORRSIG
+    {"schnorrsig", fuzz_schnorrsig},
 #endif
 };
 
