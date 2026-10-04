@@ -360,6 +360,35 @@ int LLVMFuzzerInitialize(int *argc, char ***argv) {
 
     fuzz_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     CHECK(fuzz_ctx != NULL);
+
+    /* The targets skip inputs that fail to parse, so a library rejecting every valid input would pass silently. */
+    {
+        static const unsigned char g33[33] = {
+            0x02, 0x79, 0xbe, 0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac, 0x55, 0xa0, 0x62, 0x95, 0xce, 0x87, 0x0b, 0x07,
+            0x02, 0x9b, 0xfc, 0xdb, 0x2d, 0xce, 0x28, 0xd9, 0x59, 0xf2, 0x81, 0x5b, 0x16, 0xf8, 0x17, 0x98
+        };
+        unsigned char one[32] = {0}, sig64[64];
+        secp256k1_pubkey pubkey;
+        secp256k1_ecdsa_signature sig;
+#ifdef ENABLE_MODULE_EXTRAKEYS
+        secp256k1_xonly_pubkey xonly;
+#endif
+#ifdef ENABLE_MODULE_MUSIG
+        secp256k1_musig_partial_sig partial_sig;
+#endif
+        one[31] = 1;
+        CHECK(secp256k1_ec_seckey_verify(fuzz_ctx, one) == 1);
+        CHECK(secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, g33, sizeof(g33)) == 1);
+        CHECK(secp256k1_ecdsa_sign(fuzz_ctx, &sig, g33 + 1, one, NULL, NULL) == 1);
+        CHECK(secp256k1_ecdsa_signature_serialize_compact(fuzz_ctx, sig64, &sig) == 1);
+        CHECK(secp256k1_ecdsa_signature_parse_compact(fuzz_ctx, &sig, sig64) == 1);
+#ifdef ENABLE_MODULE_EXTRAKEYS
+        CHECK(secp256k1_xonly_pubkey_parse(fuzz_ctx, &xonly, g33 + 1) == 1);
+#endif
+#ifdef ENABLE_MODULE_MUSIG
+        CHECK(secp256k1_musig_partial_sig_parse(fuzz_ctx, &partial_sig, one) == 1);
+#endif
+    }
     return 0;
 }
 
