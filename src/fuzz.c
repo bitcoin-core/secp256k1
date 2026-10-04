@@ -295,6 +295,10 @@ static void fuzz_ecdsa(fuzz_data_provider *provider) {
 # include "modules/schnorrsig/fuzz_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_ELLSWIFT
+# include "modules/ellswift/fuzz_impl.h"
+#endif
+
 typedef struct {
     const char *name;
     void (*run)(fuzz_data_provider *provider);
@@ -313,6 +317,9 @@ static const fuzz_target fuzz_targets[] = {
 #endif
 #ifdef ENABLE_MODULE_SCHNORRSIG
     {"schnorrsig", fuzz_schnorrsig},
+#endif
+#ifdef ENABLE_MODULE_ELLSWIFT
+    {"ellswift", fuzz_ellswift},
 #endif
 };
 
