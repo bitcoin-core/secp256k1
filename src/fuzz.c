@@ -303,6 +303,10 @@ static void fuzz_ecdsa(fuzz_data_provider *provider) {
 # include "modules/ellswift/fuzz_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_SILENTPAYMENTS
+# include "modules/silentpayments/fuzz_impl.h"
+#endif
+
 typedef struct {
     const char *name;
     void (*run)(fuzz_data_provider *provider);
@@ -327,6 +331,9 @@ static const fuzz_target fuzz_targets[] = {
 #endif
 #ifdef ENABLE_MODULE_ELLSWIFT
     {"ellswift", fuzz_ellswift},
+#endif
+#ifdef ENABLE_MODULE_SILENTPAYMENTS
+    {"silentpayments", fuzz_silentpayments},
 #endif
 };
 
