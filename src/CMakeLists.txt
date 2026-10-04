@@ -168,6 +168,12 @@ if(SECP256K1_BUILD_CTIME_TESTS)
   target_link_libraries(ctime_tests secp256k1)
 endif()
 
+if(SECP256K1_BUILD_FUZZ)
+  add_executable(fuzz fuzz.c)
+  target_compile_definitions(fuzz PRIVATE VERIFY)
+  target_link_libraries(fuzz secp256k1_precomputed secp256k1_asm ${SECP256K1_FUZZ_LIBS})
+endif()
+
 if(SECP256K1_INSTALL)
   include(GNUInstallDirs)
   target_include_directories(secp256k1 INTERFACE
