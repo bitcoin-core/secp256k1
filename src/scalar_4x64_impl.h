@@ -330,11 +330,11 @@ static int secp256k1_scalar_cond_negate(secp256k1_scalar *r, int flag) {
 }
 
 SECP256K1_FORCE_INLINE static void secp256k1_scalar_reduce_512(secp256k1_scalar *r, const uint64_t *l) {
+    secp256k1_uint128 acc;
+    uint64_t p0, p1, p2, p3, p4;
 #ifdef USE_ASM_X86_64
     /* Reduce 512 bits into 385. */
     uint64_t m0, m1, m2, m3, m4, m5, m6;
-    uint64_t p0, p1, p2, p3, p4;
-    uint64_t c;
 
     __asm__ __volatile__(
     /* Preload. */
@@ -534,64 +534,10 @@ SECP256K1_FORCE_INLINE static void secp256k1_scalar_reduce_512(secp256k1_scalar 
     SECP256K1_CHECKMEM_MSAN_DEFINE(&p3, sizeof(p3));
     SECP256K1_CHECKMEM_MSAN_DEFINE(&p4, sizeof(p4));
 
-    /* Reduce 258 bits into 256. */
-    __asm__ __volatile__(
-    /* Preload */
-    "movq %q5, %%r10\n"
-    /* (rax,rdx) = p4 * c0 */
-    "movq %7, %%rax\n"
-    "mulq %%r10\n"
-    /* (rax,rdx) += p0 */
-    "addq %q1, %%rax\n"
-    "adcq $0, %%rdx\n"
-    /* extract r0 */
-    "movq %%rax, 0(%q6)\n"
-    /* Move to (r8,r9) */
-    "movq %%rdx, %%r8\n"
-    "xorq %%r9, %%r9\n"
-    /* (r8,r9) += p1 */
-    "addq %q2, %%r8\n"
-    "adcq $0, %%r9\n"
-    /* (r8,r9) += p4 * c1 */
-    "movq %8, %%rax\n"
-    "mulq %%r10\n"
-    "addq %%rax, %%r8\n"
-    "adcq %%rdx, %%r9\n"
-    /* Extract r1 */
-    "movq %%r8, 8(%q6)\n"
-    "xorq %%r8, %%r8\n"
-    /* (r9,r8) += p4 */
-    "addq %%r10, %%r9\n"
-    "adcq $0, %%r8\n"
-    /* (r9,r8) += p2 */
-    "addq %q3, %%r9\n"
-    "adcq $0, %%r8\n"
-    /* Extract r2 */
-    "movq %%r9, 16(%q6)\n"
-    "xorq %%r9, %%r9\n"
-    /* (r8,r9) += p3 */
-    "addq %q4, %%r8\n"
-    "adcq $0, %%r9\n"
-    /* Extract r3 */
-    "movq %%r8, 24(%q6)\n"
-    /* Extract c */
-    "movq %%r9, %q0\n"
-    : "=g"(c)
-    : "g"(p0), "g"(p1), "g"(p2), "g"(p3), "g"(p4), "D"(r), "i"(SECP256K1_N_C_0), "i"(SECP256K1_N_C_1)
-    : "rax", "rdx", "r8", "r9", "r10", "cc", "memory");
-
-    SECP256K1_CHECKMEM_MSAN_DEFINE(r, sizeof(*r));
-    SECP256K1_CHECKMEM_MSAN_DEFINE(&c, sizeof(c));
-
 #else
-    secp256k1_uint128 c128;
-    uint64_t c;
-    secp256k1_uint128 acc;
     uint64_t n0 = l[4], n1 = l[5], n2 = l[6], n3 = l[7];
     uint64_t m0, m1, m2, m3, m4, m5;
     uint32_t m6;
-    uint64_t p0, p1, p2, p3;
-    uint32_t p4;
 
     /* Reduce 512 bits into 385. */
     /* m[0..6] = l[0..3] + n[0..3] * SECP256K1_N_C. */
@@ -642,25 +588,58 @@ SECP256K1_FORCE_INLINE static void secp256k1_scalar_reduce_512(secp256k1_scalar 
     extract_fast(p4);
     p4 += m6;
     VERIFY_CHECK(p4 <= 2);
-
-    /* Reduce 258 bits into 256. */
-    /* r[0..3] = p[0..3] + p[4] * SECP256K1_N_C. */
-    secp256k1_u128_from_u64(&c128, p0);
-    secp256k1_u128_accum_mul(&c128, SECP256K1_N_C_0, p4);
-    r->d[0] = secp256k1_u128_to_u64(&c128); secp256k1_u128_rshift(&c128, 64);
-    secp256k1_u128_accum_u64(&c128, p1);
-    secp256k1_u128_accum_mul(&c128, SECP256K1_N_C_1, p4);
-    r->d[1] = secp256k1_u128_to_u64(&c128); secp256k1_u128_rshift(&c128, 64);
-    secp256k1_u128_accum_u64(&c128, p2);
-    secp256k1_u128_accum_u64(&c128, p4);
-    r->d[2] = secp256k1_u128_to_u64(&c128); secp256k1_u128_rshift(&c128, 64);
-    secp256k1_u128_accum_u64(&c128, p3);
-    r->d[3] = secp256k1_u128_to_u64(&c128);
-    c = secp256k1_u128_hi_u64(&c128);
 #endif
 
-    /* Final reduction of r. */
-    secp256k1_scalar_reduce(r, c + secp256k1_scalar_check_overflow(r));
+    /* R = p[0..3] + p4*N_C is congruent to X = p[0..3] + p4*2^256 mod N,
+     * and p4 <= 2 gives R < 2N. Dropping p4*2^256 and adding (p4+1)*N_C
+     * computes R + N_C, whose carry out of limb 3 is 1 iff R >= N, leaving
+     * R - N; otherwise adding N back leaves R. */
+    ++p4;
+
+    /* Reduce 258 bits into 256 using the same 128-bit accumulator. */
+    secp256k1_u128_mul(&acc, p4, SECP256K1_N_C_0);
+    secp256k1_u128_accum_u64(&acc, p0);
+    p0 = secp256k1_u128_to_u64(&acc);
+    secp256k1_u128_rshift(&acc, 64);
+    secp256k1_u128_accum_mul(&acc, p4, SECP256K1_N_C_1);
+    secp256k1_u128_accum_u64(&acc, p1);
+    p1 = secp256k1_u128_to_u64(&acc);
+    secp256k1_u128_rshift(&acc, 64);
+    secp256k1_u128_accum_u64(&acc, p4);
+    secp256k1_u128_accum_u64(&acc, p2);
+    p2 = secp256k1_u128_to_u64(&acc);
+    secp256k1_u128_rshift(&acc, 64);
+    secp256k1_u128_accum_u64(&acc, p3);
+    p3 = secp256k1_u128_to_u64(&acc);
+    secp256k1_u128_rshift(&acc, 64);
+    p4 = secp256k1_u128_to_u64(&acc);
+    VERIFY_CHECK(p4 <= 1);
+
+    /* uint64_t underflow gives UINT64_MAX for carry 0, and 0 for carry 1. */
+    --p4;
+    secp256k1_u128_from_u64(&acc, p0);
+    secp256k1_u128_accum_u64(&acc, p4 & SECP256K1_N_0);
+    p0 = secp256k1_u128_to_u64(&acc);
+    secp256k1_u128_rshift(&acc, 64);
+    secp256k1_u128_accum_u64(&acc, p1);
+    secp256k1_u128_accum_u64(&acc, p4 & SECP256K1_N_1);
+    p1 = secp256k1_u128_to_u64(&acc);
+    secp256k1_u128_rshift(&acc, 64);
+    secp256k1_u128_accum_u64(&acc, p2);
+    secp256k1_u128_accum_u64(&acc, p4 & SECP256K1_N_2);
+    p2 = secp256k1_u128_to_u64(&acc);
+    secp256k1_u128_rshift(&acc, 64);
+    secp256k1_u128_accum_u64(&acc, p3);
+    secp256k1_u128_accum_u64(&acc, p4 & SECP256K1_N_3);
+    p3 = secp256k1_u128_to_u64(&acc);
+    secp256k1_u128_rshift(&acc, 64);
+    VERIFY_CHECK(secp256k1_u128_to_u64(&acc) + p4 == 0);
+
+    r->d[0] = p0;
+    r->d[1] = p1;
+    r->d[2] = p2;
+    r->d[3] = p3;
+    SECP256K1_SCALAR_VERIFY(r);
 }
 
 SECP256K1_FORCE_INLINE static void secp256k1_scalar_mul_512(uint64_t *l8, const secp256k1_scalar *a, const secp256k1_scalar *b) {
