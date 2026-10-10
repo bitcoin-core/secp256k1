@@ -16,9 +16,7 @@ static int fuzz_recovery_parse_compare(const unsigned char *data64) {
     int recid;
     int success = 0;
     for (recid = 0; recid < 4; recid++) {
-        int ret = secp256k1_ecdsa_recoverable_signature_parse_compact(fuzz_ctx, &sig, data64, recid);
-        CHECK(ret == 0 || ret == 1);
-        if (ret) {
+        if (fuzz_check_bool(secp256k1_ecdsa_recoverable_signature_parse_compact(fuzz_ctx, &sig, data64, recid))) {
             int new_recid;
             int new_ret = secp256k1_ecdsa_recoverable_signature_serialize_compact(fuzz_ctx, serialized_sig, &new_recid, &sig);
             CHECK(new_ret == 1);

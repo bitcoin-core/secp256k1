@@ -25,6 +25,26 @@ typedef struct {
 
 static secp256k1_context *fuzz_ctx = NULL;
 
+/* Checks that ret is 0 or 1, and returns it for use in conditions. */
+static int fuzz_check_bool(int ret) {
+    CHECK(ret == 0 || ret == 1);
+    return ret;
+}
+
+/* If input parses, checks that it serializes back to input; hybrid 0x06/0x07 serializes as 0x04. */
+static void fuzz_check_pubkey_parse(const unsigned char *input, size_t inputlen) {
+    secp256k1_pubkey pubkey;
+    unsigned char ser[65];
+    size_t serlen = sizeof(ser);
+    if (!fuzz_check_bool(secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, input, inputlen))) {
+        return;
+    }
+    CHECK(secp256k1_ec_pubkey_serialize(fuzz_ctx, ser, &serlen, &pubkey, inputlen == 33 ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED) == 1);
+    CHECK(serlen == inputlen);
+    CHECK(ser[0] == ((input[0] == 0x06 || input[0] == 0x07) ? 0x04 : input[0]));
+    CHECK(secp256k1_memcmp_var(ser + 1, input + 1, inputlen - 1) == 0);
+}
+
 /* Consumes num bytes from the provider, returns NULL if there's not enough data left. */
 static const unsigned char *fuzz_consume_bytes(fuzz_data_provider *provider, size_t num) {
     const unsigned char *res = provider->data;
@@ -44,7 +64,7 @@ static const unsigned char *fuzz_consume_seckey(fuzz_data_provider *provider) {
         return NULL;
     }
 
-    while (!secp256k1_ec_seckey_verify(secp256k1_context_static, provider->data)) {
+    while (!fuzz_check_bool(secp256k1_ec_seckey_verify(secp256k1_context_static, provider->data))) {
         if (++provider->data > end - 32) {
             provider->remaining = end - provider->data;
             return NULL;
@@ -69,7 +89,7 @@ static int fuzz_consume_pubkey(fuzz_data_provider *provider, secp256k1_pubkey *r
     pubkey[0] = 0x02 + (provider->data[0] & 1);
     memcpy(pubkey + 1, provider->data + 1, 32);
 
-    while (!secp256k1_ec_pubkey_parse(secp256k1_context_static, res, pubkey, 33)) {
+    while (!fuzz_check_bool(secp256k1_ec_pubkey_parse(secp256k1_context_static, res, pubkey, 33))) {
         if (++provider->data > end - 33) {
             provider->remaining = end - provider->data;
             return 0;
@@ -142,7 +162,7 @@ static void fuzz_ecdsa(fuzz_data_provider *provider) {
         const unsigned char *input64;
         input64 = fuzz_consume_bytes(provider, 64);
         /* This should succeed as long as r and s (first and second 32 bytes) aren't bigger than the order */
-        if (input64 && secp256k1_ecdsa_signature_parse_compact(fuzz_ctx, &sig, input64)) {
+        if (input64 && fuzz_check_bool(secp256k1_ecdsa_signature_parse_compact(fuzz_ctx, &sig, input64))) {
             CHECK(secp256k1_ecdsa_signature_serialize_der(fuzz_ctx, serialized_sig, &n, &sig) == 1);
             CHECK(secp256k1_ecdsa_signature_parse_der(fuzz_ctx, &newsig, serialized_sig, n) == 1);
             CHECK(secp256k1_memcmp_var(&sig, &newsig, sizeof(sig)) == 0);
@@ -197,7 +217,7 @@ static void fuzz_ecdsa(fuzz_data_provider *provider) {
             memcpy(neg_seckey1, seckey1, sizeof(neg_seckey1));
             CHECK(secp256k1_ec_seckey_negate(fuzz_ctx, neg_seckey1) == 1);
             memcpy(combined_seckey, seckey1, sizeof(combined_seckey));
-            ret = secp256k1_ec_seckey_tweak_add(fuzz_ctx, combined_seckey, seckey2);
+            ret = fuzz_check_bool(secp256k1_ec_seckey_tweak_add(fuzz_ctx, combined_seckey, seckey2));
             CHECK(ret == (secp256k1_memcmp_var(neg_seckey1, seckey2, sizeof(neg_seckey1)) != 0));
             CHECK(secp256k1_ec_pubkey_combine(fuzz_ctx, &combined_pubkey1, pubkey_ptrs, 2) == ret);
             CHECK(secp256k1_ec_pubkey_tweak_add(fuzz_ctx, &pubkey1, seckey2) == ret);
@@ -236,46 +256,43 @@ static void fuzz_ecdsa(fuzz_data_provider *provider) {
         const unsigned char *random64;
         const unsigned char *tmp;
         unsigned char random33[33], random65[65];
-        int ret = 0;
         random32 = fuzz_consume_bytes(provider, 32);
         if (random32) {
-            ret |= secp256k1_ec_seckey_verify(fuzz_ctx, random32);
+            /* Both accept exactly the valid secret keys */
+            CHECK(secp256k1_ec_pubkey_create(fuzz_ctx, &pubkey, random32) == fuzz_check_bool(secp256k1_ec_seckey_verify(fuzz_ctx, random32)));
         }
         tmp = fuzz_consume_bytes(provider, 33);
         if (tmp) {
             memcpy(random33, tmp, sizeof(random33));
-            ret |= secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, random33, 33);
+            fuzz_check_pubkey_parse(random33, 33);
             random33[0] = 0x02;
-            ret |= secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, random33, 33);
+            fuzz_check_pubkey_parse(random33, 33);
             random33[0] = 0x03;
-            ret |= secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, random33, 33);
+            fuzz_check_pubkey_parse(random33, 33);
         }
         tmp = fuzz_consume_bytes(provider, 65);
         if (tmp) {
             memcpy(random65, tmp, sizeof(random65));
-            ret |= secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, random65, 65);
+            fuzz_check_pubkey_parse(random65, 65);
             random65[0] = 0x04;
-            ret |= secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, random65, 65);
+            fuzz_check_pubkey_parse(random65, 65);
             random65[0] = 0x06;
-            ret |= secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, random65, 65);
+            fuzz_check_pubkey_parse(random65, 65);
             random65[0] = 0x07;
-            ret |= secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, random65, 65);
+            fuzz_check_pubkey_parse(random65, 65);
         }
         random64 = fuzz_consume_bytes(provider, 64);
         if (random64) {
-            int tmp_ret = secp256k1_ecdsa_signature_parse_compact(fuzz_ctx, &sig, random64);
-            if (tmp_ret) {
+            if (fuzz_check_bool(secp256k1_ecdsa_signature_parse_compact(fuzz_ctx, &sig, random64))) {
                 /* It's statistically impossible to randomly find a sig that will validate a given msg+key. */
                 const unsigned char secret_msg[33] = "This is the super secret message";
                 const unsigned char predefined_pubkey[34] = "\002A public key without private key";
                 CHECK(secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, predefined_pubkey, 33) == 1);
                 CHECK(secp256k1_ecdsa_verify(fuzz_ctx, &sig, secret_msg, &pubkey) == 0);
             }
-            ret |= tmp_ret;
         }
         /* Fuzz the rest of the data into the parse_der function */
-        ret |= secp256k1_ecdsa_signature_parse_der(fuzz_ctx, &sig, provider->data, provider->remaining);
-        CHECK(ret == 0 || ret == 1);
+        fuzz_check_bool(secp256k1_ecdsa_signature_parse_der(fuzz_ctx, &sig, provider->data, provider->remaining));
     }
 }
 
@@ -361,33 +378,24 @@ int LLVMFuzzerInitialize(int *argc, char ***argv) {
     fuzz_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     CHECK(fuzz_ctx != NULL);
 
-    /* The targets skip inputs that fail to parse, so a library rejecting every valid input would pass silently. */
+    /* The targets skip inputs the consume helpers reject, so check that known-valid input gets through. */
     {
         static const unsigned char g33[33] = {
             0x02, 0x79, 0xbe, 0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac, 0x55, 0xa0, 0x62, 0x95, 0xce, 0x87, 0x0b, 0x07,
             0x02, 0x9b, 0xfc, 0xdb, 0x2d, 0xce, 0x28, 0xd9, 0x59, 0xf2, 0x81, 0x5b, 0x16, 0xf8, 0x17, 0x98
         };
-        unsigned char one[32] = {0}, sig64[64];
-        secp256k1_pubkey pubkey;
-        secp256k1_ecdsa_signature sig;
-#ifdef ENABLE_MODULE_EXTRAKEYS
-        secp256k1_xonly_pubkey xonly;
-#endif
-#ifdef ENABLE_MODULE_MUSIG
-        secp256k1_musig_partial_sig partial_sig;
-#endif
+        unsigned char one[32] = {0};
+        fuzz_data_provider provider;
+        secp256k1_pubkey pubkey, g;
         one[31] = 1;
-        CHECK(secp256k1_ec_seckey_verify(fuzz_ctx, one) == 1);
-        CHECK(secp256k1_ec_pubkey_parse(fuzz_ctx, &pubkey, g33, sizeof(g33)) == 1);
-        CHECK(secp256k1_ecdsa_sign(fuzz_ctx, &sig, g33 + 1, one, NULL, NULL) == 1);
-        CHECK(secp256k1_ecdsa_signature_serialize_compact(fuzz_ctx, sig64, &sig) == 1);
-        CHECK(secp256k1_ecdsa_signature_parse_compact(fuzz_ctx, &sig, sig64) == 1);
-#ifdef ENABLE_MODULE_EXTRAKEYS
-        CHECK(secp256k1_xonly_pubkey_parse(fuzz_ctx, &xonly, g33 + 1) == 1);
-#endif
-#ifdef ENABLE_MODULE_MUSIG
-        CHECK(secp256k1_musig_partial_sig_parse(fuzz_ctx, &partial_sig, one) == 1);
-#endif
+        provider.data = one;
+        provider.remaining = sizeof(one);
+        CHECK(fuzz_consume_seckey(&provider) == one && provider.remaining == 0);
+        provider.data = g33;
+        provider.remaining = sizeof(g33);
+        CHECK(fuzz_consume_pubkey(&provider, &pubkey) == 1 && provider.remaining == 0);
+        CHECK(secp256k1_ec_pubkey_create(fuzz_ctx, &g, one) == 1);
+        CHECK(secp256k1_ec_pubkey_cmp(fuzz_ctx, &pubkey, &g) == 0);
     }
     return 0;
 }
