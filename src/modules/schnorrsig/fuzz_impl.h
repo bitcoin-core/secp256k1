@@ -8,6 +8,33 @@
 
 #include "../../../include/secp256k1_schnorrsig.h"
 
+/* A nonce function that returns a given nonce, which may be 0 or >= n, or fails */
+typedef struct {
+    const unsigned char *nonce32;
+    int fail;
+} fuzz_schnorrsig_nonce_data;
+
+static int fuzz_schnorrsig_nonce_function(unsigned char *nonce32, const unsigned char *msg, size_t msglen, const unsigned char *key32, const unsigned char *xonly_pk32, const unsigned char *algo, size_t algolen, void *data) {
+    const fuzz_schnorrsig_nonce_data *d = (const fuzz_schnorrsig_nonce_data *)data;
+    secp256k1_keypair keypair;
+    secp256k1_xonly_pubkey pubkey;
+    unsigned char pk32[32];
+    (void)msg;
+    (void)msglen;
+    (void)algolen;
+    /* xonly_pk32 is "the 32-byte serialized xonly pubkey corresponding to key32", and algo "will not be NULL" */
+    CHECK(secp256k1_keypair_create(fuzz_ctx, &keypair, key32) == 1);
+    CHECK(secp256k1_keypair_xonly_pub(fuzz_ctx, &pubkey, NULL, &keypair) == 1);
+    CHECK(secp256k1_xonly_pubkey_serialize(fuzz_ctx, pk32, &pubkey) == 1);
+    CHECK(secp256k1_memcmp_var(pk32, xonly_pk32, 32) == 0);
+    CHECK(algo != NULL);
+    if (d->fail) {
+        return 0;
+    }
+    memcpy(nonce32, d->nonce32, 32);
+    return 1;
+}
+
 static void fuzz_schnorrsig(fuzz_data_provider *provider) {
     secp256k1_keypair keypair;
     secp256k1_xonly_pubkey pubkey;
@@ -62,6 +89,37 @@ static void fuzz_schnorrsig(fuzz_data_provider *provider) {
             static const unsigned char fixed_pubkey[33] = "A public key without private key";
             CHECK(secp256k1_xonly_pubkey_parse(fuzz_ctx, &pubkey, fixed_pubkey) == 1);
             CHECK(secp256k1_schnorrsig_verify(fuzz_ctx, garbage, fixed_msg, 32, &pubkey) == 0);
+        }
+    }
+    /* Sign with a nonce function that returns a nonce of 0, >= n or any, or fails */
+    {
+        const unsigned char *cfg = fuzz_consume_bytes(provider, 1);
+        const unsigned char *nonce32 = fuzz_consume_bytes(provider, 32);
+        if (cfg && nonce32) {
+            secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
+            fuzz_schnorrsig_nonce_data nonce_data;
+            unsigned char nonce[32];
+            int ret;
+            memcpy(nonce, nonce32, sizeof(nonce));
+            if ((*cfg & 3) == 1) {
+                memset(nonce, 0, sizeof(nonce));
+            } else if ((*cfg & 3) == 2) {
+                /* Above n, whose top 16 bytes are not all 0xff */
+                memset(nonce, 0xff, 16);
+            }
+            nonce_data.nonce32 = nonce;
+            nonce_data.fail = (*cfg >> 2) & 1;
+            extraparams.noncefp = fuzz_schnorrsig_nonce_function;
+            extraparams.ndata = &nonce_data;
+            ret = fuzz_check_bool(secp256k1_schnorrsig_sign_custom(fuzz_ctx, sig, msg32, 32, &keypair, &extraparams));
+            /* A nonce function returning 0 "will cause signing to return an error" */
+            if (nonce_data.fail) {
+                CHECK(ret == 0);
+            }
+            if (ret) {
+                CHECK(secp256k1_keypair_xonly_pub(fuzz_ctx, &pubkey, NULL, &keypair) == 1);
+                CHECK(secp256k1_schnorrsig_verify(fuzz_ctx, sig, msg32, 32, &pubkey) == 1);
+            }
         }
     }
 }
