@@ -76,6 +76,20 @@ static void fuzz_recovery(fuzz_data_provider *provider) {
             fuzz_recovery_parse_compare(data64);
         }
     }
+    /* Sign with a nonce function that forces retries or fails */
+    {
+        fuzz_nonce_data nonce_data;
+        int ret;
+        if (fuzz_consume_nonce_data(provider, &nonce_data)) {
+            ret = fuzz_check_bool(secp256k1_ecdsa_sign_recoverable(fuzz_ctx, &sig, msg, seckey, fuzz_nonce_function, &nonce_data));
+            /* With a valid key, signing fails exactly when the nonce function does */
+            CHECK(ret == !nonce_data.failed);
+            if (ret) {
+                CHECK(secp256k1_ecdsa_recover(fuzz_ctx, &recovered_pubkey, &sig, msg) == 1);
+                CHECK(secp256k1_memcmp_var(&recovered_pubkey, &pubkey, sizeof(pubkey)) == 0);
+            }
+        }
+    }
 }
 
 #endif /* SECP256K1_MODULE_RECOVERY_FUZZ_H */

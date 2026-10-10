@@ -102,6 +102,51 @@ static int fuzz_consume_pubkey(fuzz_data_provider *provider, secp256k1_pubkey *r
     return 1;
 }
 
+/* An ECDSA nonce function that returns a nonce of 0 or >= n for its first
+ * n_invalid attempts, fails at attempt fail_at, and otherwise uses RFC6979. */
+typedef struct {
+    const unsigned char *invalid32;
+    unsigned int n_invalid, fail_at, calls;
+    int failed;
+} fuzz_nonce_data;
+
+static int fuzz_nonce_function(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int attempt) {
+    fuzz_nonce_data *d = (fuzz_nonce_data *)data;
+    /* attempt is "how many iterations we have tried", and algo16 "will be NULL for ECDSA" */
+    CHECK(attempt == d->calls);
+    CHECK(algo16 == NULL);
+    d->calls++;
+    if (attempt == d->fail_at) {
+        d->failed = 1;
+        return 0;
+    }
+    if (attempt < d->n_invalid) {
+        if (d->invalid32[attempt] & 1) {
+            memset(nonce32, 0, 32);
+        } else {
+            /* Above n, whose top 16 bytes are not all 0xff */
+            memcpy(nonce32, d->invalid32, 32);
+            memset(nonce32, 0xff, 16);
+        }
+        return 1;
+    }
+    return secp256k1_nonce_function_rfc6979(nonce32, msg32, key32, NULL, NULL, attempt);
+}
+
+/* Reads a fuzz_nonce_data from 33 bytes, returns 0 if there's not enough data left. */
+static int fuzz_consume_nonce_data(fuzz_data_provider *provider, fuzz_nonce_data *d) {
+    const unsigned char *cfg = fuzz_consume_bytes(provider, 1);
+    d->invalid32 = fuzz_consume_bytes(provider, 32);
+    if (!cfg || !d->invalid32) {
+        return 0;
+    }
+    d->n_invalid = *cfg & 3;
+    d->fail_at = (*cfg >> 2) & 7;
+    d->calls = 0;
+    d->failed = 0;
+    return 1;
+}
+
 static void fuzz_ecdsa(fuzz_data_provider *provider) {
     /* Randomize the context */
     {
@@ -295,6 +340,26 @@ static void fuzz_ecdsa(fuzz_data_provider *provider) {
         }
         /* Fuzz the rest of the data into the parse_der function */
         fuzz_check_bool(secp256k1_ecdsa_signature_parse_der(fuzz_ctx, &sig, provider->data, provider->remaining));
+    }
+    /* Sign with a nonce function that forces retries or fails */
+    {
+        secp256k1_pubkey pubkey;
+        secp256k1_ecdsa_signature sig;
+        fuzz_nonce_data nonce_data;
+        const unsigned char *seckey, *msg;
+        int ret;
+        seckey = fuzz_consume_seckey(provider);
+        msg = fuzz_consume_bytes(provider, 32);
+        if (seckey && msg && fuzz_consume_nonce_data(provider, &nonce_data)) {
+            CHECK(secp256k1_ec_pubkey_create(fuzz_ctx, &pubkey, seckey) == 1);
+            ret = fuzz_check_bool(secp256k1_ecdsa_sign(fuzz_ctx, &sig, msg, seckey, fuzz_nonce_function, &nonce_data));
+            /* With a valid key, signing fails exactly when the nonce function does */
+            CHECK(ret == !nonce_data.failed);
+            if (ret) {
+                CHECK(secp256k1_ecdsa_verify(fuzz_ctx, &sig, msg, &pubkey) == 1);
+                CHECK(secp256k1_ecdsa_signature_normalize(fuzz_ctx, NULL, &sig) == 0);
+            }
+        }
     }
 }
 
