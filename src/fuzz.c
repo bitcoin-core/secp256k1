@@ -361,6 +361,33 @@ static void fuzz_ecdsa(fuzz_data_provider *provider) {
             }
         }
     }
+    /* Verification fails where u1*G + u2*Q is infinity */
+    {
+        secp256k1_ecdsa_signature sig;
+        const unsigned char *msg, *input64;
+        msg = fuzz_consume_bytes(provider, 32);
+        input64 = fuzz_consume_bytes(provider, 64);
+        if (msg && input64 && fuzz_check_bool(secp256k1_ecdsa_signature_parse_compact(fuzz_ctx, &sig, input64))) {
+            secp256k1_pubkey pubkey;
+            secp256k1_scalar r, s, z, t;
+            unsigned char t32[32];
+            /* Low s, so that verification gets as far as computing the point */
+            secp256k1_ecdsa_signature_normalize(fuzz_ctx, &sig, &sig);
+            /* Internal functions only build the key; the public API is under test.
+             * With Q = -(z/r)*G, u1*G + u2*Q = (z/s)*G - (r/s)*(z/r)*G is infinity.
+             * No signer holding -z/r can produce (r, s): s would be 0. */
+            secp256k1_ecdsa_signature_load(fuzz_ctx, &r, &s, &sig);
+            secp256k1_scalar_set_b32(&z, msg, NULL);
+            if (!secp256k1_scalar_is_zero(&r) && !secp256k1_scalar_is_zero(&z)) {
+                secp256k1_scalar_inverse_var(&t, &r);
+                secp256k1_scalar_mul(&t, &t, &z);
+                secp256k1_scalar_negate(&t, &t);
+                secp256k1_scalar_get_b32(t32, &t);
+                CHECK(secp256k1_ec_pubkey_create(fuzz_ctx, &pubkey, t32) == 1);
+                CHECK(secp256k1_ecdsa_verify(fuzz_ctx, &sig, msg, &pubkey) == 0);
+            }
+        }
+    }
 }
 
 #ifdef ENABLE_MODULE_ECDH
