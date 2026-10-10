@@ -43,7 +43,7 @@ static void fuzz_silentpayments(fuzz_data_provider *provider) {
     recipient.index = 0;
     recipient_ptr[0] = &recipient;
     output_ptr[0] = &output;
-    if (!secp256k1_silentpayments_sender_create_outputs(fuzz_ctx, output_ptr, recipient_ptr, 1, outpoint36, NULL, 0, &input_seckey, 1)) {
+    if (!fuzz_check_bool(secp256k1_silentpayments_sender_create_outputs(fuzz_ctx, output_ptr, recipient_ptr, 1, outpoint36, NULL, 0, &input_seckey, 1))) {
         /* With one valid input key, this fails only for the spend key -t, where t is
          * the output tweak. Then the spend key t must work; the scan below gives t. */
         memcpy(negated_from, spend_seckey, sizeof(negated_from));
@@ -61,7 +61,7 @@ static void fuzz_silentpayments(fuzz_data_provider *provider) {
     outputs[1] = output;
     n_tx_outputs = 2;
     while (n_tx_outputs < 4 && (extra32 = fuzz_consume_bytes(provider, 32)) != NULL) {
-        if (secp256k1_xonly_pubkey_parse(fuzz_ctx, &outputs[n_tx_outputs], extra32)) {
+        if (fuzz_check_bool(secp256k1_xonly_pubkey_parse(fuzz_ctx, &outputs[n_tx_outputs], extra32))) {
             n_tx_outputs++;
         }
     }
