@@ -122,6 +122,28 @@ static void fuzz_schnorrsig(fuzz_data_provider *provider) {
             }
         }
     }
+    /* Verification fails where R = s*G - e*P is infinity, as BIP-340 requires */
+    {
+        const unsigned char *r32 = fuzz_consume_bytes(provider, 32);
+        if (r32) {
+            secp256k1_scalar d, e;
+            unsigned char pk32[32];
+            int parity;
+            CHECK(secp256k1_keypair_xonly_pub(fuzz_ctx, &pubkey, &parity, &keypair) == 1);
+            CHECK(secp256k1_xonly_pubkey_serialize(fuzz_ctx, pk32, &pubkey) == 1);
+            /* Internal functions only build the signature; the public API is under test.
+             * With d the secret key of P and s = e*d, R = s*G - e*P is infinity. */
+            secp256k1_scalar_set_b32(&d, seckey, NULL);
+            if (parity) {
+                secp256k1_scalar_negate(&d, &d);
+            }
+            secp256k1_schnorrsig_challenge(&fuzz_ctx->hash_ctx, &e, r32, msg32, 32, pk32);
+            secp256k1_scalar_mul(&e, &e, &d);
+            memcpy(sig, r32, 32);
+            secp256k1_scalar_get_b32(sig + 32, &e);
+            CHECK(secp256k1_schnorrsig_verify(fuzz_ctx, sig, msg32, 32, &pubkey) == 0);
+        }
+    }
 }
 
 #endif /* SECP256K1_MODULE_SCHNORRSIG_FUZZ_H */
