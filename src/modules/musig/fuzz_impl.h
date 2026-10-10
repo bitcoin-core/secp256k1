@@ -54,7 +54,7 @@ static void fuzz_musig(fuzz_data_provider *provider) {
         static const unsigned char zeros32[32] = {0};
         int ret;
         memcpy(session_secrand[i], secrand[i], 32);
-        ret = secp256k1_musig_nonce_gen(fuzz_ctx, &secnonce[i], &pubnonce[i], session_secrand[i], seckey[i], &pk[i], msg32, NULL, NULL);
+        ret = fuzz_check_bool(secp256k1_musig_nonce_gen(fuzz_ctx, &secnonce[i], &pubnonce[i], session_secrand[i], seckey[i], &pk[i], msg32, NULL, NULL));
         /* The API does not document the result for an all-zero session_secrand32 */
         if (secp256k1_memcmp_var(secrand[i], zeros32, 32) == 0) {
             return;
@@ -79,7 +79,7 @@ static void fuzz_musig(fuzz_data_provider *provider) {
         unsigned char ser[32];
         CHECK(secp256k1_musig_partial_sig_serialize(fuzz_ctx, ser, &partial_sig[0]) == 1);
         ser[flip[0] % 32] ^= flip[1];
-        if (secp256k1_musig_partial_sig_parse(fuzz_ctx, &tampered, ser)) {
+        if (fuzz_check_bool(secp256k1_musig_partial_sig_parse(fuzz_ctx, &tampered, ser))) {
             CHECK(secp256k1_musig_partial_sig_verify(fuzz_ctx, &tampered, &pubnonce[0], &pk[0], &keyagg_cache, &session) == 0);
         }
     }
