@@ -23,10 +23,10 @@ static void fuzz_silentpayments(fuzz_data_provider *provider) {
     secp256k1_pubkey input_pubkey;
     const secp256k1_pubkey *input_pubkey_ptr[1];
     unsigned char spend_seckey[32], negated_from[32];
-    const unsigned char *input_seckey, *scan_seckey, *spend_seckey_in, *outpoint36, *extra32;
+    const unsigned char *input_seckey, *scan_seckey, *spend_seckey_in, *outpoint36, *extra32, *choice;
     size_t n_tx_outputs, i;
     uint32_t n_found;
-    int negated = 0, sent = -1;
+    int negated = 0, sent = -1, forced = 0, ret;
 
     input_seckey = fuzz_consume_seckey(provider);
     scan_seckey = fuzz_consume_seckey(provider);
@@ -36,14 +36,40 @@ static void fuzz_silentpayments(fuzz_data_provider *provider) {
         return;
     }
     memcpy(spend_seckey, spend_seckey_in, sizeof(spend_seckey));
+    /* Bits 0-2: a spend key of -t when all zero. The rest: the sent output's position. */
+    choice = fuzz_consume_bytes(provider, 1);
 
     /* Sender */
     CHECK(secp256k1_ec_pubkey_create(fuzz_ctx, &recipient.scan_pubkey, scan_seckey) == 1);
+    if (choice && (*choice & 7) == 0) {
+        /* Internal functions only build the spend key -t; the public API is under test.
+         * t = hash(input_hash*a*B_scan || 0), as create_outputs computes it. */
+        secp256k1_scalar a, input_hash, t;
+        secp256k1_ge input_ge, scan_ge;
+        unsigned char shared_secret[33];
+        secp256k1_scalar_set_b32(&a, input_seckey, NULL);
+        secp256k1_ecmult_gen_ge(&fuzz_ctx->ecmult_gen_ctx, &input_ge, &a);
+        CHECK(secp256k1_pubkey_load(fuzz_ctx, &scan_ge, &recipient.scan_pubkey));
+        if (secp256k1_silentpayments_calculate_input_hash_scalar(&fuzz_ctx->hash_ctx, &input_hash, outpoint36, &input_ge)) {
+            secp256k1_scalar_mul(&a, &a, &input_hash);
+            secp256k1_silentpayments_create_shared_secret(shared_secret, &scan_ge, &a);
+            if (secp256k1_silentpayments_create_output_tweak(fuzz_ctx, &t, shared_secret, 0)) {
+                secp256k1_scalar_negate(&t, &t);
+                secp256k1_scalar_get_b32(spend_seckey, &t);
+                forced = 1;
+            }
+        }
+    }
     CHECK(secp256k1_ec_pubkey_create(fuzz_ctx, &recipient.spend_pubkey, spend_seckey) == 1);
     recipient.index = 0;
     recipient_ptr[0] = &recipient;
     output_ptr[0] = &output;
-    if (!fuzz_check_bool(secp256k1_silentpayments_sender_create_outputs(fuzz_ctx, output_ptr, recipient_ptr, 1, outpoint36, NULL, 0, &input_seckey, 1))) {
+    ret = fuzz_check_bool(secp256k1_silentpayments_sender_create_outputs(fuzz_ctx, output_ptr, recipient_ptr, 1, outpoint36, NULL, 0, &input_seckey, 1));
+    /* With the spend key -t, the output would be infinity: "An invalid output public key is created" */
+    if (forced) {
+        CHECK(ret == 0);
+    }
+    if (!ret) {
         /* With one valid input key, this fails only for the spend key -t, where t is
          * the output tweak. Then the spend key t must work; the scan below gives t. */
         memcpy(negated_from, spend_seckey, sizeof(negated_from));
@@ -64,6 +90,11 @@ static void fuzz_silentpayments(fuzz_data_provider *provider) {
         if (fuzz_check_bool(secp256k1_xonly_pubkey_parse(fuzz_ctx, &outputs[n_tx_outputs], extra32))) {
             n_tx_outputs++;
         }
+    }
+    if (choice) {
+        size_t pos = (*choice >> 3) % n_tx_outputs;
+        outputs[1] = outputs[pos];
+        outputs[pos] = output;
     }
     for (i = 0; i < 4; i++) {
         tx_outputs[i] = &outputs[i];
