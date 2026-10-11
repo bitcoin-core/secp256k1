@@ -358,7 +358,7 @@ static void test_exhaustive_sign(const secp256k1_context *ctx, const secp256k1_g
 #include "modules/schnorrsig/tests_exhaustive_impl.h"
 #endif
 
-#ifdef ENABLE_MODULE_ELLSWIFT
+#if defined(ENABLE_MODULE_ELLSWIFT) && !EXHAUSTIVE_TEST_CURVE_HAS_EVEN_ORDER
 #include "modules/ellswift/tests_exhaustive_impl.h"
 #endif
 
