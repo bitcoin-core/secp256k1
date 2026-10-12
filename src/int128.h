@@ -28,6 +28,16 @@ static SECP256K1_INLINE void secp256k1_u128_accum_mul(secp256k1_uint128 *r, uint
  */
 static SECP256K1_INLINE void secp256k1_u128_accum_u64(secp256k1_uint128 *r, uint64_t a);
 
+/* Multiply two unsigned 64-bit values a and b, add the result to r, and return
+ * the carry (0 or 1). The final result is taken modulo 2^128.
+ */
+static SECP256K1_INLINE int secp256k1_u128_accum_mul_carry(secp256k1_uint128 *r, uint64_t a, uint64_t b);
+
+/* Add an unsigned 64-bit value a to r and return the carry (0 or 1).
+ * The final result is taken modulo 2^128.
+ */
+static SECP256K1_INLINE int secp256k1_u128_accum_u64_carry(secp256k1_uint128 *r, uint64_t a);
+
 /* Unsigned (logical) right shift.
  * Non-constant time in n.
  */
