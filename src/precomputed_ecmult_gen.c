@@ -1773,7 +1773,7 @@ S(2934de46,a6d921f8,720567e6,b46e6362,36a7ed53,483b13ed,20958452,3225accd,597969
 S(4e9991b,92fa8c4e,4e8efe45,66966073,319e80d3,a54d4b7a,b61cfcc4,7ddaa5d5,9d03ea22,21d4d80e,261952e2,73f6a8cf,c31f6091,e5aa0a8f,2281ffbf,1345df9e),
 S(ff3d6136,ffac5b0c,bfc6c5c0,c30dc01a,7ea3d56c,20bd3103,b178e3d3,ae180068,eccdc641,7b1bfff1,bf2fc8d3,2269523e,ab89890d,bffe0a19,8f594490,e7739bb8)}
 #else
-#    error Configuration mismatch, invalid COMB_* parameters. Try deleting precomputed_ecmult_gen.c before the build.
+#    error Configuration mismatch, invalid COMB_* parameters. If this is an Autotools build, try deleting precomputed_ecmult_gen.c before the build. If this is a CMake build, pass -DSECP256K1_BUILD_PRECOMPUTED=ON to cmake.
 #endif
 };
 #undef S
