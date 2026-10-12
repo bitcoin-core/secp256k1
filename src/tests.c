@@ -2086,6 +2086,19 @@ static void run_int128_test_case(void) {
     secp256k1_u128_accum_u64(&uwz, ub);
     load256u128(ruwz, &uwz);
     CHECK(secp256k1_memcmp_var(ruwr, ruwz, 16) == 0);
+    /* test secp256k1_u128_accum_mul_carry */
+    mulmod256(ruwr, rub, ruc, NULL);
+    add256(ruwr, ruwr, ruwa);
+    uwz = uwa;
+    CHECK(secp256k1_u128_accum_mul_carry(&uwz, ub, uc) == ruwr[8]);
+    load256u128(ruwz, &uwz);
+    CHECK(secp256k1_memcmp_var(ruwr, ruwz, 16) == 0);
+    /* test secp256k1_u128_accum_u64_carry */
+    add256(ruwr, rub, ruwa);
+    uwz = uwa;
+    CHECK(secp256k1_u128_accum_u64_carry(&uwz, ub) == ruwr[8]);
+    load256u128(ruwz, &uwz);
+    CHECK(secp256k1_memcmp_var(ruwr, ruwz, 16) == 0);
     /* test secp256k1_u128_rshift */
     rshift256(ruwr, ruwa, uc % 128, 0);
     uwz = uwa;
@@ -2231,6 +2244,42 @@ static void run_int128_tests(void) {
         secp256k1_u128_accum_mul(&res, UINT64_MAX, UINT64_MAX);
         CHECK(secp256k1_u128_to_u64(&res) == 2);
         CHECK(secp256k1_u128_hi_u64(&res) == 18446744073709551612U);
+    }
+    {   /* secp256k1_u128_accum_mul_carry */
+        secp256k1_uint128 res;
+
+        /* (2^128 - 1) + 1*1: carry from the low half propagates out */
+        secp256k1_u128_load(&res, UINT64_MAX, UINT64_MAX);
+        CHECK(secp256k1_u128_accum_mul_carry(&res, 1, 1) == 1);
+        CHECK(secp256k1_u128_to_u64(&res) == 0);
+        CHECK(secp256k1_u128_hi_u64(&res) == 0);
+
+        /* (2^64 + 2^64 - 1) + (2^64 - 1)^2 = 2^128 with maximal high half of the product */
+        secp256k1_u128_load(&res, 1, UINT64_MAX);
+        CHECK(secp256k1_u128_accum_mul_carry(&res, UINT64_MAX, UINT64_MAX) == 1);
+        CHECK(secp256k1_u128_to_u64(&res) == 0);
+        CHECK(secp256k1_u128_hi_u64(&res) == 0);
+
+        /* (2^64 + 2^64 - 2) + (2^64 - 1)^2 = 2^128 - 1: no carry */
+        secp256k1_u128_load(&res, 1, UINT64_MAX - 1);
+        CHECK(secp256k1_u128_accum_mul_carry(&res, UINT64_MAX, UINT64_MAX) == 0);
+        CHECK(secp256k1_u128_to_u64(&res) == UINT64_MAX);
+        CHECK(secp256k1_u128_hi_u64(&res) == UINT64_MAX);
+    }
+    {   /* secp256k1_u128_accum_u64_carry */
+        secp256k1_uint128 res;
+
+        /* (2^128 - 1) + 1: carry from the low half propagates out */
+        secp256k1_u128_load(&res, UINT64_MAX, UINT64_MAX);
+        CHECK(secp256k1_u128_accum_u64_carry(&res, 1) == 1);
+        CHECK(secp256k1_u128_to_u64(&res) == 0);
+        CHECK(secp256k1_u128_hi_u64(&res) == 0);
+
+        /* (2^64 - 1) + 1 = 2^64: carry into the high half only */
+        secp256k1_u128_from_u64(&res, UINT64_MAX);
+        CHECK(secp256k1_u128_accum_u64_carry(&res, 1) == 0);
+        CHECK(secp256k1_u128_to_u64(&res) == 0);
+        CHECK(secp256k1_u128_hi_u64(&res) == 1);
     }
     {   /* secp256k1_u128_accum_mul */
         secp256k1_int128 res;
