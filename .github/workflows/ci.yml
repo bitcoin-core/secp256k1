@@ -15,6 +15,9 @@ concurrency:
   group: ${{ github.event_name != 'pull_request' && github.run_id || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   ### compiler options
   HOST:
