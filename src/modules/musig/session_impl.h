@@ -614,7 +614,12 @@ int secp256k1_musig_partial_sign(const secp256k1_context* ctx, secp256k1_musig_p
 
     VERIFY_CHECK(ctx != NULL);
 
+    ARG_CHECK(partial_sig != NULL);
     ARG_CHECK(secnonce != NULL);
+    ARG_CHECK(keypair != NULL);
+    ARG_CHECK(keyagg_cache != NULL);
+    ARG_CHECK(session != NULL);
+
     /* Fails if the magic doesn't match */
     ret = secp256k1_musig_secnonce_load(ctx, k, &pk, secnonce);
     /* Set nonce to zero to avoid nonce reuse. This will cause subsequent calls
@@ -625,14 +630,14 @@ int secp256k1_musig_partial_sign(const secp256k1_context* ctx, secp256k1_musig_p
         return 0;
     }
 
-    ARG_CHECK(partial_sig != NULL);
-    ARG_CHECK(keypair != NULL);
-    ARG_CHECK(keyagg_cache != NULL);
-    ARG_CHECK(session != NULL);
-
     if (!secp256k1_keypair_load(ctx, &sk, &keypair_pk, keypair)) {
         secp256k1_musig_partial_sign_clear(&sk, k);
         return 0;
+    }
+    /* ARG_CHECK returns without clearing the secrets, so clear them first. */
+    if (!(secp256k1_fe_equal(&pk.x, &keypair_pk.x)
+          && secp256k1_fe_equal(&pk.y, &keypair_pk.y))) {
+        secp256k1_musig_partial_sign_clear(&sk, k);
     }
     ARG_CHECK(secp256k1_fe_equal(&pk.x, &keypair_pk.x)
               && secp256k1_fe_equal(&pk.y, &keypair_pk.y));
