@@ -45,6 +45,7 @@ env:
   BENCH: 'yes'
   SECP256K1_BENCH_ITERS: 2
   CTIMETESTS: 'yes'
+  THREADTESTS: 'yes'
   SYMBOL_CHECK: 'yes'
   # Compile and run the examples.
   EXAMPLES: 'yes'
@@ -315,6 +316,8 @@ jobs:
           - env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
 
     env:
+      # Valgrind can't run binaries built with ASan.
+      WITH_VALGRIND: 'no'
       CTIMETESTS: 'no'
       CFLAGS: '-fsanitize=undefined,address -g'
       UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'

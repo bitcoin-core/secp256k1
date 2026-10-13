@@ -14,7 +14,7 @@ print_environment() {
     for var in WERROR_CFLAGS MAKEFLAGS BUILD \
             ECMULTWINDOW ECMULTGENKB ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
             EXPERIMENTAL ECDH RECOVERY EXTRAKEYS MUSIG SCHNORRSIG ELLSWIFT SILENTPAYMENTS \
-            SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS SYMBOL_CHECK \
+            SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS THREADTESTS SYMBOL_CHECK \
             EXAMPLES \
             HOST WRAPPER_CMD \
             CC CFLAGS CPPFLAGS AR NM \
@@ -67,6 +67,7 @@ fi
     --enable-module-silentpayments="$SILENTPAYMENTS" \
     --enable-examples="$EXAMPLES" \
     --enable-ctime-tests="$CTIMETESTS" \
+    --enable-thread-tests="$THREADTESTS" \
     --with-valgrind="$WITH_VALGRIND" \
     --host="$HOST" $EXTRAFLAGS
 
@@ -134,6 +135,13 @@ then
     else
         $EXEC ./ctime_tests > ctime_tests.log 2>&1
     fi
+fi
+
+# Helgrind reports data races on the context shared by the threads. Skip macOS,
+# where it also reports races inside the system libraries.
+if [ "$THREADTESTS" = "yes" ] && [ "$WITH_VALGRIND" = "yes" ] && [ "$(uname -s)" = "Linux" ]
+then
+    ./libtool --mode=execute valgrind --tool=helgrind --error-exitcode=42 ./thread_tests > thread_tests_helgrind.log 2>&1
 fi
 
 # Rebuild precomputed files (if not cross-compiling).
