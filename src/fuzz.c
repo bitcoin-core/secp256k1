@@ -106,6 +106,8 @@ static void fuzz_ecdsa(fuzz_data_provider *provider) {
     /* Randomize the context */
     {
         const unsigned char *randomize;
+        /* context_randomize builds on the current blinding, so reset it to not depend on earlier inputs. */
+        CHECK(secp256k1_context_randomize(fuzz_ctx, NULL) == 1);
         randomize = fuzz_consume_bytes(provider, 32);
         if (randomize) {
             CHECK(secp256k1_context_randomize(fuzz_ctx, randomize) == 1);
