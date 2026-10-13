@@ -48,6 +48,15 @@ static void test_ecdh_api(void) {
     CHECK_ILLEGAL(CTX, secp256k1_ecdh(CTX, res, NULL, s_one, NULL, NULL));
     CHECK_ILLEGAL(CTX, secp256k1_ecdh(CTX, res, &point, NULL, NULL, NULL));
     CHECK(secp256k1_ecdh(CTX, res, &point, s_one, NULL, NULL) == 1);
+
+    /* Check that invalid arguments (corrupted public key, out-of-range secret key) are rejected */
+    {
+        secp256k1_pubkey zero_pk;
+        unsigned char s_zero[32] = { 0 };
+        memset(&zero_pk, 0, sizeof(zero_pk));
+        CHECK_ILLEGAL(CTX, secp256k1_ecdh(CTX, res, &zero_pk, s_one, NULL, NULL));
+        CHECK(secp256k1_ecdh(CTX, res, &point, s_zero, NULL, NULL) == 0);
+    }
 }
 
 static void test_ecdh_generator_basepoint(void) {
