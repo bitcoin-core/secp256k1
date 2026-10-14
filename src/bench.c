@@ -36,6 +36,10 @@ static void help(const char *executable_path, int default_iters) {
     printf("    - Silent payments (optional module)\n");
 #endif
 
+#ifdef ENABLE_MODULE_DLEQ
+    printf("    - DLEQ proofs (optional module)\n");
+#endif
+
     printf("\n");
     printf("The default number of iterations for each benchmark is %d. This can be\n", default_iters);
     printf("customized using the SECP256K1_BENCH_ITERS environment variable.\n");
@@ -76,6 +80,12 @@ static void help(const char *executable_path, int default_iters) {
     printf("    silentpayments                       : all Silent payments benchmarks (scan_nomatch, scan_worstcase)\n");
     printf("    silentpayments_scan_nomatch          : Silent payments scanning common case (no match)\n");
     printf("    silentpayments_scan_worstcase        : Silent payments scanning worst case (block-sized tx, all match)\n");
+#endif
+
+#ifdef ENABLE_MODULE_DLEQ
+    printf("    dleq                                 : all DLEQ proof benchmarks (prove, verify)\n");
+    printf("    dleq_prove                           : DLEQ proof generation\n");
+    printf("    dleq_verify                          : DLEQ proof verification\n");
 #endif
 
     printf("\n");
@@ -184,6 +194,10 @@ static void bench_keygen_run(void *arg, int iters) {
 # include "modules/silentpayments/bench_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_DLEQ
+# include "modules/dleq/bench_impl.h"
+#endif
+
 int main(int argc, char** argv) {
     int i;
     secp256k1_pubkey pubkey;
@@ -197,7 +211,8 @@ int main(int argc, char** argv) {
                          "ecdsa_recover", "schnorrsig", "schnorrsig_verify", "schnorrsig_sign", "ec",
                          "keygen", "ec_keygen", "ellswift", "encode", "ellswift_encode", "decode",
                          "ellswift_decode", "ellswift_keygen", "ellswift_ecdh", "silentpayments",
-                         "silentpayments_scan_nomatch", "silentpayments_scan_worstcase"};
+                         "silentpayments_scan_nomatch", "silentpayments_scan_worstcase", "dleq",
+                         "dleq_prove", "dleq_verify"};
     int invalid_args = have_invalid_args(argc, argv, valid_args, ARRAY_SIZE(valid_args));
 
     int default_iters = 20000;
@@ -264,6 +279,14 @@ int main(int argc, char** argv) {
     }
 #endif
 
+#ifndef ENABLE_MODULE_DLEQ
+    if (have_flag(argc, argv, "dleq") || have_flag(argc, argv, "dleq_prove") || have_flag(argc, argv, "dleq_verify")) {
+        fprintf(stderr, "./bench: DLEQ module not enabled.\n");
+        fprintf(stderr, "See README.md for configuration instructions.\n\n");
+        return EXIT_FAILURE;
+    }
+#endif
+
     /* ECDSA benchmark */
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 
@@ -311,6 +334,11 @@ int main(int argc, char** argv) {
 #ifdef ENABLE_MODULE_SILENTPAYMENTS
     /* SilentPayments benchmarks */
     run_silentpayments_bench(iters, argc, argv);
+#endif
+
+#ifdef ENABLE_MODULE_DLEQ
+    /* DLEQ proof benchmarks */
+    run_dleq_bench(iters, argc, argv);
 #endif
 
 
