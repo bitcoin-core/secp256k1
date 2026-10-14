@@ -863,6 +863,7 @@ static void secp256k1_scalar_mul(secp256k1_scalar *r, const secp256k1_scalar *a,
 
     secp256k1_scalar_mul_512(l, a, b);
     secp256k1_scalar_reduce_512(r, l);
+    secp256k1_memclear_explicit(l, sizeof(l));
 
     SECP256K1_SCALAR_VERIFY(r);
 }
