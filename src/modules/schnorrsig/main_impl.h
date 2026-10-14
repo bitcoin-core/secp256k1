@@ -40,7 +40,7 @@ int secp256k1_schnorrsig_s2c_opening_parse(const secp256k1_context* ctx, secp256
 
     secp256k1_schnorrsig_s2c_opening_init(opening);
     /* Return 0 if unknown bits are set */
-    if ((input33[0] & ~0x06) != 0) {
+    if ((input33[0] & ~0x07) != 0) {
         return 0;
     }
     /* Read nonce_is_negated bit */

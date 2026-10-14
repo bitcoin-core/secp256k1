@@ -1043,6 +1043,14 @@ static void test_schnorrsig_s2c_commit_verify_internal(void) {
     CHECK(secp256k1_schnorrsig_verify(CTX, sig, msg, sizeof(msg), &pk));
     CHECK(secp256k1_schnorrsig_verify_s2c_commit(CTX, sig, data32, &s2c_opening) == 1);
     {
+        /* The commitment must still verify after transmitting the opening. */
+        unsigned char serialized_opening[33];
+        secp256k1_schnorrsig_s2c_opening parsed_opening;
+        CHECK(secp256k1_schnorrsig_s2c_opening_serialize(CTX, serialized_opening, &s2c_opening) == 1);
+        CHECK(secp256k1_schnorrsig_s2c_opening_parse(CTX, &parsed_opening, serialized_opening) == 1);
+        CHECK(secp256k1_schnorrsig_verify_s2c_commit(CTX, sig, data32, &parsed_opening) == 1);
+    }
+    {
         /* verify_s2c_commit fails if nonce_is_negated is wrong */
         secp256k1_schnorrsig_s2c_opening s2c_opening_tmp;
         s2c_opening_tmp = s2c_opening;
@@ -1110,6 +1118,25 @@ static void test_s2c_opening(void) {
     CHECK(secp256k1_schnorrsig_s2c_opening_parse(CTX, &opening, input) == 1);
     CHECK(secp256k1_schnorrsig_s2c_opening_serialize(CTX, output, &opening) == 1);
     CHECK(secp256k1_schnorrsig_s2c_opening_parse(CTX, &opening, input) == 1);
+
+    {
+        /* Both pubkey parities must roundtrip with either nonce negation bit.
+         * Every other prefix is invalid, even with a valid x-coordinate. */
+        int tag;
+        unsigned char input_tmp[33];
+        memcpy(input_tmp, input, sizeof(input_tmp));
+        for (tag = 0; tag < 256; tag++) {
+            input_tmp[0] = tag;
+            if (tag == 0x02 || tag == 0x03 || tag == 0x06 || tag == 0x07) {
+                CHECK(secp256k1_schnorrsig_s2c_opening_parse(CTX, &opening, input_tmp) == 1);
+                CHECK(!!opening.nonce_is_negated == !!(tag & (1 << 2)));
+                CHECK(secp256k1_schnorrsig_s2c_opening_serialize(CTX, output, &opening) == 1);
+                CHECK(secp256k1_memcmp_var(output, input_tmp, sizeof(output)) == 0);
+            } else {
+                CHECK(secp256k1_schnorrsig_s2c_opening_parse(CTX, &opening, input_tmp) == 0);
+            }
+        }
+    }
 
     {
         /* Invalid pubkey makes parsing fail */
