@@ -16,7 +16,8 @@ static int secp256k1_ec_pubkey_tweak_add_helper(secp256k1_ge *p, const unsigned 
  *  whether pubp is the point at infinity. Thus, you may need to declassify
  *  pubp->infinity before calling this function. */
 static int secp256k1_ec_commit_pubkey_serialize_const(secp256k1_ge *pubp, unsigned char *buf33);
-/** Compute an ec commitment tweak as hash(pubkey, data). */
+/** Compute an ec commitment tweak as hash(pubkey, data).
+ *  Clears the SHA256 state before returning, including on failure. */
 static int secp256k1_ec_commit_tweak(const secp256k1_hash_ctx *hash_ctx, unsigned char *tweak32, secp256k1_ge* pubp, secp256k1_sha256* sha, const unsigned char *data, size_t data_size);
 /** Compute an ec commitment as pubkey + hash(pubkey, data)*G. */
 static int secp256k1_ec_commit(const secp256k1_hash_ctx *hash_ctx, secp256k1_ge* commitp, const secp256k1_ge* pubp, secp256k1_sha256* sha, const unsigned char *data, size_t data_size);

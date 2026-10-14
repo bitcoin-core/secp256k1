@@ -232,6 +232,7 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
             secp256k1_sha256_write(&ctx->hash_ctx, &sha, ndata, 32);
         }
         secp256k1_sha256_finalize(&ctx->hash_ctx, &sha, noncedata);
+        secp256k1_sha256_clear(&sha);
         ndata = &noncedata;
     }
 
@@ -241,6 +242,9 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
         ret &= nonce_function_bip340_impl(&ctx->hash_ctx, nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
     } else {
         ret &= !!noncefp(nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
+    }
+    if (s2c_data32 != NULL) {
+        secp256k1_memclear_explicit(noncedata, sizeof(noncedata));
     }
 
     secp256k1_scalar_set_b32(&k, nonce32, NULL);
@@ -408,6 +412,7 @@ int secp256k1_schnorrsig_anti_exfil_host_commit(const secp256k1_context* ctx, un
     secp256k1_sha256_initialize_tagged(&ctx->hash_ctx, &sha, s2c_data_tag, sizeof(s2c_data_tag));
     secp256k1_sha256_write(&ctx->hash_ctx, &sha, rand32, 32);
     secp256k1_sha256_finalize(&ctx->hash_ctx, &sha, rand_commitment32);
+    secp256k1_sha256_clear(&sha);
 
     return 1;
 }
@@ -446,6 +451,11 @@ int secp256k1_schnorrsig_anti_exfil_signer_commit(const secp256k1_context* ctx, 
     secp256k1_ecmult_gen_ge(&ctx->ecmult_gen_ctx, &r, &k);
 
     secp256k1_pubkey_save(signer_commitment, &r);
+
+    secp256k1_scalar_clear(&k);
+    secp256k1_scalar_clear(&sk);
+    secp256k1_memclear_explicit(seckey, sizeof(seckey));
+    secp256k1_memclear_explicit(buf, sizeof(buf));
 
     return ret;
 }
