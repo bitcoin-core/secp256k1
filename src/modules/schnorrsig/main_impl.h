@@ -255,7 +255,9 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
             secp256k1_sha256_initialize_tagged(&ctx->hash_ctx, &sha, s2c_point_tag, sizeof(s2c_point_tag));
             /* Create sign-to-contract commitment */
             secp256k1_pubkey_save(&s2c_opening->original_pubnonce, &r);
-            secp256k1_ec_commit_seckey(&ctx->hash_ctx, &k, &r, &sha, s2c_data32, 32);
+            ret &= secp256k1_ec_commit_seckey(&ctx->hash_ctx, &k, &r, &sha, s2c_data32, 32);
+            /* Avoid computing the point at infinity if the tweak failed. */
+            secp256k1_scalar_cmov(&k, &secp256k1_scalar_one, !ret);
             secp256k1_ecmult_gen_ge(&ctx->ecmult_gen_ctx, &r, &k);
         }
     }
