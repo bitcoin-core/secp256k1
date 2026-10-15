@@ -845,6 +845,7 @@ int secp256k1_tagged_sha256(const secp256k1_context* ctx, unsigned char *hash32,
 #endif
 
 #ifdef ENABLE_MODULE_MUSIG
+# include "modules/nonce_common_impl.h"
 # include "modules/musig/main_impl.h"
 #endif
 
