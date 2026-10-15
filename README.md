@@ -110,6 +110,10 @@ Building with Autotools
 
 To compile optional modules (such as Schnorr signatures), you need to run `./configure` with additional flags (such as `--enable-module-schnorrsig`). Run `./configure --help` to see the full list of available flags.
 
+When constant-time tests are built, `make check` runs them under MemorySanitizer if enabled, or under Valgrind for native builds if the Valgrind executable is available.
+They can be run separately with `make check TESTS=ctime_tests.sh`.
+Use `--disable-ctime-tests` to disable building and running these tests.
+
 Building with CMake
 -------------------
 
@@ -123,6 +127,10 @@ To maintain a pristine source tree, CMake encourages to perform an out-of-source
     $ sudo cmake --install build  # Install the library into the system (optional)
 
 To compile optional modules (such as Schnorr signatures), you need to run `cmake` with additional flags (such as `-DSECP256K1_ENABLE_MODULE_SCHNORRSIG=ON`). Run `cmake -B build -LH` or `ccmake -B build` to see the full list of available flags.
+
+When constant-time tests are built, CTest runs them under MemorySanitizer if enabled, or under Valgrind for native builds if the Valgrind executable is available.
+They can be run separately with `ctest --test-dir build -L secp256k1_ctime --output-on-failure`.
+Use `-DSECP256K1_BUILD_CTIME_TESTS=OFF` to disable building and running these tests.
 
 ### Cross compiling
 

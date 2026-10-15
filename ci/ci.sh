@@ -127,15 +127,6 @@ then
     } >> bench.log 2>&1
 fi
 
-if [ "$CTIMETESTS" = "yes" ]
-then
-    if [ "$WITH_VALGRIND" = "yes" ]; then
-        ./libtool --mode=execute valgrind --error-exitcode=42 ./ctime_tests > ctime_tests.log 2>&1
-    else
-        $EXEC ./ctime_tests > ctime_tests.log 2>&1
-    fi
-fi
-
 # Rebuild precomputed files (if not cross-compiling).
 if [ -z "$HOST" ]
 then
