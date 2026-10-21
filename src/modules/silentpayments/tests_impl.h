@@ -120,6 +120,19 @@ const unsigned char* label_lookup(const unsigned char* key, const void* cache_pt
     return NULL;
 }
 
+static void labels_cache_set_neg_output_tweak(struct labels_cache *cache) {
+    unsigned char neg_output_tweak[32];
+    secp256k1_pubkey label_pubkey;
+    size_t len = 33;
+
+    memcpy(neg_output_tweak, OUTPUT_TWEAK, 32);
+    CHECK(secp256k1_ec_seckey_negate(CTX, neg_output_tweak));
+    CHECK(secp256k1_ec_pubkey_create(CTX, &label_pubkey, neg_output_tweak));
+    CHECK(secp256k1_ec_pubkey_serialize(CTX, cache->entries[0].label, &len, &label_pubkey, SECP256K1_EC_COMPRESSED));
+    memcpy(cache->entries[0].label_tweak, neg_output_tweak, 32);
+    cache->entries_used = 1;
+}
+
 static void test_recipient_sort_helper(unsigned char (*sp_addresses[3])[2][33], unsigned char (*sp_outputs[3])[32]) {
     unsigned char const *seckey_ptrs[1];
     secp256k1_silentpayments_recipient recipients[3];
@@ -561,22 +574,15 @@ static void test_recipient_api(void) {
     }
     /* check the _recipients_scan_outputs cornercase where the output_tweak is the negation of the label_tweak */
     {
-        unsigned char output_tweak[32];
         static const unsigned char zero[32] = {0};
-        secp256k1_pubkey spk, neg_label_pubkey;
+        secp256k1_pubkey spk;
         secp256k1_xonly_pubkey output_xonly;
         secp256k1_xonly_pubkey const *output_xonly_ptrs[1];
-        size_t len = 33;
         uint32_t found;
         CHECK(secp256k1_ec_pubkey_parse(CTX, &spk, BOB_ADDRESS[0], 33));
         CHECK(secp256k1_xonly_pubkey_from_pubkey(CTX, &output_xonly, NULL, &spk));
         output_xonly_ptrs[0] = &output_xonly;
-        memcpy(output_tweak, OUTPUT_TWEAK, 32);
-        CHECK(secp256k1_ec_seckey_negate(CTX, output_tweak));
-        CHECK(secp256k1_ec_pubkey_create(CTX, &neg_label_pubkey, output_tweak));
-        CHECK(secp256k1_ec_pubkey_serialize(CTX, labels_cache.entries[0].label, &len, &neg_label_pubkey, SECP256K1_EC_COMPRESSED));
-        memcpy(labels_cache.entries[0].label_tweak, output_tweak, 32);
-        labels_cache.entries_used = 1;
+        labels_cache_set_neg_output_tweak(&labels_cache);
         found = 0;
         CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &found, output_xonly_ptrs, 1, ALICE_SECKEY, &ps, &spk, &label_lookup, &labels_cache));
         CHECK(found == 1);
@@ -691,17 +697,15 @@ static void test_recipient_scan_label_precedes_direct_match(void) {
 
 static void test_recipient_scan_label_batch_index(void) {
     enum { N_OUTPUTS = 2 * LABEL_BATCH_SIZE + 1 };
-    unsigned char output_tweak[32];
     secp256k1_silentpayments_prevouts_summary ps;
     secp256k1_silentpayments_found_output f[N_OUTPUTS];
     secp256k1_silentpayments_found_output *fp[N_OUTPUTS];
     secp256k1_xonly_pubkey t, filler;
     secp256k1_xonly_pubkey const *tp[N_OUTPUTS];
-    secp256k1_pubkey p, filler_p, label_pubkey;
+    secp256k1_pubkey p, filler_p;
     secp256k1_pubkey p_neg;
     secp256k1_pubkey const *pp[1];
     struct labels_cache cache;
-    size_t len = 33;
     uint32_t n_f;
     size_t i, k;
 
@@ -712,12 +716,7 @@ static void test_recipient_scan_label_batch_index(void) {
     CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
     /* Use a label whose tweak is the negation of the output tweak, so the
      * labeled output for this prevouts summary equals the spend public key. */
-    memcpy(output_tweak, OUTPUT_TWEAK, 32);
-    CHECK(secp256k1_ec_seckey_negate(CTX, output_tweak));
-    CHECK(secp256k1_ec_pubkey_create(CTX, &label_pubkey, output_tweak));
-    CHECK(secp256k1_ec_pubkey_serialize(CTX, cache.entries[0].label, &len, &label_pubkey, SECP256K1_EC_COMPRESSED));
-    memcpy(cache.entries[0].label_tweak, output_tweak, 32);
-    cache.entries_used = 1;
+    labels_cache_set_neg_output_tweak(&cache);
 
     /* Place the labeled output at every position among non-matching outputs spanning several label
      * batches, so that the batch index and the tx output index differ. */
