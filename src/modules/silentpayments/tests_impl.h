@@ -120,6 +120,17 @@ const unsigned char* label_lookup(const unsigned char* key, const void* cache_pt
     return NULL;
 }
 
+static void prevouts_summary_create_bob(secp256k1_silentpayments_prevouts_summary *ps, secp256k1_xonly_pubkey *t, secp256k1_pubkey *p) {
+    secp256k1_xonly_pubkey const *tp[1];
+    secp256k1_pubkey const *pp[1];
+
+    CHECK(secp256k1_ec_pubkey_parse(CTX, p, BOB_ADDRESS[0], 33));
+    CHECK(secp256k1_xonly_pubkey_parse(CTX, t, &BOB_ADDRESS[0][1]));
+    tp[0] = t;
+    pp[0] = p;
+    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
+}
+
 static void labels_cache_set_neg_output_tweak(struct labels_cache *cache) {
     unsigned char neg_output_tweak[32];
     secp256k1_pubkey label_pubkey;
@@ -504,14 +515,12 @@ static void test_recipient_api(void) {
     secp256k1_pubkey const *pp[1];                /* array of pointers to plain pks */
     uint32_t n_f;                                 /* number of found outputs */
 
-    CHECK(secp256k1_ec_pubkey_parse(CTX, &p, BOB_ADDRESS[0], 33));
     memset(&malformed_p, 0, sizeof(malformed_p));
     memset(&malformed_t, 0, sizeof(malformed_t));
-    CHECK(secp256k1_xonly_pubkey_parse(CTX, &t, &BOB_ADDRESS[0][1]));
+    prevouts_summary_create_bob(&ps, &t, &p);
     tp[0] = &t;
     pp[0] = &p;
     fp[0] = &f;
-    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
     /* Reusing a prevouts_summary after a failure must not leave the old object valid. */
     {
         secp256k1_pubkey neg_p = p;
@@ -704,16 +713,11 @@ static void test_recipient_scan_label_batch_index(void) {
     secp256k1_xonly_pubkey const *tp[N_OUTPUTS];
     secp256k1_pubkey p, filler_p;
     secp256k1_pubkey p_neg;
-    secp256k1_pubkey const *pp[1];
     struct labels_cache cache;
     uint32_t n_f;
     size_t i, k;
 
-    CHECK(secp256k1_ec_pubkey_parse(CTX, &p, BOB_ADDRESS[0], 33));
-    CHECK(secp256k1_xonly_pubkey_parse(CTX, &t, &BOB_ADDRESS[0][1]));
-    tp[0] = &t;
-    pp[0] = &p;
-    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
+    prevouts_summary_create_bob(&ps, &t, &p);
     /* Use a label whose tweak is the negation of the output tweak, so the
      * labeled output for this prevouts summary equals the spend public key. */
     labels_cache_set_neg_output_tweak(&cache);
