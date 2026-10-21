@@ -19,6 +19,9 @@
  *                     scan public keys
  *  Smallest Outpoint: smallest outpoint lexicographically from the transaction
  *             Seckey: secret key for Alice
+ *       Output Tweak: output tweak (k = 0) when scanning with Alice's secret key
+ *                     as scan key, Bob's first address key as both input public
+ *                     keys, and the smallest outpoint
  *
  *  The values themselves are not important.
  */
@@ -84,6 +87,12 @@ static unsigned char ALICE_SECKEY[32] = {
     0x94, 0xad, 0x7c, 0xfd, 0xc5, 0x49, 0x90, 0x73,
     0x8a, 0x4c, 0x53, 0xf6, 0xe0, 0x50, 0x7b, 0x42,
     0x15, 0x42, 0x01, 0xb8, 0xe5, 0xdf, 0xf3, 0xb1
+};
+static unsigned char OUTPUT_TWEAK[32] = {
+    0x96, 0x32, 0xb4, 0x06, 0xeb, 0x56, 0xcc, 0xb2,
+    0x0f, 0xc6, 0xe5, 0x2c, 0x41, 0xd5, 0x73, 0xb2,
+    0xae, 0xa0, 0x45, 0x07, 0x63, 0xf1, 0xf6, 0x22,
+    0xfa, 0x87, 0xc2, 0x4c, 0x7d, 0x80, 0x58, 0x62
 };
 
 struct label_cache_entry {
@@ -545,25 +554,14 @@ static void test_recipient_api(void) {
     /* check the _recipient_scan_outputs cornercase where internal tweaking would fail;
        this is the case if the recipient spend public key is P = -(create_output_tweak(shared_secret, k))*G */
     {
-        unsigned char output_tweak[32] = {
-            0x96, 0x32, 0xb4, 0x06, 0xeb, 0x56, 0xcc, 0xb2,
-            0x0f, 0xc6, 0xe5, 0x2c, 0x41, 0xd5, 0x73, 0xb2,
-            0xae, 0xa0, 0x45, 0x07, 0x63, 0xf1, 0xf6, 0x22,
-            0xfa, 0x87, 0xc2, 0x4c, 0x7d, 0x80, 0x58, 0x62,
-        };
         secp256k1_pubkey neg_spend_pubkey;
-        CHECK(secp256k1_ec_pubkey_create(CTX, &neg_spend_pubkey, output_tweak));
+        CHECK(secp256k1_ec_pubkey_create(CTX, &neg_spend_pubkey, OUTPUT_TWEAK));
         CHECK(secp256k1_ec_pubkey_negate(CTX, &neg_spend_pubkey));
         CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp, 1, ALICE_SECKEY, &ps, &neg_spend_pubkey, &label_lookup, &labels_cache) == 0);
     }
     /* check the _recipients_scan_outputs cornercase where the output_tweak is the negation of the label_tweak */
     {
-        unsigned char output_tweak[32] = {
-            0x96, 0x32, 0xb4, 0x06, 0xeb, 0x56, 0xcc, 0xb2,
-            0x0f, 0xc6, 0xe5, 0x2c, 0x41, 0xd5, 0x73, 0xb2,
-            0xae, 0xa0, 0x45, 0x07, 0x63, 0xf1, 0xf6, 0x22,
-            0xfa, 0x87, 0xc2, 0x4c, 0x7d, 0x80, 0x58, 0x62,
-        };
+        unsigned char output_tweak[32];
         static const unsigned char zero[32] = {0};
         secp256k1_pubkey spk, neg_label_pubkey;
         secp256k1_xonly_pubkey output_xonly;
@@ -573,6 +571,7 @@ static void test_recipient_api(void) {
         CHECK(secp256k1_ec_pubkey_parse(CTX, &spk, BOB_ADDRESS[0], 33));
         CHECK(secp256k1_xonly_pubkey_from_pubkey(CTX, &output_xonly, NULL, &spk));
         output_xonly_ptrs[0] = &output_xonly;
+        memcpy(output_tweak, OUTPUT_TWEAK, 32);
         CHECK(secp256k1_ec_seckey_negate(CTX, output_tweak));
         CHECK(secp256k1_ec_pubkey_create(CTX, &neg_label_pubkey, output_tweak));
         CHECK(secp256k1_ec_pubkey_serialize(CTX, labels_cache.entries[0].label, &len, &neg_label_pubkey, SECP256K1_EC_COMPRESSED));
@@ -692,12 +691,7 @@ static void test_recipient_scan_label_precedes_direct_match(void) {
 
 static void test_recipient_scan_label_batch_index(void) {
     enum { N_OUTPUTS = 2 * LABEL_BATCH_SIZE + 1 };
-    unsigned char output_tweak[32] = {
-        0x96, 0x32, 0xb4, 0x06, 0xeb, 0x56, 0xcc, 0xb2,
-        0x0f, 0xc6, 0xe5, 0x2c, 0x41, 0xd5, 0x73, 0xb2,
-        0xae, 0xa0, 0x45, 0x07, 0x63, 0xf1, 0xf6, 0x22,
-        0xfa, 0x87, 0xc2, 0x4c, 0x7d, 0x80, 0x58, 0x62,
-    };
+    unsigned char output_tweak[32];
     secp256k1_silentpayments_prevouts_summary ps;
     secp256k1_silentpayments_found_output f[N_OUTPUTS];
     secp256k1_silentpayments_found_output *fp[N_OUTPUTS];
@@ -718,6 +712,7 @@ static void test_recipient_scan_label_batch_index(void) {
     CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
     /* Use a label whose tweak is the negation of the output tweak, so the
      * labeled output for this prevouts summary equals the spend public key. */
+    memcpy(output_tweak, OUTPUT_TWEAK, 32);
     CHECK(secp256k1_ec_seckey_negate(CTX, output_tweak));
     CHECK(secp256k1_ec_pubkey_create(CTX, &label_pubkey, output_tweak));
     CHECK(secp256k1_ec_pubkey_serialize(CTX, cache.entries[0].label, &len, &label_pubkey, SECP256K1_EC_COMPRESSED));
