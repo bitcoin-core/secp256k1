@@ -277,7 +277,7 @@ jobs:
             env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'auto' }
           - runner: ubuntu-24.04-arm
             binary_arch: arm64
-            env_vars: { CC: 'clang',                                      ASM: 'auto' }
+            env_vars: { CC: 'clang',                                      ASM: 'auto', CTIMETESTS: 'yes' }
           - runner: ubuntu-latest
             binary_arch: x64
             env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
@@ -286,7 +286,7 @@ jobs:
             env_vars: { CC: 'i686-linux-gnu-gcc', HOST: 'i686-linux-gnu', ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
           - runner: ubuntu-24.04-arm
             binary_arch: arm64
-            env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2 }
+            env_vars: { CC: 'clang',                                      ASM: 'no', ECMULTGENKB: 2, ECMULTWINDOW: 2, CTIMETESTS: 'yes' }
 
     env:
       # The `--error-exitcode` is required to make the test fail if valgrind found errors,
