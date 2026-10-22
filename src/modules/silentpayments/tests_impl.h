@@ -588,6 +588,9 @@ static void test_recipient_api(void) {
             CHECK(secp256k1_silentpayments_recipient_label_serialize(CTX, found_label_ser, &fp[0]->label));
             CHECK(secp256k1_memcmp_var(found_label_ser, labels_cache.entries[0].label, 33) == 0);
         }
+        /* check that a label tweak overflowing the group order is rejected */
+        memcpy(labels_cache.entries[0].label_tweak, secp256k1_group_order_bytes, 32);
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &found, output_xonly_ptrs, 1, ALICE_SECKEY, &ps, &spk, &label_lookup, &labels_cache));
     }
 
     n_f = 0;
