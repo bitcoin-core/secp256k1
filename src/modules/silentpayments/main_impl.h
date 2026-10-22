@@ -833,4 +833,206 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     return 1;
 }
 
+/* Scanning with a list of labels compares the tx outputs with targets: unlabeled_output (target 0)
+ * and unlabeled_output + label for each label entry i (target i + 1). An x-only tx output matches
+ * the target unlabeled_output + label exactly when one of the two label candidates of
+ * `_recipient_scan_outputs`, tx_output - unlabeled_output or -tx_output - unlabeled_output, is
+ * that label. The first candidate corresponds to a target with even Y, the second to one with odd Y.
+ *
+ * For each k, `_recipient_scan_outputs` picks the tx output with the lowest index that matches. If
+ * it matches in more than one way, a direct match wins over a label match, and a match with the
+ * first label candidate wins over one with the second. Ranking each match by (tx output index,
+ * rank, target index), with rank 0 for target 0, 1 for even Y and 2 for odd Y, and picking the
+ * lowest gives the same result.
+ *
+ * Targets are converted to affine coordinates in batches, using batch inversion. */
+enum { TARGET_BATCH_SIZE = 16 };
+
+typedef struct {
+    size_t idx;    /* index of the matching tx output; n_tx_outputs if there is no match */
+    size_t target; /* target index */
+    int rank;
+} secp256k1_silentpayments_target_match;
+
+/* Compare the tx outputs with the targets target_start .. target_start + n_targets - 1, and update
+ * *match if one of them ranks lower. */
+static void secp256k1_silentpayments_scan_target_batch(
+    const secp256k1_context *ctx,
+    secp256k1_silentpayments_target_match *match,
+    const secp256k1_xonly_pubkey * const *tx_outputs,
+    const secp256k1_ge *unlabeled_output_ge,
+    const secp256k1_silentpayments_label_entry * const *label_entries,
+    size_t target_start,
+    size_t n_targets
+) {
+    secp256k1_gej targets_gej[TARGET_BATCH_SIZE];
+    secp256k1_ge targets_ge[TARGET_BATCH_SIZE];
+    secp256k1_xonly_pubkey targets_xonly[TARGET_BATCH_SIZE];
+    size_t targets_index[TARGET_BATCH_SIZE];
+    int targets_rank[TARGET_BATCH_SIZE];
+    size_t t, n_valid = 0, j, j_end;
+
+    VERIFY_CHECK(n_targets > 0 && n_targets <= TARGET_BATCH_SIZE);
+    /* Start every target at unlabeled_output. Setting the whole array also lets compilers see
+     * that it is initialized. */
+    for (t = 0; t < TARGET_BATCH_SIZE; t++) {
+        secp256k1_gej_set_ge(&targets_gej[t], unlabeled_output_ge);
+    }
+    for (t = 0; t < n_targets; t++) {
+        size_t target = target_start + t;
+        if (target > 0) {
+            secp256k1_ge label_ge;
+            /* Cannot fail, as all labels have been loaded before. */
+            secp256k1_silentpayments_label_load(ctx, &label_ge, &label_entries[target - 1]->label);
+            secp256k1_gej_add_ge_var(&targets_gej[t], &targets_gej[t], &label_ge, NULL);
+        }
+    }
+    secp256k1_ge_set_all_gej_var(targets_ge, targets_gej, n_targets);
+    for (t = 0; t < n_targets; t++) {
+        int y_parity;
+        /* A target at infinity (label = -unlabeled_output) matches no tx output. */
+        if (secp256k1_ge_is_infinity(&targets_ge[t])) {
+            continue;
+        }
+        secp256k1_fe_normalize_var(&targets_ge[t].y);
+        y_parity = secp256k1_extrakeys_ge_even_y(&targets_ge[t]);
+        secp256k1_xonly_pubkey_save(&targets_xonly[n_valid], &targets_ge[t]);
+        targets_index[n_valid] = target_start + t;
+        targets_rank[n_valid] = (target_start + t == 0) ? 0 : 1 + y_parity;
+        n_valid++;
+    }
+
+    /* A tx output after the current match cannot rank lower. Neither can one at the same index,
+     * unless the current match has rank 2, as later batches only hold label targets with
+     * higher target indices. */
+    j_end = match->idx;
+    if (match->rank == 2) {
+        j_end++;
+    }
+    for (j = 0; j < j_end; j++) {
+        int found = 0;
+        size_t found_t = 0;
+        for (t = 0; t < n_valid; t++) {
+            /* Both objects are saved from normalized points, so equal x coordinates have equal
+             * bytes. The first 32 bytes of an x-only public key object hold its x coordinate. */
+            if (secp256k1_memcmp_var(tx_outputs[j]->data, targets_xonly[t].data, 32) == 0) {
+                if (!found || targets_rank[t] < targets_rank[found_t]) {
+                    found = 1;
+                    found_t = t;
+                }
+            }
+        }
+        if (found) {
+            if (j < match->idx || targets_rank[found_t] < match->rank) {
+                match->idx = j;
+                match->target = targets_index[found_t];
+                match->rank = targets_rank[found_t];
+            }
+            break;
+        }
+    }
+}
+
+int secp256k1_silentpayments_recipient_scan_outputs_with_labels(
+    const secp256k1_context *ctx,
+    secp256k1_silentpayments_found_output **found_outputs, uint32_t *n_found_outputs,
+    const secp256k1_xonly_pubkey * const *tx_outputs, size_t n_tx_outputs,
+    const unsigned char *scan_key32,
+    const secp256k1_silentpayments_prevouts_summary *prevouts_summary,
+    const secp256k1_pubkey *unlabeled_spend_pubkey,
+    const secp256k1_silentpayments_label_entry * const *label_entries,
+    size_t n_label_entries
+) {
+    secp256k1_ge unlabeled_spend_pubkey_ge;
+    unsigned char shared_secret[33];
+    uint32_t k, k_max;
+    size_t i;
+
+    /* Sanity check inputs */
+    VERIFY_CHECK(ctx != NULL);
+    if (!secp256k1_silentpayments_recipient_scan_check_args(ctx, found_outputs, n_found_outputs, tx_outputs, n_tx_outputs,
+                                                            scan_key32, prevouts_summary, unlabeled_spend_pubkey)) {
+        return 0;
+    }
+    if (n_label_entries > 0) {
+        ARG_CHECK(label_entries != NULL);
+    }
+    for (i = 0; i < n_label_entries; i++) {
+        secp256k1_ge label_ge;
+        secp256k1_scalar label_tweak_scalar;
+        int overflow;
+
+        ARG_CHECK(label_entries[i] != NULL);
+        if (!secp256k1_silentpayments_label_load(ctx, &label_ge, &label_entries[i]->label)) {
+            return 0;
+        }
+        secp256k1_scalar_set_b32(&label_tweak_scalar, label_entries[i]->label_tweak, &overflow);
+        secp256k1_scalar_clear(&label_tweak_scalar);
+        secp256k1_declassify(ctx, &overflow, sizeof(overflow));
+        ARG_CHECK(!overflow);
+    }
+    if (!secp256k1_silentpayments_recipient_scan_shared_secret(ctx, shared_secret, &unlabeled_spend_pubkey_ge,
+                                                               scan_key32, prevouts_summary, unlabeled_spend_pubkey)) {
+        return 0;
+    }
+
+    /* Don't look further than the per-group recipient limit, in order to avoid quadratic scaling issues. */
+    k_max = (n_tx_outputs < SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT) ?
+             n_tx_outputs : SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT;
+    for (k = 0; k < k_max; k++) {
+        secp256k1_scalar t_k_scalar, final_tweak_scalar;
+        secp256k1_ge unlabeled_output_ge;
+        secp256k1_silentpayments_target_match match;
+        size_t target_start;
+
+        if (!secp256k1_silentpayments_recipient_scan_unlabeled_output(ctx, &unlabeled_output_ge, &t_k_scalar,
+                                                                      shared_secret, &unlabeled_spend_pubkey_ge, k)) {
+            /* Leaking this value would break indistinguishability of the transaction, so clear it. */
+            secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
+            return 0;
+        }
+        match.idx = n_tx_outputs;
+        match.target = 0;
+        match.rank = 0;
+        for (target_start = 0; target_start <= n_label_entries; target_start += TARGET_BATCH_SIZE) {
+            size_t n_targets = n_label_entries + 1 - target_start;
+            if (n_targets > TARGET_BATCH_SIZE) {
+                n_targets = TARGET_BATCH_SIZE;
+            }
+            secp256k1_silentpayments_scan_target_batch(ctx, &match, tx_outputs, &unlabeled_output_ge,
+                                                        label_entries, target_start, n_targets);
+        }
+        if (match.idx == n_tx_outputs) {
+            secp256k1_scalar_clear(&t_k_scalar);
+            break;
+        }
+
+        final_tweak_scalar = t_k_scalar;
+        /* Clear the t_k_scalar since we no longer need it and leaking this value would
+         * break indistinguishability of the transaction. */
+        secp256k1_scalar_clear(&t_k_scalar);
+        found_outputs[k]->output = *tx_outputs[match.idx];
+        if (match.target > 0) {
+            const secp256k1_silentpayments_label_entry *label_entry = label_entries[match.target - 1];
+            secp256k1_scalar label_tweak_scalar;
+            found_outputs[k]->found_with_label = 1;
+            secp256k1_scalar_set_b32(&label_tweak_scalar, label_entry->label_tweak, NULL);
+            secp256k1_scalar_add(&final_tweak_scalar, &final_tweak_scalar, &label_tweak_scalar);
+            secp256k1_scalar_clear(&label_tweak_scalar);
+            found_outputs[k]->label = label_entry->label;
+        } else {
+            found_outputs[k]->found_with_label = 0;
+            /* Set the label to an invalid value. */
+            memset(&found_outputs[k]->label, 0, sizeof(found_outputs[k]->label));
+        }
+        secp256k1_scalar_get_b32(found_outputs[k]->tweak, &final_tweak_scalar);
+        secp256k1_scalar_clear(&final_tweak_scalar);
+    }
+    *n_found_outputs = k;
+
+    /* Leaking the shared_secret would break indistinguishability of the transaction, so clear it. */
+    secp256k1_memclear_explicit(shared_secret, sizeof(shared_secret));
+    return 1;
+}
+
 #endif

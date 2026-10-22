@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+#### Added
+ - Module `silentpayments`: New function `secp256k1_silentpayments_recipient_scan_outputs_with_labels` scans for outputs given the labels as an array of `secp256k1_silentpayments_label_entry` objects instead of a label lookup callback. It finds the same outputs as `secp256k1_silentpayments_recipient_scan_outputs`, and is faster on transactions with many outputs when the recipient scans for few labels.
+
 #### Fixed
  - Module `silentpayments`: `secp256k1_silentpayments_sender_create_outputs` and `secp256k1_silentpayments_recipient_prevouts_summary_create` no longer require empty key arrays to be passed as `NULL`. If the corresponding size argument is 0, the array pointer is ignored. This matches the API documentation, which only states that unused arrays *can* be `NULL`, and spares callers from special-casing empty arrays.
 
