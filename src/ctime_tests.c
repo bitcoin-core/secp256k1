@@ -118,6 +118,8 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     secp256k1_xonly_pubkey *generated_outputs[1];
     secp256k1_silentpayments_recipient recipient;
     secp256k1_silentpayments_label label;
+    secp256k1_silentpayments_label_entry label_entry;
+    const secp256k1_silentpayments_label_entry *label_entries[1];
     const secp256k1_silentpayments_recipient *recipients[1];
     unsigned char outpoint_smallest[36] = { 0 };
     secp256k1_keypair sp_keypair;
@@ -386,6 +388,13 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
      * and then reused for the rest of the scanning logic.
      */
     CHECK(secp256k1_silentpayments_recipient_scan_outputs(ctx, found_outputs_ptrs, &n_found_outputs, tx_outputs, 1, key, &prevouts_summary, &recipient.spend_pubkey, NULL, NULL));
+
+    /* The label is public, the label tweak is not. */
+    label_entry.label = label;
+    SECP256K1_CHECKMEM_DEFINE(&label_entry.label, sizeof(label_entry.label));
+    memcpy(label_entry.label_tweak, label_tweak, 32);
+    label_entries[0] = &label_entry;
+    CHECK(secp256k1_silentpayments_recipient_scan_outputs_with_labels(ctx, found_outputs_ptrs, &n_found_outputs, tx_outputs, 1, key, &prevouts_summary, &recipient.spend_pubkey, label_entries, 1));
 
 #endif
 }
