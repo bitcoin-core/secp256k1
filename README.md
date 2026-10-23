@@ -144,6 +144,18 @@ In "Developer Command Prompt for VS 2022":
     >cmake -B build -T ClangCL
     >cmake --build build --config RelWithDebInfo
 
+Reducing the size of a static build
+-----------------------------------
+
+The library contains large precomputed tables, one for signing and one for verification. A program linked statically only needs the tables of the functions it calls, but the linker keeps them unless each function and table sits in its own section and unused sections are discarded.
+To get this with GNU ld, compile the library with `-ffunction-sections -fdata-sections` and link your program with `-Wl,--gc-sections`:
+
+    $ ./configure --disable-shared CFLAGS="-g -O2 -ffunction-sections -fdata-sections"    # Autotools
+    $ cmake -B build -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS="-ffunction-sections -fdata-sections"    # CMake
+
+With the default modules, GCC 14 and GNU ld on aarch64, the code and tables of a program that only signs shrink from 1.3 MB to 0.13 MB. A program that only verifies shrinks to 1.1 MB with `secp256k1_context_static` and to 1.2 MB with a context made by `secp256k1_context_create`, which keeps the signing table linked in.
+Use `secp256k1_context_static` in a program that only verifies, and call `secp256k1_selftest()` before using it.
+
 Usage examples
 -----------
 Usage examples can be found in the [examples](examples) directory. To compile them you need to configure with `--enable-examples`.
