@@ -168,6 +168,17 @@ To create a CSV file for the benchmark result :
 
     $ ./bench_name | sed '2d;s/ \{1,\}//g' > bench_name.csv
 
+Fuzzing
+------------
+If configured with `--enable-fuzz` (`-DSECP256K1_BUILD_FUZZ=ON` for CMake), a [libFuzzer](https://llvm.org/docs/LibFuzzer.html) binary `fuzz` will be built. The instrumentation is set in `CFLAGS`, and the fuzzing engine is linked from `FUZZ_LIBS` (`SECP256K1_FUZZ_LIBS` for CMake), `-fsanitize=fuzzer` by default:
+
+    $ ./configure --enable-fuzz CC=clang CFLAGS="-fsanitize=fuzzer-no-link,address,undefined -g"
+    $ make fuzz
+
+The `FUZZ` environment variable selects the target. Without it, `./fuzz` lists the targets.
+
+    $ FUZZ=ecdsa ./fuzz
+
 Reporting a vulnerability
 ------------
 

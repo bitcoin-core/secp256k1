@@ -3,6 +3,7 @@ bench_ecmult
 bench_internal
 noverify_tests
 tests
+fuzz
 exhaustive_tests
 precompute_ecmult_gen
 precompute_ecmult
