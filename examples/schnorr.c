@@ -148,7 +148,10 @@ int main(void) {
      * swapping them to disk. Hence, we overwrite the secret key buffer with zeros.
      *
      * Here we are preventing these writes from being optimized out, as any good compiler
-     * will remove any writes that aren't used. */
+     * will remove any writes that aren't used.
+     *
+     * The keypair also holds the secret key, so it is erased too. */
     secure_erase(seckey, sizeof(seckey));
+    secure_erase(&keypair, sizeof(keypair));
     return EXIT_SUCCESS;
 }
