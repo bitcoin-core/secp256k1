@@ -128,7 +128,7 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
     unsigned char nonce32[32] = { 0 };
     unsigned char pk_buf[32];
     unsigned char seckey[32];
-    int ret = 1;
+    int ret;
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
@@ -136,7 +136,10 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
     ARG_CHECK(msg != NULL || msglen == 0);
     ARG_CHECK(keypair != NULL);
 
-    ret &= secp256k1_keypair_load(ctx, &sk, &pk, keypair);
+    if (!secp256k1_keypair_load(ctx, &sk, &pk, keypair)) {
+        return 0;
+    }
+
     /* Because we are signing for a x-only pubkey, the secret key is negated
      * before signing if the point corresponding to the secret key does not
      * have an even Y. */
@@ -150,9 +153,9 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
     /* Compute nonce */
     if (noncefp == NULL || noncefp == secp256k1_nonce_function_bip340) {
         /* Use context-aware nonce function by default */
-        ret &= nonce_function_bip340_impl(&ctx->hash_ctx, nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
+        ret = nonce_function_bip340_impl(&ctx->hash_ctx, nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
     } else {
-        ret &= !!noncefp(nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
+        ret = !!noncefp(nonce32, msg, msglen, seckey, pk_buf, bip340_algo, sizeof(bip340_algo), ndata);
     }
 
     secp256k1_scalar_set_b32(&k, nonce32, NULL);
