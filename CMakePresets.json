@@ -7,6 +7,7 @@
       "cacheVariables": {
         "SECP256K1_EXPERIMENTAL": "ON",
         "SECP256K1_ENABLE_MODULE_RECOVERY": "ON",
+        "SECP256K1_ENABLE_MODULE_DLEQ": "ON",
         "SECP256K1_BUILD_EXAMPLES": "ON"
       },
       "warnings": {
