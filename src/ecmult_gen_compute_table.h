@@ -10,5 +10,6 @@
 #include "ecmult_gen.h"
 
 static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, const secp256k1_ge* gen, int blocks, int teeth, int spacing);
+static void secp256k1_ecmult_gen_compute_scalar_diff(secp256k1_scalar* diff, int blocks, int teeth, int spacing);
 
 #endif /* SECP256K1_ECMULT_GEN_COMPUTE_TABLE_H */
