@@ -291,6 +291,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
         ret = secp256k1_musig_nonce_gen(ctx, &secnonce, &pubnonce, session_secrand, key, &pk, msg, &cache, extra_input);
         SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
         CHECK(ret == 1);
+        SECP256K1_CHECKMEM_UNDEFINE(&keypair, sizeof(keypair));
         ret = secp256k1_musig_nonce_gen_counter(ctx, &secnonce, &pubnonce, nonrepeating_cnt, &keypair, msg, &cache, extra_input);
         SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
         CHECK(ret == 1);
