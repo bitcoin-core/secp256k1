@@ -17,8 +17,10 @@ extern "C" {
 
 #ifdef EXHAUSTIVE_TEST_ORDER
 static secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[COMB_BLOCKS][COMB_POINTS];
+static secp256k1_scalar secp256k1_ecmult_gen_scalar_diff;
 #else
 SECP256K1_LOCAL_VAR const secp256k1_ge_storage secp256k1_ecmult_gen_prec_table[COMB_BLOCKS][COMB_POINTS];
+SECP256K1_LOCAL_VAR const secp256k1_scalar secp256k1_ecmult_gen_scalar_diff;
 #endif /* defined(EXHAUSTIVE_TEST_ORDER) */
 
 #ifdef __cplusplus
