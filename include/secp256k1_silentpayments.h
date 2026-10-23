@@ -334,7 +334,8 @@ typedef struct secp256k1_silentpayments_found_output {
  *  the recipients label cache and retrieving the label tweak during scanning.
  *
  *  If used, the `label_lookup` function must return a pointer to a 32-byte label
- *  tweak if the label is found, or NULL otherwise. The returned pointer must remain
+ *  tweak if the label is found, or NULL otherwise. The label tweak must be a valid
+ *  scalar, i.e., smaller than the group order. The returned pointer must remain
  *  valid until the next call to `label_lookup` or until the function returns,
  *  whichever comes first. It is not retained beyond that.
  *
@@ -370,7 +371,8 @@ typedef struct secp256k1_silentpayments_found_output {
  *                 label_lookup: pointer to a callback function for looking up
  *                               a label value. This function takes a serialized 33-byte
  *                               label as an argument and returns a pointer to the
- *                               32-byte label tweak if the label exists, otherwise
+ *                               32-byte label tweak (which must be smaller than
+ *                               the group order) if the label exists, otherwise
  *                               returns a NULL pointer (NULL if labels are not
  *                               used)
  *                label_context: pointer to a label context object (NULL if
