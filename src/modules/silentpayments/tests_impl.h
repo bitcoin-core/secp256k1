@@ -295,6 +295,24 @@ static void test_send_api(void) {
         p2[0] = secp256k1_group_order_bytes;
         CHECK(secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, NULL, 0, p2, 2) == 0);
     }
+    /* Check that an invalid keypair is caught even when it is passed alongside a valid one.
+     * Putting the invalid keypair first ensures that a missing early return is not masked
+     * by the subsequent zero-sum check, since the valid keypair leaves a nonzero sum. */
+    {
+        secp256k1_keypair valid_keypair;
+        secp256k1_keypair invalid_keypair;
+        secp256k1_keypair const *t2[2];
+        CHECK(secp256k1_keypair_create(CTX, &valid_keypair, ALICE_SECKEY));
+        invalid_keypair = valid_keypair;
+        /* Zero the secret key while keeping the public key valid. */
+        memset(&invalid_keypair.data[0], 0, 32);
+        t2[0] = &valid_keypair;
+        t2[1] = &invalid_keypair;
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, t2, 2, NULL, 0));
+        t2[0] = &invalid_keypair;
+        t2[1] = &valid_keypair;
+        CHECK_ILLEGAL(CTX, secp256k1_silentpayments_sender_create_outputs(CTX, op, rp, 2, SMALLEST_OUTPOINT, t2, 2, NULL, 0));
+    }
     /* Create malformed recipients by setting all of the public key bytes to zero.
      * Realistically, this would never happen since a bad public key would get caught when
      * trying to parse the public key with _ec_pubkey_parse
