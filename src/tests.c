@@ -6611,11 +6611,15 @@ static void run_eckey_edge_case_test(void) {
     CHECK(secp256k1_ec_pubkey_combine(CTX, &pubkey, pubkeys, 3) == 1);
     SECP256K1_CHECKMEM_CHECK(&pubkey, sizeof(secp256k1_pubkey));
     CHECK(secp256k1_memcmp_var(&pubkey, zeros, sizeof(secp256k1_pubkey)) > 0);
-    /* check that NULL in array of pubkey pointers is not allowed */
+    /* check that NULL or an invalid pubkey in array of pubkey pointers is not allowed */
     for (i = 0; i < 3; i++) {
         const secp256k1_pubkey *original_ptr = pubkeys[i];
         secp256k1_pubkey result;
+        secp256k1_pubkey zero_pk;
+        memset(&zero_pk, 0, sizeof(zero_pk));
         pubkeys[i] = NULL;
+        CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_combine(CTX, &result, pubkeys, 3));
+        pubkeys[i] = &zero_pk;
         CHECK_ILLEGAL(CTX, secp256k1_ec_pubkey_combine(CTX, &result, pubkeys, 3));
         pubkeys[i] = original_ptr;
     }
