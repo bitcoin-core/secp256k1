@@ -389,6 +389,75 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipien
     const void *label_context
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(6) SECP256K1_ARG_NONNULL(7) SECP256K1_ARG_NONNULL(8);
 
+/** Label entry struct
+ *
+ *  Struct for passing a label and its label tweak to
+ *  `secp256k1_silentpayments_recipient_scan_outputs_with_labels`. Both are
+ *  returned by `secp256k1_silentpayments_recipient_label_create`.
+ */
+typedef struct secp256k1_silentpayments_label_entry {
+    secp256k1_silentpayments_label label;
+    unsigned char label_tweak[32];
+} secp256k1_silentpayments_label_entry;
+
+/** Scan for Silent Payments transaction outputs, given a list of labels.
+ *
+ *  Same as `secp256k1_silentpayments_recipient_scan_outputs`, except that
+ *  the labels are passed as an array instead of a label lookup callback.
+ *  The results are the same as with a `label_lookup` that returns the label
+ *  tweaks of exactly these labels.
+ *
+ *  The two functions do different work for each output they look for.
+ *  This one adds every label to the candidate output and compares the
+ *  results with the transaction outputs, so its cost grows with the number
+ *  of labels. The callback-based function computes two label candidates per
+ *  transaction output and looks them up, so its cost does not depend on the
+ *  number of labels. Prefer this function when scanning for few labels,
+ *  e.g. only the change label. On a transaction with 2323 outputs that all
+ *  pay the recipient, it is about 37 times faster with one label and as fast
+ *  at about 650 labels. On a transaction with 2 to 10 outputs, the two cost
+ *  the same up to about 10 labels.
+ *
+ *  Returns: 1 if output scanning was successful.
+ *           0 if the transaction is not a Silent Payments transaction,
+ *             or if the arguments are invalid.
+ *
+ *  Args:                   ctx: pointer to a context object
+ *  Out:          found_outputs: pointer to an array of pointers to found
+ *                               output objects. The found outputs array MUST
+ *                               have the same length as the tx_outputs array.
+ *              n_found_outputs: pointer to an integer indicating the final
+ *                               size of the found outputs array. This number
+ *                               represents the number of outputs found while
+ *                               scanning (0 if none are found). Can't be larger than
+ *                               SECP256K1_SILENTPAYMENTS_RECIPIENT_GROUP_LIMIT.
+ *  In:              tx_outputs: pointer to the transaction's x-only public key outputs,
+ *                               in their original transaction (vout) order
+ *                 n_tx_outputs: the size of the tx_outputs array.
+ *                   scan_key32: pointer to the recipient's 32 byte scan key. The scan
+ *                               key is valid if it passes secp256k1_ec_seckey_verify
+ *             prevouts_summary: pointer to the transaction prevouts summary data (see
+ *                               `secp256k1_silentpayments_recipient_prevouts_summary_create`).
+ *       unlabeled_spend_pubkey: pointer to the recipient's unlabeled spend public key
+ *                label_entries: pointer to an array of pointers to label
+ *                               entries, each label tweak smaller than the
+ *                               group order (can be NULL if n_label_entries
+ *                               is 0)
+ *              n_label_entries: the size of the label_entries array.
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_silentpayments_recipient_scan_outputs_with_labels(
+    const secp256k1_context *ctx,
+    secp256k1_silentpayments_found_output **found_outputs,
+    uint32_t *n_found_outputs,
+    const secp256k1_xonly_pubkey * const *tx_outputs,
+    size_t n_tx_outputs,
+    const unsigned char *scan_key32,
+    const secp256k1_silentpayments_prevouts_summary *prevouts_summary,
+    const secp256k1_pubkey *unlabeled_spend_pubkey,
+    const secp256k1_silentpayments_label_entry * const *label_entries,
+    size_t n_label_entries
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(6) SECP256K1_ARG_NONNULL(7) SECP256K1_ARG_NONNULL(8);
+
 #ifdef __cplusplus
 }
 #endif
