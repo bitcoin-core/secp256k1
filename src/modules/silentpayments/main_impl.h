@@ -145,8 +145,9 @@ static int secp256k1_silentpayments_create_output_tweak(const secp256k1_context 
     return (!secp256k1_scalar_is_zero(t_k_scalar)) & (!overflow);
 }
 
-static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context *ctx, secp256k1_xonly_pubkey *output_xonly, const unsigned char *shared_secret33, const secp256k1_pubkey *spend_pubkey, uint32_t k) {
-    secp256k1_ge output_ge;
+static int secp256k1_silentpayments_create_output_pubkey_gej(const secp256k1_context *ctx, secp256k1_gej *output_gej, const unsigned char *shared_secret33, const secp256k1_pubkey *spend_pubkey, uint32_t k) {
+    secp256k1_ge spend_ge;
+    secp256k1_gej tweak_G_gej;
     secp256k1_scalar t_k_scalar;
     /* Calculate the output tweak t_k and convert it to a scalar.
      *
@@ -159,25 +160,25 @@ static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context
         return 0;
     }
 
-    if (!secp256k1_pubkey_load(ctx, &output_ge, spend_pubkey)) {
+    if (!secp256k1_pubkey_load(ctx, &spend_ge, spend_pubkey)) {
         secp256k1_scalar_clear(&t_k_scalar);
         return 0;
     }
-    /* `tweak_add` only fails if t_k_scalar * G = -spend_pubkey. Considering t_k is the output of a hash function, this
-     * will happen only with negligible probability for honestly created spend_pubkey, but we handle this error anyway
-     * to protect against this function being called with malicious inputs, i.e.,
-     *     spend_pubkey = -(_create_output_tweak(shared_secret33, k))*G
-     */
-    if (!secp256k1_eckey_pubkey_tweak_add(&output_ge, &t_k_scalar)) {
-        secp256k1_scalar_clear(&t_k_scalar);
-        return 0;
-    }
-    secp256k1_fe_normalize_var(&output_ge.y);
-    secp256k1_extrakeys_ge_even_y(&output_ge);
-    secp256k1_xonly_pubkey_save(output_xonly, &output_ge);
-
+    /* Calculate tweak_G = t_k * G using the precomputed generator table in ecmult_gen_ctx. */
+    secp256k1_ecmult_gen_gej(&ctx->ecmult_gen_ctx, &tweak_G_gej, &t_k_scalar);
     /* Leaking this value would break indistinguishability of the transaction, so clear it. */
     secp256k1_scalar_clear(&t_k_scalar);
+
+    /* Calculate output_gej = t_k * G + spend_pubkey. This only fails if t_k * G = -spend_pubkey. Considering t_k is
+     * the output of a hash function, this will happen only with negligible probability for honestly created
+     * spend_pubkey, but we handle this error anyway to protect against this function being called with malicious
+     * inputs, i.e.,
+     *     spend_pubkey = -(_create_output_tweak(shared_secret33, k))*G
+     */
+    secp256k1_gej_add_ge(output_gej, &tweak_G_gej, &spend_ge);
+    if (secp256k1_gej_is_infinity(output_gej)) {
+        return 0;
+    }
     return 1;
 }
 
@@ -199,6 +200,11 @@ int secp256k1_silentpayments_sender_create_outputs(
     unsigned char shared_secret[33];
     secp256k1_pubkey current_scan_pubkey;
     int ret, sum_is_zero;
+    enum { SENDER_BATCH_SIZE = 16 };
+    secp256k1_gej batch_gej[SENDER_BATCH_SIZE];
+    secp256k1_ge batch_ge[SENDER_BATCH_SIZE];
+    size_t batch_out_idx[SENDER_BATCH_SIZE];
+    size_t batch_count = 0;
 
     /* Sanity check inputs. */
     VERIFY_CHECK(ctx != NULL);
@@ -315,13 +321,26 @@ int secp256k1_silentpayments_sender_create_outputs(
             secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
             return 0;
         }
-        if (!secp256k1_silentpayments_create_output_pubkey(ctx, generated_outputs[recipients[i]->index], shared_secret, &recipients[i]->spend_pubkey, k)) {
+        if (!secp256k1_silentpayments_create_output_pubkey_gej(ctx, &batch_gej[batch_count], shared_secret, &recipients[i]->spend_pubkey, k)) {
             secp256k1_scalar_clear(&seckey_sum_scalar);
             secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
             return 0;
         }
+        batch_out_idx[batch_count] = recipients[i]->index;
+        batch_count++;
         current_scan_pubkey = recipients[i]->scan_pubkey;
         k++;
+
+        if (batch_count == SENDER_BATCH_SIZE || i == n_recipients - 1) {
+            size_t b;
+            secp256k1_ge_set_all_gej(batch_ge, batch_gej, batch_count);
+            for (b = 0; b < batch_count; b++) {
+                secp256k1_fe_normalize_var(&batch_ge[b].y);
+                secp256k1_extrakeys_ge_even_y(&batch_ge[b]);
+                secp256k1_xonly_pubkey_save(generated_outputs[batch_out_idx[b]], &batch_ge[b]);
+            }
+            batch_count = 0;
+        }
     }
     secp256k1_scalar_clear(&seckey_sum_scalar);
     secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
