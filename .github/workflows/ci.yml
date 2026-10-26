@@ -221,8 +221,6 @@ jobs:
 
     env:
       SECP256K1_TEST_ITERS: 16
-      WITH_VALGRIND: 'no'
-      CTIMETESTS: 'no'
       CC: ${{ matrix.cc }}
 
     strategy:
