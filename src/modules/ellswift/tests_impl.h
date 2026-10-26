@@ -433,17 +433,29 @@ void ellswift_xdh_correctness_tests(void) {
 }
 
 DEFINE_SHA256_TRANSFORM_PROBE(sha256_ellswift_xdh)
-void ellswift_xdh_ctx_sha256_tests(void) {
-    /* Check ctx-provided SHA256 compression override takes effect */
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_ellswift_create)
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_ellswift_encode)
+/* Check ctx-provided SHA256 compression override takes effect. ellswift_create and
+ * ellswift_encode hash several values (a seed, then PRNG outputs until an encoding
+ * is found). Perturbing a block can change how many tries that takes, so they are
+ * run twice under the override: without perturbation, which pins the number of
+ * blocks, and perturbing only the last of those blocks, which must change the
+ * output. If any of the values bypassed the caller's ctx, fewer blocks would be
+ * hashed and the output would not change. */
+void ellswift_ctx_sha256_tests(void) {
+    /* Update if ellswift's hashing changes */
+    enum { CREATE_BLOCKS = 5, ENCODE_BLOCKS = 3 };
     secp256k1_context *ctx = secp256k1_context_clone(CTX);
     unsigned char out_default[65], out_custom[65];
-    const unsigned char skA[32] = {1}, skB[32] = {2};
+    const unsigned char skA[32] = {1}, skB[32] = {2}, rnd32[32] = {2};
     unsigned char keyA[64], keyB[64], data[64] = {0};
     secp256k1_ellswift_xdh_hash_function hash_fn;
+    secp256k1_pubkey pkA;
     int i;
 
     CHECK(secp256k1_ellswift_create(ctx, keyA, skA, NULL));
     CHECK(secp256k1_ellswift_create(ctx, keyB, skB, NULL));
+    CHECK(secp256k1_ec_pubkey_create(ctx, &pkA, skA) == 1);
 
     for (i = 0; i < 2; i++) {
         if (i == 0) {
@@ -466,6 +478,45 @@ void ellswift_xdh_ctx_sha256_tests(void) {
         sha256_ellswift_xdh_called = 0;
         secp256k1_context_set_sha256_compression(ctx, NULL);
     }
+
+    /* Default behavior. No ctx-provided SHA256 compression */
+    CHECK(secp256k1_ellswift_create(ctx, out_default, skA, rnd32) == 1);
+    CHECK(!sha256_ellswift_create_called);
+
+    /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
+    ctx->hash_ctx.fn_sha256_compression = sha256_ellswift_create;
+    /* Target past the last block: nothing is perturbed */
+    sha256_ellswift_create_target = CREATE_BLOCKS + 1;
+    CHECK(secp256k1_ellswift_create(ctx, out_custom, skA, rnd32) == 1);
+    CHECK(sha256_ellswift_create_called);
+    CHECK(sha256_ellswift_create_blocks == CREATE_BLOCKS);
+    CHECK(secp256k1_memcmp_var(out_default, out_custom, 64) == 0);
+    /* Perturb the last block: the output must change */
+    sha256_ellswift_create_blocks = 0;
+    sha256_ellswift_create_target = CREATE_BLOCKS;
+    CHECK(secp256k1_ellswift_create(ctx, out_custom, skA, rnd32) == 1);
+    CHECK(secp256k1_memcmp_var(out_default, out_custom, 64) != 0);
+
+    /* Restore defaults */
+    secp256k1_context_set_sha256_compression(ctx, NULL);
+
+    /* Default behavior. No ctx-provided SHA256 compression */
+    CHECK(secp256k1_ellswift_encode(ctx, out_default, &pkA, rnd32) == 1);
+    CHECK(!sha256_ellswift_encode_called);
+
+    /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
+    ctx->hash_ctx.fn_sha256_compression = sha256_ellswift_encode;
+    /* Target past the last block: nothing is perturbed */
+    sha256_ellswift_encode_target = ENCODE_BLOCKS + 1;
+    CHECK(secp256k1_ellswift_encode(ctx, out_custom, &pkA, rnd32) == 1);
+    CHECK(sha256_ellswift_encode_called);
+    CHECK(sha256_ellswift_encode_blocks == ENCODE_BLOCKS);
+    CHECK(secp256k1_memcmp_var(out_default, out_custom, 64) == 0);
+    /* Perturb the last block: the output must change */
+    sha256_ellswift_encode_blocks = 0;
+    sha256_ellswift_encode_target = ENCODE_BLOCKS;
+    CHECK(secp256k1_ellswift_encode(ctx, out_custom, &pkA, rnd32) == 1);
+    CHECK(secp256k1_memcmp_var(out_default, out_custom, 64) != 0);
 
     secp256k1_context_destroy(ctx);
 }
@@ -538,7 +589,7 @@ static const struct tf_test_entry tests_ellswift[] = {
     CASE1(ellswift_xdh_correctness_tests),
     CASE1(ellswift_hash_init_tests),
     CASE1(ellswift_xdh_bad_scalar_tests),
-    CASE1(ellswift_xdh_ctx_sha256_tests),
+    CASE1(ellswift_ctx_sha256_tests),
 };
 
 #endif
