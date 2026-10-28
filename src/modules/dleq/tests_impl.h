@@ -84,13 +84,6 @@ static void run_test_dleq_prove_verify(void) {
 
     /* Infinity checks */
     {
-        secp256k1_ge p_inf;
-        secp256k1_ge_set_infinity(&p_inf);
-        CHECK(secp256k1_dleq_prove_internal(CTX, &e, &s, &a, &p_inf, &B, &C, aux_rand, msg) == 0);
-        CHECK(secp256k1_dleq_prove_internal(CTX, &e, &s, &a, &A, &p_inf, &C, aux_rand, msg) == 0);
-        CHECK(secp256k1_dleq_prove_internal(CTX, &e, &s, &a, &A, &B, &p_inf, aux_rand, msg) == 0);
-    }
-    {
         secp256k1_ge A_gen = secp256k1_ge_const_g;
         secp256k1_ge A_neg = secp256k1_ge_const_g;
         secp256k1_scalar_set_int(&e, 1);
@@ -160,9 +153,8 @@ static void run_test_dleq_bip374_vectors(void) {
         const struct dleq_generate_vector *vector = &dleq_generate_vectors[i];
         const unsigned char *msg32 = vector->has_message ? vector->message : NULL;
 
-        /* The public API cannot express B at infinity. prove_internal's
-         * rejection of it is tested in run_test_dleq_prove_verify. */
         if (vector->point_B_is_infinity) {
+            CHECK(secp256k1_ec_pubkey_parse(CTX, &B, vector->point_B, sizeof(vector->point_B)) == 0);
             continue;
         }
         CHECK(secp256k1_ec_pubkey_parse(CTX, &B, vector->point_B, sizeof(vector->point_B)) == 1);

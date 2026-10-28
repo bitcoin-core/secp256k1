@@ -128,8 +128,9 @@ static void secp256k1_dleq_pair(const secp256k1_ecmult_gen_context *ecmult_gen_c
  *
  * For given elliptic curve points A, B, C, and G, the prover generates a proof to prove knowledge of a scalar a such
  * that A = a⋅G and C = a⋅B without revealing anything about a.
+ * Requires that a is nonzero and that A, B and C are not the point at infinity.
  *
- *  Returns: 1 if proof creation was successful. 0 if an error occurred.
+ *  Returns: 1 if proof creation was successful. 0 if nonce generation failed.
  *  Out: scalar e: part of proof = bytes(32, e) || bytes(32, s).
  *       scalar s: other part of proof = bytes(32, e) || bytes(32, s).
  *  In:     a : scalar a to be proven that both A and C were generated from
@@ -147,10 +148,9 @@ static int secp256k1_dleq_prove_internal(const secp256k1_context *ctx, secp256k1
     unsigned char A_33[33], B_33[33], C_33[33], R1_33[33], R2_33[33];
     int ret;
 
-    /* Reject infinity points */
-    if (secp256k1_ge_is_infinity(A) || secp256k1_ge_is_infinity(B) || secp256k1_ge_is_infinity(C)) {
-        return 0;
-    }
+    VERIFY_CHECK(!secp256k1_ge_is_infinity(A));
+    VERIFY_CHECK(!secp256k1_ge_is_infinity(B));
+    VERIFY_CHECK(!secp256k1_ge_is_infinity(C));
     secp256k1_scalar_get_b32(a32, a);
     secp256k1_ge_serialize33(A, A_33);
     secp256k1_ge_serialize33(B, B_33);
