@@ -750,14 +750,21 @@ int secp256k1_silentpayments_recipient_scan_outputs(
         }
         if (found_idx != -1) {
             secp256k1_scalar final_tweak_scalar = t_k_scalar;
-            found_outputs[k]->output = *tx_outputs[found_idx];
             /* Clear the t_k_scalar since we no longer need it and leaking this value would
              * break indistinguishability of the transaction. */
             secp256k1_scalar_clear(&t_k_scalar);
             if (label_tweak != NULL) {
+                int tweak_overflow;
                 secp256k1_scalar label_tweak_scalar;
+                secp256k1_scalar_set_b32(&label_tweak_scalar, label_tweak, &tweak_overflow);
+                if (tweak_overflow) {
+                    /* Leaking these values would break indistinguishability of the transaction, so clear them. */
+                    secp256k1_scalar_clear(&label_tweak_scalar);
+                    secp256k1_scalar_clear(&final_tweak_scalar);
+                    secp256k1_memclear_explicit(&shared_secret, sizeof(shared_secret));
+                }
+                ARG_CHECK(!tweak_overflow);
                 found_outputs[k]->found_with_label = 1;
-                secp256k1_scalar_set_b32(&label_tweak_scalar, label_tweak, NULL);
                 secp256k1_scalar_add(&final_tweak_scalar, &final_tweak_scalar, &label_tweak_scalar);
                 secp256k1_scalar_clear(&label_tweak_scalar);
                 secp256k1_silentpayments_label_save(&found_outputs[k]->label, &label_ge);
@@ -766,6 +773,7 @@ int secp256k1_silentpayments_recipient_scan_outputs(
                 /* Set the label to an invalid value. */
                 memset(&found_outputs[k]->label, 0, sizeof(found_outputs[k]->label));
             }
+            found_outputs[k]->output = *tx_outputs[found_idx];
             secp256k1_scalar_get_b32(found_outputs[k]->tweak, &final_tweak_scalar);
             secp256k1_scalar_clear(&final_tweak_scalar);
             /* Reset everything for the next round of scanning. */
