@@ -262,6 +262,22 @@ SECP256K1_API void secp256k1_selftest(void);
  *  memory allocation entirely, see secp256k1_context_static and the functions in
  *  secp256k1_preallocated.h.
  *
+ *  The macros SECP256K1_MALLOC and SECP256K1_FREE can be defined when
+ *  compiling the library to replace malloc and free, for example with
+ *  -DSECP256K1_MALLOC=my_malloc -DSECP256K1_FREE=my_free -include my_alloc.h.
+ *  The replacements do not need the full semantics of malloc and free. The
+ *  library guarantees only the following:
+ *   - SECP256K1_MALLOC(size) is called with size > 0 and must return memory
+ *     suitably aligned for any object type, or NULL on failure.
+ *   - SECP256K1_FREE(ptr, size) is called exactly once for every successful
+ *     allocation, ptr is never NULL and size is the allocated size.
+ *   - There are no other allocations and no ordering guarantees.
+ *
+ *  Defining SECP256K1_NO_MALLOC instead removes all dynamic memory allocation
+ *  from the library. This function, secp256k1_context_clone, and
+ *  secp256k1_context_destroy are then not built, and secp256k1_context_static
+ *  or the functions in secp256k1_preallocated.h must be used.
+ *
  *  Returns: pointer to a newly created context object.
  *  In:      flags: Always set to SECP256K1_CONTEXT_NONE (see below).
  *
@@ -334,14 +350,16 @@ SECP256K1_API void secp256k1_context_destroy(
  *
  *  When this function has not been called (or called with fun==NULL), then the
  *  default callback will be used. The library provides a default callback which
- *  writes the message to stderr and calls abort. This default callback can be
- *  replaced at link time if the preprocessor macro
- *  USE_EXTERNAL_DEFAULT_CALLBACKS is defined, which is the case if the build
- *  has been configured with --enable-external-default-callbacks (GNU Autotools) or
- *  -DSECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS=ON (CMake). Then the
- *  following two symbols must be provided to link against:
- *   - void secp256k1_default_illegal_callback_fn(const char *message, void *data);
- *   - void secp256k1_default_error_callback_fn(const char *message, void *data);
+ *  writes the message to stderr and calls abort. The default callbacks can be
+ *  replaced by defining the macros SECP256K1_ILLEGAL_CALLBACK_FN and
+ *  SECP256K1_ERROR_CALLBACK_FN when compiling the library, in the same way as
+ *  SECP256K1_MALLOC and SECP256K1_FREE (see secp256k1_context_create). The
+ *  replacements must have the same signature as the fun argument below.
+ *  The deprecated macro USE_EXTERNAL_DEFAULT_CALLBACKS (set via
+ *  --enable-external-default-callbacks or
+ *  -DSECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS=ON) instead requires the
+ *  functions secp256k1_default_illegal_callback_fn and
+ *  secp256k1_default_error_callback_fn to be provided at link time.
  *  The library may call a default callback even before a proper callback data
  *  pointer could have been set using secp256k1_context_set_illegal_callback or
  *  secp256k1_context_set_error_callback, e.g., when the creation of a context

@@ -100,9 +100,9 @@ static void secp256k1_ecmult_gen_compute_table(secp256k1_ge_storage* table, cons
     }
 
     /* Free memory. */
-    free(vs);
-    free(ds);
-    free(prec);
+    checked_free(vs, points_total * sizeof(*vs));
+    checked_free(ds, teeth * sizeof(*ds));
+    checked_free(prec, points_total * sizeof(*prec));
 }
 
 #endif /* SECP256K1_ECMULT_GEN_COMPUTE_TABLE_IMPL_H */
