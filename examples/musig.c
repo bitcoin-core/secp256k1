@@ -186,9 +186,21 @@ int main(void) {
     secp256k1_musig_keyagg_cache cache;
     unsigned char msg[32] = "this_could_be_the_hash_of_a_msg";
     unsigned char sig[64];
+    unsigned char randomize[32];
+    int return_val;
 
     /* Create a secp256k1 context */
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+    if (!fill_random(randomize, sizeof(randomize))) {
+        printf("Failed to generate randomness\n");
+        return EXIT_FAILURE;
+    }
+    /* Randomizing the context is recommended to protect against side-channel
+     * leakage. See `secp256k1_context_randomize` in secp256k1.h for more
+     * information about it. This should never fail. */
+    return_val = secp256k1_context_randomize(ctx, randomize);
+    assert(return_val);
+
     printf("Creating key pairs......");
     fflush(stdout);
     for (i = 0; i < N_SIGNERS; i++) {
