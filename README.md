@@ -144,6 +144,27 @@ In "Developer Command Prompt for VS 2022":
     >cmake -B build -T ClangCL
     >cmake --build build --config RelWithDebInfo
 
+Reducing the binary size
+------------------------
+
+The library contains two large precomputed tables:
+
+* The `ecmult_gen` table is used by the API functions that need a context other than `secp256k1_context_static`, such as signing and key generation, and by `secp256k1_context_create`, which creates that context.
+* The `ecmult` table is used by verification, public key recovery, public key tweaking and some of the MuSig2 and Silent Payments functions.
+
+Other functions, such as ECDH, use neither table.
+
+A static build can drop a table that a program does not use. To do this with GNU ld, compile the library with `-ffunction-sections -fdata-sections` and link your program with `-Wl,--gc-sections`:
+
+    $ ./configure --disable-shared CFLAGS="-g -O2 -ffunction-sections -fdata-sections"    # Autotools
+    $ cmake -B build -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS="-ffunction-sections -fdata-sections"    # CMake
+
+To drop the `ecmult_gen` table, a program must use `secp256k1_context_static` and should call `secp256k1_selftest()` before using it.
+
+To make the tables smaller, at the cost of possibly slower functions that use them, set `--with-ecmult-gen-kb` and `--with-ecmult-window` (Autotools) or `SECP256K1_ECMULT_GEN_KB` and `SECP256K1_ECMULT_WINDOW_SIZE` (CMake).
+
+Avoid `-Os`: compared to `-O2`, it may be more likely that the compiler removes side-channel protections ([details](https://github.com/bitcoin-core/secp256k1/discussions/1436)).
+
 Usage examples
 -----------
 Usage examples can be found in the [examples](examples) directory. To compile them you need to configure with `--enable-examples`.
