@@ -15,7 +15,7 @@ print_environment() {
             ECMULTWINDOW ECMULTGENKB ASM WIDEMUL WITH_VALGRIND EXTRAFLAGS \
             EXPERIMENTAL ECDH RECOVERY EXTRAKEYS MUSIG SCHNORRSIG ELLSWIFT SILENTPAYMENTS \
             SECP256K1_TEST_ITERS BENCH SECP256K1_BENCH_ITERS CTIMETESTS SYMBOL_CHECK \
-            EXAMPLES EXHAUSTIVE_TEST_ORDER EXHAUSTIVE_TEST_ARGS \
+            EXAMPLES EXHAUSTIVE_TEST_ORDER EXHAUSTIVE_TEST_ARGS FUZZ \
             HOST WRAPPER_CMD \
             CC CFLAGS CPPFLAGS AR NM \
             UBSAN_OPTIONS ASAN_OPTIONS LSAN_OPTIONS
@@ -66,6 +66,7 @@ fi
     --enable-module-musig="$MUSIG" \
     --enable-module-silentpayments="$SILENTPAYMENTS" \
     --enable-examples="$EXAMPLES" \
+    --enable-fuzz="$FUZZ" \
     --enable-ctime-tests="$CTIMETESTS" \
     --with-valgrind="$WITH_VALGRIND" \
     --host="$HOST" $EXTRAFLAGS
@@ -143,6 +144,16 @@ then
     else
         $EXEC ./ctime_tests > ctime_tests.log 2>&1
     fi
+fi
+
+if [ "$FUZZ" = "yes" ]
+then
+    # With FUZZ empty, ./fuzz lists its targets after a header line.
+    targets=$(FUZZ='' ./fuzz 2>&1 | tail -n +2)
+    test -n "$targets"
+    for target in $targets; do
+        FUZZ="$target" $EXEC ./fuzz -runs=10000 -max_total_time=20 -len_control=0 >> fuzz.log 2>&1
+    done
 fi
 
 # Rebuild precomputed files (if not cross-compiling).
