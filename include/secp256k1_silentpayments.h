@@ -261,7 +261,9 @@ typedef struct secp256k1_silentpayments_prevouts_summary {
  *  The resulting data can be used for scanning on the recipient side.
  *
  *  Returns: 1 if prevouts summary creation was successful.
- *           0 if the transaction is not a Silent Payments transaction.
+ *           0 if the transaction is not a Silent Payments transaction, e.g.,
+ *             if no public keys are passed (the transaction has no eligible
+ *             inputs) or if the public keys sum to the point at infinity.
  *
  *  Args:                 ctx: pointer to a context object
  *  Out:     prevouts_summary: pointer to prevouts_summary object containing the
@@ -347,7 +349,8 @@ typedef struct secp256k1_silentpayments_found_output {
  *  key group than this limit.
  *
  *  Returns: 1 if output scanning was successful.
- *           0 if the transaction is not a Silent Payments transaction,
+ *           0 if the transaction is not a Silent Payments transaction (e.g.,
+ *             if it has no taproot outputs, i.e., n_tx_outputs is 0),
  *             or if the arguments are invalid.
  *
  *  Args:                   ctx: pointer to a context object

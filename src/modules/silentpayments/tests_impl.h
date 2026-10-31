@@ -556,8 +556,10 @@ static void test_recipient_api(void) {
     CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 0, pp, 1));
     CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, NULL, 0));
     CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 0));
-    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, NULL, 0, pp, 0));
-    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, NULL, 0, NULL, 0));
+    /* A transaction without any eligible inputs is not a Silent Payments transaction (no illegal argument) */
+    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, NULL, 0, pp, 0) == 0);
+    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 0, pp, 0) == 0);
+    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, NULL, 0, NULL, 0) == 0);
     CHECK(secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &ps, SMALLEST_OUTPOINT, tp, 1, pp, 1));
 
     /* check the _recipient_scan_outputs cornercase where internal tweaking would fail;
@@ -634,8 +636,11 @@ static void test_recipient_api(void) {
     CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp, 1, NULL, &ps, &p, &label_lookup, &labels_cache));
     CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp, 1, ALICE_SECKEY, NULL, &p, &label_lookup, &labels_cache));
     CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp, 1, ALICE_SECKEY, &ps, NULL, &label_lookup, &labels_cache));
-    CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp, 0, ALICE_SECKEY, &ps, &p, &label_lookup, &labels_cache));
     CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp, 1, ALICE_SECKEY, &ps, &p, NULL, &labels_cache));
+    /* A transaction without any taproot outputs is not a Silent Payments transaction (no illegal argument) */
+    n_f = 1;
+    CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp, 0, ALICE_SECKEY, &ps, &p, &label_lookup, &labels_cache) == 0);
+    CHECK(n_f == 0);
 
     /* Check that malformed secret key, public keys, and prevouts_summary arguments are handled */
     CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &n_f, tp, 1, ALICE_SECKEY, &ps, &malformed_p, NULL, NULL));
@@ -876,20 +881,14 @@ void run_silentpayments_test_vector_receive(const struct bip352_test_vector *tes
         CHECK(secp256k1_xonly_pubkey_parse(CTX, &xonly_pubkeys_objs[i], test->xonly_pubkeys[i]));
         xonly_pubkeys[i] = &xonly_pubkeys_objs[i];
     }
-    {
-        int32_t ecount = 0;
-        secp256k1_context_set_illegal_callback(CTX, counting_callback_fn, &ecount);
-        ret = secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &prevouts_summary,
-            test->outpoint_smallest,
-            test->num_taproot_inputs > 0 ? xonly_pubkeys : NULL, test->num_taproot_inputs,
-            test->num_plain_inputs > 0 ? pubkeys : NULL, test->num_plain_inputs
-        );
-        secp256k1_context_set_illegal_callback(CTX, NULL, NULL);
-        /* We expect exactly one ARG_CHECK if the number of input keys was 0. */
-        CHECK(ecount == ((test->num_taproot_inputs + test->num_plain_inputs) == 0));
-    }
-    /* If we are unable to create the prevouts_summary object, e.g., the input public keys sum to
-     * zero, check that the expected number of recipient outputs for this test case is zero
+    ret = secp256k1_silentpayments_recipient_prevouts_summary_create(CTX, &prevouts_summary,
+        test->outpoint_smallest,
+        xonly_pubkeys, test->num_taproot_inputs,
+        pubkeys, test->num_plain_inputs
+    );
+    /* If we are unable to create the prevouts_summary object, e.g., there are no eligible inputs or
+     * the input public keys sum to zero, check that the expected number of recipient outputs for
+     * this test case is zero
      */
     if (!ret) {
         CHECK(subtest->num_found_output_pubkeys == 0);
