@@ -456,6 +456,9 @@ int secp256k1_musig_nonce_gen_counter(const secp256k1_context* ctx, secp256k1_mu
 #ifndef VERIFY
     (void) ret;
 #endif
+    /* Need to declassify the pubkey because pubkey_load ARG_CHECKs if it's
+     * invalid. */
+    secp256k1_declassify(ctx, &pubkey, sizeof(pubkey));
 
     ret = secp256k1_musig_nonce_gen_internal(ctx, secnonce, pubnonce, buf, seckey, &pubkey, msg32, keyagg_cache, extra_input32);
     secp256k1_memclear_explicit(seckey, sizeof(seckey));
