@@ -611,16 +611,18 @@ int secp256k1_silentpayments_recipient_scan_outputs(
 
     /* Sanity check inputs */
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(found_outputs != NULL);
     ARG_CHECK(n_found_outputs != NULL);
     *n_found_outputs = 0;
-    ARG_CHECK(tx_outputs != NULL);
-    for (i = 0; i < n_tx_outputs; i++) {
-        ARG_CHECK(found_outputs[i] != NULL);
-        ARG_CHECK(tx_outputs[i] != NULL);
-        /* Validate each tx output object early so malformed pubkeys are always rejected. */
-        if (!secp256k1_xonly_pubkey_load(ctx, &tx_output_ge, tx_outputs[i])) {
-            return 0;
+    if (n_tx_outputs > 0) {
+        ARG_CHECK(found_outputs != NULL);
+        ARG_CHECK(tx_outputs != NULL);
+        for (i = 0; i < n_tx_outputs; i++) {
+            ARG_CHECK(found_outputs[i] != NULL);
+            ARG_CHECK(tx_outputs[i] != NULL);
+            /* Validate each tx output object early so malformed pubkeys are always rejected. */
+            if (!secp256k1_xonly_pubkey_load(ctx, &tx_output_ge, tx_outputs[i])) {
+                return 0;
+            }
         }
     }
     ARG_CHECK(scan_key32 != NULL);
