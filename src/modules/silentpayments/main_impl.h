@@ -497,7 +497,6 @@ int secp256k1_silentpayments_recipient_prevouts_summary_create(
     ARG_CHECK(prevouts_summary != NULL);
     memset(prevouts_summary, 0, sizeof(*prevouts_summary));
     ARG_CHECK(outpoint_smallest36 != NULL);
-    ARG_CHECK((n_pubkeys > 0) || (n_xonly_pubkeys > 0));
     if (n_xonly_pubkeys > 0) {
         ARG_CHECK(xonly_pubkeys != NULL);
         for (i = 0; i < n_xonly_pubkeys; i++) {
@@ -516,7 +515,8 @@ int secp256k1_silentpayments_recipient_prevouts_summary_create(
      * Since an attacker can maliciously craft transactions where the public keys sum to zero, fail early here
      * to avoid making the caller do extra work, e.g., when building an index or scanning a malicious transaction.
      *
-     * This will also fail if any of the provided prevout public keys are malformed.
+     * This will also fail if any of the provided prevout public keys are malformed, or if no public keys were
+     * provided at all (i.e., the transaction has no eligible inputs), as the sum is then the point at infinity.
      */
     secp256k1_gej_set_infinity(&prevouts_pubkey_sum_gej);
     for (i = 0; i < n_pubkeys; i++) {
@@ -611,17 +611,18 @@ int secp256k1_silentpayments_recipient_scan_outputs(
 
     /* Sanity check inputs */
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(found_outputs != NULL);
     ARG_CHECK(n_found_outputs != NULL);
     *n_found_outputs = 0;
-    ARG_CHECK(tx_outputs != NULL);
-    ARG_CHECK(n_tx_outputs > 0);
-    for (i = 0; i < n_tx_outputs; i++) {
-        ARG_CHECK(found_outputs[i] != NULL);
-        ARG_CHECK(tx_outputs[i] != NULL);
-        /* Validate each tx output object early so malformed pubkeys are always rejected. */
-        if (!secp256k1_xonly_pubkey_load(ctx, &tx_output_ge, tx_outputs[i])) {
-            return 0;
+    if (n_tx_outputs > 0) {
+        ARG_CHECK(found_outputs != NULL);
+        ARG_CHECK(tx_outputs != NULL);
+        for (i = 0; i < n_tx_outputs; i++) {
+            ARG_CHECK(found_outputs[i] != NULL);
+            ARG_CHECK(tx_outputs[i] != NULL);
+            /* Validate each tx output object early so malformed pubkeys are always rejected. */
+            if (!secp256k1_xonly_pubkey_load(ctx, &tx_output_ge, tx_outputs[i])) {
+                return 0;
+            }
         }
     }
     ARG_CHECK(scan_key32 != NULL);
@@ -631,6 +632,10 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     /* Passing a context without a lookup function is non-sensical */
     if (label_context != NULL) {
         ARG_CHECK(label_lookup != NULL);
+    }
+    /* A transaction without any taproot outputs is not a Silent Payments transaction. */
+    if (n_tx_outputs == 0) {
+        return 0;
     }
     valid_scan_key = secp256k1_scalar_set_b32_seckey(&scan_key_scalar, scan_key32);
     secp256k1_declassify(ctx, &valid_scan_key, sizeof(valid_scan_key));
