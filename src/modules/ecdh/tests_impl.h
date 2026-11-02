@@ -34,6 +34,12 @@ static int ecdh_hash_function_custom(unsigned char *output, const unsigned char 
     return 1;
 }
 
+/* secp256k1_ecdh uses its internal function when passed secp256k1_ecdh_hash_function_sha256
+ * itself, so call the exported one from a custom function to test it. */
+static int ecdh_hash_function_test_wrap_sha256(unsigned char *output, const unsigned char *x, const unsigned char *y, void *data) {
+    return secp256k1_ecdh_hash_function_sha256(output, x, y, data);
+}
+
 static void test_ecdh_api(void) {
     secp256k1_pubkey point;
     unsigned char res[32];
@@ -86,6 +92,11 @@ static void test_ecdh_generator_basepoint(void) {
         secp256k1_sha256_initialize(&sha);
         secp256k1_sha256_write(&CTX->hash_ctx, &sha, point_ser, point_ser_len);
         secp256k1_sha256_finalize(&CTX->hash_ctx, &sha, output_ser);
+        /* compare */
+        CHECK(secp256k1_memcmp_var(output_ecdh, output_ser, 32) == 0);
+
+        /* compute using ECDH function with the exported hash function */
+        CHECK(secp256k1_ecdh(CTX, output_ecdh, &point[0], s_b32, ecdh_hash_function_test_wrap_sha256, NULL) == 1);
         /* compare */
         CHECK(secp256k1_memcmp_var(output_ecdh, output_ser, 32) == 0);
     }
