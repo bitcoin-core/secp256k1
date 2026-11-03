@@ -433,7 +433,7 @@ int secp256k1_ellswift_create(const secp256k1_context *ctx, unsigned char *ell64
     secp256k1_fe t;
     secp256k1_sha256 hash;
     secp256k1_scalar seckey_scalar;
-    int ret;
+    int is_sec_valid;
     static const unsigned char zero32[32] = {0};
 
     /* Sanity check inputs. */
@@ -444,7 +444,11 @@ int secp256k1_ellswift_create(const secp256k1_context *ctx, unsigned char *ell64
     ARG_CHECK(seckey32 != NULL);
 
     /* Compute (affine) public key */
-    ret = secp256k1_ec_pubkey_create_helper(&ctx->ecmult_gen_ctx, &seckey_scalar, &p, seckey32);
+    is_sec_valid = secp256k1_ec_pubkey_create_helper(&ctx->ecmult_gen_ctx, &seckey_scalar, &p, seckey32);
+    secp256k1_declassify(ctx, &is_sec_valid, sizeof(is_sec_valid));
+    if (!is_sec_valid) {
+        return 0;
+    }
     secp256k1_declassify(ctx, &p, sizeof(p)); /* not constant time in produced pubkey */
     secp256k1_fe_normalize_var(&p.x);
     secp256k1_fe_normalize_var(&p.y);
@@ -462,11 +466,10 @@ int secp256k1_ellswift_create(const secp256k1_context *ctx, unsigned char *ell64
     secp256k1_ellswift_elligatorswift_var(ctx, ell64, &t, &p, &hash); /* puts u in ell64[0..32] */
     secp256k1_fe_get_b32(ell64 + 32, &t); /* puts t in ell64[32..64] */
 
-    secp256k1_memczero(ell64, 64, !ret);
     secp256k1_scalar_clear(&seckey_scalar);
     secp256k1_sha256_clear(&hash);
 
-    return ret;
+    return 1;
 }
 
 int secp256k1_ellswift_decode(const secp256k1_context *ctx, secp256k1_pubkey *pubkey, const unsigned char *ell64) {
@@ -554,9 +557,12 @@ int secp256k1_ellswift_xdh(const secp256k1_context *ctx, unsigned char *output, 
     secp256k1_fe_set_b32_mod(&t, theirs64 + 32);
     secp256k1_ellswift_xswiftec_frac_var(&xn, &xd, &u, &t);
 
-    /* Load private key (using one if invalid). */
+    /* Load private key (return early if invalid). */
     is_sec_valid = secp256k1_scalar_set_b32_seckey(&s, seckey32);
-    secp256k1_scalar_cmov(&s, &secp256k1_scalar_one, !is_sec_valid);
+    secp256k1_declassify(ctx, &is_sec_valid, sizeof(is_sec_valid));
+    if (!is_sec_valid) {
+        return 0;
+    }
 
     /* Compute shared X coordinate. */
     secp256k1_ecmult_const_xonly(&px, &xn, &xd, &s, 1);
@@ -569,14 +575,14 @@ int secp256k1_ellswift_xdh(const secp256k1_context *ctx, unsigned char *output, 
     } else if (hashfp == secp256k1_ellswift_xdh_hash_function_prefix) {
         ret = ellswift_xdh_hash_function_prefix_impl(&ctx->hash_ctx, output, sx, ell_a64, ell_b64, data);
     } else {
-        ret = hashfp(output, sx, ell_a64, ell_b64, data);
+        ret = !!hashfp(output, sx, ell_a64, ell_b64, data);
     }
 
     secp256k1_memclear_explicit(sx, sizeof(sx));
     secp256k1_fe_clear(&px);
     secp256k1_scalar_clear(&s);
 
-    return (!!ret) & is_sec_valid;
+    return ret;
 }
 
 #endif
