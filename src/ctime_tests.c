@@ -241,6 +241,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
     CHECK(ret == 1);
     SECP256K1_CHECKMEM_UNDEFINE(&keypair, sizeof(keypair));
+    SECP256K1_CHECKMEM_UNDEFINE(aux_rand, sizeof(aux_rand));
     ret = secp256k1_schnorrsig_sign_custom(ctx, sig, msg, 32, &keypair, &extraparams);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
     CHECK(ret == 1);
@@ -252,6 +253,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
     CHECK(ret == 1);
     SECP256K1_CHECKMEM_UNDEFINE(&keypair, sizeof(keypair));
+    SECP256K1_CHECKMEM_UNDEFINE(aux_rand, sizeof(aux_rand));
     ret = secp256k1_schnorrsig_sign_custom(ctx, sig, msg, sizeof(msg), &keypair, &extraparams);
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
     CHECK(ret == 1);
