@@ -230,7 +230,7 @@ void secp256k1_context_set_sha256_compression(secp256k1_context *ctx, secp256k1_
         return;
     }
     /* Check and set */
-    ARG_CHECK_VOID(secp256k1_selftest_sha256(fn_compression));
+    ARG_CHECK_VOID(secp256k1_sha256_selftest(fn_compression));
     ctx->hash_ctx.fn_sha256_compression = fn_compression;
 }
 
