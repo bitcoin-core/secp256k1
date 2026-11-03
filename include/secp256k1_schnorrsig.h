@@ -24,7 +24,7 @@ extern "C" {
  *  Returns: 1 if a nonce was successfully generated. 0 will cause signing to
  *           return an error.
  *  Out:  nonce32: pointer to a 32-byte array to be filled by the function
- *  In:       msg: the message being verified. Is NULL if and only if msglen
+ *  In:       msg: the message being signed. Is NULL if and only if msglen
  *                 is 0.
  *         msglen: the length of the message
  *          key32: pointer to a 32-byte secret key (will not be NULL)

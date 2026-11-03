@@ -80,7 +80,7 @@ typedef struct secp256k1_ecdsa_signature {
  *
  * Returns: 1 if a nonce was successfully generated. 0 will cause signing to fail.
  * Out:     nonce32:   pointer to a 32-byte array to be filled by the function.
- * In:      msg32:     the 32-byte message hash being verified (will not be NULL)
+ * In:      msg32:     the 32-byte message hash being signed (will not be NULL)
  *          key32:     pointer to a 32-byte secret key (will not be NULL)
  *          algo16:    pointer to a 16-byte array describing the signature
  *                     algorithm (will be NULL for ECDSA for compatibility).
