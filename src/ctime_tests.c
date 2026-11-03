@@ -96,6 +96,7 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     int i;
     int ret;
     unsigned char msg[32];
+    unsigned char ndata[32] = { 0 };
     unsigned char sig[74];
     unsigned char spubkey[33];
 #ifdef ENABLE_MODULE_RECOVERY
@@ -154,6 +155,14 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
     CHECK(ret);
     CHECK(secp256k1_ecdsa_signature_serialize_der(ctx, sig, &siglen, &signature));
+
+    /* Test signing with extra entropy, which is treated as secret. */
+    SECP256K1_CHECKMEM_UNDEFINE(key, 32);
+    SECP256K1_CHECKMEM_UNDEFINE(ndata, 32);
+    ret = secp256k1_ecdsa_sign(ctx, &signature, msg, key, NULL, ndata);
+    SECP256K1_CHECKMEM_DEFINE(&signature, sizeof(secp256k1_ecdsa_signature));
+    SECP256K1_CHECKMEM_DEFINE(&ret, sizeof(ret));
+    CHECK(ret);
 
 #ifdef ENABLE_MODULE_ECDH
     /* Test ECDH. */
