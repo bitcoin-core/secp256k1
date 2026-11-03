@@ -35,7 +35,6 @@
 #include "hash_impl.h"
 #include "int128_impl.h"
 #include "scratch_impl.h"
-#include "selftest.h"
 #include "hsort_impl.h"
 
 #ifdef SECP256K1_NO_BUILD
@@ -85,7 +84,10 @@ static int secp256k1_context_is_proper(const secp256k1_context* ctx) {
 }
 
 void secp256k1_selftest(void) {
-    if (!secp256k1_selftest_passes()) {
+    /* Deliberately test the built-in SHA256 implementation, not a context's override.
+     * This function is about detecting a broken build of the library itself (e.g.,
+     * wrong endianness), and an override is already checked when it is set. */
+    if (!secp256k1_sha256_selftest(secp256k1_sha256_transform)) {
         secp256k1_callback_call(&default_error_callback, "self test failed");
     }
 }
