@@ -347,6 +347,9 @@ static void secp256k1_ellswift_xelligatorswift_var(const secp256k1_context *ctx,
         /* If the pool of branch values is empty, populate it. */
         if (branches_left == 0) {
             secp256k1_ellswift_prng(&ctx->hash_ctx, branch_hash, hasher, cnt++);
+            /* Declassify the pool and u32 below, as xswiftec_inv_var branches on them. They are
+             * hash outputs, so they do not reveal the secret inputs written to hasher. */
+            secp256k1_declassify(ctx, branch_hash, sizeof(branch_hash));
             branches_left = 64;
         }
         /* Take a 3-bit branch value from the branch pool (top bit is discarded). */
@@ -354,6 +357,7 @@ static void secp256k1_ellswift_xelligatorswift_var(const secp256k1_context *ctx,
         branch = (branch_hash[branches_left >> 1] >> ((branches_left & 1) << 2)) & 7;
         /* Compute a new u value by hashing. */
         secp256k1_ellswift_prng(&ctx->hash_ctx, u32, hasher, cnt++);
+        secp256k1_declassify(ctx, u32, 32);
         /* overflow is not a problem (we prefer uniform u32 over uniform u). */
         secp256k1_fe_set_b32_mod(&u, u32);
         /* Since u is the output of a hash, it should practically never be 0. We could apply the
