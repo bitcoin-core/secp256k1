@@ -74,6 +74,42 @@ typedef struct secp256k1_silentpayments_recipient {
  *  outputs from the final transaction may make all or some of the outputs
  *  unfindable by the recipient.
  *
+ *  Recipient objects with the same scan public key MUST NOT be passed in the
+ *  same call, unless one of the following holds:
+ *    - The same party requested the payments for all of these recipient
+ *      objects. (For example, all of them have been created from addresses
+ *      obtained from the intended recipient in a single payment request.)
+ *    - The scan public key is the sender's own (e.g., because the sender's
+ *      change is among these recipient objects), and the caller puts the
+ *      recipient objects with the sender's own (unlabeled or labeled) spend
+ *      public keys before the other ones in the `recipients` array (i.e.,
+ *      gives them a lower `index`).
+ *    - All of these recipient objects have the same spend public key.
+ *  Use `secp256k1_ec_pubkey_cmp` to compare public keys.
+ *
+ *  Payments whose recipient objects cannot be passed in the same call need
+ *  to be made in separate transactions. This can be harmful to privacy: a
+ *  party that requests a payment and observes that it is treated differently
+ *  learns that the sender is paying another recipient with the same scan
+ *  public key. A caller that never passes recipient objects for payments
+ *  requested by different parties in the same call avoids this.
+ *
+ *  The reason for this rule is as follows. The recipient objects that share
+ *  a scan public key are called a group. The owner of the scan key is
+ *  guaranteed to find the outputs for a group only if the spend public key
+ *  of every recipient object in the group is one of its own (unlabeled or
+ *  labeled) spend public keys. This cannot be determined from the public
+ *  keys alone, which is why the rule refers to the party that requested a
+ *  payment.
+ *
+ *  Concretely, a malicious party can request a payment for a recipient
+ *  object that combines the scan public key of another recipient (or of the
+ *  sender) with a spend public key of its own. If such a recipient object is
+ *  passed in the same call, the owner of the scan key cannot find the
+ *  outputs for the recipient objects in the group that come after the
+ *  malicious one in the `recipients` array (i.e., that have a higher
+ *  `index`).
+ *
  *  Returns: 1 if creation of outputs was successful.
  *           0 on failure, i.e., when one of the following occurs:
  *             - The size of any group (i.e. recipients sharing the same scan public key)
@@ -103,7 +139,9 @@ typedef struct secp256k1_silentpayments_recipient {
  *                            may no longer correspond to the positions in the
  *                            array. Multiple recipient objects with the same scan
  *                            public key and/or same spend public key can be passed
- *                            if they carry different indices.
+ *                            if they carry different indices (but see above
+ *                            for recipient objects that share a scan public
+ *                            key).
  *              n_recipients: the size of the recipients array.
  *       outpoint_smallest36: serialized (36-byte) smallest outpoint
  *                            (lexicographically) from the transaction inputs
