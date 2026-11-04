@@ -32,12 +32,13 @@ env:
   WITH_VALGRIND: 'yes'
   EXTRAFLAGS:
   ### secp256k1 modules
-  EXPERIMENTAL: 'no'
+  EXPERIMENTAL: 'yes'
   ECDH: 'yes'
   RECOVERY: 'yes'
   EXTRAKEYS: 'yes'
   SCHNORRSIG: 'yes'
   MUSIG: 'yes'
+  FULLAGG: 'yes'
   ELLSWIFT: 'yes'
   SILENTPAYMENTS: 'yes'
   ### test options
@@ -112,11 +113,12 @@ jobs:
           - env_vars: { ECMULTGENKB: 86, ECMULTWINDOW: 4 }
           - env_vars: { ECDH: 'no' }
           - env_vars: { RECOVERY: 'no' }
-          - env_vars: { EXTRAKEYS: 'no', SCHNORRSIG: 'no', MUSIG: 'no', SILENTPAYMENTS: 'no' }
+          - env_vars: { EXTRAKEYS: 'no', SCHNORRSIG: 'no', MUSIG: 'no', SILENTPAYMENTS: 'no', FULLAGG: 'no' }
           - env_vars: { SCHNORRSIG: 'no', MUSIG: 'no' }
           - env_vars: { MUSIG: 'no' }
           - env_vars: { ELLSWIFT: 'no' }
           - env_vars: { SILENTPAYMENTS: 'no' }
+          - env_vars: { EXPERIMENTAL: 'no', FULLAGG: 'no' }
         cc:
           - 'gcc'
           - 'clang'
