@@ -37,6 +37,20 @@ typedef struct {
     int num_matches;
 } bench_silentpayments_data;
 
+typedef struct {
+    secp256k1_context *ctx;
+    secp256k1_pubkey spend_pubkey;
+    secp256k1_xonly_pubkey *tx_outputs;
+    secp256k1_xonly_pubkey **tx_outputs_ptrs;
+    secp256k1_keypair input_keypair;
+    const secp256k1_keypair *keypairs_ptrs[SP_BENCH_MAX_INPUTS];
+    secp256k1_silentpayments_recipient *recipients;
+    const secp256k1_silentpayments_recipient **recipients_ptrs;
+    unsigned char smallest_outpoint[36];
+    int num_outputs;
+    int shared_scan_key;
+} bench_silentpayments_send_data;
+
 const unsigned char* label_lookup(const unsigned char* key, const void* cache_ptr) {
     bench_silentpayments_data *data = (bench_silentpayments_data*)cache_ptr;
     if (secp256k1_memcmp_var(key, data->label, 33) == 0) {
@@ -156,6 +170,91 @@ static void bench_silentpayments_scan_teardown(void* arg, int iters) {
     free(data->found_outputs_ptrs);
 }
 
+static void bench_silentpayments_send_setup(void* arg) {
+    int i;
+    bench_silentpayments_send_data *data = (bench_silentpayments_send_data*)arg;
+    const unsigned char smallest_outpoint[36] = {
+        0x16, 0x9e, 0x1e, 0x83, 0xe9, 0x30, 0x85, 0x33, 0x91,
+        0xbc, 0x6f, 0x35, 0xf6, 0x05, 0xc6, 0x75, 0x4c, 0xfe,
+        0xad, 0x57, 0xcf, 0x83, 0x87, 0x63, 0x9d, 0x3b, 0x40,
+        0x96, 0xc5, 0x4f, 0x18, 0xf4, 0x00, 0x00, 0x00, 0x00,
+    };
+    const unsigned char spend_pubkey[33] = {
+        0x02,0xee,0x97,0xdf,0x83,0xb2,0x54,0x6a,
+        0xf5,0xa7,0xd0,0x62,0x15,0xd9,0x8b,0xcb,
+        0x63,0x7f,0xe0,0x5d,0xd0,0xfa,0x37,0x3b,
+        0xd8,0x20,0xe6,0x64,0xd3,0x72,0xde,0x9a,0x01
+    };
+    const unsigned char scan_key[32] = {
+        0xa8,0x90,0x54,0xc9,0x5b,0xe3,0xc3,0x01,
+        0x56,0x65,0x74,0xf2,0xaa,0x93,0xad,0xe0,
+        0x51,0x85,0x09,0x03,0xa6,0x9c,0xbd,0xd1,
+        0xd4,0x7e,0xae,0x26,0x3d,0x7b,0xc0,0x31
+    };
+    unsigned char scalar[32];
+    secp256k1_pubkey base_scan_pubkey;
+
+    for (i = 0; i < 32; i++) {
+        scalar[i] = i + 1;
+    }
+    CHECK(secp256k1_keypair_create(data->ctx, &data->input_keypair, scalar));
+    data->keypairs_ptrs[0] = &data->input_keypair;
+    CHECK(secp256k1_ec_pubkey_parse(data->ctx, &data->spend_pubkey, spend_pubkey, sizeof(spend_pubkey)));
+    CHECK(secp256k1_ec_pubkey_create(data->ctx, &base_scan_pubkey, scan_key));
+    memcpy(data->smallest_outpoint, smallest_outpoint, sizeof(smallest_outpoint));
+
+    data->tx_outputs = malloc(sizeof(secp256k1_xonly_pubkey) * data->num_outputs);
+    data->tx_outputs_ptrs = malloc(sizeof(secp256k1_xonly_pubkey*) * data->num_outputs);
+    data->recipients = malloc(sizeof(secp256k1_silentpayments_recipient) * data->num_outputs);
+    data->recipients_ptrs = malloc(sizeof(secp256k1_silentpayments_recipient*) * data->num_outputs);
+
+    for (i = 0; i < data->num_outputs; i++) {
+        data->tx_outputs_ptrs[i] = &data->tx_outputs[i];
+        data->recipients_ptrs[i] = &data->recipients[i];
+        data->recipients[i].index = i;
+        data->recipients[i].spend_pubkey = data->spend_pubkey;
+        if (data->shared_scan_key) {
+            data->recipients[i].scan_pubkey = base_scan_pubkey;
+        } else {
+            unsigned char tweak[32] = {0};
+            tweak[30] = (unsigned char)((i + 1) >> 8);
+            tweak[31] = (unsigned char)(i + 1);
+            data->recipients[i].scan_pubkey = base_scan_pubkey;
+            CHECK(secp256k1_ec_pubkey_tweak_add(data->ctx, &data->recipients[i].scan_pubkey, tweak));
+        }
+    }
+}
+
+static void bench_silentpayments_send_teardown(void* arg, int iters) {
+    bench_silentpayments_send_data *data = (bench_silentpayments_send_data*)arg;
+    (void)iters;
+
+    free(data->tx_outputs);
+    free(data->tx_outputs_ptrs);
+    free(data->recipients);
+    free(data->recipients_ptrs);
+}
+
+static void bench_silentpayments_send(void* arg, int iters) {
+    bench_silentpayments_send_data *data = (bench_silentpayments_send_data*)arg;
+    int i, j;
+
+    for (i = 0; i < iters; i++) {
+        for (j = 0; j < data->num_outputs; j++) {
+            data->recipients_ptrs[j] = &data->recipients[j];
+        }
+        CHECK(secp256k1_silentpayments_sender_create_outputs(data->ctx,
+            data->tx_outputs_ptrs,
+            data->recipients_ptrs,
+            data->num_outputs,
+            data->smallest_outpoint,
+            data->keypairs_ptrs,
+            SP_BENCH_MAX_INPUTS,
+            NULL,
+            0));
+    }
+}
+
 static void bench_silentpayments_scan(void* arg, int iters) {
     bench_silentpayments_data *data = (bench_silentpayments_data*)arg;
     secp256k1_silentpayments_prevouts_summary prevouts_summary;
@@ -217,6 +316,46 @@ static void run_silentpayments_bench(int iters, int argc, char** argv) {
                 printf("Skipping benchmark \"%s\" due to SECP256K1_BENCH_ITERS <= 2\n", str);
             } else {
                 run_benchmark(str, bench_silentpayments_scan, bench_silentpayments_scan_setup, bench_silentpayments_scan_teardown, &data, 3, 1);
+            }
+        }
+    }
+
+    if (d || have_flag(argc, argv, "silentpayments") || have_flag(argc, argv, "silentpayments_send") ||
+        have_flag(argc, argv, "silentpayments_send_distinct")) {
+        bench_silentpayments_send_data send_data;
+        const int num_outputs_bench[] = {1, 2, 5, 10, 100};
+        size_t o;
+        send_data.ctx = data.ctx;
+        for (o = 0; o < ARRAY_SIZE(num_outputs_bench); o++) {
+            const int num_outputs = num_outputs_bench[o];
+            char str[64];
+            send_data.num_outputs = num_outputs;
+            send_data.shared_scan_key = 0;
+            sprintf(str, "silentpayments_send_distinct_N=%i", num_outputs);
+            if (iters <= 2 && num_outputs > 10) {
+                printf("Skipping benchmark \"%s\" due to SECP256K1_BENCH_ITERS <= 2\n", str);
+            } else {
+                run_benchmark(str, bench_silentpayments_send, bench_silentpayments_send_setup, bench_silentpayments_send_teardown, &send_data, 10, num_outputs <= 10 ? iters : iters / 10 + 1);
+            }
+        }
+    }
+
+    if (d || have_flag(argc, argv, "silentpayments") || have_flag(argc, argv, "silentpayments_send") ||
+        have_flag(argc, argv, "silentpayments_send_shared")) {
+        bench_silentpayments_send_data send_data;
+        const int num_outputs_bench[] = {2, 5, 10, 100};
+        size_t o;
+        send_data.ctx = data.ctx;
+        for (o = 0; o < ARRAY_SIZE(num_outputs_bench); o++) {
+            const int num_outputs = num_outputs_bench[o];
+            char str[64];
+            send_data.num_outputs = num_outputs;
+            send_data.shared_scan_key = 1;
+            sprintf(str, "silentpayments_send_shared_N=%i", num_outputs);
+            if (iters <= 2 && num_outputs > 10) {
+                printf("Skipping benchmark \"%s\" due to SECP256K1_BENCH_ITERS <= 2\n", str);
+            } else {
+                run_benchmark(str, bench_silentpayments_send, bench_silentpayments_send_setup, bench_silentpayments_send_teardown, &send_data, 10, num_outputs <= 10 ? iters : iters / 10 + 1);
             }
         }
     }
