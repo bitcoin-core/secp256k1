@@ -30,6 +30,8 @@ env:
   ASM: 'no'
   WIDEMUL: 'auto'
   WITH_VALGRIND: 'yes'
+  MALLOC_OVERRIDE: 'no'
+  NO_MALLOC: 'no'
   EXTRAFLAGS:
   ### secp256k1 modules
   EXPERIMENTAL: 'no'
@@ -117,6 +119,8 @@ jobs:
           - env_vars: { MUSIG: 'no' }
           - env_vars: { ELLSWIFT: 'no' }
           - env_vars: { SILENTPAYMENTS: 'no' }
+          - env_vars: { MALLOC_OVERRIDE: 'yes', EXTRAFLAGS: '--disable-benchmark', BENCH: 'no' }
+          - env_vars: { NO_MALLOC: 'yes', EXTRAFLAGS: '--disable-tests --disable-exhaustive-tests --disable-benchmark', BENCH: 'no', CTIMETESTS: 'no', EXAMPLES: 'no' }
         cc:
           - 'gcc'
           - 'clang'

@@ -8,6 +8,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef SECP256K1_NO_MALLOC
+    #pragma message("Ignoring SECP256K1_NO_MALLOC in precompute_ecmult_gen.")
+    #undef SECP256K1_NO_MALLOC
+#endif
+
 #include "../include/secp256k1.h"
 
 #include "assumptions.h"
@@ -50,7 +55,7 @@ static void print_table(FILE* fp, int blocks, int teeth) {
             fprintf(fp,"}\n");
         }
     }
-    free(table);
+    checked_free(table, blocks * points * sizeof(secp256k1_ge_storage));
 }
 
 int main(int argc, char **argv) {
