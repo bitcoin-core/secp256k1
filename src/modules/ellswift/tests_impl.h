@@ -178,6 +178,16 @@ static int ellswift_xdh_hash_x32(unsigned char *output, const unsigned char *x32
     return 1;
 }
 
+/* secp256k1_ellswift_xdh uses its internal functions when passed the exported ones
+ * themselves, so call the exported ones from custom functions to test them. */
+static int ellswift_xdh_hash_wrap_bip324(unsigned char *output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
+    return secp256k1_ellswift_xdh_hash_function_bip324(output, x32, ell_a64, ell_b64, data);
+}
+
+static int ellswift_xdh_hash_wrap_prefix(unsigned char *output, const unsigned char *x32, const unsigned char *ell_a64, const unsigned char *ell_b64, void *data) {
+    return secp256k1_ellswift_xdh_hash_function_prefix(output, x32, ell_a64, ell_b64, data);
+}
+
 /* Run the test vectors for ellswift encoding */
 void ellswift_encoding_test_vectors_tests(void) {
     int i;
@@ -217,7 +227,18 @@ void ellswift_decoding_test_vectors_tests(void) {
 
 /* Run the test vectors for ellswift expected xdh BIP324 shared secrets */
 void ellswift_xdh_test_vectors_tests(void) {
+    /* "bip324_ellswift_xonly_ecdh" */
+    static const unsigned char bip324_tag[] = {'b', 'i', 'p', '3', '2', '4', '_', 'e', 'l', 'l', 's', 'w', 'i', 'f', 't', '_', 'x', 'o', 'n', 'l', 'y', '_', 'e', 'c', 'd', 'h'};
+    unsigned char bip324_prefix64[64];
+    secp256k1_sha256 sha;
     int i;
+
+    /* SHA256(tag)||SHA256(tag) makes the prefix hash function equivalent to the BIP324 one */
+    secp256k1_sha256_initialize(&sha);
+    secp256k1_sha256_write(&CTX->hash_ctx, &sha, bip324_tag, sizeof(bip324_tag));
+    secp256k1_sha256_finalize(&CTX->hash_ctx, &sha, bip324_prefix64);
+    memcpy(bip324_prefix64 + 32, bip324_prefix64, 32);
+
     for (i = 0; (unsigned)i < ARRAY_SIZE(ellswift_xdh_tests_bip324); ++i) {
         const struct ellswift_xdh_test *test = &ellswift_xdh_tests_bip324[i];
         unsigned char shared_secret[32];
@@ -231,6 +252,19 @@ void ellswift_xdh_test_vectors_tests(void) {
                                      party,
                                      secp256k1_ellswift_xdh_hash_function_bip324,
                                      NULL);
+        CHECK(ret);
+        CHECK(secp256k1_memcmp_var(shared_secret, test->shared_secret, 32) == 0);
+
+        /* Same with the exported BIP324 hash function */
+        ret = secp256k1_ellswift_xdh(CTX, shared_secret, ell_a64, ell_b64, test->priv_ours, party, ellswift_xdh_hash_wrap_bip324, NULL);
+        CHECK(ret);
+        CHECK(secp256k1_memcmp_var(shared_secret, test->shared_secret, 32) == 0);
+
+        /* Same with the prefix hash function, internal and exported, and the BIP324 prefix */
+        ret = secp256k1_ellswift_xdh(CTX, shared_secret, ell_a64, ell_b64, test->priv_ours, party, secp256k1_ellswift_xdh_hash_function_prefix, bip324_prefix64);
+        CHECK(ret);
+        CHECK(secp256k1_memcmp_var(shared_secret, test->shared_secret, 32) == 0);
+        ret = secp256k1_ellswift_xdh(CTX, shared_secret, ell_a64, ell_b64, test->priv_ours, party, ellswift_xdh_hash_wrap_prefix, bip324_prefix64);
         CHECK(ret);
         CHECK(secp256k1_memcmp_var(shared_secret, test->shared_secret, 32) == 0);
     }
