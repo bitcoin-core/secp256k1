@@ -1,0 +1,6 @@
+#!/bin/sh
+# Copyright (c) 2026 The libsecp256k1 developers
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or https://www.opensource.org/licenses/mit-license.php.
+
+exec ./libtool --mode=execute @CTIME_TESTS_LOG_COMPILER@ ./ctime_tests@EXEEXT@
