@@ -124,6 +124,7 @@ int main(void) {
     secp256k1_silentpayments_prevouts_summary prevouts_summary;
     secp256k1_pubkey unlabeled_spend_pubkey;
     struct labels_cache bob_labels_cache;
+    secp256k1_silentpayments_label_entry bob_label_entry;
     unsigned char bob_address[2][33];
     int ret;
     size_t i;
@@ -184,6 +185,9 @@ int main(void) {
         ret = secp256k1_silentpayments_recipient_label_serialize(ctx, bob_labels_cache.entries[0].label, &label);
         assert(ret);
         bob_labels_cache.entries_used = 1;
+        /* The same label and label tweak, for scanning with a list of labels (see below) */
+        bob_label_entry.label = label;
+        memcpy(bob_label_entry.label_tweak, bob_labels_cache.entries[0].label_tweak, 32);
         /* Now that the labels cache has been updated, Bob creates his labeled
          * Silent Payments address and publishes it.
          */
@@ -411,6 +415,26 @@ int main(void) {
                 }
             } else {
                 printf("Bob did not find any outputs in this transaction.\n");
+            }
+
+            /* Instead of a label lookup callback, Bob can pass his labels as an array.
+             * This finds the same outputs, and is faster on transactions with many
+             * outputs when he scans for few labels. */
+            {
+                const secp256k1_silentpayments_label_entry *bob_label_entries[1];
+                uint32_t n_found_outputs_with_labels = 0;
+
+                bob_label_entries[0] = &bob_label_entry;
+                ret = secp256k1_silentpayments_recipient_scan_outputs_with_labels(ctx,
+                    found_output_ptrs, &n_found_outputs_with_labels,
+                    (const secp256k1_xonly_pubkey**)tx_output_ptrs, N_OUTPUTS,
+                    bob_scan_key,
+                    &prevouts_summary,
+                    &unlabeled_spend_pubkey,
+                    bob_label_entries, 1
+                );
+                assert(ret);
+                assert(n_found_outputs_with_labels == n_found_outputs);
             }
         }
         {
