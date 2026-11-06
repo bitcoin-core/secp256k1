@@ -355,6 +355,23 @@ static void musig_api_tests(void) {
         CHECK(secp256k1_musig_pubnonce_parse(CTX, &tmp, pubnonce_ser) == 1);
         CHECK(secp256k1_memcmp_var(&tmp, &pubnonce[0], sizeof(tmp)) == 0);
     }
+    {
+        /* Check that a failed parse does not leave a previously parsed nonce
+         * in the output */
+        secp256k1_musig_pubnonce tmp;
+        const secp256k1_musig_pubnonce *tmp_ptr[1];
+        unsigned char tmp_ser[66];
+        tmp_ptr[0] = &tmp;
+        CHECK(secp256k1_musig_pubnonce_parse(CTX, &tmp, pubnonce_ser) == 1);
+        CHECK(secp256k1_musig_pubnonce_parse(CTX, &tmp, zeros132) == 0);
+        CHECK(secp256k1_memcmp_var(&tmp, zeros132, sizeof(tmp)) == 0);
+        CHECK_ILLEGAL(CTX, secp256k1_musig_pubnonce_serialize(CTX, tmp_ser, &tmp));
+        CHECK_ILLEGAL(CTX, secp256k1_musig_nonce_agg(CTX, &aggnonce, tmp_ptr, 1));
+        /* Also if in66 is NULL */
+        CHECK(secp256k1_musig_pubnonce_parse(CTX, &tmp, pubnonce_ser) == 1);
+        CHECK_ILLEGAL(CTX, secp256k1_musig_pubnonce_parse(CTX, &tmp, NULL));
+        CHECK(secp256k1_memcmp_var(&tmp, zeros132, sizeof(tmp)) == 0);
+    }
 
     /** Receive nonces and aggregate **/
     CHECK(secp256k1_musig_nonce_agg(CTX, &aggnonce, pubnonce_ptr, 2) == 1);
@@ -401,6 +418,25 @@ static void musig_api_tests(void) {
         CHECK(secp256k1_musig_aggnonce_serialize(CTX, aggnonce_ser, &aggnonce) == 1);
         CHECK(secp256k1_musig_aggnonce_parse(CTX, &tmp, aggnonce_ser) == 1);
         CHECK(secp256k1_memcmp_var(&tmp, &aggnonce, sizeof(tmp)) == 0);
+    }
+    {
+        /* Check that a failed parse does not leave a previously parsed nonce
+         * in the output. An all-zero encoding is valid for an aggnonce (two
+         * points at infinity), so use an invalid prefix byte instead. */
+        secp256k1_musig_aggnonce tmp;
+        unsigned char invalid_ser[66];
+        unsigned char tmp_ser[66];
+        memcpy(invalid_ser, aggnonce_ser, sizeof(invalid_ser));
+        invalid_ser[0] = 0x05;
+        CHECK(secp256k1_musig_aggnonce_parse(CTX, &tmp, aggnonce_ser) == 1);
+        CHECK(secp256k1_musig_aggnonce_parse(CTX, &tmp, invalid_ser) == 0);
+        CHECK(secp256k1_memcmp_var(&tmp, zeros132, sizeof(tmp)) == 0);
+        CHECK_ILLEGAL(CTX, secp256k1_musig_aggnonce_serialize(CTX, tmp_ser, &tmp));
+        CHECK_ILLEGAL(CTX, secp256k1_musig_nonce_process(CTX, &session, &tmp, msg, &keyagg_cache));
+        /* Also if in66 is NULL */
+        CHECK(secp256k1_musig_aggnonce_parse(CTX, &tmp, aggnonce_ser) == 1);
+        CHECK_ILLEGAL(CTX, secp256k1_musig_aggnonce_parse(CTX, &tmp, NULL));
+        CHECK(secp256k1_memcmp_var(&tmp, zeros132, sizeof(tmp)) == 0);
     }
 
     /** Process nonces **/
