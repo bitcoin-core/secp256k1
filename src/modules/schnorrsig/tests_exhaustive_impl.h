@@ -183,6 +183,73 @@ static void test_exhaustive_schnorrsig_sign(const secp256k1_context *ctx, unsign
     }
 }
 
+static void test_exhaustive_schnorrsig_s2c_failure(const secp256k1_context *ctx, const secp256k1_keypair *keypair) {
+    secp256k1_schnorrsig_extraparams extraparams = SECP256K1_SCHNORRSIG_EXTRAPARAMS_INIT;
+    secp256k1_schnorrsig_s2c_opening opening;
+    secp256k1_scalar sk;
+    secp256k1_ge pk;
+    unsigned char sk32[32];
+    unsigned char pk32[32];
+    unsigned char data32[32];
+    unsigned char data_hash32[32];
+    unsigned char zero64[64] = {0};
+    int tested_zero = 0;
+    int tested_nonzero = 0;
+
+    CHECK(secp256k1_keypair_load(ctx, &sk, &pk, keypair));
+    if (secp256k1_fe_is_odd(&pk.y)) {
+        secp256k1_scalar_negate(&sk, &sk);
+    }
+    secp256k1_scalar_get_b32(sk32, &sk);
+    secp256k1_fe_get_b32(pk32, &pk.x);
+    extraparams.s2c_opening = &opening;
+    extraparams.s2c_data32 = data32;
+
+    /* On the small-order curve, commitment hashes overflow with overwhelming
+     * probability. Exercise failure with both a zero and a nonzero tweaked
+     * nonce, starting from a valid nonzero nonce in each case. */
+    while (!tested_zero || !tested_nonzero) {
+        secp256k1_scalar k, tweak;
+        secp256k1_ge r;
+        secp256k1_sha256 sha;
+        unsigned char msg32[32];
+        unsigned char nonce32[32];
+        unsigned char tweak32[32];
+        unsigned char sig64[64];
+        int overflow, is_zero;
+
+        testrand256(data32);
+        CHECK(secp256k1_schnorrsig_anti_exfil_host_commit(ctx, data_hash32, data32));
+        testrand256(msg32);
+        CHECK(nonce_function_bip340_impl(&ctx->hash_ctx, nonce32, msg32, sizeof(msg32), sk32, pk32, bip340_algo, sizeof(bip340_algo), data_hash32));
+        secp256k1_scalar_set_b32(&k, nonce32, NULL);
+        if (secp256k1_scalar_is_zero(&k)) {
+            continue;
+        }
+        secp256k1_ecmult_gen_ge(&ctx->ecmult_gen_ctx, &r, &k);
+        secp256k1_sha256_initialize_tagged(&ctx->hash_ctx, &sha, s2c_point_tag, sizeof(s2c_point_tag));
+        CHECK(secp256k1_ec_commit_tweak(&ctx->hash_ctx, tweak32, &r, &sha, data32, sizeof(data32)));
+        secp256k1_scalar_set_b32(&tweak, tweak32, &overflow);
+        if (!overflow) {
+            continue;
+        }
+        secp256k1_scalar_add(&k, &k, &tweak);
+        is_zero = secp256k1_scalar_is_zero(&k);
+        if ((is_zero && tested_zero) || (!is_zero && tested_nonzero)) {
+            continue;
+        }
+
+        memset(sig64, 0xff, sizeof(sig64));
+        CHECK(secp256k1_schnorrsig_sign_custom(ctx, sig64, msg32, sizeof(msg32), keypair, &extraparams) == 0);
+        CHECK(secp256k1_memcmp_var(sig64, zero64, sizeof(sig64)) == 0);
+        if (is_zero) {
+            tested_zero = 1;
+        } else {
+            tested_nonzero = 1;
+        }
+    }
+}
+
 static void test_exhaustive_schnorrsig(const secp256k1_context *ctx) {
     secp256k1_keypair keypair[EXHAUSTIVE_TEST_ORDER - 1];
     secp256k1_xonly_pubkey xonly_pubkey[EXHAUSTIVE_TEST_ORDER - 1];
@@ -209,6 +276,7 @@ static void test_exhaustive_schnorrsig(const secp256k1_context *ctx) {
 
     test_exhaustive_schnorrsig_sign(ctx, xonly_pubkey_bytes, keypair, parity);
     test_exhaustive_schnorrsig_verify(ctx, xonly_pubkey, xonly_pubkey_bytes, parity);
+    test_exhaustive_schnorrsig_s2c_failure(ctx, &keypair[0]);
 }
 
 #endif
