@@ -333,6 +333,52 @@ static void secp256k1_ecmult_bundle_table_set_globalz(secp256k1_ge *pre, const s
     }
 }
 
+/** Fill x with the x coordinates of the lambda multiples of a bundle table's entries, so that one
+ *  table serves both sides of the lambda split. Multiplying x by beta is all it takes. */
+static void secp256k1_ecmult_bundle_table_lambda_x(secp256k1_fe *x, const secp256k1_ge *pre) {
+    size_t i;
+
+    for (i = 0; i < ECMULT_BUNDLE_TABLE_SIZE; ++i) {
+        secp256k1_fe_mul(&x[i], &pre[i].x, &secp256k1_const_beta);
+    }
+}
+
+/** Layout of a bundle index, the byte that names one thing for the main loop to add on a bundle's
+ *  behalf: the number of a table entry, one bit per follower, and above it the anchor's sign, 1
+ *  meaning positive and 0 that the entry is to be negated. */
+#define ECMULT_BUNDLE_INDEX_SIGN (1U << (ECMULT_BUNDLE_SIZE - 1))
+#define ECMULT_BUNDLE_INDEX_ENTRY (ECMULT_BUNDLE_INDEX_SIGN - 1U)
+
+/** Put in r the point a bundle index selects: the table entry it names, negated when its sign bit
+ *  is clear. Copying the whole element carries the infinity flag, which an entry can have. */
+SECP256K1_INLINE static void secp256k1_ecmult_bundle_table_get_ge(secp256k1_ge *r, const secp256k1_ge *pre, unsigned int idx) {
+    VERIFY_CHECK(idx < 2 * ECMULT_BUNDLE_INDEX_SIGN);
+
+    *r = pre[idx & ECMULT_BUNDLE_INDEX_ENTRY];
+    if (!(idx & ECMULT_BUNDLE_INDEX_SIGN)) {
+        secp256k1_fe_negate(&r->y, &r->y, 1);
+    }
+}
+
+/** As secp256k1_ecmult_bundle_table_get_ge, but for the lambda multiples of the table's points, whose
+ *  x coordinates are the ones secp256k1_ecmult_bundle_table_lambda_x prepared. Only x differs, y and
+ *  the omitted z being left alone by lambda, and negation works the same way on that side since lambda
+ *  is a homomorphism.
+ *
+ *  This cannot be written in terms of secp256k1_ge_set_xy the way secp256k1_ecmult_table_get_ge_lambda
+ *  is: that clears the infinity flag, which an entry here may need to keep. */
+SECP256K1_INLINE static void secp256k1_ecmult_bundle_table_get_ge_lambda(secp256k1_ge *r, const secp256k1_ge *pre, const secp256k1_fe *x, unsigned int idx) {
+    unsigned int m = idx & ECMULT_BUNDLE_INDEX_ENTRY;
+    VERIFY_CHECK(idx < 2 * ECMULT_BUNDLE_INDEX_SIGN);
+
+    r->infinity = pre[m].infinity;
+    r->x = x[m];
+    r->y = pre[m].y;
+    if (!(idx & ECMULT_BUNDLE_INDEX_SIGN)) {
+        secp256k1_fe_negate(&r->y, &r->y, 1);
+    }
+}
+
 struct secp256k1_strauss_point_state {
     int8_t wnaf_na_1[129];
     int8_t wnaf_na_lam[129];

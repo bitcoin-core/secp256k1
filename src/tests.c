@@ -4935,6 +4935,86 @@ static void run_ecmult_bundle_table(void) {
     }
 }
 
+/* Check both lookups against every bundle index there is. */
+static void test_ecmult_bundle_table_get(const secp256k1_ge *a) {
+    secp256k1_ge pre[ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe zr[ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe lamx[ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe z, zs;
+    unsigned int idx;
+    size_t i;
+
+    secp256k1_fe_set_int(&z, 1);
+    secp256k1_ecmult_bundle_table(pre, zr, &z, a);
+    secp256k1_fe_set_int(&zs, 1);
+    secp256k1_ecmult_bundle_table_set_globalz(pre, zr, &zs);
+    secp256k1_ecmult_bundle_table_lambda_x(lamx, pre);
+
+    for (idx = 0; idx < 2 * ECMULT_BUNDLE_INDEX_SIGN; ++idx) {
+        unsigned int m = idx & ECMULT_BUNDLE_INDEX_ENTRY;
+        int negative = !(idx & ECMULT_BUNDLE_INDEX_SIGN);
+        secp256k1_gej want, wantlam, got;
+        secp256k1_ge t;
+
+        secp256k1_gej_set_ge(&want, &a[0]);
+        for (i = 1; i < ECMULT_BUNDLE_SIZE; ++i) {
+            if ((m >> (i - 1)) & 1) {
+                secp256k1_gej_add_ge_var(&want, &want, &a[i], NULL);
+            }
+        }
+        /* lambda of the same combination, which is where the lambda side's index points. */
+        if (secp256k1_gej_is_infinity(&want)) {
+            secp256k1_gej_set_infinity(&wantlam);
+        } else {
+            secp256k1_gej tmp = want;
+            secp256k1_ge_set_gej_var(&t, &tmp);
+            secp256k1_ge_mul_lambda(&t, &t);
+            secp256k1_gej_set_ge(&wantlam, &t);
+        }
+        if (negative) {
+            secp256k1_gej_neg(&want, &want);
+            secp256k1_gej_neg(&wantlam, &wantlam);
+        }
+
+        secp256k1_ecmult_bundle_table_get_ge(&t, pre, idx);
+        got.x = t.x;
+        got.y = t.y;
+        got.z = z;
+        got.infinity = t.infinity;
+        test_gej_eq_strict(&got, &want);
+
+        secp256k1_ecmult_bundle_table_get_ge_lambda(&t, pre, lamx, idx);
+        got.x = t.x;
+        got.y = t.y;
+        got.z = z;
+        got.infinity = t.infinity;
+        test_gej_eq_strict(&got, &wantlam);
+    }
+}
+
+static void run_ecmult_bundle_table_get(void) {
+    secp256k1_ge a[ECMULT_BUNDLE_SIZE];
+    secp256k1_gej tmp;
+    size_t i;
+    int iter;
+
+    for (iter = 0; iter < COUNT; ++iter) {
+        for (i = 0; i < ECMULT_BUNDLE_SIZE; ++i) {
+            testutil_random_ge_test(&a[i]);
+        }
+        test_ecmult_bundle_table_get(a);
+
+        /* Again with entries that are infinite, which is what distinguishes these lookups from the
+         * ones Strauss' algorithm uses: a table of multiples of a point never contains one. */
+        secp256k1_gej_set_ge(&tmp, &a[0]);
+        secp256k1_gej_add_ge_var(&tmp, &tmp, &a[1], NULL);
+        secp256k1_gej_neg(&tmp, &tmp);
+        secp256k1_ge_set_gej(&a[2], &tmp);
+        secp256k1_ge_neg(&a[3], &a[0]);
+        test_ecmult_bundle_table_get(a);
+    }
+}
+
 static void run_point_times_order(void) {
     int i;
     secp256k1_fe x = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 2);
@@ -8494,6 +8574,7 @@ static const struct tf_test_entry tests_ecmult[] = {
     CASE(point_times_order),
     CASE(ecmult_near_split_bound),
     CASE(ecmult_bundle_table),
+    CASE(ecmult_bundle_table_get),
     CASE(ecmult_chain),
     CASE(ecmult_constants),
     CASE(ecmult_gen_ge),
