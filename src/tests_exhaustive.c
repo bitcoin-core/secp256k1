@@ -266,6 +266,53 @@ static void test_exhaustive_ecmult_multi(const secp256k1_context *ctx, const sec
     secp256k1_scratch_destroy(&ctx->error_callback, scratch);
 }
 
+#define BUNDLE_TEST_MAX_POINTS (2 * ECMULT_BUNDLE_SIZE + 1)
+
+typedef struct {
+    secp256k1_scalar sc[BUNDLE_TEST_MAX_POINTS];
+    secp256k1_ge pt[BUNDLE_TEST_MAX_POINTS];
+} ecmult_bundle_data;
+
+static int ecmult_bundle_callback(secp256k1_scalar *sc, secp256k1_ge *pt, size_t idx, void *cbdata) {
+    ecmult_bundle_data *data = (ecmult_bundle_data*) cbdata;
+    *sc = data->sc[idx];
+    *pt = data->pt[idx];
+    return 1;
+}
+
+/* The bundled algorithm over a small group, where a subset sum of a bundle's points vanishes one time
+ * in EXHAUSTIVE_TEST_ORDER and so the tables hold infinities. Every count from one bundle to two
+ * bundles and a point left over is run, with and without a multiple of G. */
+static void test_exhaustive_ecmult_bundle(const secp256k1_context *ctx, const secp256k1_ge *group) {
+    secp256k1_scratch *scratch = secp256k1_scratch_create(&ctx->error_callback, 65536);
+    ecmult_bundle_data data;
+    size_t num, i;
+    int trial;
+
+    for (num = ECMULT_BUNDLE_SIZE; num <= BUNDLE_TEST_MAX_POINTS; ++num) {
+        for (trial = 0; trial < 32; ++trial) {
+            secp256k1_gej tmp;
+            secp256k1_scalar g_sc;
+            int k = testrand_int(EXHAUSTIVE_TEST_ORDER);
+            int expect = 0;
+
+            secp256k1_scalar_set_int(&g_sc, k);
+            for (i = 0; i < num; ++i) {
+                int x = testrand_int(EXHAUSTIVE_TEST_ORDER);
+                int s = testrand_int(EXHAUSTIVE_TEST_ORDER);
+
+                secp256k1_scalar_set_int(&data.sc[i], s);
+                data.pt[i] = group[x];
+                expect = (expect + x * s) % EXHAUSTIVE_TEST_ORDER;
+            }
+
+            CHECK(secp256k1_ecmult_bundle_batch_single(&ctx->error_callback, scratch, &tmp, trial & 1 ? &g_sc : NULL, ecmult_bundle_callback, &data, num) == 1);
+            CHECK(secp256k1_gej_eq_ge_var(&tmp, &group[trial & 1 ? (expect + k) % EXHAUSTIVE_TEST_ORDER : expect]));
+        }
+    }
+    secp256k1_scratch_destroy(&ctx->error_callback, scratch);
+}
+
 static void r_from_k(secp256k1_scalar *r, const secp256k1_ge *group, int k, int* overflow) {
     secp256k1_fe x;
     unsigned char x_bin[32];
@@ -477,6 +524,7 @@ int main(int argc, char** argv) {
         test_exhaustive_addition(group, groupj);
         test_exhaustive_ecmult(group, groupj);
         test_exhaustive_ecmult_multi(ctx, group);
+        test_exhaustive_ecmult_bundle(ctx, group);
         test_exhaustive_sign(ctx, group);
         test_exhaustive_verify(ctx, group);
 

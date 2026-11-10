@@ -5721,7 +5721,8 @@ static int test_ecmult_multi_random(secp256k1_scratch *scratch) {
      * - Few or many 0*P or a*INF inputs (roughly uniformly distributed).
      * - Including or excluding an nonzero a*G term (or such a term at all).
      * - Final expected result equal to infinity or not (roughly 50%).
-     * - ecmult_multi_var, ecmult_strauss_single_batch, ecmult_pippenger_single_batch
+     * - ecmult_multi_var, ecmult_strauss_single_batch, ecmult_bundle_single_batch,
+     *   ecmult_pippenger_single_batch
      */
 
     /* These 4 variables define the eventual input to the ecmult_multi function.
@@ -5743,9 +5744,10 @@ static int test_ecmult_multi_random(secp256k1_scratch *scratch) {
 
     int i;
     /* Which multiplication function to use */
-    int fn = testrand_int(3);
+    int fn = testrand_int(4);
     secp256k1_ecmult_multi_func ecmult_multi = fn == 0 ? secp256k1_ecmult_multi_var :
                                                fn == 1 ? secp256k1_ecmult_strauss_batch_single :
+                                               fn == 2 ? secp256k1_ecmult_bundle_batch_single :
                                                secp256k1_ecmult_pippenger_batch_single;
     /* Simulate exponentially distributed num. */
     int num_bits = 2 + testrand_int(6);
@@ -6078,6 +6080,8 @@ static void run_ecmult_multi_tests(void) {
     test_ecmult_multi_batch_single(secp256k1_ecmult_pippenger_batch_single);
     test_ecmult_multi(scratch, secp256k1_ecmult_strauss_batch_single);
     test_ecmult_multi_batch_single(secp256k1_ecmult_strauss_batch_single);
+    test_ecmult_multi(scratch, secp256k1_ecmult_bundle_batch_single);
+    test_ecmult_multi_batch_single(secp256k1_ecmult_bundle_batch_single);
     while (todo > 0) {
         todo -= test_ecmult_multi_random(scratch);
     }

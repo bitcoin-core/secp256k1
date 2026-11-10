@@ -1025,6 +1025,65 @@ static size_t secp256k1_strauss_max_points(const secp256k1_callback* error_callb
     return secp256k1_scratch_max_allocation(error_callback, scratch, STRAUSS_SCRATCH_OBJECTS) / secp256k1_strauss_scratch_size(1);
 }
 
+/** As secp256k1_ecmult_strauss_batch, but bundling as many of the points as fill bundles exactly.
+ *  With too few points to fill a single bundle, the batch is handed to Strauss' algorithm.
+ *
+ *  There is no sizing function to go with this. Per point it needs less space than Strauss' algorithm
+ *  does -- around 850 bytes against 1452 once the bundles are full, and never more, since a point
+ *  left over costs what it would have cost there anyway -- so a batch sized for Strauss' algorithm
+ *  fits. That holds for the real group only: in the exhaustive tests WINDOW_A is smaller, which
+ *  shrinks the tables of Strauss' algorithm and leaves a bundle's as they are. So a failed allocation
+ *  hands the batch to Strauss' algorithm as well.
+ */
+static int secp256k1_ecmult_bundle_batch(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points, size_t cb_offset) {
+    secp256k1_ge* points;
+    secp256k1_scalar* scalars;
+    struct secp256k1_bundle_state state;
+    size_t nbund, ne, rem, i;
+    size_t scratch_checkpoint;
+
+    if (n_points < ECMULT_BUNDLE_SIZE) {
+        return secp256k1_ecmult_strauss_batch(error_callback, scratch, r, inp_g_sc, cb, cbdata, n_points, cb_offset);
+    }
+
+    scratch_checkpoint = secp256k1_scratch_checkpoint(error_callback, scratch);
+    rem = secp256k1_ecmult_bundle_remainder(n_points);
+    nbund = (n_points - rem) / ECMULT_BUNDLE_SIZE;
+    ne = nbund * ECMULT_BUNDLE_TABLE_SIZE;
+
+    points = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_ge));
+    scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_scalar));
+    state.pre = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, ne * sizeof(secp256k1_ge));
+    state.lamx = (secp256k1_fe*)secp256k1_scratch_alloc(error_callback, scratch, ne * sizeof(secp256k1_fe));
+    state.indices = (unsigned char*)secp256k1_scratch_alloc(error_callback, scratch, ECMULT_BUNDLE_BITS * 2 * nbund);
+    /* Only what the points left over actually need. A zero-length allocation is fine and still comes
+     * back non-NULL, so nothing being left over needs no special handling. */
+    state.pre_rem = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, rem * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_ge));
+    state.aux_rem = (secp256k1_fe*)secp256k1_scratch_alloc(error_callback, scratch, rem * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_fe));
+    state.ps = (struct secp256k1_strauss_point_state*)secp256k1_scratch_alloc(error_callback, scratch, rem * sizeof(struct secp256k1_strauss_point_state));
+
+    if (points == NULL || scalars == NULL || state.pre == NULL || state.lamx == NULL ||
+        state.indices == NULL || state.pre_rem == NULL || state.aux_rem == NULL || state.ps == NULL) {
+        secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
+        return secp256k1_ecmult_strauss_batch(error_callback, scratch, r, inp_g_sc, cb, cbdata, n_points, cb_offset);
+    }
+
+    for (i = 0; i < n_points; i++) {
+        if (!cb(&scalars[i], &points[i], i + cb_offset, cbdata)) {
+            secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
+            return 0;
+        }
+    }
+    secp256k1_ecmult_bundle_multi(&state, r, n_points, points, scalars, inp_g_sc);
+    secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
+    return 1;
+}
+
+/* Wrapper for secp256k1_ecmult_multi_func interface */
+static int secp256k1_ecmult_bundle_batch_single(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
+    return secp256k1_ecmult_bundle_batch(error_callback, scratch, r, inp_g_sc, cb, cbdata, n, 0);
+}
+
 /** Convert a number to WNAF notation.
  *  The number becomes represented by sum(2^{wi} * wnaf[i], i=0..WNAF_SIZE(w)+1) - return_val.
  *  It has the following guarantees:
