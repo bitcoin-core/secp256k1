@@ -43,8 +43,8 @@
 
 #define PIPPENGER_MAX_BUCKET_WINDOW 12
 
-/* Minimum number of points for which pippenger_wnaf is faster than strauss wnaf */
-#define ECMULT_PIPPENGER_THRESHOLD 88
+/* Minimum number of points for which pippenger_wnaf is faster than the bundled algorithm */
+#define ECMULT_PIPPENGER_THRESHOLD 181
 
 #define ECMULT_MAX_POINTS_PER_BATCH 5000000
 
