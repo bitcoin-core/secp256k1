@@ -5058,6 +5058,114 @@ static void run_ecmult_hscalar(void) {
     }
 }
 
+/* Replay one side of a bundle's stream of indices, recovering the coefficient each of its points
+ * ends up with. The index at position j stands for its sign times the sum of the anchor and the
+ * followers whose entry bits are set, scaled by 2^j, so working down from the top with a doubling at
+ * each position accumulates exactly the multiplier the main loop would apply to each point: on the
+ * plain side to the points themselves, on the lambda side to their lambda multiples. indices is
+ * that side's ECMULT_BUNDLE_BITS bytes, and coef needs space for ECMULT_BUNDLE_SIZE scalars. */
+static void test_ecmult_bundle_recode_replay(secp256k1_scalar *coef, const unsigned char *indices) {
+    secp256k1_scalar one, minus_one;
+    int j;
+    size_t i;
+
+    secp256k1_scalar_set_int(&one, 1);
+    secp256k1_scalar_negate(&minus_one, &one);
+    for (i = 0; i < ECMULT_BUNDLE_SIZE; ++i) {
+        coef[i] = secp256k1_scalar_zero;
+    }
+
+    for (j = ECMULT_BUNDLE_BITS - 1; j >= 0; --j) {
+        unsigned int idx = indices[j];
+        unsigned int entry = idx & ECMULT_BUNDLE_INDEX_ENTRY;
+        const secp256k1_scalar *term = (idx & ECMULT_BUNDLE_INDEX_SIGN) ? &one : &minus_one;
+
+        /* Nothing above the sign bit may be set. */
+        CHECK((idx & ~(ECMULT_BUNDLE_INDEX_SIGN | ECMULT_BUNDLE_INDEX_ENTRY)) == 0);
+
+        for (i = 0; i < ECMULT_BUNDLE_SIZE; ++i) {
+            secp256k1_scalar_add(&coef[i], &coef[i], &coef[i]);
+        }
+        /* The anchor is in every table entry; the followers are the ones whose entry bits are set. */
+        secp256k1_scalar_add(&coef[0], &coef[0], term);
+        for (i = 1; i < ECMULT_BUNDLE_SIZE; ++i) {
+            if ((entry >> (i - 1)) & 1) {
+                secp256k1_scalar_add(&coef[i], &coef[i], term);
+            }
+        }
+    }
+}
+
+static void test_ecmult_bundle_recode(const secp256k1_scalar *na) {
+    /* A guard byte on either side of the bundle's own bytes, to check that nothing else is written.
+     * With fewer than eight points to a bundle 0xff is not a valid index, so the replay also
+     * notices a byte that was not written. */
+    unsigned char indices[2 * ECMULT_BUNDLE_BITS + 2];
+    secp256k1_scalar coef[2][ECMULT_BUNDLE_SIZE], r;
+    size_t i;
+
+    memset(indices, 0xff, sizeof(indices));
+    secp256k1_ecmult_bundle_recode(indices + 1, na);
+    CHECK(indices[0] == 0xff);
+    CHECK(indices[2 * ECMULT_BUNDLE_BITS + 1] == 0xff);
+
+    test_ecmult_bundle_recode_replay(coef[0], indices + 1);
+    test_ecmult_bundle_recode_replay(coef[1], indices + 1 + ECMULT_BUNDLE_BITS);
+
+    /* Each point's plain coefficient plus lambda times its lambda coefficient is its scalar. */
+    for (i = 0; i < ECMULT_BUNDLE_SIZE; ++i) {
+        secp256k1_scalar_mul(&r, &coef[1][i], &secp256k1_const_lambda);
+        secp256k1_scalar_add(&r, &r, &coef[0][i]);
+        CHECK(secp256k1_scalar_eq(&r, &na[i]));
+    }
+}
+
+static void run_ecmult_bundle_recode(void) {
+    secp256k1_scalar na[ECMULT_BUNDLE_SIZE];
+    secp256k1_scalar scalars_near_split_bounds[20];
+    secp256k1_scalar t;
+    size_t i, j, k;
+
+    /* K is -(1 + lambda), which is also lambda^2. */
+    secp256k1_scalar_add(&t, &secp256k1_const_lambda, &secp256k1_scalar_one);
+    secp256k1_scalar_negate(&t, &t);
+    CHECK(secp256k1_scalar_eq(&t, &secp256k1_ecmult_bundle_K));
+    secp256k1_scalar_mul(&t, &secp256k1_const_lambda, &secp256k1_const_lambda);
+    CHECK(secp256k1_scalar_eq(&t, &secp256k1_ecmult_bundle_K));
+
+    fill_scalars_near_split_bounds(scalars_near_split_bounds);
+
+    for (i = 0; i < (size_t)(8 * COUNT); ++i) {
+        for (j = 0; j < ECMULT_BUNDLE_SIZE; ++j) {
+            testutil_random_scalar_order_test(&na[j]);
+        }
+        test_ecmult_bundle_recode(na);
+    }
+
+    /* Zero scalars, which Strauss' algorithm filters out and this recoding takes like any other. */
+    for (j = 0; j < ECMULT_BUNDLE_SIZE; ++j) {
+        na[j] = secp256k1_scalar_zero;
+    }
+    test_ecmult_bundle_recode(na);
+
+    /* Every scalar reaching a large split output, in the anchor's place against each of them in the
+     * followers'. The followers are split as they are; the anchor is split as (q + K)/2, so it is
+     * given q = 2*s - K to make that s, as the ecmult_const test does. This is what the range of
+     * e = f + ~u (see ECMULT_BUNDLE_BITS) is tightest against: it does not fit in 129 positions
+     * here, which is what ECMULT_BUNDLE_BITS being 130 is for. */
+    for (i = 0; i < ARRAY_SIZE(scalars_near_split_bounds); ++i) {
+        for (j = 0; j < ARRAY_SIZE(scalars_near_split_bounds); ++j) {
+            for (k = 1; k < ECMULT_BUNDLE_SIZE; ++k) {
+                na[k] = scalars_near_split_bounds[j];
+            }
+            secp256k1_scalar_negate(&na[0], &secp256k1_ecmult_bundle_K);
+            secp256k1_scalar_add(&na[0], &na[0], &scalars_near_split_bounds[i]);
+            secp256k1_scalar_add(&na[0], &na[0], &scalars_near_split_bounds[i]);
+            test_ecmult_bundle_recode(na);
+        }
+    }
+}
+
 static void run_point_times_order(void) {
     int i;
     secp256k1_fe x = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 2);
@@ -8619,6 +8727,7 @@ static const struct tf_test_entry tests_ecmult[] = {
     CASE(ecmult_bundle_table),
     CASE(ecmult_bundle_table_get),
     CASE(ecmult_hscalar),
+    CASE(ecmult_bundle_recode),
     CASE(ecmult_chain),
     CASE(ecmult_constants),
     CASE(ecmult_gen_ge),

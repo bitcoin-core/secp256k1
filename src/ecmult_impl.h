@@ -497,6 +497,133 @@ SECP256K1_INLINE static void secp256k1_hscalar_verify_bits(const secp256k1_hscal
 #endif
 }
 
+/* How a bundle's scalars are recoded.
+ *
+ * Fix one side of the lambda split. Let u be the anchor's half there, written in L-bit two's
+ * complement, where L is ECMULT_BUNDLE_BITS: bit j has weight 2^j, except the top bit, bit L-1,
+ * whose weight is -2^(L-1). Changing bit j of ~u into bit j of u changes the value by
+ *
+ *     t_j = (2*u_j - 1) * weight_j,
+ *
+ * which is +2^j where u_j is set and -2^j where it is clear, the other way round at the top bit.
+ *
+ * The anchor is given the term t_j at every position. Changing every bit turns ~u into u, so its
+ * terms sum to u - ~u = 2*u + 1, which is its coefficient on this side.
+ *
+ * A follower is given t_j at the positions where it is present and nothing at the others. Changing
+ * the bits at those positions alone turns ~u into some e, so the follower's coefficient is e - ~u.
+ * For that to be its own half f,
+ *
+ *     e = f + ~u,    present = ~(e ^ u),
+ *
+ * present being where e agrees with u. Every L-bit e comes from exactly one choice of positions, so
+ * the recoding exists and is unique exactly when f + ~u fits in L bits. It is a closed form: one
+ * addition and one XNOR per follower per side, with no pass over the positions.
+ */
+
+/** Number of positions a bundle's scalars are recoded into on each side of the lambda split, and so
+ *  the number of doublings a main loop over them makes. This is L above.
+ *
+ *  It has to be large enough for u and for f + ~u to fit in L-bit two's complement, that is for
+ *
+ *      -2^(L-1) <= u < 2^(L-1)   and   -2^(L-1) <= f - u - 1 < 2^(L-1),
+ *
+ *  which |u| + |f| < 2^(L-1) ensures. Every half produced by secp256k1_scalar_split_lambda is below
+ *  (a1 + a2 + 1)/2 = 0.6354*2^128 in absolute value (see the proof above
+ *  secp256k1_scalar_split_lambda_verify), so |u| + |f| can reach 1.271*2^128. At L = 129 the room is
+ *  2^128, short by a factor of 1.27; at L = 130 it is 2^129, a factor of 1.57 to spare. The anchor
+ *  alone would fit in 129; it is a follower's f + ~u that needs the extra bit.
+ *
+ *  L also has to stay below the width of a half-scalar, which needs a bit above the L positions
+ *  for a value that does not fit to show as such. */
+#define ECMULT_BUNDLE_BITS 130
+
+#if !(130 <= ECMULT_BUNDLE_BITS && ECMULT_BUNDLE_BITS < 32 * ECMULT_HSCALAR_WORDS)
+#  error "ECMULT_BUNDLE_BITS must be in the range [130, 32*ECMULT_HSCALAR_WORDS - 1]"
+#endif
+
+/* The anchor's coefficient on each side is 2*u + 1 for its half u there (see above), so halves u
+ * and u' give it (2*u + 1) + lambda*(2*u' + 1) = 2*(u + lambda*u') + (1 + lambda) in all. Splitting
+ * t = (q + K)/2 for the anchor's scalar q therefore yields exactly q when K = -(1 + lambda).
+ * Since lambda^2 + lambda + 1 = 0 mod n, that is the same as K = lambda^2, the other primitive
+ * cube root of unity mod n and the inverse of lambda.
+ *
+ * This is the scalar offsetting of secp256k1_ecmult_const_gej; see the derivation in its comment.
+ * The correction has to go into the scalar, before the split, because that is where there is
+ * arithmetic mod n. The halves are plain integers: they cannot take a modular correction, and
+ * the alternatives are ugly. */
+#if defined(EXHAUSTIVE_TEST_ORDER)
+static const secp256k1_scalar secp256k1_ecmult_bundle_K = ((EXHAUSTIVE_TEST_ORDER - 1U) * (1U + EXHAUSTIVE_TEST_LAMBDA)) % EXHAUSTIVE_TEST_ORDER;
+#else
+static const secp256k1_scalar secp256k1_ecmult_bundle_K = SECP256K1_SCALAR_CONST(
+    0xac9c52b3ul, 0x3fa3cf1ful, 0x5ad9e3fdul, 0x77ed9ba4ul,
+    0xa880b9fcul, 0x8ec739c2ul, 0xe0cfc810ul, 0xb51283ceul
+);
+#endif
+
+/** Recode a bundle's scalars into one bundle index per position per side.
+ *
+ *  indices needs 2*ECMULT_BUNDLE_BITS bytes. indices[j] receives position j's index for the plain
+ *  side and indices[ECMULT_BUNDLE_BITS + j] the one for the lambda side, in the layout
+ *  ECMULT_BUNDLE_INDEX_SIGN and ECMULT_BUNDLE_INDEX_ENTRY describe.
+ *
+ *  na points to ECMULT_BUNDLE_SIZE scalars, na[0] being the anchor's. Any scalar is acceptable,
+ *  including zero.
+ *
+ *  On each side, with u the anchor's half and f a follower's (see "How a bundle's scalars are
+ *  recoded" above): the sign bit of the index at position j is bit j of u, inverted at the top
+ *  position, and the follower's entry bit there is bit j of ~((f + ~u) ^ u).
+ */
+static void secp256k1_ecmult_bundle_recode(unsigned char *indices, const secp256k1_scalar *na) {
+    secp256k1_hscalar u[2], signs[2];
+    secp256k1_hscalar present[2][ECMULT_BUNDLE_SIZE - 1];
+    secp256k1_scalar t, h[2];
+    int j, side;
+    size_t i;
+
+    /* The anchor's halves, from (q + K)/2. */
+    secp256k1_scalar_add(&t, &na[0], &secp256k1_ecmult_bundle_K);
+    secp256k1_scalar_half(&t, &t);
+    secp256k1_scalar_split_lambda(&h[0], &h[1], &t);
+
+    for (side = 0; side < 2; ++side) {
+        secp256k1_hscalar_set_scalar(&u[side], &h[side]);
+        secp256k1_hscalar_verify_bits(&u[side], ECMULT_BUNDLE_BITS);
+        /* The sign bits: u with bit L-1 flipped. Nothing reads them above that bit. */
+        signs[side] = u[side];
+        signs[side].d[(ECMULT_BUNDLE_BITS - 1) >> 5] ^= (uint32_t)1 << ((ECMULT_BUNDLE_BITS - 1) & 31);
+    }
+
+    for (i = 1; i < ECMULT_BUNDLE_SIZE; ++i) {
+        secp256k1_scalar c[2];
+
+        secp256k1_scalar_split_lambda(&c[0], &c[1], &na[i]);
+        for (side = 0; side < 2; ++side) {
+            secp256k1_hscalar *p = &present[side][i - 1];
+            secp256k1_hscalar f, e;
+
+            secp256k1_hscalar_set_scalar(&f, &c[side]);
+            /* e = f + ~u, then present = ~(e ^ u). */
+            secp256k1_hscalar_not(&e, &u[side]);
+            secp256k1_hscalar_add(&e, &e, &f);
+            secp256k1_hscalar_verify_bits(&e, ECMULT_BUNDLE_BITS);
+            secp256k1_hscalar_xor(p, &e, &u[side]);
+            secp256k1_hscalar_not(p, p);
+        }
+    }
+
+    for (side = 0; side < 2; ++side) {
+        for (j = 0; j < ECMULT_BUNDLE_BITS; ++j) {
+            unsigned int idx = secp256k1_hscalar_bit(&signs[side], j) * ECMULT_BUNDLE_INDEX_SIGN;
+
+            for (i = 1; i < ECMULT_BUNDLE_SIZE; ++i) {
+                idx |= secp256k1_hscalar_bit(&present[side][i - 1], j) << (i - 1);
+            }
+            indices[side * ECMULT_BUNDLE_BITS + j] = (unsigned char)idx;
+        }
+    }
+}
+
 struct secp256k1_strauss_point_state {
     int8_t wnaf_na_1[129];
     int8_t wnaf_na_lam[129];
