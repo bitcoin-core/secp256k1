@@ -379,6 +379,124 @@ SECP256K1_INLINE static void secp256k1_ecmult_bundle_table_get_ge_lambda(secp256
     }
 }
 
+/** Number of 32-bit words in a secp256k1_hscalar: at least five, since a half of a lambda split
+ *  takes up to 128 bits and a sign, and at most the eight of a scalar. */
+#define ECMULT_HSCALAR_WORDS 5
+
+#if !(5 <= ECMULT_HSCALAR_WORDS && ECMULT_HSCALAR_WORDS <= 8)
+#  error "ECMULT_HSCALAR_WORDS must be in the range [5, 8]"
+#endif
+
+/** A half-scalar: a signed integer in two's complement, as little-endian 32-bit words.
+ *
+ *  The halves that secp256k1_scalar_split_lambda produces are small signed integers, but a
+ *  secp256k1_scalar holds them as residues mod n, a negative one as n minus its magnitude. A recoding
+ *  of such halves wants them as the integers they are, to add them, complement them and read off
+ *  their bits, and this type is that: plain fixed-width arithmetic with the sign in the top bit. It
+ *  is wider than any half, so that what a recoding computes from halves has bits to spare above it.
+ *  Those are sign extension, and let a value outside its expected range be caught under VERIFY (see
+ *  secp256k1_hscalar_verify_bits) instead of wrapping.
+ */
+typedef struct {
+    uint32_t d[ECMULT_HSCALAR_WORDS];
+} secp256k1_hscalar;
+
+/** Set r to the signed integer a scalar stands for: the residue a itself when it is below 2^255, and
+ *  a - n otherwise. Reading the sign off the top bit is right for every integer in [2^255 - n, 2^255),
+ *  which takes in every absolute value up to 2^254, far beyond anything a lambda split produces. The
+ *  value must then fit the type, that is lie in [-2^159, 2^159) at ECMULT_HSCALAR_WORDS = 5, which is
+ *  checked under VERIFY.
+ *
+ *  Since a - n = a + (2^256 - n) mod 2^256, the conversion is a conditional addition of 2^256 - n to
+ *  the low words of a, with the sign bit as the condition: no comparison and no negation.
+ */
+static void secp256k1_hscalar_set_scalar(secp256k1_hscalar *r, const secp256k1_scalar *a) {
+    /* 2^256 - n, low word first. For an exhaustive test group every scalar is tiny, so the sign bit
+     * is never set and the constant is never added; it only has to be well defined. */
+#if defined(EXHAUSTIVE_TEST_ORDER)
+    static const uint32_t n_c[8] = {
+        (uint32_t)0 - (uint32_t)EXHAUSTIVE_TEST_ORDER, 0xFFFFFFFFul, 0xFFFFFFFFul, 0xFFFFFFFFul,
+        0xFFFFFFFFul, 0xFFFFFFFFul, 0xFFFFFFFFul, 0xFFFFFFFFul
+    };
+#else
+    static const uint32_t n_c[8] = {
+        0x2FC9BEBFul, 0x402DA173ul, 0x50B75FC4ul, 0x45512319ul, 1, 0, 0, 0
+    };
+#endif
+    uint32_t mask = 0 - secp256k1_scalar_get_bits_limb32(a, 255, 1);
+    uint64_t c = 0;
+    int k;
+
+    for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+        c += (uint64_t)secp256k1_scalar_get_bits_limb32(a, 32 * (unsigned int)k, 32) + (n_c[k] & mask);
+        r->d[k] = (uint32_t)c;
+        c >>= 32;
+    }
+#ifdef VERIFY
+    /* The words left off must be the sign extension of the ones kept. */
+    {
+        uint32_t sign = 0 - (r->d[ECMULT_HSCALAR_WORDS - 1] >> 31);
+
+        for (k = ECMULT_HSCALAR_WORDS; k < 8; ++k) {
+            c += (uint64_t)secp256k1_scalar_get_bits_limb32(a, 32 * (unsigned int)k, 32) + (n_c[k] & mask);
+            VERIFY_CHECK((uint32_t)c == sign);
+            c >>= 32;
+        }
+    }
+#endif
+}
+
+/** Set r to a + b, modulo 2^(32*ECMULT_HSCALAR_WORDS); exact for the ranges the callers keep to. */
+static void secp256k1_hscalar_add(secp256k1_hscalar *r, const secp256k1_hscalar *a, const secp256k1_hscalar *b) {
+    uint64_t c = 0;
+    int k;
+
+    for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+        c += (uint64_t)a->d[k] + b->d[k];
+        r->d[k] = (uint32_t)c;
+        c >>= 32;
+    }
+}
+
+/** Set r to the bitwise complement of a, which as an integer is -a - 1. */
+static void secp256k1_hscalar_not(secp256k1_hscalar *r, const secp256k1_hscalar *a) {
+    int k;
+
+    for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+        r->d[k] = ~a->d[k];
+    }
+}
+
+/** Set r to the bitwise XOR of a and b. */
+static void secp256k1_hscalar_xor(secp256k1_hscalar *r, const secp256k1_hscalar *a, const secp256k1_hscalar *b) {
+    int k;
+
+    for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+        r->d[k] = a->d[k] ^ b->d[k];
+    }
+}
+
+/** Bit j of a. */
+SECP256K1_INLINE static unsigned int secp256k1_hscalar_bit(const secp256k1_hscalar *a, int j) {
+    return (a->d[j >> 5] >> (j & 31)) & 1;
+}
+
+/** Check that a fits in bits-bit two's complement, that is, that every bit from bits-1 up is the
+ *  sign (no-op unless VERIFY is enabled). */
+SECP256K1_INLINE static void secp256k1_hscalar_verify_bits(const secp256k1_hscalar *a, int bits) {
+#ifdef VERIFY
+    unsigned int sign = secp256k1_hscalar_bit(a, 32 * ECMULT_HSCALAR_WORDS - 1);
+    int j;
+
+    for (j = bits - 1; j < 32 * ECMULT_HSCALAR_WORDS; ++j) {
+        VERIFY_CHECK(secp256k1_hscalar_bit(a, j) == sign);
+    }
+#else
+    (void)a;
+    (void)bits;
+#endif
+}
+
 struct secp256k1_strauss_point_state {
     int8_t wnaf_na_1[129];
     int8_t wnaf_na_lam[129];

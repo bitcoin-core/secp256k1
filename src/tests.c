@@ -5015,6 +5015,49 @@ static void run_ecmult_bundle_table_get(void) {
     }
 }
 
+/* A magnitude of up to 32*ECMULT_HSCALAR_WORDS - 1 bits, as a scalar of either sign, must come back as
+ * that signed integer in two's complement. */
+static void run_ecmult_hscalar(void) {
+    int i, k;
+
+    for (i = 0; i < 16 * COUNT; ++i) {
+        unsigned char b32[32];
+        secp256k1_scalar s;
+        secp256k1_hscalar got, want;
+        int bits = testrand_int(32 * ECMULT_HSCALAR_WORDS);
+        int negative = testrand_bits(1);
+
+        /* A random magnitude below 2^bits. */
+        testrand256(b32);
+        for (k = 0; k < 32; ++k) {
+            int top = 8 * (31 - k);
+            if (top >= bits) {
+                b32[k] = 0;
+            } else if (top + 8 > bits) {
+                b32[k] &= (unsigned char)(0xff >> (top + 8 - bits));
+            }
+        }
+        secp256k1_scalar_set_b32(&s, b32, NULL);
+        for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+            want.d[k] = secp256k1_scalar_get_bits_limb32(&s, 32 * k, 32);
+        }
+        if (negative) {
+            secp256k1_hscalar one;
+
+            secp256k1_scalar_negate(&s, &s);
+            secp256k1_hscalar_not(&want, &want);
+            memset(&one, 0, sizeof(one));
+            one.d[0] = 1;
+            secp256k1_hscalar_add(&want, &want, &one);
+        }
+
+        secp256k1_hscalar_set_scalar(&got, &s);
+        for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+            CHECK(got.d[k] == want.d[k]);
+        }
+    }
+}
+
 static void run_point_times_order(void) {
     int i;
     secp256k1_fe x = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 2);
@@ -8575,6 +8618,7 @@ static const struct tf_test_entry tests_ecmult[] = {
     CASE(ecmult_near_split_bound),
     CASE(ecmult_bundle_table),
     CASE(ecmult_bundle_table_get),
+    CASE(ecmult_hscalar),
     CASE(ecmult_chain),
     CASE(ecmult_constants),
     CASE(ecmult_gen_ge),
