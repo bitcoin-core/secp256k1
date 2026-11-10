@@ -3964,6 +3964,27 @@ static int gej_xyz_equals_gej(const secp256k1_gej *a, const secp256k1_gej *b) {
     return ret;
 }
 
+/* Check that two Jacobian points are the same point, comparing both affine coordinates.
+ *
+ * secp256k1_gej_eq_var and its relatives negate one input, add the other to it and test the sum for
+ * infinity. That addition returns infinity for any two points with the same x and different y,
+ * which is only sound for points already known to be on the curve. A computed result with the right
+ * x and a wrong y therefore passes, so they are no use for checking one. */
+static void test_gej_eq_strict(const secp256k1_gej *a, const secp256k1_gej *b) {
+    secp256k1_gej ta = *a;
+    secp256k1_gej tb = *b;
+    secp256k1_ge ga, gb;
+
+    CHECK(secp256k1_gej_is_infinity(&ta) == secp256k1_gej_is_infinity(&tb));
+    if (secp256k1_gej_is_infinity(&ta)) {
+        return;
+    }
+    secp256k1_ge_set_gej(&ga, &ta);
+    secp256k1_ge_set_gej(&gb, &tb);
+    CHECK(secp256k1_fe_equal(&ga.x, &gb.x));
+    CHECK(secp256k1_fe_equal(&ga.y, &gb.y));
+}
+
 static void test_ge(void) {
     int i, i1;
     int runs = 6;
@@ -4349,6 +4370,88 @@ static void run_ge(void) {
     test_add_neg_y_diff_x();
     test_initialized_inf();
     test_ge_bytes();
+}
+
+/* Add b to a with secp256k1_ge_z_add_ge_var, and check the sum against the same addition done in
+ * Jacobian coordinates and the ratio it reports against the z it leaves. */
+static void test_ge_z_add_ge(const secp256k1_ge_z *a, const secp256k1_ge *b) {
+    secp256k1_ge_z r, r2;
+    secp256k1_gej aj, want, got, got2;
+    secp256k1_fe rzr, rzr2, z;
+
+    /* a as a Jacobian point, whose infinity has no z to speak of. */
+    if (a->p.infinity) {
+        secp256k1_gej_set_infinity(&aj);
+    } else {
+        aj.x = a->p.x;
+        aj.y = a->p.y;
+        aj.z = a->z;
+        aj.infinity = 0;
+    }
+    secp256k1_gej_add_ge_var(&want, &aj, b, NULL);
+
+    secp256k1_ge_z_add_ge_var(&r, a, b, &rzr);
+    got.x = r.p.x;
+    got.y = r.p.y;
+    got.z = r.z;
+    got.infinity = r.p.infinity;
+    test_gej_eq_strict(&got, &want);
+
+    /* The ratio relates the two z whether or not either point is infinite, */
+    secp256k1_fe_mul(&z, &a->z, &rzr);
+    CHECK(secp256k1_fe_equal(&z, &r.z));
+    /* and next to an infinity the curve stays the same. */
+    if (a->p.infinity || r.p.infinity) {
+        CHECK(secp256k1_fe_equal(&a->z, &r.z));
+    }
+
+    /* The result may be written over a. */
+    r2 = *a;
+    secp256k1_ge_z_add_ge_var(&r2, &r2, b, &rzr2);
+    got2.x = r2.p.x;
+    got2.y = r2.p.y;
+    got2.z = r2.z;
+    got2.infinity = r2.p.infinity;
+    CHECK(gej_xyz_equals_gej(&got2, &got));
+    secp256k1_fe_mul(&z, &a->z, &rzr2);
+    CHECK(secp256k1_fe_equal(&z, &r2.z));
+}
+
+static void run_ge_z(void) {
+    int i;
+
+    for (i = 0; i < 16 * COUNT; i++) {
+        secp256k1_ge p, q, t;
+        secp256k1_gej pj;
+        secp256k1_ge_z a, inf;
+        secp256k1_fe z;
+
+        testutil_random_ge_test(&p);
+        testutil_random_ge_test(&q);
+        testutil_random_fe_non_zero_test(&z);
+
+        /* p on the curve with that z, and that curve's infinity. */
+        secp256k1_gej_set_ge(&pj, &p);
+        secp256k1_gej_rescale(&pj, &z);
+        secp256k1_ge_set_xy(&a.p, &pj.x, &pj.y);
+        a.z = pj.z;
+        secp256k1_ge_z_set_infinity(&inf, &z);
+        CHECK(inf.p.infinity);
+        CHECK(secp256k1_fe_equal(&z, &inf.z));
+
+        /* The general case, */
+        test_ge_z_add_ge(&a, &q);
+        /* a doubling, */
+        test_ge_z_add_ge(&a, &p);
+        /* a sum that vanishes, */
+        secp256k1_ge_neg(&t, &p);
+        test_ge_z_add_ge(&a, &t);
+        /* and infinity on either side, or on both. */
+        secp256k1_ge_set_infinity(&t);
+        test_ge_z_add_ge(&a, &t);
+        test_ge_z_add_ge(&inf, &q);
+        test_ge_z_add_ge(&inf, &t);
+    }
 }
 
 static void test_gej_cmov(const secp256k1_gej *a, const secp256k1_gej *b) {
@@ -8267,6 +8370,7 @@ static const struct tf_test_entry tests_field[] = {
 
 static const struct tf_test_entry tests_group[] = {
     CASE(ge),
+    CASE(ge_z),
     CASE(gej),
     CASE(group_decompress),
 };

@@ -127,6 +127,42 @@ static void test_exhaustive_addition(const secp256k1_ge *group, const secp256k1_
         CHECK(secp256k1_gej_eq_ge_var(&tmp, &group[(2 * i) % EXHAUSTIVE_TEST_ORDER]));
     }
 
+    /* Check addition to a point that carries the z of its curve, infinity included */
+    for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++) {
+        secp256k1_ge_z a;
+        secp256k1_gej tmp;
+        secp256k1_fe z;
+        if (skip_section(&iter)) continue;
+        testutil_random_fe_non_zero(&z);
+        if (i == 0) {
+            secp256k1_ge_z_set_infinity(&a, &z);
+        } else {
+            secp256k1_gej_set_ge(&tmp, &group[i]);
+            secp256k1_gej_rescale(&tmp, &z);
+            secp256k1_ge_set_xy(&a.p, &tmp.x, &tmp.y);
+            a.z = tmp.z;
+        }
+        for (j = 0; j < EXHAUSTIVE_TEST_ORDER; j++) {
+            secp256k1_ge_z r;
+            secp256k1_ge t;
+            secp256k1_fe rzr;
+            secp256k1_ge_z_add_ge_var(&r, &a, &group[j], &rzr);
+            CHECK(r.p.infinity == ((i + j) % EXHAUSTIVE_TEST_ORDER == 0));
+            if (!r.p.infinity) {
+                /* Compare both affine coordinates: secp256k1_gej_eq_ge_var would let a wrong y by. */
+                tmp.x = r.p.x;
+                tmp.y = r.p.y;
+                tmp.z = r.z;
+                tmp.infinity = 0;
+                secp256k1_ge_set_gej(&t, &tmp);
+                CHECK(secp256k1_ge_eq_var(&t, &group[(i + j) % EXHAUSTIVE_TEST_ORDER]));
+            }
+            /* The ratio it reports is the one between the two curves, across infinities too. */
+            secp256k1_fe_mul(&z, &a.z, &rzr);
+            CHECK(secp256k1_fe_equal(&z, &r.z));
+        }
+    }
+
     /* Check negation */
     for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {
         secp256k1_ge tmp;

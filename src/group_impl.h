@@ -95,6 +95,15 @@ static void secp256k1_gej_verify(const secp256k1_gej *a) {
     (void)a;
 }
 
+static void secp256k1_ge_z_verify(const secp256k1_ge_z *a) {
+    SECP256K1_GE_VERIFY(&a->p);
+    SECP256K1_FE_VERIFY(&a->z);
+    SECP256K1_FE_VERIFY_MAGNITUDE(&a->z, SECP256K1_GEJ_Z_MAGNITUDE_MAX);
+    /* Infinite or not: z names a curve, and z = 0 is not one. */
+    VERIFY_CHECK(!secp256k1_fe_normalizes_to_zero_var(&a->z));
+    (void)a;
+}
+
 SECP256K1_INLINE static void secp256k1_ge_impl_set_gej_zinv(secp256k1_ge *r, const secp256k1_gej *a, const secp256k1_fe *zi) {
     secp256k1_fe zi2;
     secp256k1_fe zi3;
@@ -686,6 +695,59 @@ static void secp256k1_gej_add_ge_var(secp256k1_gej *r, const secp256k1_gej *a, c
     SECP256K1_GEJ_VERIFY(a); SECP256K1_GE_VERIFY(b);
     secp256k1_gej_impl_add_ge_var(r, a, b, rzr);
     SECP256K1_GEJ_VERIFY(r); if (rzr != NULL) SECP256K1_FE_VERIFY(rzr);
+}
+
+static void secp256k1_ge_z_set_infinity(secp256k1_ge_z *r, const secp256k1_fe *z) {
+    SECP256K1_FE_VERIFY(z);
+
+    secp256k1_ge_set_infinity(&r->p);
+    r->z = *z;
+
+    SECP256K1_GE_Z_VERIFY(r);
+}
+
+SECP256K1_INLINE static void secp256k1_ge_z_impl_add_ge_var(secp256k1_ge_z *r, const secp256k1_ge_z *a, const secp256k1_ge *b, secp256k1_fe *rzr) {
+    /* r may alias a. Nothing below writes r->z before it has finished reading a->z. */
+    if (a->p.infinity) {
+        /* The sum is b, mapped onto a's curve by (x, y) -> (x*z^2, y*z^3), which is the same map the
+         * general formula applies to b before combining it with a. Operations: 3 mul, 1 sqr. */
+        if (b->infinity) {
+            secp256k1_ge_set_infinity(&r->p);
+        } else {
+            secp256k1_fe zz, zzz;
+
+            secp256k1_fe_sqr(&zz, &a->z);
+            secp256k1_fe_mul(&zzz, &zz, &a->z);
+            secp256k1_fe_mul(&r->p.x, &b->x, &zz);
+            secp256k1_fe_mul(&r->p.y, &b->y, &zzz);
+            r->p.infinity = 0;
+        }
+        r->z = a->z;
+        secp256k1_fe_set_int(rzr, 1);
+    } else {
+        secp256k1_gej t;
+
+        t.x = a->p.x;
+        t.y = a->p.y;
+        t.z = a->z;
+        t.infinity = 0;
+        secp256k1_gej_add_ge_var(&t, &t, b, rzr);
+        if (t.infinity) {
+            /* a and b cancelled, which secp256k1_gej_add_ge_var reports with z = 0 and a zero ratio.
+             * The result is the infinity of a's curve, from which the chain carries on. */
+            r->z = a->z;
+            secp256k1_ge_set_infinity(&r->p);
+            secp256k1_fe_set_int(rzr, 1);
+        } else {
+            secp256k1_ge_set_xy(&r->p, &t.x, &t.y);
+            r->z = t.z;
+        }
+    }
+}
+static void secp256k1_ge_z_add_ge_var(secp256k1_ge_z *r, const secp256k1_ge_z *a, const secp256k1_ge *b, secp256k1_fe *rzr) {
+    SECP256K1_GE_Z_VERIFY(a); SECP256K1_GE_VERIFY(b); VERIFY_CHECK(rzr != NULL);
+    secp256k1_ge_z_impl_add_ge_var(r, a, b, rzr);
+    SECP256K1_GE_Z_VERIFY(r); SECP256K1_FE_VERIFY(rzr);
 }
 
 SECP256K1_INLINE static void secp256k1_gej_impl_add_zinv_var(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_ge *b, const secp256k1_fe *bzinv) {
