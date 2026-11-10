@@ -5166,6 +5166,86 @@ static void run_ecmult_bundle_recode(void) {
     }
 }
 
+#define BUNDLE_TEST_MAX_POINTS (3 * ECMULT_BUNDLE_SIZE)
+
+/* Run secp256k1_ecmult_bundle_multi and check it against secp256k1_ecmult one point at a time. */
+static void test_ecmult_bundle_multi(size_t num, const secp256k1_ge *pts, const secp256k1_scalar *sc, const secp256k1_scalar *ng) {
+    struct secp256k1_bundle_state state;
+    secp256k1_ge pre[(BUNDLE_TEST_MAX_POINTS / ECMULT_BUNDLE_SIZE) * ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe lamx[(BUNDLE_TEST_MAX_POINTS / ECMULT_BUNDLE_SIZE) * ECMULT_BUNDLE_TABLE_SIZE];
+    unsigned char indices[ECMULT_BUNDLE_BITS * 2 * (BUNDLE_TEST_MAX_POINTS / ECMULT_BUNDLE_SIZE)];
+    secp256k1_gej got, want, tmp;
+    size_t i;
+
+    CHECK(num >= ECMULT_BUNDLE_SIZE && num <= BUNDLE_TEST_MAX_POINTS);
+
+    state.pre = pre;
+    state.lamx = lamx;
+    state.indices = indices;
+    secp256k1_ecmult_bundle_multi(&state, &got, num, pts, sc, ng);
+
+    secp256k1_gej_set_infinity(&want);
+    for (i = 0; i < num; ++i) {
+        secp256k1_gej pj;
+        secp256k1_gej_set_ge(&pj, &pts[i]);
+        secp256k1_ecmult(&tmp, &pj, &sc[i], NULL);
+        secp256k1_gej_add_var(&want, &want, &tmp, NULL);
+    }
+    if (ng != NULL) {
+        secp256k1_gej inf;
+        secp256k1_gej_set_infinity(&inf);
+        secp256k1_ecmult(&tmp, &inf, &secp256k1_scalar_zero, ng);
+        secp256k1_gej_add_var(&want, &want, &tmp, NULL);
+    }
+    test_gej_eq_strict(&got, &want);
+}
+
+static void run_ecmult_bundle_multi(void) {
+    secp256k1_ge pts[BUNDLE_TEST_MAX_POINTS];
+    secp256k1_scalar sc[BUNDLE_TEST_MAX_POINTS];
+    secp256k1_scalar ng;
+    size_t num, i;
+    int iter;
+
+    for (iter = 0; iter < COUNT; ++iter) {
+        /* Every count of whole bundles. */
+        for (num = ECMULT_BUNDLE_SIZE; num <= BUNDLE_TEST_MAX_POINTS; num += ECMULT_BUNDLE_SIZE) {
+            for (i = 0; i < num; ++i) {
+                testutil_random_ge_test(&pts[i]);
+                testutil_random_scalar_order_test(&sc[i]);
+            }
+            testutil_random_scalar_order_test(&ng);
+            test_ecmult_bundle_multi(num, pts, sc, iter & 1 ? &ng : NULL);
+        }
+
+        /* Degeneracies. */
+        num = 2 * ECMULT_BUNDLE_SIZE;
+        for (i = 0; i < num; ++i) {
+            testutil_random_ge_test(&pts[i]);
+            testutil_random_scalar_order_test(&sc[i]);
+        }
+        /* Zero scalars, which a bundle takes in its stride. */
+        sc[0] = secp256k1_scalar_zero;
+        sc[num - 1] = secp256k1_scalar_zero;
+        test_ecmult_bundle_multi(num, pts, sc, &ng);
+
+        /* Infinite points, likewise. */
+        testutil_random_scalar_order_test(&sc[0]);
+        testutil_random_scalar_order_test(&sc[num - 1]);
+        secp256k1_ge_set_infinity(&pts[1]);
+        secp256k1_ge_set_infinity(&pts[num - 2]);
+        test_ecmult_bundle_multi(num, pts, sc, &ng);
+
+        /* A bundle's anchor again as one follower and negated as another. The first makes the table
+         * build start with a doubling; the second makes an entry vanish, so that the main loop looks
+         * up an infinity wherever the indices select it. */
+        testutil_random_ge_test(&pts[num - 2]);
+        pts[1] = pts[0];
+        secp256k1_ge_neg(&pts[4], &pts[0]);
+        test_ecmult_bundle_multi(num, pts, sc, NULL);
+    }
+}
+
 static void run_point_times_order(void) {
     int i;
     secp256k1_fe x = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 2);
@@ -8728,6 +8808,7 @@ static const struct tf_test_entry tests_ecmult[] = {
     CASE(ecmult_bundle_table_get),
     CASE(ecmult_hscalar),
     CASE(ecmult_bundle_recode),
+    CASE(ecmult_bundle_multi),
     CASE(ecmult_chain),
     CASE(ecmult_constants),
     CASE(ecmult_gen_ge),

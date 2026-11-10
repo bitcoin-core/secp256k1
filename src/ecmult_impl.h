@@ -751,6 +751,138 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
     }
 }
 
+struct secp256k1_bundle_state {
+    /* The tables of every bundle, concatenated. */
+    secp256k1_ge *pre;
+    /* The x coordinates of the lambda multiples of those tables. The same array first holds the
+     * chain's z ratios, until the tables have been normalized and the ratios are spent. */
+    secp256k1_fe *lamx;
+    /* The bundle indices, 2*ECMULT_BUNDLE_BITS of them for each bundle in turn, as
+     * secp256k1_ecmult_bundle_recode writes them. */
+    unsigned char *indices;
+};
+
+/** Set r to ng*G + sum(na[i] * a[i], i=0..num-1), taking the points in bundles. ng may be NULL.
+ *
+ *  The points are taken ECMULT_BUNDLE_SIZE at a time. In such a bundle the first point is the anchor
+ *  and the others are its followers. Every scalar is split by lambda into two halves, and on each
+ *  side of the split a bundle's halves are recoded together (secp256k1_ecmult_bundle_recode) so that
+ *  at every position
+ *
+ *    - the anchor's digit is +1 or -1, never zero, and
+ *    - each follower's digit is either zero or equal to the anchor's.
+ *
+ *  What a bundle contributes at one position on one side is then a sign times a sum of its points
+ *  that always includes the anchor: an entry of the bundle's table of subset sums
+ *  (secp256k1_ecmult_bundle_table) or its negation, named by one bundle index. That is one lookup
+ *  and one addition per bundle, whatever the scalars are. The lambda side uses the same table with
+ *  its x coordinates multiplied by beta.
+ *
+ *  Against Strauss' algorithm, which averages one addition per WINDOW_A + 1 positions for each half
+ *  of each scalar, the main loop comes out even: at ECMULT_BUNDLE_SIZE = 6 a bundle spends
+ *  2*ECMULT_BUNDLE_BITS = 260 additions where six points' wNAF digits spend about 12*129/6 = 258.
+ *  The gain is in what goes before. A bundle's table takes 31 additions and 32 normalizations, where
+ *  six tables of odd multiples take 42 additions, 6 doublings and 48 normalizations. The recoding of
+ *  a scalar is a split and a few word operations, in place of a split and two wNAF recodings. And a
+ *  bundle's table and indices occupy little more than half the space of what they replace.
+ *
+ *  Every bundle's table is a segment of one chain of additions, so a single backward pass brings
+ *  them all to a common z, and the tables for G can then be used exactly as Strauss' algorithm uses
+ *  them.
+ *
+ *  A zero scalar or an infinite point needs no special handling in a bundle: the recoding is valid
+ *  for any scalar, and a table copes with infinite inputs and with subset sums that vanish.
+ *
+ *  The representation is the sign-aligned column form (GLV-SAC) of Faz-Hernandez, Longa and Sanchez,
+ *  "Efficient and Secure Algorithms for GLV-Based Scalar Multiplication and their Implementation on
+ *  GLV-GLS Curves" (https://eprint.iacr.org/2013/158), section 3, with the columns running across
+ *  the points of a bundle rather than across the sub-scalars of a single multiplication.
+ *
+ *  num must be a multiple of ECMULT_BUNDLE_SIZE.
+ */
+static void secp256k1_ecmult_bundle_multi(const struct secp256k1_bundle_state *state, secp256k1_gej *r, size_t num, const secp256k1_ge *a, const secp256k1_scalar *na, const secp256k1_scalar *ng) {
+    secp256k1_fe globalz, zs;
+    secp256k1_scalar ng_1, ng_128;
+    int wnaf_ng_1[129];
+    int wnaf_ng_128[129];
+    int bits_ng_1 = 0;
+    int bits_ng_128 = 0;
+    size_t b, nbund;
+    int pos;
+
+    VERIFY_CHECK(num % ECMULT_BUNDLE_SIZE == 0);
+
+    nbund = num / ECMULT_BUNDLE_SIZE;
+
+    /* Recode each bundle's scalars. */
+    for (b = 0; b < nbund; ++b) {
+        secp256k1_ecmult_bundle_recode(state->indices + b * 2 * ECMULT_BUNDLE_BITS, na + b * ECMULT_BUNDLE_SIZE);
+    }
+
+    /* One chain, over every bundle's table. */
+    secp256k1_fe_set_int(&globalz, 1);
+    for (b = 0; b < nbund; ++b) {
+        secp256k1_ecmult_bundle_table(state->pre + b * ECMULT_BUNDLE_TABLE_SIZE,
+                                      state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE, &globalz,
+                                      a + b * ECMULT_BUNDLE_SIZE);
+    }
+
+    /* Bring every segment onto the z the chain ends at, walking it backwards from there. */
+    secp256k1_fe_set_int(&zs, 1);
+    for (b = nbund; b-- > 0;) {
+        secp256k1_ecmult_bundle_table_set_globalz(state->pre + b * ECMULT_BUNDLE_TABLE_SIZE,
+                                                  state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE, &zs);
+    }
+    /* The lambda multiples can only be derived once the tables are there, and they overwrite the
+     * ratios, which are spent. */
+    for (b = 0; b < nbund; ++b) {
+        secp256k1_ecmult_bundle_table_lambda_x(state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE,
+                                               state->pre + b * ECMULT_BUNDLE_TABLE_SIZE);
+    }
+
+    if (ng) {
+        /* The G tables are unchanged from Strauss' algorithm, as is how they are used. */
+        secp256k1_scalar_split_128(&ng_1, &ng_128, ng);
+        bits_ng_1   = secp256k1_ecmult_wnaf(wnaf_ng_1,   129, &ng_1,   WINDOW_G);
+        bits_ng_128 = secp256k1_ecmult_wnaf(wnaf_ng_128, 129, &ng_128, WINDOW_G);
+        VERIFY_CHECK(bits_ng_1 <= 129);
+        VERIFY_CHECK(bits_ng_128 <= 129);
+    }
+
+    secp256k1_gej_set_infinity(r);
+
+    /* Nothing here runs for more positions than the bundles do: every wNAF stream is at most 129
+     * digits and ECMULT_BUNDLE_BITS is 130, so the count is not a maximum over the streams as it is
+     * in Strauss' algorithm. */
+    for (pos = ECMULT_BUNDLE_BITS - 1; pos >= 0; --pos) {
+        secp256k1_ge tmpa;
+        int n;
+
+        secp256k1_gej_double_var(r, r, NULL);
+        for (b = 0; b < nbund; ++b) {
+            const secp256k1_ge *pre = state->pre + b * ECMULT_BUNDLE_TABLE_SIZE;
+            const unsigned char *indices = state->indices + b * 2 * ECMULT_BUNDLE_BITS;
+
+            secp256k1_ecmult_bundle_table_get_ge(&tmpa, pre, indices[pos]);
+            secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
+            secp256k1_ecmult_bundle_table_get_ge_lambda(&tmpa, pre, state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE, indices[ECMULT_BUNDLE_BITS + pos]);
+            secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
+        }
+        if (pos < bits_ng_1 && (n = wnaf_ng_1[pos])) {
+            secp256k1_ecmult_table_get_ge_storage(&tmpa, secp256k1_pre_g, n, WINDOW_G);
+            secp256k1_gej_add_zinv_var(r, r, &tmpa, &globalz);
+        }
+        if (pos < bits_ng_128 && (n = wnaf_ng_128[pos])) {
+            secp256k1_ecmult_table_get_ge_storage(&tmpa, secp256k1_pre_g_128, n, WINDOW_G);
+            secp256k1_gej_add_zinv_var(r, r, &tmpa, &globalz);
+        }
+    }
+
+    if (!secp256k1_gej_is_infinity(r)) {
+        secp256k1_fe_mul(&r->z, &r->z, &globalz);
+    }
+}
+
 static void secp256k1_ecmult(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_scalar *na, const secp256k1_scalar *ng) {
     secp256k1_fe aux[ECMULT_TABLE_SIZE(WINDOW_A)];
     secp256k1_ge pre_a[ECMULT_TABLE_SIZE(WINDOW_A)];
