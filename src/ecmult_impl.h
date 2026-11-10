@@ -226,6 +226,113 @@ static int secp256k1_ecmult_wnaf_small(int8_t *wnaf, int len, const secp256k1_sc
     return ret;
 }
 
+/** Number of points in a bundle. A bundle's first point is its anchor and the others are its
+ *  followers. They are served together by one table: where the main loop of a multiplication would
+ *  look up a multiple of each point and add it, it looks up one entry for the whole bundle and adds
+ *  that. Larger bundles thus mean fewer additions there, at the cost of an exponentially larger
+ *  table to build.
+ *
+ *  A bundle needs its anchor and at least one follower. It can have at most eight points, because
+ *  each thing the main loop adds on its behalf is named in a byte with one bit per point: a
+ *  follower's bit says whether it takes part, and the anchor, which always does, has the sign for
+ *  its bit. */
+#define ECMULT_BUNDLE_SIZE 6
+
+#if !(2 <= ECMULT_BUNDLE_SIZE && ECMULT_BUNDLE_SIZE <= 8)
+#  error "ECMULT_BUNDLE_SIZE must be in the range [2, 8]"
+#endif
+
+/** Number of entries in a bundle's table.
+ *
+ *  The scalars of a bundle are recoded so that the only combinations of its points the main loop
+ *  ever asks for are those in which the anchor's coefficient is +1 or -1 and each follower's is
+ *  either the same as the anchor's or zero: a sign times the sum of the anchor and some subset of
+ *  the followers. There are 2^ECMULT_BUNDLE_SIZE of these, and the ones with a negative anchor are
+ *  the negations of the ones with a positive anchor. So the table holds only the positive half,
+ *  which is the subset sums that contain the anchor -- entry m is a[0] + sum(a[i+1] for the set
+ *  bits i of m) -- and a negative anchor costs a negation at lookup. */
+#define ECMULT_BUNDLE_TABLE_SIZE (((size_t)1) << (ECMULT_BUNDLE_SIZE - 1))
+
+/** Build a bundle's table: the subset sums of its points that contain the anchor.
+ *
+ *  pre[m] receives a[0] + sum(a[i+1] for the set bits i of m), so it needs ECMULT_BUNDLE_TABLE_SIZE
+ *  group elements. As in secp256k1_ecmult_odd_multiples_table these are Jacobian points with their z
+ *  omitted, unusable until secp256k1_ecmult_bundle_table_set_globalz has run.
+ *
+ *  The entries are computed in Gray code order, in which consecutive ones differ by a single
+ *  follower. Each entry is thus the one before it plus or minus an input point, and the table is a
+ *  single chain of mixed additions with one live accumulator. A chain is also what lets z ratios
+ *  bring every entry to a common z without an inversion. (Forming each subset sum from a smaller one
+ *  takes one addition per entry as well, but those additions make a tree, whose inner entries have
+ *  to be kept in Jacobian form and whose z values do not follow one from another.) The ratios go to
+ *  zr, which needs ECMULT_BUNDLE_TABLE_SIZE field elements and is indexed by position in the chain,
+ *  not by entry -- position k holds entry k ^ (k >> 1).
+ *
+ *  On entry *z is the z the chain has reached, 1 at its start; on return it is the z the chain has
+ *  reached after this bundle. Bundles thus extend one chain instead of each having a denominator of
+ *  its own, and one backward pass brings all of them to the last one's z.
+ *
+ *  Any input may be infinity, and an entry may be infinity even when no input is, a subset sum being
+ *  able to vanish: a follower opposite to the anchor does it at once, and chosen inputs can do it
+ *  deeper in. Such an entry is an ordinary infinite secp256k1_ge.
+ */
+static void secp256k1_ecmult_bundle_table(secp256k1_ge *pre, secp256k1_fe *zr, secp256k1_fe *z, const secp256k1_ge *a) {
+    secp256k1_ge_z cur;
+    size_t k;
+
+    /* Entry 0 is the anchor by itself, brought onto the chain's curve by adding it to that curve's
+     * infinity, which copes with an infinite anchor and leaves the ratio at 1: entry 0 sits at the
+     * incoming z. (Like secp256k1_ge_table_set_globalz, secp256k1_ecmult_bundle_table_set_globalz
+     * does not read zr[0].) */
+    secp256k1_ge_z_set_infinity(&cur, z);
+    secp256k1_ge_z_add_ge_var(&cur, &cur, &a[0], &zr[0]);
+    pre[0] = cur.p;
+
+    for (k = 1; k < ECMULT_BUNDLE_TABLE_SIZE; ++k) {
+        /* The Gray code k ^ (k >> 1) differs from its predecessor in follower ctz(k) alone, which is
+         * being added where that bit is now set and taken away where it is not. Taking away is just
+         * adding the negation, so every step is one addition of an affine point. */
+        size_t g = k ^ (k >> 1);
+        int c = secp256k1_ctz32_var((uint32_t)k);
+        secp256k1_ge t;
+
+        if ((g >> c) & 1) {
+            t = a[c + 1];
+        } else {
+            secp256k1_ge_neg(&t, &a[c + 1]);
+        }
+        secp256k1_ge_z_add_ge_var(&cur, &cur, &t, &zr[k]);
+        pre[g] = cur.p;
+    }
+
+    *z = cur.z;
+}
+
+/** Bring one bundle's table onto the denominator the whole chain ends at.
+ *
+ *  As secp256k1_ge_table_set_globalz, but for a chain whose entries sit at their subset index rather
+ *  than in chain order, and which may hold infinities, whose coordinates are left alone.
+ *
+ *  *zs is the ratio between the chain's final z and the z this bundle's last entry was left at, which
+ *  is 1 for the bundle the chain ends with. On return it is that same ratio for the bundle before this
+ *  one, so bundles are normalized from the last back to the first and every table ends up sharing the
+ *  chain's final z.
+ */
+static void secp256k1_ecmult_bundle_table_set_globalz(secp256k1_ge *pre, const secp256k1_fe *zr, secp256k1_fe *zs) {
+    size_t k = ECMULT_BUNDLE_TABLE_SIZE;
+
+    while (k-- > 0) {
+        size_t g = k ^ (k >> 1);
+
+        if (!pre[g].infinity) {
+            secp256k1_ge_set_ge_zinv(&pre[g], &pre[g], zs);
+        }
+        if (k > 0) {
+            secp256k1_fe_mul(zs, zs, &zr[k]);
+        }
+    }
+}
+
 struct secp256k1_strauss_point_state {
     int8_t wnaf_na_1[129];
     int8_t wnaf_na_lam[129];

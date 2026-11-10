@@ -4822,6 +4822,119 @@ static void run_ecmult_near_split_bound(void) {
     }
 }
 
+#define BUNDLE_TEST_BUNDLES 3
+
+#if ECMULT_BUNDLE_SIZE < 5
+#  error "the bundle tests place degenerate points at fixed places in a bundle, up to its fifth point"
+#endif
+
+/* Build nbund bundles as one chain, normalize back from the end of it, and check every entry of every
+ * table against the subset sum it denotes. */
+static void test_ecmult_bundle_table_chain(size_t nbund, const secp256k1_ge *pts) {
+    secp256k1_ge pre[BUNDLE_TEST_BUNDLES * ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe zr[BUNDLE_TEST_BUNDLES * ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe z, zs;
+    size_t b, m, i;
+
+    CHECK(nbund >= 1 && nbund <= BUNDLE_TEST_BUNDLES);
+
+    secp256k1_fe_set_int(&z, 1);
+    for (b = 0; b < nbund; ++b) {
+        secp256k1_ecmult_bundle_table(pre + b * ECMULT_BUNDLE_TABLE_SIZE,
+                                      zr + b * ECMULT_BUNDLE_TABLE_SIZE, &z,
+                                      pts + b * ECMULT_BUNDLE_SIZE);
+    }
+    /* z is now the chain's final denominator, which every entry has to be brought to. */
+    secp256k1_fe_set_int(&zs, 1);
+    for (b = nbund; b-- > 0;) {
+        secp256k1_ecmult_bundle_table_set_globalz(pre + b * ECMULT_BUNDLE_TABLE_SIZE,
+                                                  zr + b * ECMULT_BUNDLE_TABLE_SIZE, &zs);
+    }
+
+    for (b = 0; b < nbund; ++b) {
+        const secp256k1_ge *a = pts + b * ECMULT_BUNDLE_SIZE;
+
+        for (m = 0; m < ECMULT_BUNDLE_TABLE_SIZE; ++m) {
+            const secp256k1_ge *e = &pre[b * ECMULT_BUNDLE_TABLE_SIZE + m];
+            secp256k1_gej want, got;
+
+            secp256k1_gej_set_ge(&want, &a[0]);
+            for (i = 1; i < ECMULT_BUNDLE_SIZE; ++i) {
+                if ((m >> (i - 1)) & 1) {
+                    secp256k1_gej_add_ge_var(&want, &want, &a[i], NULL);
+                }
+            }
+            got.x = e->x;
+            got.y = e->y;
+            got.z = z;
+            got.infinity = e->infinity;
+            test_gej_eq_strict(&got, &want);
+        }
+    }
+}
+
+static void run_ecmult_bundle_table(void) {
+    secp256k1_ge pts[BUNDLE_TEST_BUNDLES * ECMULT_BUNDLE_SIZE];
+    secp256k1_gej tmp;
+    size_t i, nb;
+    int iter;
+
+    for (iter = 0; iter < COUNT; ++iter) {
+        for (nb = 1; nb <= BUNDLE_TEST_BUNDLES; ++nb) {
+            for (i = 0; i < nb * ECMULT_BUNDLE_SIZE; ++i) {
+                testutil_random_ge_test(&pts[i]);
+            }
+            test_ecmult_bundle_table_chain(nb, pts);
+        }
+
+        /* The rest degenerate the first bundle in various ways against a random second one, which
+         * also checks that a degenerate bundle leaves the chain fit for the next. */
+        for (i = 0; i < 2 * ECMULT_BUNDLE_SIZE; ++i) {
+            testutil_random_ge_test(&pts[i]);
+        }
+
+        /* A subset sum vanishing at the first step of the chain (entry {a0,a1}). */
+        secp256k1_ge_neg(&pts[1], &pts[0]);
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* ... and one vanishing deeper in: a2 = -(a0 + a1) makes entry {a0,a1,a2} vanish, which the
+         * Gray code reaches at chain position 2, so position 3 adds to an infinity. */
+        testutil_random_ge_test(&pts[1]);
+        secp256k1_gej_set_ge(&tmp, &pts[0]);
+        secp256k1_gej_add_ge_var(&tmp, &tmp, &pts[1], NULL);
+        secp256k1_gej_neg(&tmp, &tmp);
+        secp256k1_ge_set_gej(&pts[2], &tmp);
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* Two equal points, which sends a step through the doubling case instead. */
+        testutil_random_ge_test(&pts[2]);
+        pts[1] = pts[0];
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* An infinite follower, every step for which is then a no-op. */
+        testutil_random_ge_test(&pts[1]);
+        secp256k1_ge_set_infinity(&pts[3]);
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* An infinite anchor as well, so the chain starts at infinity and the entries are subset sums
+         * of the followers alone. */
+        secp256k1_ge_set_infinity(&pts[0]);
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* The first follower infinite too, which is the one added while the chain is still at
+         * infinity: infinity is then added to infinity along the chain as well as at entry 0, where
+         * an infinite anchor alone already does it. */
+        secp256k1_ge_set_infinity(&pts[1]);
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* A bundle that is nothing but infinities, so the chain passes through it untouched. */
+        for (i = 0; i < ECMULT_BUNDLE_SIZE; ++i) {
+            secp256k1_ge_set_infinity(&pts[i]);
+        }
+        test_ecmult_bundle_table_chain(2, pts);
+    }
+}
+
 static void run_point_times_order(void) {
     int i;
     secp256k1_fe x = SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 2);
@@ -8380,6 +8493,7 @@ static const struct tf_test_entry tests_ecmult[] = {
     CASE(wnaf),
     CASE(point_times_order),
     CASE(ecmult_near_split_bound),
+    CASE(ecmult_bundle_table),
     CASE(ecmult_chain),
     CASE(ecmult_constants),
     CASE(ecmult_gen_ge),
