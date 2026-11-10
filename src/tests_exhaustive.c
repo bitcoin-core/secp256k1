@@ -308,6 +308,10 @@ static void test_exhaustive_ecmult_bundle(const secp256k1_context *ctx, const se
 
             CHECK(secp256k1_ecmult_bundle_batch_single(&ctx->error_callback, scratch, &tmp, trial & 1 ? &g_sc : NULL, ecmult_bundle_callback, &data, num) == 1);
             CHECK(secp256k1_gej_eq_ge_var(&tmp, &group[trial & 1 ? (expect + k) % EXHAUSTIVE_TEST_ORDER : expect]));
+            /* The same through secp256k1_ecmult_multi_var, the scratch space being large enough for
+             * one batch to hold all of the points. */
+            CHECK(secp256k1_ecmult_multi_var(&ctx->error_callback, scratch, &tmp, &g_sc, ecmult_bundle_callback, &data, num) == 1);
+            CHECK(secp256k1_gej_eq_ge_var(&tmp, &group[(expect + k) % EXHAUSTIVE_TEST_ORDER]));
         }
     }
     secp256k1_scratch_destroy(&ctx->error_callback, scratch);

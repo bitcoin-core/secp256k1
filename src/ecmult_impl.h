@@ -1496,7 +1496,7 @@ static int secp256k1_ecmult_multi_var(const secp256k1_callback* error_callback, 
     }
 
     /* Compute the batch sizes for Pippenger's algorithm given a scratch space. If it's greater than
-     * a threshold use Pippenger's algorithm. Otherwise use Strauss' algorithm.
+     * a threshold use Pippenger's algorithm. Otherwise use the bundled algorithm.
      * As a first step check if there's enough space for Pippenger's algo (which requires less space
      * than Strauss' algo) and if not, use the simple algorithm. */
     if (!secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, secp256k1_pippenger_max_points(error_callback, scratch), n)) {
@@ -1508,7 +1508,9 @@ static int secp256k1_ecmult_multi_var(const secp256k1_callback* error_callback, 
         if (!secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, secp256k1_strauss_max_points(error_callback, scratch), n)) {
             return secp256k1_ecmult_multi_simple_var(r, inp_g_sc, cb, cbdata, n);
         }
-        f = secp256k1_ecmult_strauss_batch;
+        /* The batches are sized as for Strauss' algorithm, to which secp256k1_ecmult_bundle_batch
+         * hands a batch itself when it has too few points to fill a bundle or does not fit. */
+        f = secp256k1_ecmult_bundle_batch;
     }
     for(i = 0; i < n_batches; i++) {
         size_t nbp = n < n_batch_points ? n : n_batch_points;

@@ -30,7 +30,7 @@ static void help(const char *executable_path, int default_iters) {
     printf("function name. The letter 'g' indicates that one of the points is the generator.\n");
     printf("The benchmarks are divided by the number of points.\n");
     printf("\n");
-    printf("default (ecmult_multi): picks pippenger_wnaf or strauss_wnaf depending on the\n");
+    printf("default (ecmult_multi): picks pippenger_wnaf or bundle depending on the\n");
     printf("                        batch size\n");
     printf("pippenger_wnaf:         for all batch sizes\n");
     printf("strauss_wnaf:           for all batch sizes\n");
