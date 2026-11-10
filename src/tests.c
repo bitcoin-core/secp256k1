@@ -5166,7 +5166,7 @@ static void run_ecmult_bundle_recode(void) {
     }
 }
 
-#define BUNDLE_TEST_MAX_POINTS (3 * ECMULT_BUNDLE_SIZE)
+#define BUNDLE_TEST_MAX_POINTS (3 * ECMULT_BUNDLE_SIZE + ECMULT_BUNDLE_SIZE - 1)
 
 /* Run secp256k1_ecmult_bundle_multi and check it against secp256k1_ecmult one point at a time. */
 static void test_ecmult_bundle_multi(size_t num, const secp256k1_ge *pts, const secp256k1_scalar *sc, const secp256k1_scalar *ng) {
@@ -5174,6 +5174,9 @@ static void test_ecmult_bundle_multi(size_t num, const secp256k1_ge *pts, const 
     secp256k1_ge pre[(BUNDLE_TEST_MAX_POINTS / ECMULT_BUNDLE_SIZE) * ECMULT_BUNDLE_TABLE_SIZE];
     secp256k1_fe lamx[(BUNDLE_TEST_MAX_POINTS / ECMULT_BUNDLE_SIZE) * ECMULT_BUNDLE_TABLE_SIZE];
     unsigned char indices[ECMULT_BUNDLE_BITS * 2 * (BUNDLE_TEST_MAX_POINTS / ECMULT_BUNDLE_SIZE)];
+    secp256k1_ge pre_rem[(ECMULT_BUNDLE_SIZE - 1) * ECMULT_TABLE_SIZE(WINDOW_A)];
+    secp256k1_fe aux_rem[(ECMULT_BUNDLE_SIZE - 1) * ECMULT_TABLE_SIZE(WINDOW_A)];
+    struct secp256k1_strauss_point_state ps[ECMULT_BUNDLE_SIZE - 1];
     secp256k1_gej got, want, tmp;
     size_t i;
 
@@ -5182,6 +5185,9 @@ static void test_ecmult_bundle_multi(size_t num, const secp256k1_ge *pts, const 
     state.pre = pre;
     state.lamx = lamx;
     state.indices = indices;
+    state.pre_rem = pre_rem;
+    state.aux_rem = aux_rem;
+    state.ps = ps;
     secp256k1_ecmult_bundle_multi(&state, &got, num, pts, sc, ng);
 
     secp256k1_gej_set_infinity(&want);
@@ -5208,8 +5214,8 @@ static void run_ecmult_bundle_multi(void) {
     int iter;
 
     for (iter = 0; iter < COUNT; ++iter) {
-        /* Every count of whole bundles. */
-        for (num = ECMULT_BUNDLE_SIZE; num <= BUNDLE_TEST_MAX_POINTS; num += ECMULT_BUNDLE_SIZE) {
+        /* Every count from one bundle up, so every number of points left over is covered. */
+        for (num = ECMULT_BUNDLE_SIZE; num <= BUNDLE_TEST_MAX_POINTS; ++num) {
             for (i = 0; i < num; ++i) {
                 testutil_random_ge_test(&pts[i]);
                 testutil_random_scalar_order_test(&sc[i]);
@@ -5218,13 +5224,13 @@ static void run_ecmult_bundle_multi(void) {
             test_ecmult_bundle_multi(num, pts, sc, iter & 1 ? &ng : NULL);
         }
 
-        /* Degeneracies. */
-        num = 2 * ECMULT_BUNDLE_SIZE;
+        /* Degeneracies, in a bundle and among the points left over both. */
+        num = 2 * ECMULT_BUNDLE_SIZE + 3;
         for (i = 0; i < num; ++i) {
             testutil_random_ge_test(&pts[i]);
             testutil_random_scalar_order_test(&sc[i]);
         }
-        /* Zero scalars, which a bundle takes in its stride. */
+        /* Zero scalars, which a bundle takes in its stride and the points left over skip. */
         sc[0] = secp256k1_scalar_zero;
         sc[num - 1] = secp256k1_scalar_zero;
         test_ecmult_bundle_multi(num, pts, sc, &ng);

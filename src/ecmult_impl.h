@@ -751,6 +751,33 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
     }
 }
 
+/** Number of points left over once as many full bundles as possible have been formed. They are
+ *  handled as in Strauss' algorithm, in the same loop.
+ *
+ *  Bundles are never partly filled. A bundle costs the main loop 2*ECMULT_BUNDLE_BITS additions
+ *  whether it is full or not, against roughly 2*129/(WINDOW_A+1) per point in Strauss' algorithm: a
+ *  full bundle breaks even there (see secp256k1_ecmult_bundle_multi), and every point short of full
+ *  puts it 43 additions behind, which its smaller table makes up for less and less. A bundle one
+ *  point short might still come out ahead; it is not attempted here. Points left over cost no more
+ *  than they would in Strauss' algorithm, so leaving them to it cannot lose. */
+SECP256K1_INLINE static size_t secp256k1_ecmult_bundle_remainder(size_t num) {
+    return num % ECMULT_BUNDLE_SIZE;
+}
+
+/** As secp256k1_ge_table_set_globalz, but threading the running ratio through *zs so that segments of
+ *  one chain compose, and reading zr[0], which relates the segment's first entry to the z the chain
+ *  arrived with. len must be at least 1. */
+static void secp256k1_ecmult_bundle_chain_set_globalz(size_t len, secp256k1_ge *a, const secp256k1_fe *zr, secp256k1_fe *zs) {
+    size_t i = len;
+
+    VERIFY_CHECK(len >= 1);
+
+    while (i-- > 0) {
+        secp256k1_ge_set_ge_zinv(&a[i], &a[i], zs);
+        secp256k1_fe_mul(zs, zs, &zr[i]);
+    }
+}
+
 struct secp256k1_bundle_state {
     /* The tables of every bundle, concatenated. */
     secp256k1_ge *pre;
@@ -760,6 +787,11 @@ struct secp256k1_bundle_state {
     /* The bundle indices, 2*ECMULT_BUNDLE_BITS of them for each bundle in turn, as
      * secp256k1_ecmult_bundle_recode writes them. */
     unsigned char *indices;
+    /* For the points left over: as in secp256k1_strauss_state, the odd multiples, then the x
+     * coordinates of their lambda multiples, and the recoded scalars. */
+    secp256k1_ge *pre_rem;
+    secp256k1_fe *aux_rem;
+    struct secp256k1_strauss_point_state *ps;
 };
 
 /** Set r to ng*G + sum(na[i] * a[i], i=0..num-1), taking the points in bundles. ng may be NULL.
@@ -798,21 +830,25 @@ struct secp256k1_bundle_state {
  *  GLV-GLS Curves" (https://eprint.iacr.org/2013/158), section 3, with the columns running across
  *  the points of a bundle rather than across the sub-scalars of a single multiplication.
  *
- *  num must be a multiple of ECMULT_BUNDLE_SIZE.
+ *  Points that do not fill a bundle are handled as in Strauss' algorithm, in the same loop and with
+ *  their tables on the same chain; see secp256k1_ecmult_bundle_remainder. As there, they are skipped
+ *  when their scalar is zero or they are infinite. num must be at least ECMULT_BUNDLE_SIZE.
  */
 static void secp256k1_ecmult_bundle_multi(const struct secp256k1_bundle_state *state, secp256k1_gej *r, size_t num, const secp256k1_ge *a, const secp256k1_scalar *na, const secp256k1_scalar *ng) {
+    const size_t rem_table = ECMULT_TABLE_SIZE(WINDOW_A);
     secp256k1_fe globalz, zs;
     secp256k1_scalar ng_1, ng_128;
     int wnaf_ng_1[129];
     int wnaf_ng_128[129];
     int bits_ng_1 = 0;
     int bits_ng_128 = 0;
-    size_t b, nbund;
+    size_t i, b, nbund, nbp, no;
     int pos;
 
-    VERIFY_CHECK(num % ECMULT_BUNDLE_SIZE == 0);
+    VERIFY_CHECK(num >= ECMULT_BUNDLE_SIZE);
 
-    nbund = num / ECMULT_BUNDLE_SIZE;
+    nbp = num - secp256k1_ecmult_bundle_remainder(num);
+    nbund = nbp / ECMULT_BUNDLE_SIZE;
 
     /* Recode each bundle's scalars. */
     for (b = 0; b < nbund; ++b) {
@@ -826,9 +862,36 @@ static void secp256k1_ecmult_bundle_multi(const struct secp256k1_bundle_state *s
                                       state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE, &globalz,
                                       a + b * ECMULT_BUNDLE_SIZE);
     }
+    /* It carries on through the odd multiples of each point left over. */
+    no = 0;
+    for (i = nbp; i < num; ++i) {
+        secp256k1_gej tmp;
+        secp256k1_scalar na_1, na_lam;
+
+        if (secp256k1_scalar_is_zero(&na[i]) || secp256k1_ge_is_infinity(&a[i])) {
+            continue;
+        }
+        secp256k1_scalar_split_lambda(&na_1, &na_lam, &na[i]);
+        state->ps[no].bits_na_1   = secp256k1_ecmult_wnaf_small(state->ps[no].wnaf_na_1,   129, &na_1,   WINDOW_A);
+        state->ps[no].bits_na_lam = secp256k1_ecmult_wnaf_small(state->ps[no].wnaf_na_lam, 129, &na_lam, WINDOW_A);
+        VERIFY_CHECK(state->ps[no].bits_na_1 <= 129);
+        VERIFY_CHECK(state->ps[no].bits_na_lam <= 129);
+
+        /* The input is affine, so unlike in Strauss' algorithm the first ratio of this segment needs
+         * no correcting: rescaling takes its z straight to the running one. */
+        secp256k1_gej_set_ge(&tmp, &a[i]);
+        secp256k1_gej_rescale(&tmp, &globalz);
+        secp256k1_ecmult_odd_multiples_table(rem_table, state->pre_rem + no * rem_table,
+                                             state->aux_rem + no * rem_table, &globalz, &tmp);
+        ++no;
+    }
 
     /* Bring every segment onto the z the chain ends at, walking it backwards from there. */
     secp256k1_fe_set_int(&zs, 1);
+    for (i = no; i-- > 0;) {
+        secp256k1_ecmult_bundle_chain_set_globalz(rem_table, state->pre_rem + i * rem_table,
+                                                  state->aux_rem + i * rem_table, &zs);
+    }
     for (b = nbund; b-- > 0;) {
         secp256k1_ecmult_bundle_table_set_globalz(state->pre + b * ECMULT_BUNDLE_TABLE_SIZE,
                                                   state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE, &zs);
@@ -838,6 +901,9 @@ static void secp256k1_ecmult_bundle_multi(const struct secp256k1_bundle_state *s
     for (b = 0; b < nbund; ++b) {
         secp256k1_ecmult_bundle_table_lambda_x(state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE,
                                                state->pre + b * ECMULT_BUNDLE_TABLE_SIZE);
+    }
+    for (i = 0; i < no * rem_table; ++i) {
+        secp256k1_fe_mul(&state->aux_rem[i], &state->pre_rem[i].x, &secp256k1_const_beta);
     }
 
     if (ng) {
@@ -867,6 +933,17 @@ static void secp256k1_ecmult_bundle_multi(const struct secp256k1_bundle_state *s
             secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
             secp256k1_ecmult_bundle_table_get_ge_lambda(&tmpa, pre, state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE, indices[ECMULT_BUNDLE_BITS + pos]);
             secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
+        }
+        /* The points left over, exactly as Strauss' algorithm handles them. */
+        for (i = 0; i < no; ++i) {
+            if (pos < state->ps[i].bits_na_1 && (n = state->ps[i].wnaf_na_1[pos])) {
+                secp256k1_ecmult_table_get_ge(&tmpa, state->pre_rem + i * rem_table, n, WINDOW_A);
+                secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
+            }
+            if (pos < state->ps[i].bits_na_lam && (n = state->ps[i].wnaf_na_lam[pos])) {
+                secp256k1_ecmult_table_get_ge_lambda(&tmpa, state->pre_rem + i * rem_table, state->aux_rem + i * rem_table, n, WINDOW_A);
+                secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
+            }
         }
         if (pos < bits_ng_1 && (n = wnaf_ng_1[pos])) {
             secp256k1_ecmult_table_get_ge_storage(&tmpa, secp256k1_pre_g, n, WINDOW_G);
