@@ -6067,6 +6067,68 @@ static void test_ecmult_multi_batching(void) {
     free(pt);
 }
 
+/* The scratch space accounting of the bundled algorithm: secp256k1_bundle_scratch_size against what
+ * secp256k1_ecmult_bundle_batch takes, and secp256k1_bundle_max_points against both. */
+static void test_ecmult_bundle_batching(void) {
+    const size_t bundle = secp256k1_bundle_scratch_size(ECMULT_BUNDLE_SIZE);
+    const size_t slack = BUNDLE_SCRATCH_OBJECTS * (ALIGNMENT - 1);
+    secp256k1_scalar sc[4 * ECMULT_BUNDLE_SIZE];
+    secp256k1_ge pt[4 * ECMULT_BUNDLE_SIZE];
+    secp256k1_gej want[4 * ECMULT_BUNDLE_SIZE + 1];
+    ecmult_multi_data data;
+    secp256k1_scratch *scratch;
+    secp256k1_gej r;
+    size_t n, k, m, size, last, max_points;
+    int below;
+
+    /* want[n] is the sum over the first n points. */
+    secp256k1_gej_set_infinity(&want[0]);
+    for (n = 0; n < ARRAY_SIZE(pt); ++n) {
+        secp256k1_gej pj;
+        testutil_random_ge_test(&pt[n]);
+        testutil_random_scalar_order(&sc[n]);
+        secp256k1_gej_set_ge(&pj, &pt[n]);
+        secp256k1_ecmult(&pj, &pj, &sc[n], NULL);
+        secp256k1_gej_add_var(&want[n + 1], &want[n], &pj, NULL);
+    }
+    data.sc = sc;
+    data.pt = pt;
+
+    /* The size computed for a batch is enough for it, given the allowance for alignment, and nothing
+     * less is: before they are rounded, the allocations add up to exactly that. */
+    for (n = 1; n <= ARRAY_SIZE(pt); ++n) {
+        size = secp256k1_bundle_scratch_size(n);
+        scratch = secp256k1_scratch_create(&CTX->error_callback, size + slack);
+        CHECK(secp256k1_ecmult_bundle_batch_single(&CTX->error_callback, scratch, &r, NULL, ecmult_multi_callback, &data, n));
+        test_gej_eq_strict(&r, &want[n]);
+        secp256k1_scratch_destroy(&CTX->error_callback, scratch);
+
+        scratch = secp256k1_scratch_create(&CTX->error_callback, size - 1);
+        CHECK(!secp256k1_ecmult_bundle_batch_single(&CTX->error_callback, scratch, &r, NULL, ecmult_multi_callback, &data, n));
+        secp256k1_scratch_destroy(&CTX->error_callback, scratch);
+    }
+
+    /* The maximum goes up by a bundle exactly where the space for one more is reached, counting the
+     * last bundle as whatever a smaller batch could need in its place. Every batch up to the maximum
+     * then goes through, which is the point of it. */
+    last = secp256k1_strauss_scratch_size(ECMULT_BUNDLE_SIZE - 1);
+    if (last < bundle) {
+        last = bundle;
+    }
+    for (k = 0; k < 3; ++k) {
+        for (below = 0; below < 2; ++below) {
+            scratch = secp256k1_scratch_create(&CTX->error_callback, k * bundle + last + slack - (size_t)below);
+            max_points = secp256k1_bundle_max_points(&CTX->error_callback, scratch);
+            CHECK(max_points == (k + 1 - (size_t)below) * ECMULT_BUNDLE_SIZE);
+            for (m = 1; m <= max_points; ++m) {
+                CHECK(secp256k1_ecmult_bundle_batch_single(&CTX->error_callback, scratch, &r, NULL, ecmult_multi_callback, &data, m));
+                test_gej_eq_strict(&r, &want[m]);
+            }
+            secp256k1_scratch_destroy(&CTX->error_callback, scratch);
+        }
+    }
+}
+
 static void run_ecmult_multi_tests(void) {
     secp256k1_scratch *scratch;
     int64_t todo = (int64_t)320 * COUNT;
@@ -6094,6 +6156,7 @@ static void run_ecmult_multi_tests(void) {
 
     test_ecmult_multi_batch_size_helper();
     test_ecmult_multi_batching();
+    test_ecmult_bundle_batching();
 }
 
 static void test_wnaf(const secp256k1_scalar *number, int w) {

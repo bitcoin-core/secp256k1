@@ -39,6 +39,7 @@
 /* The number of objects allocated on the scratch space for ecmult_multi algorithms */
 #define PIPPENGER_SCRATCH_OBJECTS 6
 #define STRAUSS_SCRATCH_OBJECTS 5
+#define BUNDLE_SCRATCH_OBJECTS 8
 
 #define PIPPENGER_MAX_BUCKET_WINDOW 12
 
@@ -1025,15 +1026,27 @@ static size_t secp256k1_strauss_max_points(const secp256k1_callback* error_callb
     return secp256k1_scratch_max_allocation(error_callback, scratch, STRAUSS_SCRATCH_OBJECTS) / secp256k1_strauss_scratch_size(1);
 }
 
+/** The scratch space secp256k1_ecmult_bundle_batch takes for a batch of n_points, not counting what
+ *  the alignment of its allocations adds, of which there are at most BUNDLE_SCRATCH_OBJECTS.
+ *
+ *  On the real group, in a 64-bit build, that is around 850 bytes per point once the bundles are
+ *  full, against 1452 for Strauss' algorithm. It does not grow evenly, though. A point left over has
+ *  a table of odd multiples to itself and costs nearly what it would in Strauss' algorithm, so a
+ *  batch can need more space than one that is a point larger and fills another bundle. */
+static size_t secp256k1_bundle_scratch_size(size_t n_points) {
+    static const size_t point_size = sizeof(secp256k1_ge) + sizeof(secp256k1_scalar);
+    static const size_t bundle_size = (sizeof(secp256k1_ge) + sizeof(secp256k1_fe)) * ECMULT_BUNDLE_TABLE_SIZE + 2 * ECMULT_BUNDLE_BITS;
+    static const size_t leftover_size = (sizeof(secp256k1_ge) + sizeof(secp256k1_fe)) * ECMULT_TABLE_SIZE(WINDOW_A) + sizeof(struct secp256k1_strauss_point_state);
+
+    if (n_points < ECMULT_BUNDLE_SIZE) {
+        /* Such a batch is handed to Strauss' algorithm. */
+        return secp256k1_strauss_scratch_size(n_points);
+    }
+    return n_points * point_size + (n_points / ECMULT_BUNDLE_SIZE) * bundle_size + secp256k1_ecmult_bundle_remainder(n_points) * leftover_size;
+}
+
 /** As secp256k1_ecmult_strauss_batch, but bundling as many of the points as fill bundles exactly.
  *  With too few points to fill a single bundle, the batch is handed to Strauss' algorithm.
- *
- *  There is no sizing function to go with this. Per point it needs less space than Strauss' algorithm
- *  does -- around 850 bytes against 1452 once the bundles are full, and never more, since a point
- *  left over costs what it would have cost there anyway -- so a batch sized for Strauss' algorithm
- *  fits. That holds for the real group only: in the exhaustive tests WINDOW_A is smaller, which
- *  shrinks the tables of Strauss' algorithm and leaves a bundle's as they are. So a failed allocation
- *  hands the batch to Strauss' algorithm as well.
  */
 static int secp256k1_ecmult_bundle_batch(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points, size_t cb_offset) {
     secp256k1_ge* points;
@@ -1051,6 +1064,9 @@ static int secp256k1_ecmult_bundle_batch(const secp256k1_callback* error_callbac
     nbund = (n_points - rem) / ECMULT_BUNDLE_SIZE;
     ne = nbund * ECMULT_BUNDLE_TABLE_SIZE;
 
+    /* We allocate BUNDLE_SCRATCH_OBJECTS objects on the scratch space. If these
+     * allocations change, make sure to update the BUNDLE_SCRATCH_OBJECTS
+     * constant and bundle_scratch_size accordingly. */
     points = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_ge));
     scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_scalar));
     state.pre = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, ne * sizeof(secp256k1_ge));
@@ -1065,7 +1081,7 @@ static int secp256k1_ecmult_bundle_batch(const secp256k1_callback* error_callbac
     if (points == NULL || scalars == NULL || state.pre == NULL || state.lamx == NULL ||
         state.indices == NULL || state.pre_rem == NULL || state.aux_rem == NULL || state.ps == NULL) {
         secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
-        return secp256k1_ecmult_strauss_batch(error_callback, scratch, r, inp_g_sc, cb, cbdata, n_points, cb_offset);
+        return 0;
     }
 
     for (i = 0; i < n_points; i++) {
@@ -1082,6 +1098,30 @@ static int secp256k1_ecmult_bundle_batch(const secp256k1_callback* error_callbac
 /* Wrapper for secp256k1_ecmult_multi_func interface */
 static int secp256k1_ecmult_bundle_batch_single(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
     return secp256k1_ecmult_bundle_batch(error_callback, scratch, r, inp_g_sc, cb, cbdata, n, 0);
+}
+
+/** Returns a number of points, a whole number of bundles, such that a batch of that many fits in the
+ *  scratch space and so does a batch of any fewer: the largest for which the count below holds,
+ *  which errs on the safe side. Zero if it does not hold for a single bundle.
+ *
+ *  Fewer points do not always need less space (see secp256k1_bundle_scratch_size). Where the largest
+ *  batch is k bundles, a smaller one can be k - 1 bundles and up to ECMULT_BUNDLE_SIZE - 1 points
+ *  left over, or just that many points, which go to Strauss' algorithm. So space is counted for
+ *  k - 1 bundles plus the larger of a last bundle and ECMULT_BUNDLE_SIZE - 1 points in Strauss'
+ *  algorithm. That covers points left over too: each needs a little less than a point does in
+ *  Strauss' algorithm, its input being kept affine. */
+static size_t secp256k1_bundle_max_points(const secp256k1_callback* error_callback, secp256k1_scratch *scratch) {
+    const size_t max_alloc = secp256k1_scratch_max_allocation(error_callback, scratch, BUNDLE_SCRATCH_OBJECTS);
+    const size_t bundle = secp256k1_bundle_scratch_size(ECMULT_BUNDLE_SIZE);
+    size_t last = secp256k1_strauss_scratch_size(ECMULT_BUNDLE_SIZE - 1);
+
+    if (last < bundle) {
+        last = bundle;
+    }
+    if (max_alloc < last) {
+        return 0;
+    }
+    return (1 + (max_alloc - last) / bundle) * ECMULT_BUNDLE_SIZE;
 }
 
 /** Convert a number to WNAF notation.
@@ -1504,13 +1544,17 @@ static int secp256k1_ecmult_multi_var(const secp256k1_callback* error_callback, 
     }
     if (n_batch_points >= ECMULT_PIPPENGER_THRESHOLD) {
         f = secp256k1_ecmult_pippenger_batch;
+    } else if (secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, secp256k1_bundle_max_points(error_callback, scratch), n)) {
+        /* Make every batch but the last of whole bundles, so that only one batch of a call has points
+         * left over. Rounding up stays within the maximum, which is a whole number of bundles. */
+        n_batch_points = CEIL_DIV(n_batch_points, ECMULT_BUNDLE_SIZE) * ECMULT_BUNDLE_SIZE;
+        f = secp256k1_ecmult_bundle_batch;
     } else {
+        /* There is not the room to size batches for bundles. Strauss' algorithm makes do with less. */
         if (!secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, secp256k1_strauss_max_points(error_callback, scratch), n)) {
             return secp256k1_ecmult_multi_simple_var(r, inp_g_sc, cb, cbdata, n);
         }
-        /* The batches are sized as for Strauss' algorithm, to which secp256k1_ecmult_bundle_batch
-         * hands a batch itself when it has too few points to fill a bundle or does not fit. */
-        f = secp256k1_ecmult_bundle_batch;
+        f = secp256k1_ecmult_strauss_batch;
     }
     for(i = 0; i < n_batches; i++) {
         size_t nbp = n < n_batch_points ? n : n_batch_points;
