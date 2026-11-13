@@ -396,7 +396,8 @@ jobs:
 
   mingw_debian:
     name: ${{ matrix.configuration.job_name }}
-    runs-on: ubuntu-latest
+    # Wine fails on ubuntu-26.04 until https://github.com/actions/runner-images/issues/14790 is fixed.
+    runs-on: ubuntu-24.04
     needs: docker_cache
 
     env:
