@@ -24,7 +24,7 @@ AC_CONFIG_MACRO_DIR([autotools-aux/m4])
 AC_CANONICAL_HOST
 
 # Require Automake 1.11.2 for AM_PROG_AR
-AM_INIT_AUTOMAKE([1.11.2 foreign subdir-objects])
+AM_INIT_AUTOMAKE([1.11.2 foreign subdir-objects parallel-tests])
 
 # Make the compilation flags quiet unless V=1 is used.
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
@@ -257,6 +257,8 @@ if test x"$enable_ctime_tests" = x"auto"; then
 fi
 
 print_msan_notice=no
+run_ctime_tests=no
+CTIME_TESTS_LOG_COMPILER=
 if test x"$enable_ctime_tests" = x"yes"; then
   SECP_MSAN_CHECK
   # MSan on Clang >=16 reports uninitialized memory in function parameters and return values, even if
@@ -267,8 +269,20 @@ if test x"$enable_ctime_tests" = x"yes"; then
   if test x"$msan_enabled" = x"yes"; then
     SECP_TRY_APPEND_CFLAGS([-fno-sanitize-memory-param-retval], SECP_CFLAGS)
     print_msan_notice=yes
+    run_ctime_tests=yes
+  elif test x"$cross_compiling" = x"yes"; then
+    AC_MSG_NOTICE([Not adding ctime_tests to make check: running Valgrind on cross-compiled binaries requires a target-specific runner])
+  else
+    AC_PATH_PROG([VALGRIND], [valgrind])
+    if test -n "$VALGRIND"; then
+      CTIME_TESTS_LOG_COMPILER="\"$VALGRIND\" --error-exitcode=42"
+      run_ctime_tests=yes
+    else
+      AC_MSG_NOTICE([Not adding ctime_tests to make check: Valgrind executable not found])
+    fi
   fi
 fi
+AC_SUBST(CTIME_TESTS_LOG_COMPILER)
 
 if test x"$enable_coverage" = x"yes"; then
     SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DCOVERAGE=1"
@@ -470,11 +484,13 @@ fi
 ###
 
 AC_CONFIG_FILES([Makefile libsecp256k1.pc])
+AC_CONFIG_FILES([ctime_tests.sh:autotools-aux/ctime_tests.sh.in])
 AC_SUBST(SECP_CFLAGS)
 AC_SUBST(SECP_CONFIG_DEFINES)
 AM_CONDITIONAL([ENABLE_COVERAGE], [test x"$enable_coverage" = x"yes"])
 AM_CONDITIONAL([USE_TESTS], [test x"$enable_tests" != x"no"])
 AM_CONDITIONAL([USE_CTIME_TESTS], [test x"$enable_ctime_tests" = x"yes"])
+AM_CONDITIONAL([RUN_CTIME_TESTS], [test x"$run_ctime_tests" = x"yes"])
 AM_CONDITIONAL([USE_EXHAUSTIVE_TESTS], [test x"$enable_exhaustive_tests" != x"no"])
 AM_CONDITIONAL([USE_EXAMPLES], [test x"$enable_examples" != x"no"])
 AM_CONDITIONAL([USE_BENCHMARK], [test x"$enable_benchmark" = x"yes"])
