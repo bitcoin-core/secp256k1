@@ -165,6 +165,9 @@ int secp256k1_musig_pubnonce_parse(const secp256k1_context* ctx, secp256k1_musig
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(nonce != NULL);
+    /* Ensure that using the nonce will fail if parsing fails (and the user
+     * doesn't check the return value). */
+    memset(nonce, 0, sizeof(*nonce));
     ARG_CHECK(in66 != NULL);
 
     for (i = 0; i < 2; i++) {
@@ -204,6 +207,9 @@ int secp256k1_musig_aggnonce_parse(const secp256k1_context* ctx, secp256k1_musig
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(nonce != NULL);
+    /* Ensure that using the nonce will fail if parsing fails (and the user
+     * doesn't check the return value). */
+    memset(nonce, 0, sizeof(*nonce));
     ARG_CHECK(in66 != NULL);
 
     for (i = 0; i < 2; i++) {
@@ -238,11 +244,10 @@ int secp256k1_musig_partial_sig_parse(const secp256k1_context* ctx, secp256k1_mu
     int overflow;
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(sig != NULL);
-    ARG_CHECK(in32 != NULL);
-
     /* Ensure that using the signature will fail if parsing fails (and the user
      * doesn't check the return value). */
     memset(sig, 0, sizeof(*sig));
+    ARG_CHECK(in32 != NULL);
 
     secp256k1_scalar_set_b32(&tmp, in32, &overflow);
     if (overflow) {
