@@ -133,6 +133,11 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
     const secp256k1_xonly_pubkey *sp_xonly_pubkeys[1];
     secp256k1_pubkey sp_pubkey;
     const secp256k1_pubkey *sp_pubkeys[1];
+    secp256k1_silentpayments_prevouts_summary parsed_prevouts_summary;
+    unsigned char prevouts_summary_ser33[33];
+    secp256k1_xonly_pubkey lc_outputs[2];
+    secp256k1_xonly_pubkey *lc_outputs_ptrs[2];
+    const secp256k1_pubkey *lc_spend_pubkeys[2];
 #endif
 
     for (i = 0; i < 32; i++) {
@@ -386,6 +391,31 @@ static void run_tests(secp256k1_context *ctx, unsigned char *key) {
      * and then reused for the rest of the scanning logic.
      */
     CHECK(secp256k1_silentpayments_recipient_scan_outputs(ctx, found_outputs_ptrs, &n_found_outputs, tx_outputs, 1, key, &prevouts_summary, &recipient.spend_pubkey, NULL, NULL));
+
+    /* Test the light client scanning API.
+     *
+     * The prevouts_summary (de)serialization functions only ever touch public data (the
+     * summed prevout public keys and the input hash), so there is no secret input to mark
+     * as such. They are still run here, since the parsed object is what a light client
+     * feeds into _recipient_create_output_pubkeys below.
+     */
+    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_serialize(ctx, prevouts_summary_ser33, sizeof(prevouts_summary_ser33), &prevouts_summary) == 1);
+    CHECK(secp256k1_silentpayments_recipient_prevouts_summary_parse(ctx, &parsed_prevouts_summary, prevouts_summary_ser33, sizeof(prevouts_summary_ser33)) == 1);
+
+    lc_outputs_ptrs[0] = &lc_outputs[0];
+    lc_outputs_ptrs[1] = &lc_outputs[1];
+    lc_spend_pubkeys[0] = &recipient.spend_pubkey;
+    lc_spend_pubkeys[1] = &sp_pubkey;
+    /* `key` is still secret at this point and is used as the scan key. Both prevouts_summary
+     * variants are checked, since the scan key is treated differently in each: for an object
+     * created from transaction data (combined = 0) it is multiplied with the input hash,
+     * whereas for one parsed from a serialization (combined = 1) it is used as is. More than
+     * one spend public key is passed to also cover the loop over the spend public keys.
+     */
+    ret = secp256k1_silentpayments_recipient_create_output_pubkeys(ctx, lc_outputs_ptrs, key, &prevouts_summary, lc_spend_pubkeys, 2);
+    CHECK(ret == 1);
+    ret = secp256k1_silentpayments_recipient_create_output_pubkeys(ctx, lc_outputs_ptrs, key, &parsed_prevouts_summary, lc_spend_pubkeys, 2);
+    CHECK(ret == 1);
 
 #endif
 }
