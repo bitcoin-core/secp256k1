@@ -39,11 +39,12 @@
 /* The number of objects allocated on the scratch space for ecmult_multi algorithms */
 #define PIPPENGER_SCRATCH_OBJECTS 6
 #define STRAUSS_SCRATCH_OBJECTS 5
+#define BUNDLE_SCRATCH_OBJECTS 8
 
 #define PIPPENGER_MAX_BUCKET_WINDOW 12
 
-/* Minimum number of points for which pippenger_wnaf is faster than strauss wnaf */
-#define ECMULT_PIPPENGER_THRESHOLD 88
+/* Minimum number of points for which pippenger_wnaf is faster than the bundled algorithm */
+#define ECMULT_PIPPENGER_THRESHOLD 181
 
 #define ECMULT_MAX_POINTS_PER_BATCH 5000000
 
@@ -226,6 +227,404 @@ static int secp256k1_ecmult_wnaf_small(int8_t *wnaf, int len, const secp256k1_sc
     return ret;
 }
 
+/** Number of points in a bundle. A bundle's first point is its anchor and the others are its
+ *  followers. They are served together by one table: where the main loop of a multiplication would
+ *  look up a multiple of each point and add it, it looks up one entry for the whole bundle and adds
+ *  that. Larger bundles thus mean fewer additions there, at the cost of an exponentially larger
+ *  table to build.
+ *
+ *  A bundle needs its anchor and at least one follower. It can have at most eight points, because
+ *  each thing the main loop adds on its behalf is named in a byte with one bit per point: a
+ *  follower's bit says whether it takes part, and the anchor, which always does, has the sign for
+ *  its bit. */
+#define ECMULT_BUNDLE_SIZE 6
+
+#if !(2 <= ECMULT_BUNDLE_SIZE && ECMULT_BUNDLE_SIZE <= 8)
+#  error "ECMULT_BUNDLE_SIZE must be in the range [2, 8]"
+#endif
+
+/** Number of entries in a bundle's table.
+ *
+ *  The scalars of a bundle are recoded so that the only combinations of its points the main loop
+ *  ever asks for are those in which the anchor's coefficient is +1 or -1 and each follower's is
+ *  either the same as the anchor's or zero: a sign times the sum of the anchor and some subset of
+ *  the followers. There are 2^ECMULT_BUNDLE_SIZE of these, and the ones with a negative anchor are
+ *  the negations of the ones with a positive anchor. So the table holds only the positive half,
+ *  which is the subset sums that contain the anchor -- entry m is a[0] + sum(a[i+1] for the set
+ *  bits i of m) -- and a negative anchor costs a negation at lookup. */
+#define ECMULT_BUNDLE_TABLE_SIZE (((size_t)1) << (ECMULT_BUNDLE_SIZE - 1))
+
+/** Build a bundle's table: the subset sums of its points that contain the anchor.
+ *
+ *  pre[m] receives a[0] + sum(a[i+1] for the set bits i of m), so it needs ECMULT_BUNDLE_TABLE_SIZE
+ *  group elements. As in secp256k1_ecmult_odd_multiples_table these are Jacobian points with their z
+ *  omitted, unusable until secp256k1_ecmult_bundle_table_set_globalz has run.
+ *
+ *  The entries are computed in Gray code order, in which consecutive ones differ by a single
+ *  follower. Each entry is thus the one before it plus or minus an input point, and the table is a
+ *  single chain of mixed additions with one live accumulator. A chain is also what lets z ratios
+ *  bring every entry to a common z without an inversion. (Forming each subset sum from a smaller one
+ *  takes one addition per entry as well, but those additions make a tree, whose inner entries have
+ *  to be kept in Jacobian form and whose z values do not follow one from another.) The ratios go to
+ *  zr, which needs ECMULT_BUNDLE_TABLE_SIZE field elements and is indexed by position in the chain,
+ *  not by entry -- position k holds entry k ^ (k >> 1).
+ *
+ *  On entry *z is the z the chain has reached, 1 at its start; on return it is the z the chain has
+ *  reached after this bundle. Bundles thus extend one chain instead of each having a denominator of
+ *  its own, and one backward pass brings all of them to the last one's z.
+ *
+ *  Any input may be infinity, and an entry may be infinity even when no input is, a subset sum being
+ *  able to vanish: a follower opposite to the anchor does it at once, and chosen inputs can do it
+ *  deeper in. Such an entry is an ordinary infinite secp256k1_ge.
+ */
+static void secp256k1_ecmult_bundle_table(secp256k1_ge *pre, secp256k1_fe *zr, secp256k1_fe *z, const secp256k1_ge *a) {
+    secp256k1_ge_z cur;
+    size_t k;
+
+    /* Entry 0 is the anchor by itself, brought onto the chain's curve by adding it to that curve's
+     * infinity, which copes with an infinite anchor and leaves the ratio at 1: entry 0 sits at the
+     * incoming z. (Like secp256k1_ge_table_set_globalz, secp256k1_ecmult_bundle_table_set_globalz
+     * does not read zr[0].) */
+    secp256k1_ge_z_set_infinity(&cur, z);
+    secp256k1_ge_z_add_ge_var(&cur, &cur, &a[0], &zr[0]);
+    pre[0] = cur.p;
+
+    for (k = 1; k < ECMULT_BUNDLE_TABLE_SIZE; ++k) {
+        /* The Gray code k ^ (k >> 1) differs from its predecessor in follower ctz(k) alone, which is
+         * being added where that bit is now set and taken away where it is not. Taking away is just
+         * adding the negation, so every step is one addition of an affine point. */
+        size_t g = k ^ (k >> 1);
+        int c = secp256k1_ctz32_var((uint32_t)k);
+        secp256k1_ge t;
+
+        if ((g >> c) & 1) {
+            t = a[c + 1];
+        } else {
+            secp256k1_ge_neg(&t, &a[c + 1]);
+        }
+        secp256k1_ge_z_add_ge_var(&cur, &cur, &t, &zr[k]);
+        pre[g] = cur.p;
+    }
+
+    *z = cur.z;
+}
+
+/** Bring one bundle's table onto the denominator the whole chain ends at.
+ *
+ *  As secp256k1_ge_table_set_globalz, but for a chain whose entries sit at their subset index rather
+ *  than in chain order, and which may hold infinities, whose coordinates are left alone.
+ *
+ *  *zs is the ratio between the chain's final z and the z this bundle's last entry was left at, which
+ *  is 1 for the bundle the chain ends with. On return it is that same ratio for the bundle before this
+ *  one, so bundles are normalized from the last back to the first and every table ends up sharing the
+ *  chain's final z.
+ */
+static void secp256k1_ecmult_bundle_table_set_globalz(secp256k1_ge *pre, const secp256k1_fe *zr, secp256k1_fe *zs) {
+    size_t k = ECMULT_BUNDLE_TABLE_SIZE;
+
+    while (k-- > 0) {
+        size_t g = k ^ (k >> 1);
+
+        if (!pre[g].infinity) {
+            secp256k1_ge_set_ge_zinv(&pre[g], &pre[g], zs);
+        }
+        if (k > 0) {
+            secp256k1_fe_mul(zs, zs, &zr[k]);
+        }
+    }
+}
+
+/** Fill x with the x coordinates of the lambda multiples of a bundle table's entries, so that one
+ *  table serves both sides of the lambda split. Multiplying x by beta is all it takes. */
+static void secp256k1_ecmult_bundle_table_lambda_x(secp256k1_fe *x, const secp256k1_ge *pre) {
+    size_t i;
+
+    for (i = 0; i < ECMULT_BUNDLE_TABLE_SIZE; ++i) {
+        secp256k1_fe_mul(&x[i], &pre[i].x, &secp256k1_const_beta);
+    }
+}
+
+/** Layout of a bundle index, the byte that names one thing for the main loop to add on a bundle's
+ *  behalf: the number of a table entry, one bit per follower, and above it the anchor's sign, 1
+ *  meaning positive and 0 that the entry is to be negated. */
+#define ECMULT_BUNDLE_INDEX_SIGN (1U << (ECMULT_BUNDLE_SIZE - 1))
+#define ECMULT_BUNDLE_INDEX_ENTRY (ECMULT_BUNDLE_INDEX_SIGN - 1U)
+
+/** Put in r the point a bundle index selects: the table entry it names, negated when its sign bit
+ *  is clear. Copying the whole element carries the infinity flag, which an entry can have. */
+SECP256K1_INLINE static void secp256k1_ecmult_bundle_table_get_ge(secp256k1_ge *r, const secp256k1_ge *pre, unsigned int idx) {
+    VERIFY_CHECK(idx < 2 * ECMULT_BUNDLE_INDEX_SIGN);
+
+    *r = pre[idx & ECMULT_BUNDLE_INDEX_ENTRY];
+    if (!(idx & ECMULT_BUNDLE_INDEX_SIGN)) {
+        secp256k1_fe_negate(&r->y, &r->y, 1);
+    }
+}
+
+/** As secp256k1_ecmult_bundle_table_get_ge, but for the lambda multiples of the table's points, whose
+ *  x coordinates are the ones secp256k1_ecmult_bundle_table_lambda_x prepared. Only x differs, y and
+ *  the omitted z being left alone by lambda, and negation works the same way on that side since lambda
+ *  is a homomorphism.
+ *
+ *  This cannot be written in terms of secp256k1_ge_set_xy the way secp256k1_ecmult_table_get_ge_lambda
+ *  is: that clears the infinity flag, which an entry here may need to keep. */
+SECP256K1_INLINE static void secp256k1_ecmult_bundle_table_get_ge_lambda(secp256k1_ge *r, const secp256k1_ge *pre, const secp256k1_fe *x, unsigned int idx) {
+    unsigned int m = idx & ECMULT_BUNDLE_INDEX_ENTRY;
+    VERIFY_CHECK(idx < 2 * ECMULT_BUNDLE_INDEX_SIGN);
+
+    r->infinity = pre[m].infinity;
+    r->x = x[m];
+    r->y = pre[m].y;
+    if (!(idx & ECMULT_BUNDLE_INDEX_SIGN)) {
+        secp256k1_fe_negate(&r->y, &r->y, 1);
+    }
+}
+
+/** Number of 32-bit words in a secp256k1_hscalar: at least five, since a half of a lambda split
+ *  takes up to 128 bits and a sign, and at most the eight of a scalar. */
+#define ECMULT_HSCALAR_WORDS 5
+
+#if !(5 <= ECMULT_HSCALAR_WORDS && ECMULT_HSCALAR_WORDS <= 8)
+#  error "ECMULT_HSCALAR_WORDS must be in the range [5, 8]"
+#endif
+
+/** A half-scalar: a signed integer in two's complement, as little-endian 32-bit words.
+ *
+ *  The halves that secp256k1_scalar_split_lambda produces are small signed integers, but a
+ *  secp256k1_scalar holds them as residues mod n, a negative one as n minus its magnitude. A recoding
+ *  of such halves wants them as the integers they are, to add them, complement them and read off
+ *  their bits, and this type is that: plain fixed-width arithmetic with the sign in the top bit. It
+ *  is wider than any half, so that what a recoding computes from halves has bits to spare above it.
+ *  Those are sign extension, and let a value outside its expected range be caught under VERIFY (see
+ *  secp256k1_hscalar_verify_bits) instead of wrapping.
+ */
+typedef struct {
+    uint32_t d[ECMULT_HSCALAR_WORDS];
+} secp256k1_hscalar;
+
+/** Set r to the signed integer a scalar stands for: the residue a itself when it is below 2^255, and
+ *  a - n otherwise. Reading the sign off the top bit is right for every integer in [2^255 - n, 2^255),
+ *  which takes in every absolute value up to 2^254, far beyond anything a lambda split produces. The
+ *  value must then fit the type, that is lie in [-2^159, 2^159) at ECMULT_HSCALAR_WORDS = 5, which is
+ *  checked under VERIFY.
+ *
+ *  Since a - n = a + (2^256 - n) mod 2^256, the conversion is a conditional addition of 2^256 - n to
+ *  the low words of a, with the sign bit as the condition: no comparison and no negation.
+ */
+static void secp256k1_hscalar_set_scalar(secp256k1_hscalar *r, const secp256k1_scalar *a) {
+    /* 2^256 - n, low word first. For an exhaustive test group every scalar is tiny, so the sign bit
+     * is never set and the constant is never added; it only has to be well defined. */
+#if defined(EXHAUSTIVE_TEST_ORDER)
+    static const uint32_t n_c[8] = {
+        (uint32_t)0 - (uint32_t)EXHAUSTIVE_TEST_ORDER, 0xFFFFFFFFul, 0xFFFFFFFFul, 0xFFFFFFFFul,
+        0xFFFFFFFFul, 0xFFFFFFFFul, 0xFFFFFFFFul, 0xFFFFFFFFul
+    };
+#else
+    static const uint32_t n_c[8] = {
+        0x2FC9BEBFul, 0x402DA173ul, 0x50B75FC4ul, 0x45512319ul, 1, 0, 0, 0
+    };
+#endif
+    uint32_t mask = 0 - secp256k1_scalar_get_bits_limb32(a, 255, 1);
+    uint64_t c = 0;
+    int k;
+
+    for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+        c += (uint64_t)secp256k1_scalar_get_bits_limb32(a, 32 * (unsigned int)k, 32) + (n_c[k] & mask);
+        r->d[k] = (uint32_t)c;
+        c >>= 32;
+    }
+#ifdef VERIFY
+    /* The words left off must be the sign extension of the ones kept. */
+    {
+        uint32_t sign = 0 - (r->d[ECMULT_HSCALAR_WORDS - 1] >> 31);
+
+        for (k = ECMULT_HSCALAR_WORDS; k < 8; ++k) {
+            c += (uint64_t)secp256k1_scalar_get_bits_limb32(a, 32 * (unsigned int)k, 32) + (n_c[k] & mask);
+            VERIFY_CHECK((uint32_t)c == sign);
+            c >>= 32;
+        }
+    }
+#endif
+}
+
+/** Set r to a + b, modulo 2^(32*ECMULT_HSCALAR_WORDS); exact for the ranges the callers keep to. */
+static void secp256k1_hscalar_add(secp256k1_hscalar *r, const secp256k1_hscalar *a, const secp256k1_hscalar *b) {
+    uint64_t c = 0;
+    int k;
+
+    for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+        c += (uint64_t)a->d[k] + b->d[k];
+        r->d[k] = (uint32_t)c;
+        c >>= 32;
+    }
+}
+
+/** Set r to the bitwise complement of a, which as an integer is -a - 1. */
+static void secp256k1_hscalar_not(secp256k1_hscalar *r, const secp256k1_hscalar *a) {
+    int k;
+
+    for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+        r->d[k] = ~a->d[k];
+    }
+}
+
+/** Set r to the bitwise XOR of a and b. */
+static void secp256k1_hscalar_xor(secp256k1_hscalar *r, const secp256k1_hscalar *a, const secp256k1_hscalar *b) {
+    int k;
+
+    for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+        r->d[k] = a->d[k] ^ b->d[k];
+    }
+}
+
+/** Bit j of a. */
+SECP256K1_INLINE static unsigned int secp256k1_hscalar_bit(const secp256k1_hscalar *a, int j) {
+    return (a->d[j >> 5] >> (j & 31)) & 1;
+}
+
+/** Check that a fits in bits-bit two's complement, that is, that every bit from bits-1 up is the
+ *  sign (no-op unless VERIFY is enabled). */
+SECP256K1_INLINE static void secp256k1_hscalar_verify_bits(const secp256k1_hscalar *a, int bits) {
+#ifdef VERIFY
+    unsigned int sign = secp256k1_hscalar_bit(a, 32 * ECMULT_HSCALAR_WORDS - 1);
+    int j;
+
+    for (j = bits - 1; j < 32 * ECMULT_HSCALAR_WORDS; ++j) {
+        VERIFY_CHECK(secp256k1_hscalar_bit(a, j) == sign);
+    }
+#else
+    (void)a;
+    (void)bits;
+#endif
+}
+
+/* How a bundle's scalars are recoded.
+ *
+ * Fix one side of the lambda split. Let u be the anchor's half there, written in L-bit two's
+ * complement, where L is ECMULT_BUNDLE_BITS: bit j has weight 2^j, except the top bit, bit L-1,
+ * whose weight is -2^(L-1). Changing bit j of ~u into bit j of u changes the value by
+ *
+ *     t_j = (2*u_j - 1) * weight_j,
+ *
+ * which is +2^j where u_j is set and -2^j where it is clear, the other way round at the top bit.
+ *
+ * The anchor is given the term t_j at every position. Changing every bit turns ~u into u, so its
+ * terms sum to u - ~u = 2*u + 1, which is its coefficient on this side.
+ *
+ * A follower is given t_j at the positions where it is present and nothing at the others. Changing
+ * the bits at those positions alone turns ~u into some e, so the follower's coefficient is e - ~u.
+ * For that to be its own half f,
+ *
+ *     e = f + ~u,    present = ~(e ^ u),
+ *
+ * present being where e agrees with u. Every L-bit e comes from exactly one choice of positions, so
+ * the recoding exists and is unique exactly when f + ~u fits in L bits. It is a closed form: one
+ * addition and one XNOR per follower per side, with no pass over the positions.
+ */
+
+/** Number of positions a bundle's scalars are recoded into on each side of the lambda split, and so
+ *  the number of doublings a main loop over them makes. This is L above.
+ *
+ *  It has to be large enough for u and for f + ~u to fit in L-bit two's complement, that is for
+ *
+ *      -2^(L-1) <= u < 2^(L-1)   and   -2^(L-1) <= f - u - 1 < 2^(L-1),
+ *
+ *  which |u| + |f| < 2^(L-1) ensures. Every half produced by secp256k1_scalar_split_lambda is below
+ *  (a1 + a2 + 1)/2 = 0.6354*2^128 in absolute value (see the proof above
+ *  secp256k1_scalar_split_lambda_verify), so |u| + |f| can reach 1.271*2^128. At L = 129 the room is
+ *  2^128, short by a factor of 1.27; at L = 130 it is 2^129, a factor of 1.57 to spare. The anchor
+ *  alone would fit in 129; it is a follower's f + ~u that needs the extra bit.
+ *
+ *  L also has to stay below the width of a half-scalar, which needs a bit above the L positions
+ *  for a value that does not fit to show as such. */
+#define ECMULT_BUNDLE_BITS 130
+
+#if !(130 <= ECMULT_BUNDLE_BITS && ECMULT_BUNDLE_BITS < 32 * ECMULT_HSCALAR_WORDS)
+#  error "ECMULT_BUNDLE_BITS must be in the range [130, 32*ECMULT_HSCALAR_WORDS - 1]"
+#endif
+
+/* The anchor's coefficient on each side is 2*u + 1 for its half u there (see above), so halves u
+ * and u' give it (2*u + 1) + lambda*(2*u' + 1) = 2*(u + lambda*u') + (1 + lambda) in all. Splitting
+ * t = (q + K)/2 for the anchor's scalar q therefore yields exactly q when K = -(1 + lambda).
+ * Since lambda^2 + lambda + 1 = 0 mod n, that is the same as K = lambda^2, the other primitive
+ * cube root of unity mod n and the inverse of lambda.
+ *
+ * This is the scalar offsetting of secp256k1_ecmult_const_gej; see the derivation in its comment.
+ * The correction has to go into the scalar, before the split, because that is where there is
+ * arithmetic mod n. The halves are plain integers: they cannot take a modular correction, and
+ * the alternatives are ugly. */
+#if defined(EXHAUSTIVE_TEST_ORDER)
+static const secp256k1_scalar secp256k1_ecmult_bundle_K = ((EXHAUSTIVE_TEST_ORDER - 1U) * (1U + EXHAUSTIVE_TEST_LAMBDA)) % EXHAUSTIVE_TEST_ORDER;
+#else
+static const secp256k1_scalar secp256k1_ecmult_bundle_K = SECP256K1_SCALAR_CONST(
+    0xac9c52b3ul, 0x3fa3cf1ful, 0x5ad9e3fdul, 0x77ed9ba4ul,
+    0xa880b9fcul, 0x8ec739c2ul, 0xe0cfc810ul, 0xb51283ceul
+);
+#endif
+
+/** Recode a bundle's scalars into one bundle index per position per side.
+ *
+ *  indices needs 2*ECMULT_BUNDLE_BITS bytes. indices[j] receives position j's index for the plain
+ *  side and indices[ECMULT_BUNDLE_BITS + j] the one for the lambda side, in the layout
+ *  ECMULT_BUNDLE_INDEX_SIGN and ECMULT_BUNDLE_INDEX_ENTRY describe.
+ *
+ *  na points to ECMULT_BUNDLE_SIZE scalars, na[0] being the anchor's. Any scalar is acceptable,
+ *  including zero.
+ *
+ *  On each side, with u the anchor's half and f a follower's (see "How a bundle's scalars are
+ *  recoded" above): the sign bit of the index at position j is bit j of u, inverted at the top
+ *  position, and the follower's entry bit there is bit j of ~((f + ~u) ^ u).
+ */
+static void secp256k1_ecmult_bundle_recode(unsigned char *indices, const secp256k1_scalar *na) {
+    secp256k1_hscalar u[2], signs[2];
+    secp256k1_hscalar present[2][ECMULT_BUNDLE_SIZE - 1];
+    secp256k1_scalar t, h[2];
+    int j, side;
+    size_t i;
+
+    /* The anchor's halves, from (q + K)/2. */
+    secp256k1_scalar_add(&t, &na[0], &secp256k1_ecmult_bundle_K);
+    secp256k1_scalar_half(&t, &t);
+    secp256k1_scalar_split_lambda(&h[0], &h[1], &t);
+
+    for (side = 0; side < 2; ++side) {
+        secp256k1_hscalar_set_scalar(&u[side], &h[side]);
+        secp256k1_hscalar_verify_bits(&u[side], ECMULT_BUNDLE_BITS);
+        /* The sign bits: u with bit L-1 flipped. Nothing reads them above that bit. */
+        signs[side] = u[side];
+        signs[side].d[(ECMULT_BUNDLE_BITS - 1) >> 5] ^= (uint32_t)1 << ((ECMULT_BUNDLE_BITS - 1) & 31);
+    }
+
+    for (i = 1; i < ECMULT_BUNDLE_SIZE; ++i) {
+        secp256k1_scalar c[2];
+
+        secp256k1_scalar_split_lambda(&c[0], &c[1], &na[i]);
+        for (side = 0; side < 2; ++side) {
+            secp256k1_hscalar *p = &present[side][i - 1];
+            secp256k1_hscalar f, e;
+
+            secp256k1_hscalar_set_scalar(&f, &c[side]);
+            /* e = f + ~u, then present = ~(e ^ u). */
+            secp256k1_hscalar_not(&e, &u[side]);
+            secp256k1_hscalar_add(&e, &e, &f);
+            secp256k1_hscalar_verify_bits(&e, ECMULT_BUNDLE_BITS);
+            secp256k1_hscalar_xor(p, &e, &u[side]);
+            secp256k1_hscalar_not(p, p);
+        }
+    }
+
+    for (side = 0; side < 2; ++side) {
+        for (j = 0; j < ECMULT_BUNDLE_BITS; ++j) {
+            unsigned int idx = secp256k1_hscalar_bit(&signs[side], j) * ECMULT_BUNDLE_INDEX_SIGN;
+
+            for (i = 1; i < ECMULT_BUNDLE_SIZE; ++i) {
+                idx |= secp256k1_hscalar_bit(&present[side][i - 1], j) << (i - 1);
+            }
+            indices[side * ECMULT_BUNDLE_BITS + j] = (unsigned char)idx;
+        }
+    }
+}
+
 struct secp256k1_strauss_point_state {
     int8_t wnaf_na_1[129];
     int8_t wnaf_na_lam[129];
@@ -353,6 +752,215 @@ static void secp256k1_ecmult_strauss_wnaf(const struct secp256k1_strauss_state *
     }
 }
 
+/** Number of points left over once as many full bundles as possible have been formed. They are
+ *  handled as in Strauss' algorithm, in the same loop.
+ *
+ *  Bundles are never partly filled. A bundle costs the main loop 2*ECMULT_BUNDLE_BITS additions
+ *  whether it is full or not, against roughly 2*129/(WINDOW_A+1) per point in Strauss' algorithm: a
+ *  full bundle breaks even there (see secp256k1_ecmult_bundle_multi), and every point short of full
+ *  puts it 43 additions behind, which its smaller table makes up for less and less. A bundle one
+ *  point short might still come out ahead; it is not attempted here. Points left over cost no more
+ *  than they would in Strauss' algorithm, so leaving them to it cannot lose. */
+SECP256K1_INLINE static size_t secp256k1_ecmult_bundle_remainder(size_t num) {
+    return num % ECMULT_BUNDLE_SIZE;
+}
+
+/** As secp256k1_ge_table_set_globalz, but threading the running ratio through *zs so that segments of
+ *  one chain compose, and reading zr[0], which relates the segment's first entry to the z the chain
+ *  arrived with. len must be at least 1. */
+static void secp256k1_ecmult_bundle_chain_set_globalz(size_t len, secp256k1_ge *a, const secp256k1_fe *zr, secp256k1_fe *zs) {
+    size_t i = len;
+
+    VERIFY_CHECK(len >= 1);
+
+    while (i-- > 0) {
+        secp256k1_ge_set_ge_zinv(&a[i], &a[i], zs);
+        secp256k1_fe_mul(zs, zs, &zr[i]);
+    }
+}
+
+struct secp256k1_bundle_state {
+    /* The tables of every bundle, concatenated. */
+    secp256k1_ge *pre;
+    /* The x coordinates of the lambda multiples of those tables. The same array first holds the
+     * chain's z ratios, until the tables have been normalized and the ratios are spent. */
+    secp256k1_fe *lamx;
+    /* The bundle indices, 2*ECMULT_BUNDLE_BITS of them for each bundle in turn, as
+     * secp256k1_ecmult_bundle_recode writes them. */
+    unsigned char *indices;
+    /* For the points left over: as in secp256k1_strauss_state, the odd multiples, then the x
+     * coordinates of their lambda multiples, and the recoded scalars. */
+    secp256k1_ge *pre_rem;
+    secp256k1_fe *aux_rem;
+    struct secp256k1_strauss_point_state *ps;
+};
+
+/** Set r to ng*G + sum(na[i] * a[i], i=0..num-1), taking the points in bundles. ng may be NULL.
+ *
+ *  The points are taken ECMULT_BUNDLE_SIZE at a time. In such a bundle the first point is the anchor
+ *  and the others are its followers. Every scalar is split by lambda into two halves, and on each
+ *  side of the split a bundle's halves are recoded together (secp256k1_ecmult_bundle_recode) so that
+ *  at every position
+ *
+ *    - the anchor's digit is +1 or -1, never zero, and
+ *    - each follower's digit is either zero or equal to the anchor's.
+ *
+ *  What a bundle contributes at one position on one side is then a sign times a sum of its points
+ *  that always includes the anchor: an entry of the bundle's table of subset sums
+ *  (secp256k1_ecmult_bundle_table) or its negation, named by one bundle index. That is one lookup
+ *  and one addition per bundle, whatever the scalars are. The lambda side uses the same table with
+ *  its x coordinates multiplied by beta.
+ *
+ *  Against Strauss' algorithm, which averages one addition per WINDOW_A + 1 positions for each half
+ *  of each scalar, the main loop comes out even: at ECMULT_BUNDLE_SIZE = 6 a bundle spends
+ *  2*ECMULT_BUNDLE_BITS = 260 additions where six points' wNAF digits spend about 12*129/6 = 258.
+ *  The gain is in what goes before. A bundle's table takes 31 additions and 32 normalizations, where
+ *  six tables of odd multiples take 42 additions, 6 doublings and 48 normalizations. The recoding of
+ *  a scalar is a split and a few word operations, in place of a split and two wNAF recodings. And a
+ *  bundle's table and indices occupy little more than half the space of what they replace.
+ *
+ *  Every bundle's table is a segment of one chain of additions, so a single backward pass brings
+ *  them all to a common z, and the tables for G can then be used exactly as Strauss' algorithm uses
+ *  them.
+ *
+ *  A zero scalar or an infinite point needs no special handling in a bundle: the recoding is valid
+ *  for any scalar, and a table copes with infinite inputs and with subset sums that vanish.
+ *
+ *  The representation is the sign-aligned column form (GLV-SAC) of Faz-Hernandez, Longa and Sanchez,
+ *  "Efficient and Secure Algorithms for GLV-Based Scalar Multiplication and their Implementation on
+ *  GLV-GLS Curves" (https://eprint.iacr.org/2013/158), section 3, with the columns running across
+ *  the points of a bundle rather than across the sub-scalars of a single multiplication.
+ *
+ *  Points that do not fill a bundle are handled as in Strauss' algorithm, in the same loop and with
+ *  their tables on the same chain; see secp256k1_ecmult_bundle_remainder. As there, they are skipped
+ *  when their scalar is zero or they are infinite. num must be at least ECMULT_BUNDLE_SIZE.
+ */
+static void secp256k1_ecmult_bundle_multi(const struct secp256k1_bundle_state *state, secp256k1_gej *r, size_t num, const secp256k1_ge *a, const secp256k1_scalar *na, const secp256k1_scalar *ng) {
+    const size_t rem_table = ECMULT_TABLE_SIZE(WINDOW_A);
+    secp256k1_fe globalz, zs;
+    secp256k1_scalar ng_1, ng_128;
+    int wnaf_ng_1[129];
+    int wnaf_ng_128[129];
+    int bits_ng_1 = 0;
+    int bits_ng_128 = 0;
+    size_t i, b, nbund, nbp, no;
+    int pos;
+
+    VERIFY_CHECK(num >= ECMULT_BUNDLE_SIZE);
+
+    nbp = num - secp256k1_ecmult_bundle_remainder(num);
+    nbund = nbp / ECMULT_BUNDLE_SIZE;
+
+    /* Recode each bundle's scalars. */
+    for (b = 0; b < nbund; ++b) {
+        secp256k1_ecmult_bundle_recode(state->indices + b * 2 * ECMULT_BUNDLE_BITS, na + b * ECMULT_BUNDLE_SIZE);
+    }
+
+    /* One chain, over every bundle's table. */
+    secp256k1_fe_set_int(&globalz, 1);
+    for (b = 0; b < nbund; ++b) {
+        secp256k1_ecmult_bundle_table(state->pre + b * ECMULT_BUNDLE_TABLE_SIZE,
+                                      state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE, &globalz,
+                                      a + b * ECMULT_BUNDLE_SIZE);
+    }
+    /* It carries on through the odd multiples of each point left over. */
+    no = 0;
+    for (i = nbp; i < num; ++i) {
+        secp256k1_gej tmp;
+        secp256k1_scalar na_1, na_lam;
+
+        if (secp256k1_scalar_is_zero(&na[i]) || secp256k1_ge_is_infinity(&a[i])) {
+            continue;
+        }
+        secp256k1_scalar_split_lambda(&na_1, &na_lam, &na[i]);
+        state->ps[no].bits_na_1   = secp256k1_ecmult_wnaf_small(state->ps[no].wnaf_na_1,   129, &na_1,   WINDOW_A);
+        state->ps[no].bits_na_lam = secp256k1_ecmult_wnaf_small(state->ps[no].wnaf_na_lam, 129, &na_lam, WINDOW_A);
+        VERIFY_CHECK(state->ps[no].bits_na_1 <= 129);
+        VERIFY_CHECK(state->ps[no].bits_na_lam <= 129);
+
+        /* The input is affine, so unlike in Strauss' algorithm the first ratio of this segment needs
+         * no correcting: rescaling takes its z straight to the running one. */
+        secp256k1_gej_set_ge(&tmp, &a[i]);
+        secp256k1_gej_rescale(&tmp, &globalz);
+        secp256k1_ecmult_odd_multiples_table(rem_table, state->pre_rem + no * rem_table,
+                                             state->aux_rem + no * rem_table, &globalz, &tmp);
+        ++no;
+    }
+
+    /* Bring every segment onto the z the chain ends at, walking it backwards from there. */
+    secp256k1_fe_set_int(&zs, 1);
+    for (i = no; i-- > 0;) {
+        secp256k1_ecmult_bundle_chain_set_globalz(rem_table, state->pre_rem + i * rem_table,
+                                                  state->aux_rem + i * rem_table, &zs);
+    }
+    for (b = nbund; b-- > 0;) {
+        secp256k1_ecmult_bundle_table_set_globalz(state->pre + b * ECMULT_BUNDLE_TABLE_SIZE,
+                                                  state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE, &zs);
+    }
+    /* The lambda multiples can only be derived once the tables are there, and they overwrite the
+     * ratios, which are spent. */
+    for (b = 0; b < nbund; ++b) {
+        secp256k1_ecmult_bundle_table_lambda_x(state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE,
+                                               state->pre + b * ECMULT_BUNDLE_TABLE_SIZE);
+    }
+    for (i = 0; i < no * rem_table; ++i) {
+        secp256k1_fe_mul(&state->aux_rem[i], &state->pre_rem[i].x, &secp256k1_const_beta);
+    }
+
+    if (ng) {
+        /* The G tables are unchanged from Strauss' algorithm, as is how they are used. */
+        secp256k1_scalar_split_128(&ng_1, &ng_128, ng);
+        bits_ng_1   = secp256k1_ecmult_wnaf(wnaf_ng_1,   129, &ng_1,   WINDOW_G);
+        bits_ng_128 = secp256k1_ecmult_wnaf(wnaf_ng_128, 129, &ng_128, WINDOW_G);
+        VERIFY_CHECK(bits_ng_1 <= 129);
+        VERIFY_CHECK(bits_ng_128 <= 129);
+    }
+
+    secp256k1_gej_set_infinity(r);
+
+    /* Nothing here runs for more positions than the bundles do: every wNAF stream is at most 129
+     * digits and ECMULT_BUNDLE_BITS is 130, so the count is not a maximum over the streams as it is
+     * in Strauss' algorithm. */
+    for (pos = ECMULT_BUNDLE_BITS - 1; pos >= 0; --pos) {
+        secp256k1_ge tmpa;
+        int n;
+
+        secp256k1_gej_double_var(r, r, NULL);
+        for (b = 0; b < nbund; ++b) {
+            const secp256k1_ge *pre = state->pre + b * ECMULT_BUNDLE_TABLE_SIZE;
+            const unsigned char *indices = state->indices + b * 2 * ECMULT_BUNDLE_BITS;
+
+            secp256k1_ecmult_bundle_table_get_ge(&tmpa, pre, indices[pos]);
+            secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
+            secp256k1_ecmult_bundle_table_get_ge_lambda(&tmpa, pre, state->lamx + b * ECMULT_BUNDLE_TABLE_SIZE, indices[ECMULT_BUNDLE_BITS + pos]);
+            secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
+        }
+        /* The points left over, exactly as Strauss' algorithm handles them. */
+        for (i = 0; i < no; ++i) {
+            if (pos < state->ps[i].bits_na_1 && (n = state->ps[i].wnaf_na_1[pos])) {
+                secp256k1_ecmult_table_get_ge(&tmpa, state->pre_rem + i * rem_table, n, WINDOW_A);
+                secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
+            }
+            if (pos < state->ps[i].bits_na_lam && (n = state->ps[i].wnaf_na_lam[pos])) {
+                secp256k1_ecmult_table_get_ge_lambda(&tmpa, state->pre_rem + i * rem_table, state->aux_rem + i * rem_table, n, WINDOW_A);
+                secp256k1_gej_add_ge_var(r, r, &tmpa, NULL);
+            }
+        }
+        if (pos < bits_ng_1 && (n = wnaf_ng_1[pos])) {
+            secp256k1_ecmult_table_get_ge_storage(&tmpa, secp256k1_pre_g, n, WINDOW_G);
+            secp256k1_gej_add_zinv_var(r, r, &tmpa, &globalz);
+        }
+        if (pos < bits_ng_128 && (n = wnaf_ng_128[pos])) {
+            secp256k1_ecmult_table_get_ge_storage(&tmpa, secp256k1_pre_g_128, n, WINDOW_G);
+            secp256k1_gej_add_zinv_var(r, r, &tmpa, &globalz);
+        }
+    }
+
+    if (!secp256k1_gej_is_infinity(r)) {
+        secp256k1_fe_mul(&r->z, &r->z, &globalz);
+    }
+}
+
 static void secp256k1_ecmult(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_scalar *na, const secp256k1_scalar *ng) {
     secp256k1_fe aux[ECMULT_TABLE_SIZE(WINDOW_A)];
     secp256k1_ge pre_a[ECMULT_TABLE_SIZE(WINDOW_A)];
@@ -416,6 +1024,104 @@ static int secp256k1_ecmult_strauss_batch_single(const secp256k1_callback* error
 
 static size_t secp256k1_strauss_max_points(const secp256k1_callback* error_callback, secp256k1_scratch *scratch) {
     return secp256k1_scratch_max_allocation(error_callback, scratch, STRAUSS_SCRATCH_OBJECTS) / secp256k1_strauss_scratch_size(1);
+}
+
+/** The scratch space secp256k1_ecmult_bundle_batch takes for a batch of n_points, not counting what
+ *  the alignment of its allocations adds, of which there are at most BUNDLE_SCRATCH_OBJECTS.
+ *
+ *  On the real group, in a 64-bit build, that is around 850 bytes per point once the bundles are
+ *  full, against 1452 for Strauss' algorithm. It does not grow evenly, though. A point left over has
+ *  a table of odd multiples to itself and costs nearly what it would in Strauss' algorithm, so a
+ *  batch can need more space than one that is a point larger and fills another bundle. */
+static size_t secp256k1_bundle_scratch_size(size_t n_points) {
+    static const size_t point_size = sizeof(secp256k1_ge) + sizeof(secp256k1_scalar);
+    static const size_t bundle_size = (sizeof(secp256k1_ge) + sizeof(secp256k1_fe)) * ECMULT_BUNDLE_TABLE_SIZE + 2 * ECMULT_BUNDLE_BITS;
+    static const size_t leftover_size = (sizeof(secp256k1_ge) + sizeof(secp256k1_fe)) * ECMULT_TABLE_SIZE(WINDOW_A) + sizeof(struct secp256k1_strauss_point_state);
+
+    if (n_points < ECMULT_BUNDLE_SIZE) {
+        /* Such a batch is handed to Strauss' algorithm. */
+        return secp256k1_strauss_scratch_size(n_points);
+    }
+    return n_points * point_size + (n_points / ECMULT_BUNDLE_SIZE) * bundle_size + secp256k1_ecmult_bundle_remainder(n_points) * leftover_size;
+}
+
+/** As secp256k1_ecmult_strauss_batch, but bundling as many of the points as fill bundles exactly.
+ *  With too few points to fill a single bundle, the batch is handed to Strauss' algorithm.
+ */
+static int secp256k1_ecmult_bundle_batch(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n_points, size_t cb_offset) {
+    secp256k1_ge* points;
+    secp256k1_scalar* scalars;
+    struct secp256k1_bundle_state state;
+    size_t nbund, ne, rem, i;
+    size_t scratch_checkpoint;
+
+    if (n_points < ECMULT_BUNDLE_SIZE) {
+        return secp256k1_ecmult_strauss_batch(error_callback, scratch, r, inp_g_sc, cb, cbdata, n_points, cb_offset);
+    }
+
+    scratch_checkpoint = secp256k1_scratch_checkpoint(error_callback, scratch);
+    rem = secp256k1_ecmult_bundle_remainder(n_points);
+    nbund = (n_points - rem) / ECMULT_BUNDLE_SIZE;
+    ne = nbund * ECMULT_BUNDLE_TABLE_SIZE;
+
+    /* We allocate BUNDLE_SCRATCH_OBJECTS objects on the scratch space. If these
+     * allocations change, make sure to update the BUNDLE_SCRATCH_OBJECTS
+     * constant and bundle_scratch_size accordingly. */
+    points = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_ge));
+    scalars = (secp256k1_scalar*)secp256k1_scratch_alloc(error_callback, scratch, n_points * sizeof(secp256k1_scalar));
+    state.pre = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, ne * sizeof(secp256k1_ge));
+    state.lamx = (secp256k1_fe*)secp256k1_scratch_alloc(error_callback, scratch, ne * sizeof(secp256k1_fe));
+    state.indices = (unsigned char*)secp256k1_scratch_alloc(error_callback, scratch, ECMULT_BUNDLE_BITS * 2 * nbund);
+    /* Only what the points left over actually need. A zero-length allocation is fine and still comes
+     * back non-NULL, so nothing being left over needs no special handling. */
+    state.pre_rem = (secp256k1_ge*)secp256k1_scratch_alloc(error_callback, scratch, rem * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_ge));
+    state.aux_rem = (secp256k1_fe*)secp256k1_scratch_alloc(error_callback, scratch, rem * ECMULT_TABLE_SIZE(WINDOW_A) * sizeof(secp256k1_fe));
+    state.ps = (struct secp256k1_strauss_point_state*)secp256k1_scratch_alloc(error_callback, scratch, rem * sizeof(struct secp256k1_strauss_point_state));
+
+    if (points == NULL || scalars == NULL || state.pre == NULL || state.lamx == NULL ||
+        state.indices == NULL || state.pre_rem == NULL || state.aux_rem == NULL || state.ps == NULL) {
+        secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
+        return 0;
+    }
+
+    for (i = 0; i < n_points; i++) {
+        if (!cb(&scalars[i], &points[i], i + cb_offset, cbdata)) {
+            secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
+            return 0;
+        }
+    }
+    secp256k1_ecmult_bundle_multi(&state, r, n_points, points, scalars, inp_g_sc);
+    secp256k1_scratch_apply_checkpoint(error_callback, scratch, scratch_checkpoint);
+    return 1;
+}
+
+/* Wrapper for secp256k1_ecmult_multi_func interface */
+static int secp256k1_ecmult_bundle_batch_single(const secp256k1_callback* error_callback, secp256k1_scratch *scratch, secp256k1_gej *r, const secp256k1_scalar *inp_g_sc, secp256k1_ecmult_multi_callback cb, void *cbdata, size_t n) {
+    return secp256k1_ecmult_bundle_batch(error_callback, scratch, r, inp_g_sc, cb, cbdata, n, 0);
+}
+
+/** Returns a number of points, a whole number of bundles, such that a batch of that many fits in the
+ *  scratch space and so does a batch of any fewer: the largest for which the count below holds,
+ *  which errs on the safe side. Zero if it does not hold for a single bundle.
+ *
+ *  Fewer points do not always need less space (see secp256k1_bundle_scratch_size). Where the largest
+ *  batch is k bundles, a smaller one can be k - 1 bundles and up to ECMULT_BUNDLE_SIZE - 1 points
+ *  left over, or just that many points, which go to Strauss' algorithm. So space is counted for
+ *  k - 1 bundles plus the larger of a last bundle and ECMULT_BUNDLE_SIZE - 1 points in Strauss'
+ *  algorithm. That covers points left over too: each needs a little less than a point does in
+ *  Strauss' algorithm, its input being kept affine. */
+static size_t secp256k1_bundle_max_points(const secp256k1_callback* error_callback, secp256k1_scratch *scratch) {
+    const size_t max_alloc = secp256k1_scratch_max_allocation(error_callback, scratch, BUNDLE_SCRATCH_OBJECTS);
+    const size_t bundle = secp256k1_bundle_scratch_size(ECMULT_BUNDLE_SIZE);
+    size_t last = secp256k1_strauss_scratch_size(ECMULT_BUNDLE_SIZE - 1);
+
+    if (last < bundle) {
+        last = bundle;
+    }
+    if (max_alloc < last) {
+        return 0;
+    }
+    return (1 + (max_alloc - last) / bundle) * ECMULT_BUNDLE_SIZE;
 }
 
 /** Convert a number to WNAF notation.
@@ -830,7 +1536,7 @@ static int secp256k1_ecmult_multi_var(const secp256k1_callback* error_callback, 
     }
 
     /* Compute the batch sizes for Pippenger's algorithm given a scratch space. If it's greater than
-     * a threshold use Pippenger's algorithm. Otherwise use Strauss' algorithm.
+     * a threshold use Pippenger's algorithm. Otherwise use the bundled algorithm.
      * As a first step check if there's enough space for Pippenger's algo (which requires less space
      * than Strauss' algo) and if not, use the simple algorithm. */
     if (!secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, secp256k1_pippenger_max_points(error_callback, scratch), n)) {
@@ -838,7 +1544,13 @@ static int secp256k1_ecmult_multi_var(const secp256k1_callback* error_callback, 
     }
     if (n_batch_points >= ECMULT_PIPPENGER_THRESHOLD) {
         f = secp256k1_ecmult_pippenger_batch;
+    } else if (secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, secp256k1_bundle_max_points(error_callback, scratch), n)) {
+        /* Make every batch but the last of whole bundles, so that only one batch of a call has points
+         * left over. Rounding up stays within the maximum, which is a whole number of bundles. */
+        n_batch_points = CEIL_DIV(n_batch_points, ECMULT_BUNDLE_SIZE) * ECMULT_BUNDLE_SIZE;
+        f = secp256k1_ecmult_bundle_batch;
     } else {
+        /* There is not the room to size batches for bundles. Strauss' algorithm makes do with less. */
         if (!secp256k1_ecmult_multi_batch_size_helper(&n_batches, &n_batch_points, secp256k1_strauss_max_points(error_callback, scratch), n)) {
             return secp256k1_ecmult_multi_simple_var(r, inp_g_sc, cb, cbdata, n);
         }
