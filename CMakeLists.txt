@@ -31,6 +31,10 @@ set(${PROJECT_NAME}_LIB_VERSION_AGE 0)
 set(CMAKE_C_STANDARD 90)
 set(CMAKE_C_EXTENSIONS OFF)
 
+# Usage requirements shared by all targets of this project. Every
+# target that compiles sources of this project links to it.
+add_library(secp256k1_common INTERFACE)
+
 #=============================
 # Configurable options
 #=============================
