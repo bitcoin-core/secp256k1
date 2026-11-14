@@ -7811,6 +7811,16 @@ static void run_ecdsa_edge_cases(void) {
         CHECK(secp256k1_ecdsa_signature_parse_compact(CTX, &sig, signature) == 1);
         memset(signature, 255, 64);
         CHECK(secp256k1_ecdsa_signature_parse_compact(CTX, &sig, signature) == 0);
+        /* Only R overflows */
+        memcpy(signature, secp256k1_group_order_bytes, 32);
+        memset(signature + 32, 0, 32);
+        signature[63] = 1;
+        CHECK(secp256k1_ecdsa_signature_parse_compact(CTX, &sig, signature) == 0);
+        /* Only S overflows */
+        memset(signature, 0, 32);
+        signature[31] = 1;
+        memcpy(signature + 32, secp256k1_group_order_bytes, 32);
+        CHECK(secp256k1_ecdsa_signature_parse_compact(CTX, &sig, signature) == 0);
     }
 
     /* Nonce function corner cases. */
