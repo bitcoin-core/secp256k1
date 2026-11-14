@@ -89,6 +89,7 @@ static void secp256k1_modinv64_normalize_62(secp256k1_modinv64_signed62 *r, int6
     const int64_t M62 = (int64_t)(UINT64_MAX >> 2);
     int64_t r0 = r->v[0], r1 = r->v[1], r2 = r->v[2], r3 = r->v[3], r4 = r->v[4];
     volatile int64_t cond_add, cond_negate;
+    int64_t mask_negate;
 
 #ifdef VERIFY
     /* Verify that all limbs are in range (-2^62,2^62). */
@@ -113,11 +114,12 @@ static void secp256k1_modinv64_normalize_62(secp256k1_modinv64_signed62 *r, int6
     r3 += modinfo->modulus.v[3] & cond_add;
     r4 += modinfo->modulus.v[4] & cond_add;
     cond_negate = sign >> 63;
-    r0 = (r0 ^ cond_negate) - cond_negate;
-    r1 = (r1 ^ cond_negate) - cond_negate;
-    r2 = (r2 ^ cond_negate) - cond_negate;
-    r3 = (r3 ^ cond_negate) - cond_negate;
-    r4 = (r4 ^ cond_negate) - cond_negate;
+    mask_negate = cond_negate;
+    r0 = (r0 ^ mask_negate) - mask_negate;
+    r1 = (r1 ^ mask_negate) - mask_negate;
+    r2 = (r2 ^ mask_negate) - mask_negate;
+    r3 = (r3 ^ mask_negate) - mask_negate;
+    r4 = (r4 ^ mask_negate) - mask_negate;
     /* Propagate the top bits, to bring limbs back to range (-2^62,2^62). */
     r1 += r0 >> 62; r0 &= M62;
     r2 += r1 >> 62; r1 &= M62;
