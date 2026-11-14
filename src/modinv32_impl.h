@@ -65,6 +65,7 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
     int32_t r0 = r->v[0], r1 = r->v[1], r2 = r->v[2], r3 = r->v[3], r4 = r->v[4],
             r5 = r->v[5], r6 = r->v[6], r7 = r->v[7], r8 = r->v[8];
     volatile int32_t cond_add, cond_negate;
+    int32_t mask_negate;
 
 #ifdef VERIFY
     /* Verify that all limbs are in range (-2^30,2^30). */
@@ -93,15 +94,16 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
     r7 += modinfo->modulus.v[7] & cond_add;
     r8 += modinfo->modulus.v[8] & cond_add;
     cond_negate = sign >> 31;
-    r0 = (r0 ^ cond_negate) - cond_negate;
-    r1 = (r1 ^ cond_negate) - cond_negate;
-    r2 = (r2 ^ cond_negate) - cond_negate;
-    r3 = (r3 ^ cond_negate) - cond_negate;
-    r4 = (r4 ^ cond_negate) - cond_negate;
-    r5 = (r5 ^ cond_negate) - cond_negate;
-    r6 = (r6 ^ cond_negate) - cond_negate;
-    r7 = (r7 ^ cond_negate) - cond_negate;
-    r8 = (r8 ^ cond_negate) - cond_negate;
+    mask_negate = cond_negate;
+    r0 = (r0 ^ mask_negate) - mask_negate;
+    r1 = (r1 ^ mask_negate) - mask_negate;
+    r2 = (r2 ^ mask_negate) - mask_negate;
+    r3 = (r3 ^ mask_negate) - mask_negate;
+    r4 = (r4 ^ mask_negate) - mask_negate;
+    r5 = (r5 ^ mask_negate) - mask_negate;
+    r6 = (r6 ^ mask_negate) - mask_negate;
+    r7 = (r7 ^ mask_negate) - mask_negate;
+    r8 = (r8 ^ mask_negate) - mask_negate;
     /* Propagate the top bits, to bring limbs back to range (-2^30,2^30). */
     r1 += r0 >> 30; r0 &= M30;
     r2 += r1 >> 30; r1 &= M30;
