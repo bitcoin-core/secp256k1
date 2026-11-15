@@ -84,6 +84,8 @@ struct tf_args {
     int list_tests;
     /* Target tests indexes */
     struct tf_targets targets;
+    /* Tests to exclude from the run */
+    struct tf_targets excludes;
     /* Enable test execution logging */
     int logging;
 };
