@@ -194,7 +194,7 @@ static int64_t secp256k1_modinv64_divsteps_59(int64_t zeta, uint64_t f0, uint64_
         g += x & mask2;
         q += y & mask2;
         r += z & mask2;
-        /* In what follows, c1 is a condition mask for (zeta < 0) and (g & 1). */
+        /* In what follows, mask1 is a condition mask for (zeta < 0) and (g & 1). */
         mask1 &= mask2;
         /* Conditionally change zeta into -zeta-2 or zeta-1. */
         zeta = (zeta ^ mask1) - 1;
