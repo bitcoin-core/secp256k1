@@ -9,7 +9,7 @@
  * It may be out-of-date. Consult the documentation of the operating system before considering to use the methods below.
  *
  * Platform randomness sources:
- * Linux   -> `getrandom(2)`(`sys/random.h`), if not available `/dev/urandom` should be used. http://man7.org/linux/man-pages/man2/getrandom.2.html, https://linux.die.net/man/4/urandom
+ * Linux   -> `getrandom(2)`(`sys/random.h`). http://man7.org/linux/man-pages/man2/getrandom.2.html
  *            (glibc >= 2.36 also provides `arc4random_buf(3)`, but musl and older versions of glibc don't.)
  * macOS   -> `CCRandomGenerateBytes`(`CommonCrypto/CommonRandom.h`). https://github.com/apple-oss-distributions/CommonCrypto/blob/CommonCrypto-600035/include/CommonRandom.h
  * FreeBSD -> `arc4random_buf(3)`(`stdlib.h`). https://man.freebsd.org/cgi/man.cgi?query=arc4random_buf
@@ -67,7 +67,6 @@ static int fill_random(unsigned char* data, size_t size) {
         size -= chunk;
     }
 #elif defined(__linux__)
-    /* If `getrandom(2)` is not available you should fallback to /dev/urandom */
     while (size > 0) {
         /* `getrandom(2)` may return fewer bytes than requested (for requests
          * larger than 256 bytes) or fail with EINTR (if interrupted by a
