@@ -10,9 +10,11 @@
  *
  * Platform randomness sources:
  * Linux   -> `getrandom(2)`(`sys/random.h`), if not available `/dev/urandom` should be used. http://man7.org/linux/man-pages/man2/getrandom.2.html, https://linux.die.net/man/4/urandom
- * macOS   -> `getentropy(2)`(`sys/random.h`), if not available `/dev/urandom` should be used. https://www.unix.com/man-page/mojave/2/getentropy, https://opensource.apple.com/source/xnu/xnu-517.12.7/bsd/man/man4/random.4.auto.html
- * FreeBSD -> `getrandom(2)`(`sys/random.h`), if not available `kern.arandom` should be used. https://www.freebsd.org/cgi/man.cgi?query=getrandom, https://www.freebsd.org/cgi/man.cgi?query=random&sektion=4
- * OpenBSD -> `getentropy(2)`(`unistd.h`), if not available `/dev/urandom` should be used. https://man.openbsd.org/getentropy, https://man.openbsd.org/urandom
+ *            (glibc >= 2.36 also provides `arc4random_buf(3)`, but musl and older versions of glibc don't.)
+ * macOS   -> `CCRandomGenerateBytes`(`CommonCrypto/CommonRandom.h`). https://github.com/apple-oss-distributions/CommonCrypto/blob/CommonCrypto-600035/include/CommonRandom.h
+ * FreeBSD -> `arc4random_buf(3)`(`stdlib.h`). https://man.freebsd.org/cgi/man.cgi?query=arc4random_buf
+ * NetBSD  -> `arc4random_buf(3)`(`stdlib.h`). https://man.netbsd.org/arc4random.3
+ * OpenBSD -> `arc4random_buf(3)`(`stdlib.h`). https://man.openbsd.org/arc4random.3
  * Windows -> `BCryptGenRandom`(`bcrypt.h`). https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptgenrandom
  */
 
@@ -26,10 +28,13 @@
 #undef WIN32_NO_STATUS
 #include <ntstatus.h>
 #include <bcrypt.h>
-#elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+#elif defined(__linux__)
+#include <errno.h>
 #include <sys/random.h>
-#elif defined(__OpenBSD__)
-#include <unistd.h>
+#elif defined(__APPLE__)
+#include <CommonCrypto/CommonRandom.h>
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#include <stdlib.h>
 #else
 #error "Couldn't identify the OS"
 #endif
@@ -42,31 +47,44 @@
 /* Returns 1 on success, and 0 on failure. */
 static int fill_random(unsigned char* data, size_t size) {
 #if defined(_WIN32)
-    NTSTATUS res = BCryptGenRandom(NULL, data, size, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
-    if (res != STATUS_SUCCESS || size > ULONG_MAX) {
-        return 0;
-    } else {
-        return 1;
+    /* `BCryptGenRandom` takes a ULONG length, so split larger requests. */
+    while (size > 0) {
+        ULONG chunk = size < ULONG_MAX ? (ULONG)size : ULONG_MAX;
+        NTSTATUS res = BCryptGenRandom(NULL, data, chunk, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+        if (res != STATUS_SUCCESS) {
+            return 0;
+        }
+        data += chunk;
+        size -= chunk;
     }
-#elif defined(__linux__) || defined(__FreeBSD__)
+    return 1;
+#elif defined(__linux__)
     /* If `getrandom(2)` is not available you should fallback to /dev/urandom */
-    ssize_t res = getrandom(data, size, 0);
-    if (res < 0 || (size_t)res != size ) {
-        return 0;
-    } else {
-        return 1;
+    while (size > 0) {
+        /* `getrandom(2)` may return fewer bytes than requested (for requests
+         * larger than 256 bytes) or fail with EINTR (if interrupted by a
+         * signal), so call it until done. */
+        ssize_t res = getrandom(data, size, 0);
+        if (res < 0 && errno == EINTR) {
+            continue;
+        }
+        if (res <= 0) {
+            return 0;
+        }
+        data += res;
+        size -= (size_t)res;
     }
-#elif defined(__APPLE__) || defined(__OpenBSD__)
-    /* If `getentropy(2)` is not available you should fallback to either
-     * `SecRandomCopyBytes` or /dev/urandom */
-    int res = getentropy(data, size);
-    if (res == 0) {
-        return 1;
-    } else {
+    return 1;
+#elif defined(__APPLE__)
+    if (CCRandomGenerateBytes(data, size) != kCCSuccess) {
         return 0;
     }
+    return 1;
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+    /* `arc4random_buf(3)` never returns an error and works for arbitrary sizes. */
+    arc4random_buf(data, size);
+    return 1;
 #endif
-    return 0;
 }
 
 static void print_hex(unsigned char* data, size_t size) {
