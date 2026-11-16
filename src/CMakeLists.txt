@@ -166,6 +166,27 @@ endif()
 if(SECP256K1_BUILD_CTIME_TESTS)
   add_executable(ctime_tests ctime_tests.c)
   target_link_libraries(ctime_tests secp256k1)
+
+  if(msan_enabled)
+    add_test(NAME secp256k1.ctime_tests COMMAND ctime_tests)
+  elseif(CMAKE_CROSSCOMPILING)
+    message(STATUS "Not adding ctime_tests to CTest: running Valgrind on cross-compiled binaries requires a target-specific runner")
+  else()
+    find_program(Valgrind_EXECUTABLE valgrind)
+    mark_as_advanced(Valgrind_EXECUTABLE)
+    if(Valgrind_EXECUTABLE)
+      add_test(NAME secp256k1.ctime_tests
+        COMMAND "${Valgrind_EXECUTABLE}" --error-exitcode=42 $<TARGET_FILE:ctime_tests>
+      )
+    else()
+      message(STATUS "Not adding ctime_tests to CTest: Valgrind executable not found")
+    endif()
+  endif()
+  if(TEST secp256k1.ctime_tests)
+    set_tests_properties(secp256k1.ctime_tests PROPERTIES
+      LABELS secp256k1_ctime
+    )
+  endif()
 endif()
 
 if(SECP256K1_INSTALL)
