@@ -46,6 +46,7 @@
 
 
 /* Fills `data` with `size` random bytes and returns 1. Aborts on failure.
+ * `data` can only be NULL if `size` is 0.
  *
  * Even though this function never returns 0, it has `return 0` after every
  * `abort()`, and the examples check its return value. This keeps the code
@@ -53,6 +54,13 @@
  * examples are combined with a variant of this function that returns 0 on
  * failure. */
 static int fill_random(unsigned char* data, size_t size) {
+    /* A request for 0 bytes is an edge case on which implementations may
+     * differ (e.g., NetBSD's `arc4random_buf(3)` passes `data` to memcpy even
+     * then, which is undefined behavior if `data` is NULL). Return early to
+     * ensure consistent behavior on all platforms. */
+    if (size == 0) {
+        return 1;
+    }
 #if defined(_WIN32)
     /* `BCryptGenRandom` takes a ULONG length, so split larger requests. */
     while (size > 0) {
