@@ -64,6 +64,7 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
     int32_t r0 = r->v[0], r1 = r->v[1], r2 = r->v[2], r3 = r->v[3], r4 = r->v[4],
             r5 = r->v[5], r6 = r->v[6], r7 = r->v[7], r8 = r->v[8];
+    int32_t cond_negate;
     volatile int32_t vcond_add, vcond_negate;
 
 #ifdef VERIFY
@@ -93,15 +94,17 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
     r7 += modinfo->modulus.v[7] & vcond_add;
     r8 += modinfo->modulus.v[8] & vcond_add;
     vcond_negate = sign >> 31;
-    r0 = (r0 ^ vcond_negate) - vcond_negate;
-    r1 = (r1 ^ vcond_negate) - vcond_negate;
-    r2 = (r2 ^ vcond_negate) - vcond_negate;
-    r3 = (r3 ^ vcond_negate) - vcond_negate;
-    r4 = (r4 ^ vcond_negate) - vcond_negate;
-    r5 = (r5 ^ vcond_negate) - vcond_negate;
-    r6 = (r6 ^ vcond_negate) - vcond_negate;
-    r7 = (r7 ^ vcond_negate) - vcond_negate;
-    r8 = (r8 ^ vcond_negate) - vcond_negate;
+    /* Unsequenced reads to volatile variables are UB, so copy to a non-volatile variable first.*/
+    cond_negate = vcond_negate;
+    r0 = (r0 ^ cond_negate) - cond_negate;
+    r1 = (r1 ^ cond_negate) - cond_negate;
+    r2 = (r2 ^ cond_negate) - cond_negate;
+    r3 = (r3 ^ cond_negate) - cond_negate;
+    r4 = (r4 ^ cond_negate) - cond_negate;
+    r5 = (r5 ^ cond_negate) - cond_negate;
+    r6 = (r6 ^ cond_negate) - cond_negate;
+    r7 = (r7 ^ cond_negate) - cond_negate;
+    r8 = (r8 ^ cond_negate) - cond_negate;
     /* Propagate the top bits, to bring limbs back to range (-2^30,2^30). */
     r1 += r0 >> 30; r0 &= M30;
     r2 += r1 >> 30; r1 &= M30;
