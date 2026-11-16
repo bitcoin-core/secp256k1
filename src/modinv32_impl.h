@@ -64,7 +64,7 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
     const int32_t M30 = (int32_t)(UINT32_MAX >> 2);
     int32_t r0 = r->v[0], r1 = r->v[1], r2 = r->v[2], r3 = r->v[3], r4 = r->v[4],
             r5 = r->v[5], r6 = r->v[6], r7 = r->v[7], r8 = r->v[8];
-    volatile int32_t cond_add, cond_negate;
+    volatile int32_t vcond_add, vcond_negate;
 
 #ifdef VERIFY
     /* Verify that all limbs are in range (-2^30,2^30). */
@@ -82,26 +82,26 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
      * limbs are in range (-2^30,2^30), this cannot overflow an int32_t. Note that the right
      * shifts below are signed sign-extending shifts (see assumptions.h for tests that that is
      * indeed the behavior of the right shift operator). */
-    cond_add = r8 >> 31;
-    r0 += modinfo->modulus.v[0] & cond_add;
-    r1 += modinfo->modulus.v[1] & cond_add;
-    r2 += modinfo->modulus.v[2] & cond_add;
-    r3 += modinfo->modulus.v[3] & cond_add;
-    r4 += modinfo->modulus.v[4] & cond_add;
-    r5 += modinfo->modulus.v[5] & cond_add;
-    r6 += modinfo->modulus.v[6] & cond_add;
-    r7 += modinfo->modulus.v[7] & cond_add;
-    r8 += modinfo->modulus.v[8] & cond_add;
-    cond_negate = sign >> 31;
-    r0 = (r0 ^ cond_negate) - cond_negate;
-    r1 = (r1 ^ cond_negate) - cond_negate;
-    r2 = (r2 ^ cond_negate) - cond_negate;
-    r3 = (r3 ^ cond_negate) - cond_negate;
-    r4 = (r4 ^ cond_negate) - cond_negate;
-    r5 = (r5 ^ cond_negate) - cond_negate;
-    r6 = (r6 ^ cond_negate) - cond_negate;
-    r7 = (r7 ^ cond_negate) - cond_negate;
-    r8 = (r8 ^ cond_negate) - cond_negate;
+    vcond_add = r8 >> 31;
+    r0 += modinfo->modulus.v[0] & vcond_add;
+    r1 += modinfo->modulus.v[1] & vcond_add;
+    r2 += modinfo->modulus.v[2] & vcond_add;
+    r3 += modinfo->modulus.v[3] & vcond_add;
+    r4 += modinfo->modulus.v[4] & vcond_add;
+    r5 += modinfo->modulus.v[5] & vcond_add;
+    r6 += modinfo->modulus.v[6] & vcond_add;
+    r7 += modinfo->modulus.v[7] & vcond_add;
+    r8 += modinfo->modulus.v[8] & vcond_add;
+    vcond_negate = sign >> 31;
+    r0 = (r0 ^ vcond_negate) - vcond_negate;
+    r1 = (r1 ^ vcond_negate) - vcond_negate;
+    r2 = (r2 ^ vcond_negate) - vcond_negate;
+    r3 = (r3 ^ vcond_negate) - vcond_negate;
+    r4 = (r4 ^ vcond_negate) - vcond_negate;
+    r5 = (r5 ^ vcond_negate) - vcond_negate;
+    r6 = (r6 ^ vcond_negate) - vcond_negate;
+    r7 = (r7 ^ vcond_negate) - vcond_negate;
+    r8 = (r8 ^ vcond_negate) - vcond_negate;
     /* Propagate the top bits, to bring limbs back to range (-2^30,2^30). */
     r1 += r0 >> 30; r0 &= M30;
     r2 += r1 >> 30; r1 &= M30;
@@ -114,16 +114,16 @@ static void secp256k1_modinv32_normalize_30(secp256k1_modinv32_signed30 *r, int3
 
     /* In a second step add the modulus again if the result is still negative, bringing r to range
      * [0,modulus). */
-    cond_add = r8 >> 31;
-    r0 += modinfo->modulus.v[0] & cond_add;
-    r1 += modinfo->modulus.v[1] & cond_add;
-    r2 += modinfo->modulus.v[2] & cond_add;
-    r3 += modinfo->modulus.v[3] & cond_add;
-    r4 += modinfo->modulus.v[4] & cond_add;
-    r5 += modinfo->modulus.v[5] & cond_add;
-    r6 += modinfo->modulus.v[6] & cond_add;
-    r7 += modinfo->modulus.v[7] & cond_add;
-    r8 += modinfo->modulus.v[8] & cond_add;
+    vcond_add = r8 >> 31;
+    r0 += modinfo->modulus.v[0] & vcond_add;
+    r1 += modinfo->modulus.v[1] & vcond_add;
+    r2 += modinfo->modulus.v[2] & vcond_add;
+    r3 += modinfo->modulus.v[3] & vcond_add;
+    r4 += modinfo->modulus.v[4] & vcond_add;
+    r5 += modinfo->modulus.v[5] & vcond_add;
+    r6 += modinfo->modulus.v[6] & vcond_add;
+    r7 += modinfo->modulus.v[7] & vcond_add;
+    r8 += modinfo->modulus.v[8] & vcond_add;
     /* And propagate again. */
     r1 += r0 >> 30; r0 &= M30;
     r2 += r1 >> 30; r1 &= M30;
