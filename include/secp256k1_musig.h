@@ -236,7 +236,7 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_pubkey_get(
  *
  *  secp256k1_musig_pubkey_agg(..., keyagg_cache, pubkeys, ...)
  *  secp256k1_musig_pubkey_get(..., agg_pk, keyagg_cache)
- *  secp256k1_musig_pubkey_ec_tweak_add(..., output_pk, tweak32, keyagg_cache)
+ *  secp256k1_musig_pubkey_ec_tweak_add(..., output_pk, keyagg_cache, tweak32)
  *  secp256k1_ec_pubkey_serialize(..., buf, ..., output_pk, ...)
  *  secp256k1_ec_pubkey_tweak_add(..., agg_pk, tweak32)
  *  secp256k1_ec_pubkey_serialize(..., buf2, ..., agg_pk, ...)
