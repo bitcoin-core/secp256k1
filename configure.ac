@@ -189,6 +189,10 @@ AC_ARG_ENABLE(module_musig,
     AS_HELP_STRING([--enable-module-musig],[enable MuSig2 module [default=yes]]), [],
     [SECP_SET_DEFAULT([enable_module_musig], [yes], [yes])])
 
+AC_ARG_ENABLE(module_fullagg,
+    AS_HELP_STRING([--enable-module-fullagg],[enable fullagg module (experimental) [default=no]]), [],
+    [SECP_SET_DEFAULT([enable_module_fullagg], [no], [yes])])
+
 AC_ARG_ENABLE(module_ellswift,
     AS_HELP_STRING([--enable-module-ellswift],[enable ElligatorSwift module [default=yes]]), [],
     [SECP_SET_DEFAULT([enable_module_ellswift], [yes], [yes])])
@@ -411,6 +415,14 @@ if test x"$enable_module_silentpayments" = x"yes"; then
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_SILENTPAYMENTS=1"
 fi
 
+if test x"$enable_module_fullagg" = x"yes"; then
+  if test x"$enable_module_extrakeys" = x"no"; then
+    AC_MSG_ERROR([Module dependency error: You have disabled the extrakeys module explicitly, but it is required by the fullagg module.])
+  fi
+  enable_module_extrakeys=yes
+  SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_FULLAGG=1"
+fi
+
 if test x"$enable_module_ellswift" = x"yes"; then
   SECP_CONFIG_DEFINES="$SECP_CONFIG_DEFINES -DENABLE_MODULE_ELLSWIFT=1"
 fi
@@ -455,6 +467,10 @@ if test x"$enable_experimental" = x"no"; then
   if test x"$set_asm" = x"arm32"; then
     AC_MSG_ERROR([ARM32 assembly is experimental. Use --enable-experimental to allow.])
   fi
+
+  if test x"$enable_module_fullagg" = x"yes"; then
+    AC_MSG_ERROR([Full aggregation is experimental. Use --enable-experimental to allow.])
+  fi
 fi
 
 # Check for concurrency support (tests only)
@@ -482,6 +498,7 @@ AM_CONDITIONAL([ENABLE_MODULE_ECDH], [test x"$enable_module_ecdh" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_RECOVERY], [test x"$enable_module_recovery" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_EXTRAKEYS], [test x"$enable_module_extrakeys" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_SCHNORRSIG], [test x"$enable_module_schnorrsig" = x"yes"])
+AM_CONDITIONAL([ENABLE_MODULE_FULLAGG], [test x"$enable_module_fullagg" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_MUSIG], [test x"$enable_module_musig" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_ELLSWIFT], [test x"$enable_module_ellswift" = x"yes"])
 AM_CONDITIONAL([ENABLE_MODULE_SILENTPAYMENTS], [test x"$enable_module_silentpayments" = x"yes"])
@@ -496,35 +513,36 @@ AC_OUTPUT
 
 echo
 echo "Build Options:"
-echo "  with external callbacks = $enable_external_default_callbacks"
-echo "  with benchmarks         = $enable_benchmark"
-echo "  with tests              = $enable_tests"
-echo "  with exhaustive tests   = $enable_exhaustive_tests"
-echo "  with ctime tests        = $enable_ctime_tests"
-echo "  with coverage           = $enable_coverage"
-echo "  with examples           = $enable_examples"
-echo "  module ecdh             = $enable_module_ecdh"
-echo "  module recovery         = $enable_module_recovery"
-echo "  module extrakeys        = $enable_module_extrakeys"
-echo "  module schnorrsig       = $enable_module_schnorrsig"
-echo "  module musig            = $enable_module_musig"
-echo "  module ellswift         = $enable_module_ellswift"
-echo "  module silentpayments   = $enable_module_silentpayments"
+echo "  with external callbacks   = $enable_external_default_callbacks"
+echo "  with benchmarks           = $enable_benchmark"
+echo "  with tests                = $enable_tests"
+echo "  with exhaustive tests     = $enable_exhaustive_tests"
+echo "  with ctime tests          = $enable_ctime_tests"
+echo "  with coverage             = $enable_coverage"
+echo "  with examples             = $enable_examples"
+echo "  module ecdh               = $enable_module_ecdh"
+echo "  module recovery           = $enable_module_recovery"
+echo "  module extrakeys          = $enable_module_extrakeys"
+echo "  module schnorrsig         = $enable_module_schnorrsig"
+echo "  module fullagg            = $enable_module_fullagg"
+echo "  module musig              = $enable_module_musig"
+echo "  module ellswift           = $enable_module_ellswift"
+echo "  module silentpayments     = $enable_module_silentpayments"
 echo
-echo "  asm                     = $set_asm"
-echo "  ecmult window size      = $set_ecmult_window"
-echo "  ecmult gen table size   = $set_ecmult_gen_kb KiB"
+echo "  asm                       = $set_asm"
+echo "  ecmult window size        = $set_ecmult_window"
+echo "  ecmult gen table size     = $set_ecmult_gen_kb KiB"
 # Hide test-only options unless they're used.
 if test x"$set_widemul" != xauto; then
-echo "  wide multiplication     = $set_widemul"
+echo "  wide multiplication       = $set_widemul"
 fi
 echo
-echo "  valgrind                = $enable_valgrind"
-echo "  CC                      = $CC"
-echo "  CPPFLAGS                = $CPPFLAGS"
-echo "  SECP_CFLAGS             = $SECP_CFLAGS"
-echo "  CFLAGS                  = $CFLAGS"
-echo "  LDFLAGS                 = $LDFLAGS"
+echo "  valgrind                  = $enable_valgrind"
+echo "  CC                        = $CC"
+echo "  CPPFLAGS                  = $CPPFLAGS"
+echo "  SECP_CFLAGS               = $SECP_CFLAGS"
+echo "  CFLAGS                    = $CFLAGS"
+echo "  LDFLAGS                   = $LDFLAGS"
 
 if test x"$print_msan_notice" = x"yes"; then
   echo
