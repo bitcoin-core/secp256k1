@@ -969,6 +969,27 @@ static void run_tagged_sha256_tests(void) {
     CHECK(secp256k1_memcmp_var(hash32, hash_expected, sizeof(hash32)) == 0);
 }
 
+DEFINE_SHA256_TRANSFORM_PROBE(sha256_tagged)
+static void tagged_sha256_ctx_sha256(void) {
+    /* Check ctx-provided SHA256 compression override takes effect */
+    secp256k1_context *ctx = secp256k1_context_clone(CTX);
+    unsigned char out_default[32], out_custom[32];
+    const unsigned char tag[3] = {'t', 'a', 'g'}, msg[3] = {'m', 's', 'g'};
+
+    /* Default behavior. No ctx-provided SHA256 compression */
+    CHECK(secp256k1_tagged_sha256(ctx, out_default, tag, sizeof(tag), msg, sizeof(msg)));
+    CHECK(!sha256_tagged_called);
+
+    /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
+    ctx->hash_ctx.fn_sha256_compression = sha256_tagged;
+    CHECK(secp256k1_tagged_sha256(ctx, out_custom, tag, sizeof(tag), msg, sizeof(msg)));
+    CHECK(sha256_tagged_called);
+    /* Outputs must differ if custom compression was used */
+    CHECK(secp256k1_memcmp_var(out_default, out_custom, sizeof(out_default)) != 0);
+
+    secp256k1_context_destroy(ctx);
+}
+
 static void run_sha256_initialize_midstate_tests(void) {
     /* Midstate for the tagged hash with tag "sha256_midstate_test_tag". */
     static const unsigned char tag[] = "sha256_midstate_test_tag";
@@ -8247,6 +8268,7 @@ static const struct tf_test_entry tests_hash[] = {
     CASE(hmac_sha256_tests),
     CASE(rfc6979_hmac_sha256_tests),
     CASE(tagged_sha256_tests),
+    CASE1(tagged_sha256_ctx_sha256),
     CASE(sha256_initialize_midstate_tests),
 };
 
