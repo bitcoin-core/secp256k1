@@ -1,3 +1,5 @@
 #!/bin/sh
 set -e
-autoreconf -if --warnings=all
+command -v autoreconf >/dev/null || \
+  (echo "configuration failed, please install autoconf first" >&2 && exit 1)
+autoreconf --install --force --warnings=all
