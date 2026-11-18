@@ -34,7 +34,7 @@
 #elif defined(__APPLE__)
 #include <CommonCrypto/CommonRandom.h>
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
-#include <stdlib.h>
+/* `arc4random_buf(3)` is declared in `stdlib.h`, which is included below. */
 #else
 #error "Couldn't identify the OS"
 #endif
@@ -42,9 +42,16 @@
 #include <stddef.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 
-/* Returns 1 on success, and 0 on failure. */
+/* Fills `data` with `size` random bytes and returns 1. Aborts on failure.
+ *
+ * Even though this function never returns 0, it has `return 0` after every
+ * `abort()`, and the examples check its return value. This keeps the code
+ * correct if `abort()` is replaced by something that returns, or if the
+ * examples are combined with a variant of this function that returns 0 on
+ * failure. */
 static int fill_random(unsigned char* data, size_t size) {
 #if defined(_WIN32)
     /* `BCryptGenRandom` takes a ULONG length, so split larger requests. */
@@ -52,12 +59,13 @@ static int fill_random(unsigned char* data, size_t size) {
         ULONG chunk = size < ULONG_MAX ? (ULONG)size : ULONG_MAX;
         NTSTATUS res = BCryptGenRandom(NULL, data, chunk, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
         if (res != STATUS_SUCCESS) {
+            fprintf(stderr, "Failed to generate randomness\n");
+            abort();
             return 0;
         }
         data += chunk;
         size -= chunk;
     }
-    return 1;
 #elif defined(__linux__)
     /* If `getrandom(2)` is not available you should fallback to /dev/urandom */
     while (size > 0) {
@@ -69,22 +77,24 @@ static int fill_random(unsigned char* data, size_t size) {
             continue;
         }
         if (res <= 0) {
+            fprintf(stderr, "Failed to generate randomness\n");
+            abort();
             return 0;
         }
         data += res;
         size -= (size_t)res;
     }
-    return 1;
 #elif defined(__APPLE__)
     if (CCRandomGenerateBytes(data, size) != kCCSuccess) {
+        fprintf(stderr, "Failed to generate randomness\n");
+        abort();
         return 0;
     }
-    return 1;
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
     /* `arc4random_buf(3)` never returns an error and works for arbitrary sizes. */
     arc4random_buf(data, size);
-    return 1;
 #endif
+    return 1;
 }
 
 static void print_hex(unsigned char* data, size_t size) {
