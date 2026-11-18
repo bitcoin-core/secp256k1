@@ -114,7 +114,7 @@ static void print_hex(unsigned char* data, size_t size) {
 }
 
 #if defined(_MSC_VER)
-// For SecureZeroMemory
+/* For SecureZeroMemory */
 #include <Windows.h>
 #endif
 /* Cleanses memory to prevent leaking sensitive info. Won't be optimized out. */
