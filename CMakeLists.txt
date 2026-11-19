@@ -228,36 +228,36 @@ endif()
 include(TryAppendCFlags)
 if(MSVC)
   # For both cl and clang-cl compilers.
-  try_append_c_flags(/W3) # Production quality warning level.
+  try_append_c_flags(/W3 TARGET secp256k1_common) # Production quality warning level.
   # Eliminate deprecation warnings for the older, less secure functions.
   target_compile_definitions(secp256k1_common INTERFACE
     _CRT_SECURE_NO_WARNINGS
   )
 else()
-  try_append_c_flags(-Wall) # GCC >= 2.95 and probably many other compilers.
+  try_append_c_flags(-Wall TARGET secp256k1_common) # GCC >= 2.95 and probably many other compilers.
 endif()
 if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
   # Keep the following commands ordered lexicographically.
-  try_append_c_flags(/wd4146) # Disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned".
-  try_append_c_flags(/wd4244) # Disable warning C4244 "'conversion' conversion from 'type1' to 'type2', possible loss of data".
-  try_append_c_flags(/wd4267) # Disable warning C4267 "'var' : conversion from 'size_t' to 'type', possible loss of data".
+  try_append_c_flags(/wd4146 TARGET secp256k1_common) # Disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned".
+  try_append_c_flags(/wd4244 TARGET secp256k1_common) # Disable warning C4244 "'conversion' conversion from 'type1' to 'type2', possible loss of data".
+  try_append_c_flags(/wd4267 TARGET secp256k1_common) # Disable warning C4267 "'var' : conversion from 'size_t' to 'type', possible loss of data".
 else()
   # Keep the following commands ordered lexicographically.
-  try_append_c_flags(-pedantic)
-  try_append_c_flags(-Wcast-align) # GCC >= 2.95.
-  try_append_c_flags(-Wcast-align=strict) # GCC >= 8.0.
-  try_append_c_flags(-Wconditional-uninitialized) # Clang >= 3.0 only.
-  try_append_c_flags(-Wextra) # GCC >= 3.4, this is the newer name of -W, which we don't use because older GCCs will warn about unused functions.
-  try_append_c_flags(-Wleading-whitespace=spaces) # GCC >= 15.0
-  try_append_c_flags(-Wnested-externs)
-  try_append_c_flags(-Wno-long-long) # GCC >= 3.0, -Wlong-long is implied by -pedantic.
-  try_append_c_flags(-Wno-overlength-strings) # GCC >= 4.2, -Woverlength-strings is implied by -pedantic.
-  try_append_c_flags(-Wno-unused-function) # GCC >= 3.0, -Wunused-function is implied by -Wall.
-  try_append_c_flags(-Wreserved-identifier) # Clang >= 13.0 only.
-  try_append_c_flags(-Wshadow)
-  try_append_c_flags(-Wstrict-prototypes)
-  try_append_c_flags(-Wtrailing-whitespace=any) # GCC >= 15.0
-  try_append_c_flags(-Wundef)
+  try_append_c_flags(-pedantic TARGET secp256k1_common)
+  try_append_c_flags(-Wcast-align TARGET secp256k1_common) # GCC >= 2.95.
+  try_append_c_flags(-Wcast-align=strict TARGET secp256k1_common) # GCC >= 8.0.
+  try_append_c_flags(-Wconditional-uninitialized TARGET secp256k1_common) # Clang >= 3.0 only.
+  try_append_c_flags(-Wextra TARGET secp256k1_common) # GCC >= 3.4, this is the newer name of -W, which we don't use because older GCCs will warn about unused functions.
+  try_append_c_flags(-Wleading-whitespace=spaces TARGET secp256k1_common) # GCC >= 15.0
+  try_append_c_flags(-Wnested-externs TARGET secp256k1_common)
+  try_append_c_flags(-Wno-long-long TARGET secp256k1_common) # GCC >= 3.0, -Wlong-long is implied by -pedantic.
+  try_append_c_flags(-Wno-overlength-strings TARGET secp256k1_common) # GCC >= 4.2, -Woverlength-strings is implied by -pedantic.
+  try_append_c_flags(-Wno-unused-function TARGET secp256k1_common) # GCC >= 3.0, -Wunused-function is implied by -Wall.
+  try_append_c_flags(-Wreserved-identifier TARGET secp256k1_common) # Clang >= 13.0 only.
+  try_append_c_flags(-Wshadow TARGET secp256k1_common)
+  try_append_c_flags(-Wstrict-prototypes TARGET secp256k1_common)
+  try_append_c_flags(-Wtrailing-whitespace=any TARGET secp256k1_common) # GCC >= 15.0
+  try_append_c_flags(-Wundef TARGET secp256k1_common)
 endif()
 
 set(print_msan_notice)
@@ -265,7 +265,7 @@ if(SECP256K1_BUILD_CTIME_TESTS)
   include(CheckMemorySanitizer)
   check_memory_sanitizer(msan_enabled)
   if(msan_enabled)
-    try_append_c_flags(-fno-sanitize-memory-param-retval)
+    try_append_c_flags(-fno-sanitize-memory-param-retval TARGET secp256k1_common)
     set(print_msan_notice YES)
   endif()
   unset(msan_enabled)
@@ -353,9 +353,9 @@ list(JOIN definitions " " definitions)
 message("Preprocessor defined macros ........... ${definitions}")
 message("C compiler ............................ ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}, ${CMAKE_C_COMPILER}")
 message("CFLAGS ................................ ${CMAKE_C_FLAGS}")
-get_directory_property(compile_options COMPILE_OPTIONS)
-string(REPLACE ";" " " compile_options "${compile_options}")
-message("Compile options ....................... " ${compile_options})
+get_property(compile_options TARGET secp256k1_common PROPERTY INTERFACE_COMPILE_OPTIONS)
+list(JOIN compile_options " " compile_options)
+message("Compile options ....................... ${compile_options}")
 if(NOT is_multi_config)
   message("Build type:")
   message(" - CMAKE_BUILD_TYPE ................... ${CMAKE_BUILD_TYPE}")
