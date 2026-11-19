@@ -147,9 +147,11 @@ if(SECP256K1_VALGRIND)
   find_package(Valgrind MODULE)
   if(Valgrind_FOUND)
     set(SECP256K1_VALGRIND ON)
-    include_directories(${Valgrind_INCLUDE_DIR})
     target_compile_definitions(secp256k1_common INTERFACE
       VALGRIND
+    )
+    target_include_directories(secp256k1_common INTERFACE
+      ${Valgrind_INCLUDE_DIR}
     )
   elseif(SECP256K1_VALGRIND STREQUAL "AUTO")
     set(SECP256K1_VALGRIND OFF)
