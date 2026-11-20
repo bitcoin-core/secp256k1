@@ -92,6 +92,10 @@ static void test_ecdsa_recovery_api_internal(void) {
     /* overflow in signature will not result in calling illegal_callback */
     memcpy(sig, over_privkey, 32);
     CHECK(secp256k1_ecdsa_recoverable_signature_parse_compact(CTX, &recsig, sig, recid) == 0);
+    /* Same if only S overflows */
+    memcpy(sig, privkey, 32);
+    memcpy(sig + 32, over_privkey, 32);
+    CHECK(secp256k1_ecdsa_recoverable_signature_parse_compact(CTX, &recsig, sig, recid) == 0);
 }
 
 static void test_ecdsa_recovery_end_to_end_internal(void) {
