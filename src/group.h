@@ -34,6 +34,23 @@ typedef struct {
 #define SECP256K1_GEJ_CONST(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) {SECP256K1_FE_CONST((a),(b),(c),(d),(e),(f),(g),(h)), SECP256K1_FE_CONST((i),(j),(k),(l),(m),(n),(o),(p)), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 1), 0}
 #define SECP256K1_GEJ_CONST_INFINITY {SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), SECP256K1_FE_CONST(0, 0, 0, 0, 0, 0, 0, 0), 1}
 
+/** An affine group element on a curve of the family y^2 = x^3 + 7*z^6, together with that z.
+ *  While the point is finite, (x, y, z) names the same point as the Jacobian (x, y, z); but z is a
+ *  label for the curve rather than a coordinate of the point. It is required to be nonzero, and it
+ *  stays meaningful when the point is infinite, the point at infinity existing on every curve of the
+ *  family.
+ *
+ *  This is the accumulator for building a table of combinations of several points as one chain of
+ *  additions whose z ratios are kept, so that the whole table can be brought to a single z afterwards
+ *  (as secp256k1_ge_table_set_globalz does for the multiples of one point). Unlike the multiples of
+ *  one point, combinations of several can be infinite, and a secp256k1_gej cannot carry such a chain
+ *  across an infinity, its infinity having z = 0 and so no curve.
+ */
+typedef struct {
+    secp256k1_ge p;
+    secp256k1_fe z;
+} secp256k1_ge_z;
+
 typedef struct {
     secp256k1_fe_storage x;
     secp256k1_fe_storage y;
@@ -159,6 +176,21 @@ static void secp256k1_gej_add_ge(secp256k1_gej *r, const secp256k1_gej *a, const
     guarantee, and b is allowed to be infinity. If rzr is non-NULL this sets *rzr such that r->z == a->z * *rzr (a cannot be infinity in that case). */
 static void secp256k1_gej_add_ge_var(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_ge *b, secp256k1_fe *rzr);
 
+/** Set r to the point at infinity of the curve with the given z, which must be nonzero. */
+static void secp256k1_ge_z_set_infinity(secp256k1_ge_z *r, const secp256k1_fe *z);
+
+/** Set r equal to the sum of a and b, where b is on the base curve (z = 1). Either may be infinity.
+    r is generally left on a different curve of the family from a's; rzr must be non-NULL, and *rzr
+    is set to the ratio between the two, such that r->z == a->z * *rzr.
+
+    As secp256k1_gej_add_ge_var, except around infinities, where that gives up: it refuses an infinite
+    a when asked for a ratio, and reports a vanishing sum with z = 0 and a zero ratio. A pass such as
+    secp256k1_ge_table_set_globalz multiplies the ratios of a chain together from its end backwards,
+    so one zero ratio would wreck every entry before it rather than staying local. Here an infinite a
+    still has a curve, so the sum is b mapped onto it, and a vanishing sum is the infinity of a's
+    curve. In both cases r stays on a's curve and the ratio is 1, so the chain carries on. */
+static void secp256k1_ge_z_add_ge_var(secp256k1_ge_z *r, const secp256k1_ge_z *a, const secp256k1_ge *b, secp256k1_fe *rzr);
+
 /** Set r equal to the sum of a and b (with the inverse of b's Z coordinate passed as bzinv). */
 static void secp256k1_gej_add_zinv_var(secp256k1_gej *r, const secp256k1_gej *a, const secp256k1_ge *b, const secp256k1_fe *bzinv);
 
@@ -246,5 +278,9 @@ static void secp256k1_ge_verify(const secp256k1_ge *a);
 /** Check invariants on a Jacobian group element (no-op unless VERIFY is enabled). */
 static void secp256k1_gej_verify(const secp256k1_gej *a);
 #define SECP256K1_GEJ_VERIFY(a) secp256k1_gej_verify(a)
+
+/** Check invariants on an affine group element with its curve's z (no-op unless VERIFY is enabled). */
+static void secp256k1_ge_z_verify(const secp256k1_ge_z *a);
+#define SECP256K1_GE_Z_VERIFY(a) secp256k1_ge_z_verify(a)
 
 #endif /* SECP256K1_GROUP_H */

@@ -3964,6 +3964,27 @@ static int gej_xyz_equals_gej(const secp256k1_gej *a, const secp256k1_gej *b) {
     return ret;
 }
 
+/* Check that two Jacobian points are the same point, comparing both affine coordinates.
+ *
+ * secp256k1_gej_eq_var and its relatives negate one input, add the other to it and test the sum for
+ * infinity. That addition returns infinity for any two points with the same x and different y,
+ * which is only sound for points already known to be on the curve. A computed result with the right
+ * x and a wrong y therefore passes, so they are no use for checking one. */
+static void test_gej_eq_strict(const secp256k1_gej *a, const secp256k1_gej *b) {
+    secp256k1_gej ta = *a;
+    secp256k1_gej tb = *b;
+    secp256k1_ge ga, gb;
+
+    CHECK(secp256k1_gej_is_infinity(&ta) == secp256k1_gej_is_infinity(&tb));
+    if (secp256k1_gej_is_infinity(&ta)) {
+        return;
+    }
+    secp256k1_ge_set_gej(&ga, &ta);
+    secp256k1_ge_set_gej(&gb, &tb);
+    CHECK(secp256k1_fe_equal(&ga.x, &gb.x));
+    CHECK(secp256k1_fe_equal(&ga.y, &gb.y));
+}
+
 static void test_ge(void) {
     int i, i1;
     int runs = 6;
@@ -4351,6 +4372,88 @@ static void run_ge(void) {
     test_ge_bytes();
 }
 
+/* Add b to a with secp256k1_ge_z_add_ge_var, and check the sum against the same addition done in
+ * Jacobian coordinates and the ratio it reports against the z it leaves. */
+static void test_ge_z_add_ge(const secp256k1_ge_z *a, const secp256k1_ge *b) {
+    secp256k1_ge_z r, r2;
+    secp256k1_gej aj, want, got, got2;
+    secp256k1_fe rzr, rzr2, z;
+
+    /* a as a Jacobian point, whose infinity has no z to speak of. */
+    if (a->p.infinity) {
+        secp256k1_gej_set_infinity(&aj);
+    } else {
+        aj.x = a->p.x;
+        aj.y = a->p.y;
+        aj.z = a->z;
+        aj.infinity = 0;
+    }
+    secp256k1_gej_add_ge_var(&want, &aj, b, NULL);
+
+    secp256k1_ge_z_add_ge_var(&r, a, b, &rzr);
+    got.x = r.p.x;
+    got.y = r.p.y;
+    got.z = r.z;
+    got.infinity = r.p.infinity;
+    test_gej_eq_strict(&got, &want);
+
+    /* The ratio relates the two z whether or not either point is infinite, */
+    secp256k1_fe_mul(&z, &a->z, &rzr);
+    CHECK(secp256k1_fe_equal(&z, &r.z));
+    /* and next to an infinity the curve stays the same. */
+    if (a->p.infinity || r.p.infinity) {
+        CHECK(secp256k1_fe_equal(&a->z, &r.z));
+    }
+
+    /* The result may be written over a. */
+    r2 = *a;
+    secp256k1_ge_z_add_ge_var(&r2, &r2, b, &rzr2);
+    got2.x = r2.p.x;
+    got2.y = r2.p.y;
+    got2.z = r2.z;
+    got2.infinity = r2.p.infinity;
+    CHECK(gej_xyz_equals_gej(&got2, &got));
+    secp256k1_fe_mul(&z, &a->z, &rzr2);
+    CHECK(secp256k1_fe_equal(&z, &r2.z));
+}
+
+static void run_ge_z(void) {
+    int i;
+
+    for (i = 0; i < 16 * COUNT; i++) {
+        secp256k1_ge p, q, t;
+        secp256k1_gej pj;
+        secp256k1_ge_z a, inf;
+        secp256k1_fe z;
+
+        testutil_random_ge_test(&p);
+        testutil_random_ge_test(&q);
+        testutil_random_fe_non_zero_test(&z);
+
+        /* p on the curve with that z, and that curve's infinity. */
+        secp256k1_gej_set_ge(&pj, &p);
+        secp256k1_gej_rescale(&pj, &z);
+        secp256k1_ge_set_xy(&a.p, &pj.x, &pj.y);
+        a.z = pj.z;
+        secp256k1_ge_z_set_infinity(&inf, &z);
+        CHECK(inf.p.infinity);
+        CHECK(secp256k1_fe_equal(&z, &inf.z));
+
+        /* The general case, */
+        test_ge_z_add_ge(&a, &q);
+        /* a doubling, */
+        test_ge_z_add_ge(&a, &p);
+        /* a sum that vanishes, */
+        secp256k1_ge_neg(&t, &p);
+        test_ge_z_add_ge(&a, &t);
+        /* and infinity on either side, or on both. */
+        secp256k1_ge_set_infinity(&t);
+        test_ge_z_add_ge(&a, &t);
+        test_ge_z_add_ge(&inf, &q);
+        test_ge_z_add_ge(&inf, &t);
+    }
+}
+
 static void test_gej_cmov(const secp256k1_gej *a, const secp256k1_gej *b) {
     secp256k1_gej t = *a;
     secp256k1_gej_cmov(&t, b, 0);
@@ -4716,6 +4819,436 @@ static void run_ecmult_near_split_bound(void) {
             test_ecmult_target(&scalars_near_split_bounds[j], 1);
             test_ecmult_target(&scalars_near_split_bounds[j], 2);
         }
+    }
+}
+
+#define BUNDLE_TEST_BUNDLES 3
+
+#if ECMULT_BUNDLE_SIZE < 5
+#  error "the bundle tests place degenerate points at fixed places in a bundle, up to its fifth point"
+#endif
+
+/* Build nbund bundles as one chain, normalize back from the end of it, and check every entry of every
+ * table against the subset sum it denotes. */
+static void test_ecmult_bundle_table_chain(size_t nbund, const secp256k1_ge *pts) {
+    secp256k1_ge pre[BUNDLE_TEST_BUNDLES * ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe zr[BUNDLE_TEST_BUNDLES * ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe z, zs;
+    size_t b, m, i;
+
+    CHECK(nbund >= 1 && nbund <= BUNDLE_TEST_BUNDLES);
+
+    secp256k1_fe_set_int(&z, 1);
+    for (b = 0; b < nbund; ++b) {
+        secp256k1_ecmult_bundle_table(pre + b * ECMULT_BUNDLE_TABLE_SIZE,
+                                      zr + b * ECMULT_BUNDLE_TABLE_SIZE, &z,
+                                      pts + b * ECMULT_BUNDLE_SIZE);
+    }
+    /* z is now the chain's final denominator, which every entry has to be brought to. */
+    secp256k1_fe_set_int(&zs, 1);
+    for (b = nbund; b-- > 0;) {
+        secp256k1_ecmult_bundle_table_set_globalz(pre + b * ECMULT_BUNDLE_TABLE_SIZE,
+                                                  zr + b * ECMULT_BUNDLE_TABLE_SIZE, &zs);
+    }
+
+    for (b = 0; b < nbund; ++b) {
+        const secp256k1_ge *a = pts + b * ECMULT_BUNDLE_SIZE;
+
+        for (m = 0; m < ECMULT_BUNDLE_TABLE_SIZE; ++m) {
+            const secp256k1_ge *e = &pre[b * ECMULT_BUNDLE_TABLE_SIZE + m];
+            secp256k1_gej want, got;
+
+            secp256k1_gej_set_ge(&want, &a[0]);
+            for (i = 1; i < ECMULT_BUNDLE_SIZE; ++i) {
+                if ((m >> (i - 1)) & 1) {
+                    secp256k1_gej_add_ge_var(&want, &want, &a[i], NULL);
+                }
+            }
+            got.x = e->x;
+            got.y = e->y;
+            got.z = z;
+            got.infinity = e->infinity;
+            test_gej_eq_strict(&got, &want);
+        }
+    }
+}
+
+static void run_ecmult_bundle_table(void) {
+    secp256k1_ge pts[BUNDLE_TEST_BUNDLES * ECMULT_BUNDLE_SIZE];
+    secp256k1_gej tmp;
+    size_t i, nb;
+    int iter;
+
+    for (iter = 0; iter < COUNT; ++iter) {
+        for (nb = 1; nb <= BUNDLE_TEST_BUNDLES; ++nb) {
+            for (i = 0; i < nb * ECMULT_BUNDLE_SIZE; ++i) {
+                testutil_random_ge_test(&pts[i]);
+            }
+            test_ecmult_bundle_table_chain(nb, pts);
+        }
+
+        /* The rest degenerate the first bundle in various ways against a random second one, which
+         * also checks that a degenerate bundle leaves the chain fit for the next. */
+        for (i = 0; i < 2 * ECMULT_BUNDLE_SIZE; ++i) {
+            testutil_random_ge_test(&pts[i]);
+        }
+
+        /* A subset sum vanishing at the first step of the chain (entry {a0,a1}). */
+        secp256k1_ge_neg(&pts[1], &pts[0]);
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* ... and one vanishing deeper in: a2 = -(a0 + a1) makes entry {a0,a1,a2} vanish, which the
+         * Gray code reaches at chain position 2, so position 3 adds to an infinity. */
+        testutil_random_ge_test(&pts[1]);
+        secp256k1_gej_set_ge(&tmp, &pts[0]);
+        secp256k1_gej_add_ge_var(&tmp, &tmp, &pts[1], NULL);
+        secp256k1_gej_neg(&tmp, &tmp);
+        secp256k1_ge_set_gej(&pts[2], &tmp);
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* Two equal points, which sends a step through the doubling case instead. */
+        testutil_random_ge_test(&pts[2]);
+        pts[1] = pts[0];
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* An infinite follower, every step for which is then a no-op. */
+        testutil_random_ge_test(&pts[1]);
+        secp256k1_ge_set_infinity(&pts[3]);
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* An infinite anchor as well, so the chain starts at infinity and the entries are subset sums
+         * of the followers alone. */
+        secp256k1_ge_set_infinity(&pts[0]);
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* The first follower infinite too, which is the one added while the chain is still at
+         * infinity: infinity is then added to infinity along the chain as well as at entry 0, where
+         * an infinite anchor alone already does it. */
+        secp256k1_ge_set_infinity(&pts[1]);
+        test_ecmult_bundle_table_chain(2, pts);
+
+        /* A bundle that is nothing but infinities, so the chain passes through it untouched. */
+        for (i = 0; i < ECMULT_BUNDLE_SIZE; ++i) {
+            secp256k1_ge_set_infinity(&pts[i]);
+        }
+        test_ecmult_bundle_table_chain(2, pts);
+    }
+}
+
+/* Check both lookups against every bundle index there is. */
+static void test_ecmult_bundle_table_get(const secp256k1_ge *a) {
+    secp256k1_ge pre[ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe zr[ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe lamx[ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe z, zs;
+    unsigned int idx;
+    size_t i;
+
+    secp256k1_fe_set_int(&z, 1);
+    secp256k1_ecmult_bundle_table(pre, zr, &z, a);
+    secp256k1_fe_set_int(&zs, 1);
+    secp256k1_ecmult_bundle_table_set_globalz(pre, zr, &zs);
+    secp256k1_ecmult_bundle_table_lambda_x(lamx, pre);
+
+    for (idx = 0; idx < 2 * ECMULT_BUNDLE_INDEX_SIGN; ++idx) {
+        unsigned int m = idx & ECMULT_BUNDLE_INDEX_ENTRY;
+        int negative = !(idx & ECMULT_BUNDLE_INDEX_SIGN);
+        secp256k1_gej want, wantlam, got;
+        secp256k1_ge t;
+
+        secp256k1_gej_set_ge(&want, &a[0]);
+        for (i = 1; i < ECMULT_BUNDLE_SIZE; ++i) {
+            if ((m >> (i - 1)) & 1) {
+                secp256k1_gej_add_ge_var(&want, &want, &a[i], NULL);
+            }
+        }
+        /* lambda of the same combination, which is where the lambda side's index points. */
+        if (secp256k1_gej_is_infinity(&want)) {
+            secp256k1_gej_set_infinity(&wantlam);
+        } else {
+            secp256k1_gej tmp = want;
+            secp256k1_ge_set_gej_var(&t, &tmp);
+            secp256k1_ge_mul_lambda(&t, &t);
+            secp256k1_gej_set_ge(&wantlam, &t);
+        }
+        if (negative) {
+            secp256k1_gej_neg(&want, &want);
+            secp256k1_gej_neg(&wantlam, &wantlam);
+        }
+
+        secp256k1_ecmult_bundle_table_get_ge(&t, pre, idx);
+        got.x = t.x;
+        got.y = t.y;
+        got.z = z;
+        got.infinity = t.infinity;
+        test_gej_eq_strict(&got, &want);
+
+        secp256k1_ecmult_bundle_table_get_ge_lambda(&t, pre, lamx, idx);
+        got.x = t.x;
+        got.y = t.y;
+        got.z = z;
+        got.infinity = t.infinity;
+        test_gej_eq_strict(&got, &wantlam);
+    }
+}
+
+static void run_ecmult_bundle_table_get(void) {
+    secp256k1_ge a[ECMULT_BUNDLE_SIZE];
+    secp256k1_gej tmp;
+    size_t i;
+    int iter;
+
+    for (iter = 0; iter < COUNT; ++iter) {
+        for (i = 0; i < ECMULT_BUNDLE_SIZE; ++i) {
+            testutil_random_ge_test(&a[i]);
+        }
+        test_ecmult_bundle_table_get(a);
+
+        /* Again with entries that are infinite, which is what distinguishes these lookups from the
+         * ones Strauss' algorithm uses: a table of multiples of a point never contains one. */
+        secp256k1_gej_set_ge(&tmp, &a[0]);
+        secp256k1_gej_add_ge_var(&tmp, &tmp, &a[1], NULL);
+        secp256k1_gej_neg(&tmp, &tmp);
+        secp256k1_ge_set_gej(&a[2], &tmp);
+        secp256k1_ge_neg(&a[3], &a[0]);
+        test_ecmult_bundle_table_get(a);
+    }
+}
+
+/* A magnitude of up to 32*ECMULT_HSCALAR_WORDS - 1 bits, as a scalar of either sign, must come back as
+ * that signed integer in two's complement. */
+static void run_ecmult_hscalar(void) {
+    int i, k;
+
+    for (i = 0; i < 16 * COUNT; ++i) {
+        unsigned char b32[32];
+        secp256k1_scalar s;
+        secp256k1_hscalar got, want;
+        int bits = testrand_int(32 * ECMULT_HSCALAR_WORDS);
+        int negative = testrand_bits(1);
+
+        /* A random magnitude below 2^bits. */
+        testrand256(b32);
+        for (k = 0; k < 32; ++k) {
+            int top = 8 * (31 - k);
+            if (top >= bits) {
+                b32[k] = 0;
+            } else if (top + 8 > bits) {
+                b32[k] &= (unsigned char)(0xff >> (top + 8 - bits));
+            }
+        }
+        secp256k1_scalar_set_b32(&s, b32, NULL);
+        for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+            want.d[k] = secp256k1_scalar_get_bits_limb32(&s, 32 * k, 32);
+        }
+        if (negative) {
+            secp256k1_hscalar one;
+
+            secp256k1_scalar_negate(&s, &s);
+            secp256k1_hscalar_not(&want, &want);
+            memset(&one, 0, sizeof(one));
+            one.d[0] = 1;
+            secp256k1_hscalar_add(&want, &want, &one);
+        }
+
+        secp256k1_hscalar_set_scalar(&got, &s);
+        for (k = 0; k < ECMULT_HSCALAR_WORDS; ++k) {
+            CHECK(got.d[k] == want.d[k]);
+        }
+    }
+}
+
+/* Replay one side of a bundle's stream of indices, recovering the coefficient each of its points
+ * ends up with. The index at position j stands for its sign times the sum of the anchor and the
+ * followers whose entry bits are set, scaled by 2^j, so working down from the top with a doubling at
+ * each position accumulates exactly the multiplier the main loop would apply to each point: on the
+ * plain side to the points themselves, on the lambda side to their lambda multiples. indices is
+ * that side's ECMULT_BUNDLE_BITS bytes, and coef needs space for ECMULT_BUNDLE_SIZE scalars. */
+static void test_ecmult_bundle_recode_replay(secp256k1_scalar *coef, const unsigned char *indices) {
+    secp256k1_scalar one, minus_one;
+    int j;
+    size_t i;
+
+    secp256k1_scalar_set_int(&one, 1);
+    secp256k1_scalar_negate(&minus_one, &one);
+    for (i = 0; i < ECMULT_BUNDLE_SIZE; ++i) {
+        coef[i] = secp256k1_scalar_zero;
+    }
+
+    for (j = ECMULT_BUNDLE_BITS - 1; j >= 0; --j) {
+        unsigned int idx = indices[j];
+        unsigned int entry = idx & ECMULT_BUNDLE_INDEX_ENTRY;
+        const secp256k1_scalar *term = (idx & ECMULT_BUNDLE_INDEX_SIGN) ? &one : &minus_one;
+
+        /* Nothing above the sign bit may be set. */
+        CHECK((idx & ~(ECMULT_BUNDLE_INDEX_SIGN | ECMULT_BUNDLE_INDEX_ENTRY)) == 0);
+
+        for (i = 0; i < ECMULT_BUNDLE_SIZE; ++i) {
+            secp256k1_scalar_add(&coef[i], &coef[i], &coef[i]);
+        }
+        /* The anchor is in every table entry; the followers are the ones whose entry bits are set. */
+        secp256k1_scalar_add(&coef[0], &coef[0], term);
+        for (i = 1; i < ECMULT_BUNDLE_SIZE; ++i) {
+            if ((entry >> (i - 1)) & 1) {
+                secp256k1_scalar_add(&coef[i], &coef[i], term);
+            }
+        }
+    }
+}
+
+static void test_ecmult_bundle_recode(const secp256k1_scalar *na) {
+    /* A guard byte on either side of the bundle's own bytes, to check that nothing else is written.
+     * With fewer than eight points to a bundle 0xff is not a valid index, so the replay also
+     * notices a byte that was not written. */
+    unsigned char indices[2 * ECMULT_BUNDLE_BITS + 2];
+    secp256k1_scalar coef[2][ECMULT_BUNDLE_SIZE], r;
+    size_t i;
+
+    memset(indices, 0xff, sizeof(indices));
+    secp256k1_ecmult_bundle_recode(indices + 1, na);
+    CHECK(indices[0] == 0xff);
+    CHECK(indices[2 * ECMULT_BUNDLE_BITS + 1] == 0xff);
+
+    test_ecmult_bundle_recode_replay(coef[0], indices + 1);
+    test_ecmult_bundle_recode_replay(coef[1], indices + 1 + ECMULT_BUNDLE_BITS);
+
+    /* Each point's plain coefficient plus lambda times its lambda coefficient is its scalar. */
+    for (i = 0; i < ECMULT_BUNDLE_SIZE; ++i) {
+        secp256k1_scalar_mul(&r, &coef[1][i], &secp256k1_const_lambda);
+        secp256k1_scalar_add(&r, &r, &coef[0][i]);
+        CHECK(secp256k1_scalar_eq(&r, &na[i]));
+    }
+}
+
+static void run_ecmult_bundle_recode(void) {
+    secp256k1_scalar na[ECMULT_BUNDLE_SIZE];
+    secp256k1_scalar scalars_near_split_bounds[20];
+    secp256k1_scalar t;
+    size_t i, j, k;
+
+    /* K is -(1 + lambda), which is also lambda^2. */
+    secp256k1_scalar_add(&t, &secp256k1_const_lambda, &secp256k1_scalar_one);
+    secp256k1_scalar_negate(&t, &t);
+    CHECK(secp256k1_scalar_eq(&t, &secp256k1_ecmult_bundle_K));
+    secp256k1_scalar_mul(&t, &secp256k1_const_lambda, &secp256k1_const_lambda);
+    CHECK(secp256k1_scalar_eq(&t, &secp256k1_ecmult_bundle_K));
+
+    fill_scalars_near_split_bounds(scalars_near_split_bounds);
+
+    for (i = 0; i < (size_t)(8 * COUNT); ++i) {
+        for (j = 0; j < ECMULT_BUNDLE_SIZE; ++j) {
+            testutil_random_scalar_order_test(&na[j]);
+        }
+        test_ecmult_bundle_recode(na);
+    }
+
+    /* Zero scalars, which Strauss' algorithm filters out and this recoding takes like any other. */
+    for (j = 0; j < ECMULT_BUNDLE_SIZE; ++j) {
+        na[j] = secp256k1_scalar_zero;
+    }
+    test_ecmult_bundle_recode(na);
+
+    /* Every scalar reaching a large split output, in the anchor's place against each of them in the
+     * followers'. The followers are split as they are; the anchor is split as (q + K)/2, so it is
+     * given q = 2*s - K to make that s, as the ecmult_const test does. This is what the range of
+     * e = f + ~u (see ECMULT_BUNDLE_BITS) is tightest against: it does not fit in 129 positions
+     * here, which is what ECMULT_BUNDLE_BITS being 130 is for. */
+    for (i = 0; i < ARRAY_SIZE(scalars_near_split_bounds); ++i) {
+        for (j = 0; j < ARRAY_SIZE(scalars_near_split_bounds); ++j) {
+            for (k = 1; k < ECMULT_BUNDLE_SIZE; ++k) {
+                na[k] = scalars_near_split_bounds[j];
+            }
+            secp256k1_scalar_negate(&na[0], &secp256k1_ecmult_bundle_K);
+            secp256k1_scalar_add(&na[0], &na[0], &scalars_near_split_bounds[i]);
+            secp256k1_scalar_add(&na[0], &na[0], &scalars_near_split_bounds[i]);
+            test_ecmult_bundle_recode(na);
+        }
+    }
+}
+
+#define BUNDLE_TEST_MAX_POINTS (3 * ECMULT_BUNDLE_SIZE + ECMULT_BUNDLE_SIZE - 1)
+
+/* Run secp256k1_ecmult_bundle_multi and check it against secp256k1_ecmult one point at a time. */
+static void test_ecmult_bundle_multi(size_t num, const secp256k1_ge *pts, const secp256k1_scalar *sc, const secp256k1_scalar *ng) {
+    struct secp256k1_bundle_state state;
+    secp256k1_ge pre[(BUNDLE_TEST_MAX_POINTS / ECMULT_BUNDLE_SIZE) * ECMULT_BUNDLE_TABLE_SIZE];
+    secp256k1_fe lamx[(BUNDLE_TEST_MAX_POINTS / ECMULT_BUNDLE_SIZE) * ECMULT_BUNDLE_TABLE_SIZE];
+    unsigned char indices[ECMULT_BUNDLE_BITS * 2 * (BUNDLE_TEST_MAX_POINTS / ECMULT_BUNDLE_SIZE)];
+    secp256k1_ge pre_rem[(ECMULT_BUNDLE_SIZE - 1) * ECMULT_TABLE_SIZE(WINDOW_A)];
+    secp256k1_fe aux_rem[(ECMULT_BUNDLE_SIZE - 1) * ECMULT_TABLE_SIZE(WINDOW_A)];
+    struct secp256k1_strauss_point_state ps[ECMULT_BUNDLE_SIZE - 1];
+    secp256k1_gej got, want, tmp;
+    size_t i;
+
+    CHECK(num >= ECMULT_BUNDLE_SIZE && num <= BUNDLE_TEST_MAX_POINTS);
+
+    state.pre = pre;
+    state.lamx = lamx;
+    state.indices = indices;
+    state.pre_rem = pre_rem;
+    state.aux_rem = aux_rem;
+    state.ps = ps;
+    secp256k1_ecmult_bundle_multi(&state, &got, num, pts, sc, ng);
+
+    secp256k1_gej_set_infinity(&want);
+    for (i = 0; i < num; ++i) {
+        secp256k1_gej pj;
+        secp256k1_gej_set_ge(&pj, &pts[i]);
+        secp256k1_ecmult(&tmp, &pj, &sc[i], NULL);
+        secp256k1_gej_add_var(&want, &want, &tmp, NULL);
+    }
+    if (ng != NULL) {
+        secp256k1_gej inf;
+        secp256k1_gej_set_infinity(&inf);
+        secp256k1_ecmult(&tmp, &inf, &secp256k1_scalar_zero, ng);
+        secp256k1_gej_add_var(&want, &want, &tmp, NULL);
+    }
+    test_gej_eq_strict(&got, &want);
+}
+
+static void run_ecmult_bundle_multi(void) {
+    secp256k1_ge pts[BUNDLE_TEST_MAX_POINTS];
+    secp256k1_scalar sc[BUNDLE_TEST_MAX_POINTS];
+    secp256k1_scalar ng;
+    size_t num, i;
+    int iter;
+
+    for (iter = 0; iter < COUNT; ++iter) {
+        /* Every count from one bundle up, so every number of points left over is covered. */
+        for (num = ECMULT_BUNDLE_SIZE; num <= BUNDLE_TEST_MAX_POINTS; ++num) {
+            for (i = 0; i < num; ++i) {
+                testutil_random_ge_test(&pts[i]);
+                testutil_random_scalar_order_test(&sc[i]);
+            }
+            testutil_random_scalar_order_test(&ng);
+            test_ecmult_bundle_multi(num, pts, sc, iter & 1 ? &ng : NULL);
+        }
+
+        /* Degeneracies, in a bundle and among the points left over both. */
+        num = 2 * ECMULT_BUNDLE_SIZE + 3;
+        for (i = 0; i < num; ++i) {
+            testutil_random_ge_test(&pts[i]);
+            testutil_random_scalar_order_test(&sc[i]);
+        }
+        /* Zero scalars, which a bundle takes in its stride and the points left over skip. */
+        sc[0] = secp256k1_scalar_zero;
+        sc[num - 1] = secp256k1_scalar_zero;
+        test_ecmult_bundle_multi(num, pts, sc, &ng);
+
+        /* Infinite points, likewise. */
+        testutil_random_scalar_order_test(&sc[0]);
+        testutil_random_scalar_order_test(&sc[num - 1]);
+        secp256k1_ge_set_infinity(&pts[1]);
+        secp256k1_ge_set_infinity(&pts[num - 2]);
+        test_ecmult_bundle_multi(num, pts, sc, &ng);
+
+        /* A bundle's anchor again as one follower and negated as another. The first makes the table
+         * build start with a doubling; the second makes an entry vanish, so that the main loop looks
+         * up an infinity wherever the indices select it. */
+        testutil_random_ge_test(&pts[num - 2]);
+        pts[1] = pts[0];
+        secp256k1_ge_neg(&pts[4], &pts[0]);
+        test_ecmult_bundle_multi(num, pts, sc, NULL);
     }
 }
 
@@ -5188,7 +5721,8 @@ static int test_ecmult_multi_random(secp256k1_scratch *scratch) {
      * - Few or many 0*P or a*INF inputs (roughly uniformly distributed).
      * - Including or excluding an nonzero a*G term (or such a term at all).
      * - Final expected result equal to infinity or not (roughly 50%).
-     * - ecmult_multi_var, ecmult_strauss_single_batch, ecmult_pippenger_single_batch
+     * - ecmult_multi_var, ecmult_strauss_single_batch, ecmult_bundle_single_batch,
+     *   ecmult_pippenger_single_batch
      */
 
     /* These 4 variables define the eventual input to the ecmult_multi function.
@@ -5210,9 +5744,10 @@ static int test_ecmult_multi_random(secp256k1_scratch *scratch) {
 
     int i;
     /* Which multiplication function to use */
-    int fn = testrand_int(3);
+    int fn = testrand_int(4);
     secp256k1_ecmult_multi_func ecmult_multi = fn == 0 ? secp256k1_ecmult_multi_var :
                                                fn == 1 ? secp256k1_ecmult_strauss_batch_single :
+                                               fn == 2 ? secp256k1_ecmult_bundle_batch_single :
                                                secp256k1_ecmult_pippenger_batch_single;
     /* Simulate exponentially distributed num. */
     int num_bits = 2 + testrand_int(6);
@@ -5532,6 +6067,68 @@ static void test_ecmult_multi_batching(void) {
     free(pt);
 }
 
+/* The scratch space accounting of the bundled algorithm: secp256k1_bundle_scratch_size against what
+ * secp256k1_ecmult_bundle_batch takes, and secp256k1_bundle_max_points against both. */
+static void test_ecmult_bundle_batching(void) {
+    const size_t bundle = secp256k1_bundle_scratch_size(ECMULT_BUNDLE_SIZE);
+    const size_t slack = BUNDLE_SCRATCH_OBJECTS * (ALIGNMENT - 1);
+    secp256k1_scalar sc[4 * ECMULT_BUNDLE_SIZE];
+    secp256k1_ge pt[4 * ECMULT_BUNDLE_SIZE];
+    secp256k1_gej want[4 * ECMULT_BUNDLE_SIZE + 1];
+    ecmult_multi_data data;
+    secp256k1_scratch *scratch;
+    secp256k1_gej r;
+    size_t n, k, m, size, last, max_points;
+    int below;
+
+    /* want[n] is the sum over the first n points. */
+    secp256k1_gej_set_infinity(&want[0]);
+    for (n = 0; n < ARRAY_SIZE(pt); ++n) {
+        secp256k1_gej pj;
+        testutil_random_ge_test(&pt[n]);
+        testutil_random_scalar_order(&sc[n]);
+        secp256k1_gej_set_ge(&pj, &pt[n]);
+        secp256k1_ecmult(&pj, &pj, &sc[n], NULL);
+        secp256k1_gej_add_var(&want[n + 1], &want[n], &pj, NULL);
+    }
+    data.sc = sc;
+    data.pt = pt;
+
+    /* The size computed for a batch is enough for it, given the allowance for alignment, and nothing
+     * less is: before they are rounded, the allocations add up to exactly that. */
+    for (n = 1; n <= ARRAY_SIZE(pt); ++n) {
+        size = secp256k1_bundle_scratch_size(n);
+        scratch = secp256k1_scratch_create(&CTX->error_callback, size + slack);
+        CHECK(secp256k1_ecmult_bundle_batch_single(&CTX->error_callback, scratch, &r, NULL, ecmult_multi_callback, &data, n));
+        test_gej_eq_strict(&r, &want[n]);
+        secp256k1_scratch_destroy(&CTX->error_callback, scratch);
+
+        scratch = secp256k1_scratch_create(&CTX->error_callback, size - 1);
+        CHECK(!secp256k1_ecmult_bundle_batch_single(&CTX->error_callback, scratch, &r, NULL, ecmult_multi_callback, &data, n));
+        secp256k1_scratch_destroy(&CTX->error_callback, scratch);
+    }
+
+    /* The maximum goes up by a bundle exactly where the space for one more is reached, counting the
+     * last bundle as whatever a smaller batch could need in its place. Every batch up to the maximum
+     * then goes through, which is the point of it. */
+    last = secp256k1_strauss_scratch_size(ECMULT_BUNDLE_SIZE - 1);
+    if (last < bundle) {
+        last = bundle;
+    }
+    for (k = 0; k < 3; ++k) {
+        for (below = 0; below < 2; ++below) {
+            scratch = secp256k1_scratch_create(&CTX->error_callback, k * bundle + last + slack - (size_t)below);
+            max_points = secp256k1_bundle_max_points(&CTX->error_callback, scratch);
+            CHECK(max_points == (k + 1 - (size_t)below) * ECMULT_BUNDLE_SIZE);
+            for (m = 1; m <= max_points; ++m) {
+                CHECK(secp256k1_ecmult_bundle_batch_single(&CTX->error_callback, scratch, &r, NULL, ecmult_multi_callback, &data, m));
+                test_gej_eq_strict(&r, &want[m]);
+            }
+            secp256k1_scratch_destroy(&CTX->error_callback, scratch);
+        }
+    }
+}
+
 static void run_ecmult_multi_tests(void) {
     secp256k1_scratch *scratch;
     int64_t todo = (int64_t)320 * COUNT;
@@ -5545,6 +6142,8 @@ static void run_ecmult_multi_tests(void) {
     test_ecmult_multi_batch_single(secp256k1_ecmult_pippenger_batch_single);
     test_ecmult_multi(scratch, secp256k1_ecmult_strauss_batch_single);
     test_ecmult_multi_batch_single(secp256k1_ecmult_strauss_batch_single);
+    test_ecmult_multi(scratch, secp256k1_ecmult_bundle_batch_single);
+    test_ecmult_multi_batch_single(secp256k1_ecmult_bundle_batch_single);
     while (todo > 0) {
         todo -= test_ecmult_multi_random(scratch);
     }
@@ -5557,6 +6156,7 @@ static void run_ecmult_multi_tests(void) {
 
     test_ecmult_multi_batch_size_helper();
     test_ecmult_multi_batching();
+    test_ecmult_bundle_batching();
 }
 
 static void test_wnaf(const secp256k1_scalar *number, int w) {
@@ -8267,6 +8867,7 @@ static const struct tf_test_entry tests_field[] = {
 
 static const struct tf_test_entry tests_group[] = {
     CASE(ge),
+    CASE(ge_z),
     CASE(gej),
     CASE(group_decompress),
 };
@@ -8276,6 +8877,11 @@ static const struct tf_test_entry tests_ecmult[] = {
     CASE(wnaf),
     CASE(point_times_order),
     CASE(ecmult_near_split_bound),
+    CASE(ecmult_bundle_table),
+    CASE(ecmult_bundle_table_get),
+    CASE(ecmult_hscalar),
+    CASE(ecmult_bundle_recode),
+    CASE(ecmult_bundle_multi),
     CASE(ecmult_chain),
     CASE(ecmult_constants),
     CASE(ecmult_gen_ge),
