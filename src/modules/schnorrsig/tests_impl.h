@@ -850,22 +850,29 @@ static void test_schnorrsig_sign_internal(void) {
 }
 
 DEFINE_SHA256_TRANSFORM_PROBE(sha256_schnorrsig)
+/* Check ctx-provided SHA256 compression override takes effect. Signing hashes
+ * several values, so the override perturbs only the last block and the number of
+ * blocks is pinned: if any of the values bypassed the caller's ctx, fewer blocks
+ * would be hashed and the output would not change. */
 static void test_schnorrsig_ctx_sha256(void) {
-    /* Check ctx-provided SHA256 compression override takes effect */
+    /* Update if schnorrsig's hashing changes */
+    enum { SIGN_BLOCKS = 5 };
     secp256k1_context *ctx = secp256k1_context_clone(CTX);
     unsigned char out_default[64], out_custom[64];
-    unsigned char sk[32] = {1}, msg32[32] = {1};
+    unsigned char sk[32] = {1}, msg32[32] = {1}, aux_rand32[32] = {2};
     secp256k1_keypair keypair;
     CHECK(secp256k1_keypair_create(ctx, &keypair, sk));
 
     /* Default behavior. No ctx-provided SHA256 compression */
-    CHECK(secp256k1_schnorrsig_sign32(ctx, out_default, msg32, &keypair, NULL));
+    CHECK(secp256k1_schnorrsig_sign32(ctx, out_default, msg32, &keypair, aux_rand32));
     CHECK(!sha256_schnorrsig_called);
 
     /* Override SHA256 compression directly, bypassing the ctx setter sanity checks */
     ctx->hash_ctx.fn_sha256_compression = sha256_schnorrsig;
-    CHECK(secp256k1_schnorrsig_sign32(ctx, out_custom, msg32, &keypair, NULL));
+    sha256_schnorrsig_target = SIGN_BLOCKS;
+    CHECK(secp256k1_schnorrsig_sign32(ctx, out_custom, msg32, &keypair, aux_rand32));
     CHECK(sha256_schnorrsig_called);
+    CHECK(sha256_schnorrsig_blocks == SIGN_BLOCKS);
     /* Outputs must differ if custom compression was used */
     CHECK(secp256k1_memcmp_var(out_default, out_custom, 64) != 0);
 
