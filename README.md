@@ -80,23 +80,15 @@ This can be done with the following steps:
     ```
     git clone https://github.com/bitcoin-core/secp256k1
     ```
-4. Check out the latest release tag, e.g. 
+4. Select the release tag you want to verify and check it out:
     ```
-    git checkout v0.7.1
+    TAG=vX.Y.Z
+    git checkout "$TAG"
     ```
-5. Use git to verify the GPG signature: 
+   Replace `vX.Y.Z` with the exact release tag, e.g. `v0.8.0`. Use the same `TAG` value in the next step.
+5. Use git to verify the GPG signature of that tag:
    ```
-   % git tag -v v0.7.1 | grep -C 3 'Good signature'
-
-   gpg: Signature made Mon 26 Jan 2026 07:42:46 PM UTC
-   gpg:                using RSA key 2840EAABF4BC9F0FFD716AFAFBAFCC46DE2D3FE2
-   gpg: Good signature from "Pieter Wuille <pieter@wuille.net>" [unknown]
-   gpg:                 aka "Pieter Wuille <pieter.wuille@gmail.com>" [full]
-   gpg:                 aka "[jpeg image of size 5996]" [undefined]
-   gpg: WARNING: This key is not certified with a trusted signature!
-   gpg:          There is no indication that the signature belongs to the owner.
-   Primary key fingerprint: 133E AC17 9436 F14A 5CF1  B794 860F EB80 4E66 9320
-        Subkey fingerprint: 2840 EAAB F4BC 9F0F FD71  6AFA FBAF CC46 DE2D 3FE2
+   git tag -v "$TAG"
    ```
 
 Building with Autotools
