@@ -7553,6 +7553,38 @@ static void run_ecdsa_der_parse_long_form(void) {
     CHECK(secp256k1_ecdsa_signature_parse_der(CTX, &sig, buf, len) == 0);
 }
 
+/* Tests the minimal encoding of negative integers (X.690-0207 8.3.2).
+ *
+ * A negative R or S is not rejected: secp256k1_der_parse_integer flags it as
+ * overflowing and, as for any overflow, sets the scalar to zero. A leading
+ * 0xFF byte is not allowed if the next byte has its top bit set, though.
+ * random_ber_signature can emit such padding, but does not mark those
+ * signatures as certainly_not_der, so run_ecdsa_der_parse would not notice if
+ * the padding were accepted. */
+static void run_ecdsa_der_parse_negative(void) {
+    /* R = -1, encoded in a single byte. */
+    const unsigned char sig_neg_short[8] = {0x30, 0x06, 0x02, 0x01, 0xFF, 0x02, 0x01, 0x01};
+    /* R = -129, which needs the leading 0xFF byte. */
+    const unsigned char sig_neg[9] = {0x30, 0x07, 0x02, 0x02, 0xFF, 0x7F, 0x02, 0x01, 0x01};
+    /* R = -128 with excessive 0xFF padding. */
+    const unsigned char sig_neg_padded[9] = {0x30, 0x07, 0x02, 0x02, 0xFF, 0x80, 0x02, 0x01, 0x01};
+    static const unsigned char zeroes[31] = {0};
+    secp256k1_ecdsa_signature sig;
+    unsigned char compact[64];
+
+    CHECK(secp256k1_ecdsa_signature_parse_der(CTX, &sig, sig_neg_short, sizeof(sig_neg_short)) == 1);
+    CHECK(secp256k1_ecdsa_signature_serialize_compact(CTX, compact, &sig) == 1);
+    CHECK(secp256k1_memcmp_var(compact, zeroes, 31) == 0 && compact[31] == 0);
+    CHECK(secp256k1_memcmp_var(compact + 32, zeroes, 31) == 0 && compact[63] == 1);
+
+    CHECK(secp256k1_ecdsa_signature_parse_der(CTX, &sig, sig_neg, sizeof(sig_neg)) == 1);
+    CHECK(secp256k1_ecdsa_signature_serialize_compact(CTX, compact, &sig) == 1);
+    CHECK(secp256k1_memcmp_var(compact, zeroes, 31) == 0 && compact[31] == 0);
+    CHECK(secp256k1_memcmp_var(compact + 32, zeroes, 31) == 0 && compact[63] == 1);
+
+    CHECK(secp256k1_ecdsa_signature_parse_der(CTX, &sig, sig_neg_padded, sizeof(sig_neg_padded)) == 0);
+}
+
 /* Tests several edge cases. */
 static void run_ecdsa_edge_cases(void) {
     int t;
@@ -8299,6 +8331,7 @@ static const struct tf_test_entry tests_ecdsa[] = {
     CASE(random_pubkeys),
     CASE(ecdsa_der_parse),
     CASE(ecdsa_der_parse_long_form),
+    CASE(ecdsa_der_parse_negative),
     CASE(ecdsa_sign_verify),
     CASE(ecdsa_end_to_end),
     CASE(ecdsa_edge_cases),
