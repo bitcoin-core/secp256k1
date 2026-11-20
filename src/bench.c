@@ -73,9 +73,12 @@ static void help(const char *executable_path, int default_iters) {
 #endif
 
 #ifdef ENABLE_MODULE_SILENTPAYMENTS
-    printf("    silentpayments                       : all Silent payments benchmarks (scan_nomatch, scan_worstcase)\n");
+    printf("    silentpayments                       : all Silent payments benchmarks (scan_nomatch, scan_worstcase, send)\n");
     printf("    silentpayments_scan_nomatch          : Silent payments scanning common case (no match)\n");
     printf("    silentpayments_scan_worstcase        : Silent payments scanning worst case (block-sized tx, all match)\n");
+    printf("    silentpayments_send                  : all Silent payments sending benchmarks\n");
+    printf("    silentpayments_send_distinct         : Silent payments sending with distinct scan keys\n");
+    printf("    silentpayments_send_shared           : Silent payments sending with shared scan key\n");
 #endif
 
     printf("\n");
@@ -197,7 +200,8 @@ int main(int argc, char** argv) {
                          "ecdsa_recover", "schnorrsig", "schnorrsig_verify", "schnorrsig_sign", "ec",
                          "keygen", "ec_keygen", "ellswift", "encode", "ellswift_encode", "decode",
                          "ellswift_decode", "ellswift_keygen", "ellswift_ecdh", "silentpayments",
-                         "silentpayments_scan_nomatch", "silentpayments_scan_worstcase"};
+                         "silentpayments_scan_nomatch", "silentpayments_scan_worstcase",
+                         "silentpayments_send", "silentpayments_send_distinct", "silentpayments_send_shared"};
     int invalid_args = have_invalid_args(argc, argv, valid_args, ARRAY_SIZE(valid_args));
 
     int default_iters = 20000;
@@ -257,7 +261,10 @@ int main(int argc, char** argv) {
 
 #ifndef ENABLE_MODULE_SILENTPAYMENTS
     if (have_flag(argc, argv, "silentpayments") || have_flag(argc, argv, "silentpayments_scan_nomatch") ||
-        have_flag(argc, argv, "silentpayments_scan_worstcase")) {
+        have_flag(argc, argv, "silentpayments_scan_worstcase") ||
+        have_flag(argc, argv, "silentpayments_send") ||
+        have_flag(argc, argv, "silentpayments_send_distinct") ||
+        have_flag(argc, argv, "silentpayments_send_shared")) {
         fprintf(stderr, "./bench: silentpayments module not enabled.\n");
         fprintf(stderr, "See README.md for configuration instructions.\n\n");
         return EXIT_FAILURE;
