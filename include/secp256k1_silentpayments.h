@@ -74,6 +74,17 @@ typedef struct secp256k1_silentpayments_recipient {
  *  outputs from the final transaction may make all or some of the outputs
  *  unfindable by the recipient.
  *
+ *  It is the responsibility of the caller to ensure that the recipient
+ *  addresses are correct, i.e., that each scan/spend public key pair
+ *  actually belongs to the intended recipient. In particular, recipient
+ *  objects sharing the same scan public key are treated as a single
+ *  recipient (e.g., one using several labeled addresses), so all of them
+ *  MUST be correct for the payment to fully succeed: a single incorrect
+ *  address in such a group may make the outputs for the other addresses
+ *  in the group unfindable by the recipient. If this cannot be
+ *  established, the recipients in question should instead be paid in
+ *  separate transactions.
+ *
  *  Returns: 1 if creation of outputs was successful.
  *           0 on failure, i.e., when one of the following occurs:
  *             - The size of any group (i.e. recipients sharing the same scan public key)
@@ -103,7 +114,9 @@ typedef struct secp256k1_silentpayments_recipient {
  *                            may no longer correspond to the positions in the
  *                            array. Multiple recipient objects with the same scan
  *                            public key and/or same spend public key can be passed
- *                            if they carry different indices.
+ *                            if they carry different indices (but see above
+ *                            regarding recipient objects sharing a scan
+ *                            public key).
  *              n_recipients: the size of the recipients array.
  *       outpoint_smallest36: serialized (36-byte) smallest outpoint
  *                            (lexicographically) from the transaction inputs
