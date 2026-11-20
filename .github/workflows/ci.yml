@@ -214,6 +214,66 @@ jobs:
       - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
+  arm32_cortex_m4_baremetal:
+    name: "ARM32 Cortex-M4: bare metal (STM32F405, picolibc, QEMU)"
+    runs-on: ubuntu-latest
+    needs: docker_cache
+
+    strategy:
+      matrix:
+        configuration:
+          - env_vars: {}
+
+    env:
+      # There is no OS on the target. The tests are linked against picolibc,
+      # which implements I/O and exit() via ARM semihosting, and are run on an
+      # emulated STM32F405 microcontroller (1 MiB of flash memory, 128 KiB of
+      # SRAM), see ci/qemu-cortex-m4.sh.
+      WRAPPER_CMD: './ci/qemu-cortex-m4.sh'
+      HOST: 'arm-none-eabi'
+      CC: 'arm-none-eabi-gcc'
+      CFLAGS: '-mcpu=cortex-m4 -mthumb --specs=picolibc.specs -O2 -g'
+      # Memory map of the STM32F405 for the linker script of picolibc: 1 MiB of
+      # flash memory and 128 KiB of SRAM, of which the upper 32 KiB are
+      # reserved for the stack.
+      # The linker script ignores __stack_size if it is set via --defsym (it
+      # would silently reserve only the default of 4 KiB). So set the end of
+      # the heap instead: __heap_end = __ram + __ram_size - 32 KiB.
+      LDFLAGS: >-
+        --oslib=semihost --crt0=semihost
+        -Wl,--defsym=__flash=0x08000000,--defsym=__flash_size=0x00100000
+        -Wl,--defsym=__ram=0x20000000,--defsym=__ram_size=0x00020000
+        -Wl,--defsym=__heap_end=0x20018000
+      # Use the smallest precomputed tables, as is typical for devices with
+      # little flash memory. The default tables do not fit into the flash
+      # memory together with the tests.
+      ECMULTWINDOW: 2
+      ECMULTGENKB: 2
+      # The BIP 352 test vectors alone are larger than the flash memory.
+      SILENTPAYMENTS: 'no'
+      # Emulating the Cortex-M4 is slow. To keep the run time acceptable,
+      # skip ecmult_multi_tests, which alone accounts for more than half of
+      # the run time, and the slowest ellswift tests.
+      QEMU_TESTS_ARGS: >-
+        --exclude=ecmult_multi_tests
+        --exclude=ellswift_xdh_correctness_tests
+        --exclude=ellswift_compute_shared_secret_tests
+        --exclude=ellswift_encode_decode_roundtrip_tests
+        --exclude=ellswift_create_tests
+      # The examples need a randomness source provided by the OS.
+      EXAMPLES: 'no'
+      # The benchmarks need SECP256K1_BENCH_ITERS, but there is no environment.
+      BENCH: 'no'
+      WITH_VALGRIND: 'no'
+      CTIMETESTS: 'no'
+      # Only a static library is built.
+      SYMBOL_CHECK: 'no'
+
+    steps:
+      - *CHECKOUT
+      - *CI_SCRIPT_IN_DOCKER
+      - *PRINT_LOGS
+
   arm64-debian:
     name: "arm64: Linux (Debian stable)"
     runs-on: ubuntu-24.04-arm

@@ -31,6 +31,7 @@ static int parse_jobs_count(const char* key, const char* value, struct tf_framew
 static int parse_iterations(const char* key, const char* value, struct tf_framework* tf);
 static int parse_seed(const char* key, const char* value, struct tf_framework* tf);
 static int parse_target(const char* key, const char* value, struct tf_framework* tf);
+static int parse_exclude(const char* key, const char* value, struct tf_framework* tf);
 static int parse_logging(const char* key, const char* value, struct tf_framework* tf);
 
 /* Mapping table: key -> handler */
@@ -49,6 +50,7 @@ struct ArgMap {
  */
 static struct ArgMap arg_map[] = {
     { "t", parse_target }, { "target", parse_target },
+    { "exclude", parse_exclude },
     { "j", parse_jobs_count }, { "jobs", parse_jobs_count },
     { "i", parse_iterations }, { "iterations", parse_iterations },
     { "seed", parse_seed },
@@ -94,6 +96,8 @@ static void help(void) {
     printf("    --seed=<hex>                         Set a specific RNG seed (default: random)\n");
     printf("    --target=<test name>, -t=<name>      Run a specific test (can be provided multiple times)\n");
     printf("    --target=<module name>, -t=<module>  Run all tests within a specific module (can be provided multiple times)\n");
+    printf("    --exclude=<test name>                Skip a specific test (can be provided multiple times)\n");
+    printf("    --exclude=<module name>              Skip all tests within a specific module (can be provided multiple times)\n");
     printf("    --log=<0|1>                          Enable or disable test execution logging (default: 0 = disabled)\n");
     printf("\n");
     printf("Notes:\n");
@@ -101,6 +105,7 @@ static void help(void) {
     printf("    - Single or double dashes are allowed for multi character options.\n");
     printf("    - Unknown arguments are reported and cause the program to exit with an error.\n");
     printf("    - Sequential execution occurs if -jobs=0 or unspecified.\n");
+    printf("    - Exclusions are applied after target selection, regardless of the order of the arguments.\n");
     printf("    - Iterations and seed can also be passed as positional arguments before any other argument for backward compatibility.\n");
 }
 
@@ -189,10 +194,10 @@ static const char* normalize_key(const char* arg, const char** err_msg) {
     return key;
 }
 
-static int parse_target(const char* key, const char* value, struct tf_framework* tf) {
+/* Append the test (or all tests of the module) named 'value' to 'list' */
+static int add_tests(const char* key, const char* value, const struct tf_framework* tf, struct tf_targets* list) {
     int group, idx;
     const struct tf_test_entry* entry;
-    UNUSED(key);
     /* Find test index in the registry */
     for (group = 0; group < tf->num_modules; group++) {
         const struct tf_test_module* module = &tf->registry_modules[group];
@@ -200,11 +205,11 @@ static int parse_target(const char* key, const char* value, struct tf_framework*
         for (idx = 0; idx < module->size; idx++) {
             entry = &module->data[idx];
             if (add_all || strcmp(value, entry->name) == 0) {
-                if (tf->args.targets.size >= MAX_ARGS) {
-                    fprintf(stderr, "Too many -target args (max: %d)\n", MAX_ARGS);
+                if (list->size >= MAX_ARGS) {
+                    fprintf(stderr, "Too many -%s args (max: %d)\n", key, MAX_ARGS);
                     return -1;
                 }
-                tf->args.targets.slots[tf->args.targets.size++] = entry;
+                list->slots[list->size++] = entry;
                 /* Matched a single test, we're done */
                 if (!add_all) return 0;
             }
@@ -212,9 +217,32 @@ static int parse_target(const char* key, const char* value, struct tf_framework*
         /* If add_all was true, we added all tests in the module, so return */
         if (add_all) return 0;
     }
-    fprintf(stderr, "Error: target '%s' not found (missing or module disabled).\n"
-                    "Run program with -list_tests option to display available tests and modules.\n", value);
+    fprintf(stderr, "Error: %s '%s' not found (missing or module disabled).\n"
+                    "Run program with -list_tests option to display available tests and modules.\n", key, value);
     return -1;
+}
+
+static int parse_target(const char* key, const char* value, struct tf_framework* tf) {
+    UNUSED(key);
+    return add_tests("target", value, tf, &tf->args.targets);
+}
+
+static int parse_exclude(const char* key, const char* value, struct tf_framework* tf) {
+    UNUSED(key);
+    return add_tests("exclude", value, tf, &tf->args.excludes);
+}
+
+/* Remove all excluded tests from the targets, preserving the order */
+static void apply_excludes(struct tf_args* args) {
+    int it, ex, kept = 0;
+    for (it = 0; it < args->targets.size; it++) {
+        int excluded = 0;
+        for (ex = 0; ex < args->excludes.size && !excluded; ex++) {
+            excluded = args->targets.slots[it] == args->excludes.slots[ex];
+        }
+        if (!excluded) args->targets.slots[kept++] = args->targets.slots[it];
+    }
+    args->targets.size = kept;
 }
 
 /* Read args: all must be in the form -key=value, --key=value or -key=value */
@@ -364,6 +392,7 @@ static int tf_init(struct tf_framework* tf, int argc, char** argv)
     tf->args.custom_seed = NULL;
     tf->args.help = 0;
     tf->args.targets.size = 0;
+    tf->args.excludes.size = 0;
     tf->args.list_tests = 0;
     tf->args.logging = 0;
 
@@ -445,6 +474,8 @@ static int tf_run(struct tf_framework* tf) {
             }
         }
     }
+
+    apply_excludes(&tf->args);
 
     if (!tf->args.logging) printf("Tests running silently. Use '-log=1' to enable detailed logging\n");
 
