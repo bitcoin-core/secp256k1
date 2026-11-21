@@ -308,12 +308,12 @@ static void secp256k1_scalar_split_lambda_verify(const secp256k1_scalar *r1, con
     secp256k1_scalar_negate(&s, r1);
     secp256k1_scalar_get_b32(buf1, r1);
     secp256k1_scalar_get_b32(buf2, &s);
-    VERIFY_CHECK(secp256k1_memcmp_var(buf1, k1_bound, 32) < 0 || secp256k1_memcmp_var(buf2, k1_bound, 32) < 0);
+    VERIFY_CHECK(memcmp(buf1, k1_bound, 32) < 0 || memcmp(buf2, k1_bound, 32) < 0);
 
     secp256k1_scalar_negate(&s, r2);
     secp256k1_scalar_get_b32(buf1, r2);
     secp256k1_scalar_get_b32(buf2, &s);
-    VERIFY_CHECK(secp256k1_memcmp_var(buf1, k2_bound, 32) < 0 || secp256k1_memcmp_var(buf2, k2_bound, 32) < 0);
+    VERIFY_CHECK(memcmp(buf1, k2_bound, 32) < 0 || memcmp(buf2, k2_bound, 32) < 0);
 }
 #endif /* VERIFY */
 #endif /* !defined(EXHAUSTIVE_TEST_ORDER) */

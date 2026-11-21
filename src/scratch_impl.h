@@ -31,7 +31,7 @@ static secp256k1_scratch* secp256k1_scratch_create(const secp256k1_callback* err
 
 static void secp256k1_scratch_destroy(const secp256k1_callback* error_callback, secp256k1_scratch* scratch) {
     if (scratch != NULL) {
-        if (secp256k1_memcmp_var(scratch->magic, "scratch", 8) != 0) {
+        if (memcmp(scratch->magic, "scratch", 8) != 0) {
             secp256k1_callback_call(error_callback, "invalid scratch space");
             return;
         }
@@ -42,7 +42,7 @@ static void secp256k1_scratch_destroy(const secp256k1_callback* error_callback, 
 }
 
 static size_t secp256k1_scratch_checkpoint(const secp256k1_callback* error_callback, const secp256k1_scratch* scratch) {
-    if (secp256k1_memcmp_var(scratch->magic, "scratch", 8) != 0) {
+    if (memcmp(scratch->magic, "scratch", 8) != 0) {
         secp256k1_callback_call(error_callback, "invalid scratch space");
         return 0;
     }
@@ -50,7 +50,7 @@ static size_t secp256k1_scratch_checkpoint(const secp256k1_callback* error_callb
 }
 
 static void secp256k1_scratch_apply_checkpoint(const secp256k1_callback* error_callback, secp256k1_scratch* scratch, size_t checkpoint) {
-    if (secp256k1_memcmp_var(scratch->magic, "scratch", 8) != 0) {
+    if (memcmp(scratch->magic, "scratch", 8) != 0) {
         secp256k1_callback_call(error_callback, "invalid scratch space");
         return;
     }
@@ -62,7 +62,7 @@ static void secp256k1_scratch_apply_checkpoint(const secp256k1_callback* error_c
 }
 
 static size_t secp256k1_scratch_max_allocation(const secp256k1_callback* error_callback, const secp256k1_scratch* scratch, size_t objects) {
-    if (secp256k1_memcmp_var(scratch->magic, "scratch", 8) != 0) {
+    if (memcmp(scratch->magic, "scratch", 8) != 0) {
         secp256k1_callback_call(error_callback, "invalid scratch space");
         return 0;
     }
@@ -87,7 +87,7 @@ static void *secp256k1_scratch_alloc(const secp256k1_callback* error_callback, s
     }
     size = rounded_size;
 
-    if (secp256k1_memcmp_var(scratch->magic, "scratch", 8) != 0) {
+    if (memcmp(scratch->magic, "scratch", 8) != 0) {
         secp256k1_callback_call(error_callback, "invalid scratch space");
         return NULL;
     }

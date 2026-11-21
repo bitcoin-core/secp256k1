@@ -1070,7 +1070,7 @@ static void secp256k1_ge_to_bytes_ext(unsigned char *data, const secp256k1_ge *g
 
 SECP256K1_INLINE static void secp256k1_ge_impl_from_bytes_ext(secp256k1_ge *ge, const unsigned char *data) {
     static const unsigned char zeros[64] = { 0 };
-    if (secp256k1_memcmp_var(data, zeros, sizeof(zeros)) == 0) {
+    if (memcmp(data, zeros, sizeof(zeros)) == 0) {
         secp256k1_ge_set_infinity(ge);
     } else {
         secp256k1_ge_from_bytes(ge, data);
@@ -1182,7 +1182,7 @@ static void secp256k1_ge_serialize_ext33(unsigned char *out33, secp256k1_ge *ge)
 SECP256K1_INLINE static int secp256k1_ge_impl_parse_ext33(secp256k1_ge *ge, const unsigned char *in33) {
     unsigned char zeros[33] = { 0 };
 
-    if (secp256k1_memcmp_var(in33, zeros, sizeof(zeros)) == 0) {
+    if (memcmp(in33, zeros, sizeof(zeros)) == 0) {
         secp256k1_ge_set_infinity(ge);
         return 1;
     }

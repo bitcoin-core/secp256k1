@@ -86,7 +86,7 @@ int secp256k1_xonly_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_xon
             memset(out[i], 0, sizeof(out[i]));
         }
     }
-    return secp256k1_memcmp_var(out[0], out[1], sizeof(out[1]));
+    return memcmp(out[0], out[1], sizeof(out[1]));
 }
 
 /** Keeps a group element as is if it has an even Y and otherwise negates it.
@@ -156,7 +156,7 @@ int secp256k1_xonly_pubkey_tweak_add_check(const secp256k1_context* ctx, const u
     secp256k1_fe_normalize_var(&pk.y);
     secp256k1_fe_get_b32(pk_expected32, &pk.x);
 
-    return secp256k1_memcmp_var(&pk_expected32, tweaked_pubkey32, 32) == 0
+    return memcmp(&pk_expected32, tweaked_pubkey32, 32) == 0
             && secp256k1_fe_is_odd(&pk.y) == tweaked_pk_parity;
 }
 

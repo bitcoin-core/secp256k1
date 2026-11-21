@@ -39,7 +39,7 @@ static int secp256k1_selftest_sha256(secp256k1_sha256_compression_function fn_co
     hash_ctx.fn_sha256_compression = fn_compression;
     secp256k1_sha256_write(&hash_ctx, &hasher, (const unsigned char*)input63, 63);
     secp256k1_sha256_finalize(&hash_ctx, &hasher, out);
-    if (secp256k1_memcmp_var(out, output32, 32) != 0) {
+    if (memcmp(out, output32, 32) != 0) {
         return 0;
     }
     if (fn_compression != secp256k1_sha256_transform && !secp256k1_sha256_smoke_test(fn_compression)) {

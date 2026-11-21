@@ -232,7 +232,7 @@ void ellswift_xdh_test_vectors_tests(void) {
                                      secp256k1_ellswift_xdh_hash_function_bip324,
                                      NULL);
         CHECK(ret);
-        CHECK(secp256k1_memcmp_var(shared_secret, test->shared_secret, 32) == 0);
+        CHECK(memcmp(shared_secret, test->shared_secret, 32) == 0);
     }
 }
 
@@ -372,7 +372,7 @@ void ellswift_xdh_correctness_tests(void) {
         ret = secp256k1_ellswift_xdh(CTX, share32b, ell64a, ell64b, sec32b, 1, hash_function, data);
         CHECK(ret);
         /* And compare: */
-        CHECK(secp256k1_memcmp_var(share32a, share32b, 32) == 0);
+        CHECK(memcmp(share32a, share32b, 32) == 0);
 
         /* Verify that the shared secret doesn't match if other side's public key is incorrect. */
         /* For A (using a bad public key for B): */
@@ -380,25 +380,25 @@ void ellswift_xdh_correctness_tests(void) {
         testrand_flip(ell64b_bad, sizeof(ell64b_bad));
         ret = secp256k1_ellswift_xdh(CTX, share32_bad, ell64a, ell64b_bad, sec32a, 0, hash_function, data);
         CHECK(ret); /* Mismatching encodings don't get detected by secp256k1_ellswift_xdh. */
-        CHECK(secp256k1_memcmp_var(share32_bad, share32a, 32) != 0);
+        CHECK(memcmp(share32_bad, share32a, 32) != 0);
         /* For B (using a bad public key for A): */
         memcpy(ell64a_bad, ell64a, sizeof(ell64a_bad));
         testrand_flip(ell64a_bad, sizeof(ell64a_bad));
         ret = secp256k1_ellswift_xdh(CTX, share32_bad, ell64a_bad, ell64b, sec32b, 1, hash_function, data);
         CHECK(ret);
-        CHECK(secp256k1_memcmp_var(share32_bad, share32b, 32) != 0);
+        CHECK(memcmp(share32_bad, share32b, 32) != 0);
 
         /* Verify that the shared secret doesn't match if the private key is incorrect. */
         /* For A: */
         memcpy(sec32a_bad, sec32a, sizeof(sec32a_bad));
         testrand_flip(sec32a_bad, sizeof(sec32a_bad));
         ret = secp256k1_ellswift_xdh(CTX, share32_bad, ell64a, ell64b, sec32a_bad, 0, hash_function, data);
-        CHECK(!ret || secp256k1_memcmp_var(share32_bad, share32a, 32) != 0);
+        CHECK(!ret || memcmp(share32_bad, share32a, 32) != 0);
         /* For B: */
         memcpy(sec32b_bad, sec32b, sizeof(sec32b_bad));
         testrand_flip(sec32b_bad, sizeof(sec32b_bad));
         ret = secp256k1_ellswift_xdh(CTX, share32_bad, ell64a, ell64b, sec32b_bad, 1, hash_function, data);
-        CHECK(!ret || secp256k1_memcmp_var(share32_bad, share32b, 32) != 0);
+        CHECK(!ret || memcmp(share32_bad, share32b, 32) != 0);
 
         if (hash_function != ellswift_xdh_hash_x32) {
             /* Verify that the shared secret doesn't match when a different encoding of the same public key is used. */
@@ -409,7 +409,7 @@ void ellswift_xdh_correctness_tests(void) {
             CHECK(ret);
             ret = secp256k1_ellswift_xdh(CTX, share32_bad, ell64a, ell64b_bad, sec32a, 0, hash_function, data);
             CHECK(ret);
-            CHECK(secp256k1_memcmp_var(share32_bad, share32a, 32) != 0);
+            CHECK(memcmp(share32_bad, share32a, 32) != 0);
             /* For B (changing A's public key): */
             memcpy(auxrnd32a_bad, auxrnd32a, sizeof(auxrnd32a_bad));
             testrand_flip(auxrnd32a_bad, sizeof(auxrnd32a_bad));
@@ -417,17 +417,17 @@ void ellswift_xdh_correctness_tests(void) {
             CHECK(ret);
             ret = secp256k1_ellswift_xdh(CTX, share32_bad, ell64a_bad, ell64b, sec32b, 1, hash_function, data);
             CHECK(ret);
-            CHECK(secp256k1_memcmp_var(share32_bad, share32b, 32) != 0);
+            CHECK(memcmp(share32_bad, share32b, 32) != 0);
 
             /* Verify that swapping sides changes the shared secret. */
             /* For A (claiming to be B): */
             ret = secp256k1_ellswift_xdh(CTX, share32_bad, ell64a, ell64b, sec32a, 1, hash_function, data);
             CHECK(ret);
-            CHECK(secp256k1_memcmp_var(share32_bad, share32a, 32) != 0);
+            CHECK(memcmp(share32_bad, share32a, 32) != 0);
             /* For B (claiming to be A): */
             ret = secp256k1_ellswift_xdh(CTX, share32_bad, ell64a, ell64b, sec32b, 0, hash_function, data);
             CHECK(ret);
-            CHECK(secp256k1_memcmp_var(share32_bad, share32b, 32) != 0);
+            CHECK(memcmp(share32_bad, share32b, 32) != 0);
         }
     }
 }
@@ -460,7 +460,7 @@ void ellswift_xdh_ctx_sha256_tests(void) {
         CHECK(secp256k1_ellswift_xdh(ctx, out_custom, keyA, keyB, skA, 0, hash_fn, data));
         CHECK(sha256_ellswift_xdh_called);
         /* Outputs must differ if custom compression was used */
-        CHECK(secp256k1_memcmp_var(out_default, out_custom, 32) != 0);
+        CHECK(memcmp(out_default, out_custom, 32) != 0);
 
         /* Restore defaults */
         sha256_ellswift_xdh_called = 0;

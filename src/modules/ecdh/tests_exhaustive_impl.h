@@ -31,7 +31,7 @@ static void test_exhaustive_ecdh(const secp256k1_context *ctx, const secp256k1_g
             /* Calculate ECDH(i*G, j) and ECDH(j*G, i) using API function and verify that the results match. */
             CHECK(secp256k1_ecdh(ctx, ecdh_result_ij, &pubkeys[i - 1], seckeys[j - 1], NULL, NULL));
             CHECK(secp256k1_ecdh(ctx, ecdh_result_ji, &pubkeys[j - 1], seckeys[i - 1], NULL, NULL));
-            CHECK(secp256k1_memcmp_var(ecdh_result_ij, ecdh_result_ji, 32) == 0);
+            CHECK(memcmp(ecdh_result_ij, ecdh_result_ji, 32) == 0);
 
             /* Recalculate the expected ECDH result manually by invoking the default ECDH hash
              * function on the precomputed group element (group[i * j]) coordinates, and verify
@@ -47,7 +47,7 @@ static void test_exhaustive_ecdh(const secp256k1_context *ctx, const secp256k1_g
                 secp256k1_fe_get_b32(x, &ecdh_ge_expected.x);
                 secp256k1_fe_get_b32(y, &ecdh_ge_expected.y);
                 CHECK(secp256k1_ecdh_hash_function_default(ecdh_result_expected, x, y, NULL));
-                CHECK(secp256k1_memcmp_var(ecdh_result_ij, ecdh_result_expected, 32) == 0);
+                CHECK(memcmp(ecdh_result_ij, ecdh_result_expected, 32) == 0);
             }
         }
     }

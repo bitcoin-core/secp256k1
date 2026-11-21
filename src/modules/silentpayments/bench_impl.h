@@ -39,7 +39,7 @@ typedef struct {
 
 const unsigned char* label_lookup(const unsigned char* key, const void* cache_ptr) {
     bench_silentpayments_data *data = (bench_silentpayments_data*)cache_ptr;
-    if (secp256k1_memcmp_var(key, data->label, 33) == 0) {
+    if (memcmp(key, data->label, 33) == 0) {
         return data->label_tweak;
     }
     return NULL;

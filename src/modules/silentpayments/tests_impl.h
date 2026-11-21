@@ -113,7 +113,7 @@ const unsigned char* label_lookup(const unsigned char* key, const void* cache_pt
     }
     cache = (const struct labels_cache*)cache_ptr;
     for (i = 0; i < cache->entries_used; i++) {
-        if (secp256k1_memcmp_var(cache->entries[i].label, key, 33) == 0) {
+        if (memcmp(cache->entries[i].label, key, 33) == 0) {
             return cache->entries[i].label_tweak;
         }
     }
@@ -172,7 +172,7 @@ static void test_recipient_sort_helper(unsigned char (*sp_addresses[3])[2][33], 
     CHECK(ret == 1);
     for (i = 0; i < 3; i++) {
         CHECK(secp256k1_xonly_pubkey_serialize(CTX, xonly_ser, &generated_outputs[i]) == 1);
-        CHECK(secp256k1_memcmp_var(xonly_ser, (*sp_outputs[i]), 32) == 0);
+        CHECK(memcmp(xonly_ser, (*sp_outputs[i]), 32) == 0);
     }
 }
 
@@ -473,7 +473,7 @@ static void test_label_api(void) {
         CHECK(secp256k1_silentpayments_recipient_label_serialize(CTX, label_ser, &l));
         CHECK(secp256k1_silentpayments_recipient_label_parse(CTX, &parsed_label, label_ser));
         CHECK(secp256k1_silentpayments_recipient_label_serialize(CTX, parsed_label_ser, &parsed_label));
-        CHECK(secp256k1_memcmp_var(label_ser, parsed_label_ser, 33) == 0);
+        CHECK(memcmp(label_ser, parsed_label_ser, 33) == 0);
 
         CHECK(secp256k1_silentpayments_recipient_label_parse(CTX, &parsed_label, invalid_label_ser) == 0);
         CHECK_ILLEGAL(CTX, secp256k1_silentpayments_recipient_label_serialize(CTX, parsed_label_ser, &parsed_label));
@@ -615,12 +615,12 @@ static void test_recipient_api(void) {
         found = 0;
         CHECK(secp256k1_silentpayments_recipient_scan_outputs(CTX, fp, &found, output_xonly_ptrs, 1, ALICE_SECKEY, &ps, &spk, &label_lookup, &labels_cache));
         CHECK(found == 1);
-        CHECK(secp256k1_memcmp_var(fp[0]->tweak, zero, 32) == 0);
+        CHECK(memcmp(fp[0]->tweak, zero, 32) == 0);
         CHECK(fp[0]->found_with_label == 1);
         {
             unsigned char found_label_ser[33];
             CHECK(secp256k1_silentpayments_recipient_label_serialize(CTX, found_label_ser, &fp[0]->label));
-            CHECK(secp256k1_memcmp_var(found_label_ser, labels_cache.entries[0].label, 33) == 0);
+            CHECK(memcmp(found_label_ser, labels_cache.entries[0].label, 33) == 0);
         }
         /* check that a label tweak overflowing the group order is rejected */
         memcpy(labels_cache.entries[0].label_tweak, secp256k1_group_order_bytes, 32);
@@ -730,7 +730,7 @@ static void test_recipient_scan_label_precedes_direct_match(void) {
     CHECK(secp256k1_xonly_pubkey_cmp(CTX, &found_output[0].output, &labeled_output) == 0);
     CHECK(found_output[0].found_with_label);
     CHECK(secp256k1_silentpayments_recipient_label_serialize(CTX, found_label, &found_output[0].label));
-    CHECK(secp256k1_memcmp_var(found_label, cache.entries[0].label, sizeof(found_label)) == 0);
+    CHECK(memcmp(found_label, cache.entries[0].label, sizeof(found_label)) == 0);
 }
 
 static void test_recipient_scan_label_batch_index(void) {
@@ -843,7 +843,7 @@ void run_silentpayments_test_vector_send(const struct bip352_test_vector *test) 
             CHECK(secp256k1_xonly_pubkey_serialize(CTX, created_output, &generated_outputs[j]));
             /* Loop over both lists to ensure tests don't fail due to different orderings of outputs */
             for (k = 0; k < test->num_recipient_outputs; k++) {
-                if (secp256k1_memcmp_var(created_output, test->recipient_outputs[i][k], 32) == 0) {
+                if (memcmp(created_output, test->recipient_outputs[i][k], 32) == 0) {
                     n_matches++;
                     break;
                 }
@@ -960,10 +960,10 @@ void run_silentpayments_test_vector_receive(const struct bip352_test_vector *tes
             int match = 0;
             CHECK(secp256k1_xonly_pubkey_serialize(CTX, found_output, &found_outputs[i]->output));
             for (j = 0; j < subtest->num_found_output_pubkeys; j++) {
-                if (secp256k1_memcmp_var(&found_output, subtest->found_output_pubkeys[j], 32) == 0) {
-                    CHECK(secp256k1_memcmp_var(found_outputs[i]->tweak, subtest->found_seckey_tweaks[j], 32) == 0);
+                if (memcmp(&found_output, subtest->found_output_pubkeys[j], 32) == 0) {
+                    CHECK(memcmp(found_outputs[i]->tweak, subtest->found_seckey_tweaks[j], 32) == 0);
 #ifdef ENABLE_MODULE_SCHNORRSIG
-                    CHECK(secp256k1_memcmp_var(found_signatures[i], subtest->found_signatures[j], 64) == 0);
+                    CHECK(memcmp(found_signatures[i], subtest->found_signatures[j], 64) == 0);
 #endif
                     match = 1;
                     break;

@@ -131,7 +131,7 @@ static void test_ecdsa_recovery_end_to_end_internal(void) {
     CHECK(secp256k1_ecdsa_sign_recoverable(CTX, &rsignature[3], message, privkey, NULL, extra) == 1);
     CHECK(secp256k1_ecdsa_recoverable_signature_serialize_compact(CTX, sig, &recid, &rsignature[4]) == 1);
     CHECK(secp256k1_ecdsa_recoverable_signature_convert(CTX, &signature[4], &rsignature[4]) == 1);
-    CHECK(secp256k1_memcmp_var(&signature[4], &signature[0], 64) == 0);
+    CHECK(memcmp(&signature[4], &signature[0], 64) == 0);
     CHECK(secp256k1_ecdsa_verify(CTX, &signature[4], message, &pubkey) == 1);
     memset(&rsignature[4], 0, sizeof(rsignature[4]));
     CHECK(secp256k1_ecdsa_recoverable_signature_parse_compact(CTX, &rsignature[4], sig, recid) == 1);
@@ -140,7 +140,7 @@ static void test_ecdsa_recovery_end_to_end_internal(void) {
     /* Parse compact (with recovery id) and recover. */
     CHECK(secp256k1_ecdsa_recoverable_signature_parse_compact(CTX, &rsignature[4], sig, recid) == 1);
     CHECK(secp256k1_ecdsa_recover(CTX, &recpubkey, &rsignature[4], message) == 1);
-    CHECK(secp256k1_memcmp_var(&pubkey, &recpubkey, sizeof(pubkey)) == 0);
+    CHECK(memcmp(&pubkey, &recpubkey, sizeof(pubkey)) == 0);
     /* Serialize/destroy/parse signature and verify again. */
     CHECK(secp256k1_ecdsa_recoverable_signature_serialize_compact(CTX, sig, &recid, &rsignature[4]) == 1);
     sig[testrand_bits(6)] += 1 + testrand_int(255);
@@ -149,7 +149,7 @@ static void test_ecdsa_recovery_end_to_end_internal(void) {
     CHECK(secp256k1_ecdsa_verify(CTX, &signature[4], message, &pubkey) == 0);
     /* Recover again */
     CHECK(secp256k1_ecdsa_recover(CTX, &recpubkey, &rsignature[4], message) == 0 ||
-          secp256k1_memcmp_var(&pubkey, &recpubkey, sizeof(pubkey)) != 0);
+          memcmp(&pubkey, &recpubkey, sizeof(pubkey)) != 0);
 }
 
 /* Tests several edge cases. */
