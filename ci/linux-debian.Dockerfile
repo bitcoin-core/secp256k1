@@ -17,7 +17,8 @@ RUN dpkg --add-architecture i386 && \
     dpkg --add-architecture s390x && \
     dpkg --add-architecture armhf && \
     dpkg --add-architecture arm64 && \
-    dpkg --add-architecture ppc64el
+    dpkg --add-architecture ppc64el && \
+    dpkg --add-architecture riscv64
 
 # dpkg-dev: to make pkg-config work in cross-builds
 # llvm: for llvm-symbolizer, which is used by clang's UBSan for symbolized stack traces
@@ -30,6 +31,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-instal
         gcc-s390x-linux-gnu libc6-dev-s390x-cross libc6-dbg:s390x \
         gcc-arm-linux-gnueabihf libc6-dev-armhf-cross libc6-dbg:armhf \
         gcc-powerpc64le-linux-gnu libc6-dev-ppc64el-cross libc6-dbg:ppc64el \
+        gcc-riscv64-linux-gnu libc6-dev-riscv64-cross libc6-dbg:riscv64 \
         gcc-mingw-w64-x86-64-win32 wine64 wine \
         gcc-mingw-w64-i686-win32 wine32 \
         python3-full && \
