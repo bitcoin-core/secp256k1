@@ -30,7 +30,7 @@ static void secp256k1_musig_secnonce_save(secp256k1_musig_secnonce *secnonce, co
 
 static int secp256k1_musig_secnonce_load(const secp256k1_context* ctx, secp256k1_scalar *k, secp256k1_ge *pk, const secp256k1_musig_secnonce *secnonce) {
     int is_zero;
-    ARG_CHECK(secp256k1_memcmp_var(&secnonce->data[0], secp256k1_musig_secnonce_magic, 4) == 0);
+    ARG_CHECK(memcmp(&secnonce->data[0], secp256k1_musig_secnonce_magic, 4) == 0);
     /* We make very sure that the nonce isn't invalidated by checking the values
      * in addition to the magic. */
     is_zero = secp256k1_is_zero_array(&secnonce->data[4], 2 * 32);
@@ -72,7 +72,7 @@ static void secp256k1_musig_pubnonce_save(secp256k1_musig_pubnonce* nonce, const
 static int secp256k1_musig_pubnonce_load(const secp256k1_context* ctx, secp256k1_ge* ges, const secp256k1_musig_pubnonce* nonce) {
     int i;
 
-    ARG_CHECK(secp256k1_memcmp_var(&nonce->data[0], secp256k1_musig_pubnonce_magic, 4) == 0);
+    ARG_CHECK(memcmp(&nonce->data[0], secp256k1_musig_pubnonce_magic, 4) == 0);
     for (i = 0; i < 2; i++) {
         secp256k1_ge_from_bytes(&ges[i], nonce->data + 4 + 64*i);
     }
@@ -92,7 +92,7 @@ static void secp256k1_musig_aggnonce_save(secp256k1_musig_aggnonce* nonce, const
 static int secp256k1_musig_aggnonce_load(const secp256k1_context* ctx, secp256k1_ge* ges, const secp256k1_musig_aggnonce* nonce) {
     int i;
 
-    ARG_CHECK(secp256k1_memcmp_var(&nonce->data[0], secp256k1_musig_aggnonce_magic, 4) == 0);
+    ARG_CHECK(memcmp(&nonce->data[0], secp256k1_musig_aggnonce_magic, 4) == 0);
     for (i = 0; i < 2; i++) {
         secp256k1_ge_from_bytes_ext(&ges[i], &nonce->data[4 + 64*i]);
     }
@@ -128,7 +128,7 @@ static void secp256k1_musig_session_save(secp256k1_musig_session *session, const
 static int secp256k1_musig_session_load(const secp256k1_context* ctx, secp256k1_musig_session_internal *session_i, const secp256k1_musig_session *session) {
     const unsigned char *ptr = session->data;
 
-    ARG_CHECK(secp256k1_memcmp_var(ptr, secp256k1_musig_session_cache_magic, 4) == 0);
+    ARG_CHECK(memcmp(ptr, secp256k1_musig_session_cache_magic, 4) == 0);
     ptr += 4;
     session_i->fin_nonce_parity = *ptr;
     ptr += 1;
@@ -152,7 +152,7 @@ static void secp256k1_musig_partial_sig_save(secp256k1_musig_partial_sig* sig, s
 static int secp256k1_musig_partial_sig_load(const secp256k1_context* ctx, secp256k1_scalar *s, const secp256k1_musig_partial_sig* sig) {
     int overflow;
 
-    ARG_CHECK(secp256k1_memcmp_var(&sig->data[0], secp256k1_musig_partial_sig_magic, 4) == 0);
+    ARG_CHECK(memcmp(&sig->data[0], secp256k1_musig_partial_sig_magic, 4) == 0);
     secp256k1_scalar_set_b32(s, &sig->data[4], &overflow);
     /* Parsed signatures can not overflow */
     VERIFY_CHECK(!overflow);
@@ -256,7 +256,7 @@ int secp256k1_musig_partial_sig_serialize(const secp256k1_context* ctx, unsigned
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(out32 != NULL);
     ARG_CHECK(sig != NULL);
-    ARG_CHECK(secp256k1_memcmp_var(&sig->data[0], secp256k1_musig_partial_sig_magic, 4) == 0);
+    ARG_CHECK(memcmp(&sig->data[0], secp256k1_musig_partial_sig_magic, 4) == 0);
 
     memcpy(out32, &sig->data[4], 32);
     return 1;

@@ -45,7 +45,7 @@ static void secp256k1_keyagg_cache_save(secp256k1_musig_keyagg_cache *cache, con
 
 static int secp256k1_keyagg_cache_load(const secp256k1_context* ctx, secp256k1_keyagg_cache_internal *cache_i, const secp256k1_musig_keyagg_cache *cache) {
     const unsigned char *ptr = cache->data;
-    ARG_CHECK(secp256k1_memcmp_var(ptr, secp256k1_musig_keyagg_cache_magic, 4) == 0);
+    ARG_CHECK(memcmp(ptr, secp256k1_musig_keyagg_cache_magic, 4) == 0);
     ptr += 4;
     secp256k1_ge_from_bytes(&cache_i->pk, ptr);
     ptr += 64;
@@ -174,7 +174,7 @@ int secp256k1_musig_pubkey_agg(const secp256k1_context* ctx, secp256k1_xonly_pub
 
     secp256k1_ge_set_infinity(&ecmult_data.second_pk);
     for (i = 1; i < n_pubkeys; i++) {
-        if (secp256k1_memcmp_var(pubkeys[0], pubkeys[i], sizeof(*pubkeys[0])) != 0) {
+        if (memcmp(pubkeys[0], pubkeys[i], sizeof(*pubkeys[0])) != 0) {
             secp256k1_ge pk;
             if (!secp256k1_pubkey_load(ctx, &pk, pubkeys[i])) {
                 return 0;

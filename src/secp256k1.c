@@ -334,7 +334,7 @@ int secp256k1_ec_pubkey_cmp(const secp256k1_context* ctx, const secp256k1_pubkey
             memset(out[i], 0, sizeof(out[i]));
         }
     }
-    return secp256k1_memcmp_var(out[0], out[1], sizeof(out[0]));
+    return memcmp(out[0], out[1], sizeof(out[0]));
 }
 
 static int secp256k1_ec_pubkey_sort_cmp(const void* pk1, const void* pk2, void *ctx) {

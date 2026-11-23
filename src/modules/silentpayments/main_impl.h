@@ -347,7 +347,7 @@ static void secp256k1_silentpayments_label_save(secp256k1_silentpayments_label* 
 
 /* Loads a group element from a label. Returns 1 unless the label wasn't properly initialized. */
 static int secp256k1_silentpayments_label_load(const secp256k1_context* ctx, secp256k1_ge* ge, const secp256k1_silentpayments_label* label) {
-    ARG_CHECK(secp256k1_memcmp_var(&label->data[0], secp256k1_silentpayments_label_magic, 4) == 0);
+    ARG_CHECK(memcmp(&label->data[0], secp256k1_silentpayments_label_magic, 4) == 0);
     secp256k1_ge_from_bytes(ge, label->data + 4);
     return 1;
 }
@@ -627,7 +627,7 @@ int secp256k1_silentpayments_recipient_scan_outputs(
     }
     ARG_CHECK(scan_key32 != NULL);
     ARG_CHECK(prevouts_summary != NULL);
-    ARG_CHECK(secp256k1_memcmp_var(&prevouts_summary->data[0], secp256k1_silentpayments_prevouts_summary_magic, 4) == 0);
+    ARG_CHECK(memcmp(&prevouts_summary->data[0], secp256k1_silentpayments_prevouts_summary_magic, 4) == 0);
     ARG_CHECK(unlabeled_spend_pubkey != NULL);
     /* Passing a context without a lookup function is non-sensical */
     if (label_context != NULL) {

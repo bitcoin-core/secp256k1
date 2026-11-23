@@ -199,7 +199,7 @@ static int secp256k1_sha256_smoke_test(const secp256k1_sha256_compression_functi
 
     /* Compare against pre-computed accumulated digest */
     secp256k1_sha256_finalize(&ctx, &sha_accum, out);
-    return secp256k1_memcmp_var(accum_expected, out, 32) == 0;
+    return memcmp(accum_expected, out, 32) == 0;
 }
 
 static void secp256k1_hash_ctx_init(secp256k1_hash_ctx *hash_ctx) {

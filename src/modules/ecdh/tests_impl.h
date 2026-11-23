@@ -77,7 +77,7 @@ static void test_ecdh_generator_basepoint(void) {
         /* compute "explicitly" */
         CHECK(secp256k1_ec_pubkey_serialize(CTX, point_ser, &point_ser_len, &point[1], SECP256K1_EC_UNCOMPRESSED) == 1);
         /* compare */
-        CHECK(secp256k1_memcmp_var(output_ecdh, point_ser, 65) == 0);
+        CHECK(memcmp(output_ecdh, point_ser, 65) == 0);
 
         /* compute using ECDH function with default hash function */
         CHECK(secp256k1_ecdh(CTX, output_ecdh, &point[0], s_b32, NULL, NULL) == 1);
@@ -87,7 +87,7 @@ static void test_ecdh_generator_basepoint(void) {
         secp256k1_sha256_write(&CTX->hash_ctx, &sha, point_ser, point_ser_len);
         secp256k1_sha256_finalize(&CTX->hash_ctx, &sha, output_ser);
         /* compare */
-        CHECK(secp256k1_memcmp_var(output_ecdh, output_ser, 32) == 0);
+        CHECK(memcmp(output_ecdh, output_ser, 32) == 0);
     }
 }
 
@@ -109,7 +109,7 @@ static void test_ecdh_ctx_sha256(void) {
     CHECK(secp256k1_ecdh(ctx, out_custom, &pubkey, sk, NULL, NULL) == 1);
 
     /* Outputs must differ if custom compression was used */
-    CHECK(secp256k1_memcmp_var(out_default, out_custom, 32) != 0);
+    CHECK(memcmp(out_default, out_custom, 32) != 0);
     CHECK(sha256_ecdh_called);
 
     secp256k1_context_destroy(ctx);
@@ -164,11 +164,11 @@ static void test_result_basepoint(void) {
 
         CHECK(secp256k1_ec_pubkey_create(CTX, &point, s) == 1);
         CHECK(secp256k1_ecdh(CTX, out, &point, s_inv, NULL, NULL) == 1);
-        CHECK(secp256k1_memcmp_var(out, out_base, 32) == 0);
+        CHECK(memcmp(out, out_base, 32) == 0);
 
         CHECK(secp256k1_ec_pubkey_create(CTX, &point, s_inv) == 1);
         CHECK(secp256k1_ecdh(CTX, out_inv, &point, s, NULL, NULL) == 1);
-        CHECK(secp256k1_memcmp_var(out_inv, out_base, 32) == 0);
+        CHECK(memcmp(out_inv, out_base, 32) == 0);
     }
 }
 
@@ -201,7 +201,7 @@ static void test_ecdh_wycheproof(void) {
         CHECK(secp256k1_ecdh(CTX, output_ecdh, &point, sk, ecdh_hash_function_test_xpassthru, NULL) == 1);
         expected_shared_secret = &wycheproof_ecdh_shared_secrets[testvectors[t].shared_offset];
 
-        CHECK(secp256k1_memcmp_var(output_ecdh, expected_shared_secret, testvectors[t].shared_len) == 0);
+        CHECK(memcmp(output_ecdh, expected_shared_secret, testvectors[t].shared_len) == 0);
     }
 }
 

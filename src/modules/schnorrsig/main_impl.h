@@ -70,7 +70,7 @@ static int nonce_function_bip340_impl(const secp256k1_hash_ctx *hash_ctx, unsign
      * algorithms. If this nonce function is used in BIP-340 signing as defined
      * in the spec, an optimized tagging implementation is used. */
     if (algolen == sizeof(bip340_algo)
-            && secp256k1_memcmp_var(algo, bip340_algo, algolen) == 0) {
+            && memcmp(algo, bip340_algo, algolen) == 0) {
         secp256k1_nonce_function_bip340_sha256_tagged(&sha);
     } else {
         secp256k1_sha256_initialize_tagged(hash_ctx, &sha, algo, algolen);
@@ -196,7 +196,7 @@ int secp256k1_schnorrsig_sign_custom(const secp256k1_context* ctx, unsigned char
     VERIFY_CHECK(ctx != NULL);
 
     if (extraparams != NULL) {
-        ARG_CHECK(secp256k1_memcmp_var(extraparams->magic,
+        ARG_CHECK(memcmp(extraparams->magic,
                                        schnorrsig_extraparams_magic,
                                        sizeof(extraparams->magic)) == 0);
         noncefp = extraparams->noncefp;
