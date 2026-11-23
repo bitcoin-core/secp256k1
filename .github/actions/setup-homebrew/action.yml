@@ -6,4 +6,12 @@ runs:
     - run: |
         echo "HOMEBREW_NO_AUTO_UPDATE=1" >> "$GITHUB_ENV"
         echo "HOMEBREW_NO_INSTALL_CLEANUP=1" >> "$GITHUB_ENV"
+        # The runner image ships these taps and trusts them, so Homebrew
+        # evaluates their formulae, which produces errors and warnings
+        # when adding new taps.
+        for tap in hashicorp/tap aws/tap; do
+          if brew tap | grep -qx "$tap"; then
+            brew untap --force "$tap"
+          fi
+        done
       shell: bash
