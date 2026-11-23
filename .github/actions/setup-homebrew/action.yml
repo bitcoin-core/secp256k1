@@ -1,0 +1,9 @@
+name: "Setup Homebrew"
+description: "Make a few tweaks to the Homebrew config"
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        echo "HOMEBREW_NO_AUTO_UPDATE=1" >> "$GITHUB_ENV"
+        echo "HOMEBREW_NO_INSTALL_CLEANUP=1" >> "$GITHUB_ENV"
+      shell: bash

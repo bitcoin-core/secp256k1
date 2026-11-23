@@ -449,8 +449,6 @@ jobs:
 
     env:
       CC: 'clang'
-      HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_INSTALL_CLEANUP: 1
       SYMBOL_CHECK: 'no'
 
     strategy:
@@ -468,6 +466,10 @@ jobs:
 
     steps:
       - *CHECKOUT
+
+      - &SETUP_HOMEBREW
+        name: Setup Homebrew
+        uses: ./.github/actions/setup-homebrew
 
       - name: Install Homebrew packages
         run: |
@@ -502,8 +504,6 @@ jobs:
 
     env:
       CC: 'clang'
-      HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_INSTALL_CLEANUP: 1
       WITH_VALGRIND: 'no'
       CTIMETESTS: 'no'
       SYMBOL_CHECK: 'no'
@@ -521,6 +521,7 @@ jobs:
 
     steps:
       - *CHECKOUT
+      - *SETUP_HOMEBREW
 
       - name: Install Homebrew packages
         run: |
