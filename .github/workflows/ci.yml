@@ -261,6 +261,28 @@ jobs:
       - *CI_SCRIPT_IN_DOCKER
       - *PRINT_LOGS
 
+  riscv64_debian:
+    name: "riscv64: Linux (Debian stable, QEMU)"
+    runs-on: ubuntu-latest
+    needs: docker_cache
+
+    strategy:
+      matrix:
+        configuration:
+          - env_vars: {}
+
+    env:
+      WRAPPER_CMD: 'qemu-riscv64'
+      SECP256K1_TEST_ITERS: 16
+      HOST: 'riscv64-linux-gnu'
+      WITH_VALGRIND: 'no'
+      CTIMETESTS: 'no'
+
+    steps:
+      - *CHECKOUT
+      - *CI_SCRIPT_IN_DOCKER
+      - *PRINT_LOGS
+
   valgrind_debian:
     name: "Valgrind ${{ matrix.configuration.binary_arch }} (memcheck)"
     runs-on: ${{ matrix.configuration.runner }}
