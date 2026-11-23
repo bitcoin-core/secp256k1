@@ -11,13 +11,27 @@
 #include "testrand.h"
 #include "util.h"
 
-/* Helper for when we need to check that the ctx-provided sha256 compression was called */
+/* Helper for when we need to check that the ctx-provided sha256 compression was
+ * called: it computes the regular secp256k1_sha256_transform and intentionally
+ * perturbs the state. name##_target picks the 64-byte block to perturb:
+ * 0 = every block (default), n = only the n-th block seen; with the target
+ * beyond the last block the probe behaves exactly like the regular transform.
+ * Targeting a single block lets a test isolate functions that hash several
+ * values. */
 #define DEFINE_SHA256_TRANSFORM_PROBE(name)                                     \
     static int name##_called = 0;                                               \
+    static size_t name##_blocks = 0;                                            \
+    static size_t name##_target = 0;                                            \
     static void name(uint32_t *s, const unsigned char *msg, size_t rounds) {    \
+        size_t i;                                                               \
         name##_called = 1;                                                      \
-        secp256k1_sha256_transform(s, msg, rounds);                             \
-        s[0] ^= 0xdeadbeef; /* intentional perturbation for testing */          \
+        for (i = 0; i < rounds; i++) {                                          \
+            secp256k1_sha256_transform(s, msg + 64 * i, 1);                     \
+            name##_blocks++;                                                    \
+            if (name##_target == 0 || name##_blocks == name##_target) {         \
+                s[0] ^= 0xdeadbeef; /* intentional perturbation for testing */  \
+            }                                                                   \
+        }                                                                       \
     }
 
 /* group order of the secp256k1 curve in 32-byte big endian representation */
