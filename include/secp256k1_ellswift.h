@@ -136,7 +136,7 @@ SECP256K1_API int secp256k1_ellswift_decode(
  *  In:      seckey32:   pointer to a 32-byte secret key
  *           auxrnd32:   (optional) pointer to 32 bytes of randomness
  *
- * Constant time in seckey and auxrnd32, but not in the resulting public key.
+ * Constant time in seckey32, but not in auxrnd32 or the resulting public key.
  *
  * It is recommended that auxrnd32 contains 32 uniformly random bytes, though
  * it is optional (and does result in encodings that are indistinguishable from

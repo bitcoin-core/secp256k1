@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Module `silentpayments`: `secp256k1_silentpayments_sender_create_outputs` and `secp256k1_silentpayments_recipient_prevouts_summary_create` no longer require empty key arrays to be passed as `NULL`. If the corresponding size argument is 0, the array pointer is ignored. This matches the API documentation, which only states that unused arrays *can* be `NULL`, and spares callers from special-casing empty arrays.
  - Module `silentpayments`: `secp256k1_silentpayments_recipient_prevouts_summary_create` and `secp256k1_silentpayments_recipient_scan_outputs` now return 0 when called with no input public keys or no taproot outputs, respectively, instead of treating this as an illegal argument (which by default calls `abort()`). In addition, `secp256k1_silentpayments_recipient_scan_outputs` no longer requires `tx_outputs` and `found_outputs` to be non-`NULL` if `n_tx_outputs` is 0. This matches the API documentation, which states that 0 is returned if the transaction is not a Silent Payments transaction, and allows callers to pass transactions without eligible inputs or without taproot outputs as is.
 
+#### Changed
+ - Module `ellswift`: The API documentation of `secp256k1_ellswift_create` no longer claims that the function is constant time in `auxrnd32`. The implementation is unchanged: `auxrnd32` influences the running time only through the outputs of a hash function that is also keyed with the secret key, so this timing dependency is not a security issue.
+
 ## [0.8.0] - 2026-08-03
 
 #### Added
