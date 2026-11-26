@@ -13,10 +13,12 @@ schnorr_example
 ellswift_example
 musig_example
 silentpayments_example
+dleq_example
 *.exe
 *.so
 *.a
 *.csv
+!/src/modules/dleq/*.csv
 *.log
 *.trs
 *.sage.py
