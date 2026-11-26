@@ -484,6 +484,10 @@ static void run_plug_sha256_compression_tests(void) {
     secp256k1_sha256_finalize(&ctx->hash_ctx, &sha, sha_out);
     CHECK(own_transform_called);
 
+    own_transform_called = 0;
+    CHECK(secp256k1_context_randomize(ctx, sha_out));
+    CHECK(own_transform_called);
+
     /* 6) Unset sha256 and verify the default one is set again */
     secp256k1_context_set_sha256_compression(ctx, NULL);
     CHECK(ctx->hash_ctx.fn_sha256_compression == secp256k1_sha256_transform);
@@ -7917,7 +7921,7 @@ DEFINE_SHA256_TRANSFORM_PROBE(sha256_ecdsa)
 static void ecdsa_ctx_sha256(void) {
     /* Check ctx-provided SHA256 compression override takes effect */
     secp256k1_context *ctx = secp256k1_context_clone(CTX);
-    secp256k1_ecdsa_signature out_default, out_custom;
+    secp256k1_ecdsa_signature out_default, out_custom, out_explicit;
     unsigned char sk[32] = {1}, msg32[32] = {1};
 
     /* Default behavior. No ctx-provided SHA256 compression */
@@ -7930,6 +7934,11 @@ static void ecdsa_ctx_sha256(void) {
     CHECK(sha256_ecdsa_called);
     /* Outputs must differ if custom compression was used */
     CHECK(memcmp(out_default.data, out_custom.data, 64) != 0);
+
+    sha256_ecdsa_called = 0;
+    CHECK(secp256k1_ecdsa_sign(ctx, &out_explicit, msg32, sk, secp256k1_nonce_function_rfc6979, NULL));
+    CHECK(sha256_ecdsa_called);
+    CHECK(secp256k1_memcmp_var(out_custom.data, out_explicit.data, 64) == 0);
 
     secp256k1_context_destroy(ctx);
 }
