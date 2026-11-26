@@ -146,7 +146,8 @@ static int secp256k1_silentpayments_create_output_tweak(const secp256k1_context 
 }
 
 static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context *ctx, secp256k1_xonly_pubkey *output_xonly, const unsigned char *shared_secret33, const secp256k1_pubkey *spend_pubkey, uint32_t k) {
-    secp256k1_ge output_ge;
+    secp256k1_ge output_ge, spend_ge;
+    secp256k1_gej output_gej, tweak_G_gej;
     secp256k1_scalar t_k_scalar;
     /* Calculate the output tweak t_k and convert it to a scalar.
      *
@@ -159,25 +160,30 @@ static int secp256k1_silentpayments_create_output_pubkey(const secp256k1_context
         return 0;
     }
 
-    if (!secp256k1_pubkey_load(ctx, &output_ge, spend_pubkey)) {
+    if (!secp256k1_pubkey_load(ctx, &spend_ge, spend_pubkey)) {
         secp256k1_scalar_clear(&t_k_scalar);
         return 0;
     }
-    /* `tweak_add` only fails if t_k_scalar * G = -spend_pubkey. Considering t_k is the output of a hash function, this
-     * will happen only with negligible probability for honestly created spend_pubkey, but we handle this error anyway
-     * to protect against this function being called with malicious inputs, i.e.,
+    /* Calculate tweak_G = t_k * G using the precomputed generator table in ecmult_gen_ctx. */
+    secp256k1_ecmult_gen_gej(&ctx->ecmult_gen_ctx, &tweak_G_gej, &t_k_scalar);
+    /* Leaking this value would break indistinguishability of the transaction, so clear it. */
+    secp256k1_scalar_clear(&t_k_scalar);
+
+    /* Calculate output_gej = t_k * G + spend_pubkey. This only fails if t_k * G = -spend_pubkey. Considering t_k is
+     * the output of a hash function, this will happen only with negligible probability for honestly created
+     * spend_pubkey, but we handle this error anyway to protect against this function being called with malicious
+     * inputs, i.e.,
      *     spend_pubkey = -(_create_output_tweak(shared_secret33, k))*G
      */
-    if (!secp256k1_eckey_pubkey_tweak_add(&output_ge, &t_k_scalar)) {
-        secp256k1_scalar_clear(&t_k_scalar);
+    secp256k1_gej_add_ge(&output_gej, &tweak_G_gej, &spend_ge);
+    secp256k1_gej_clear(&tweak_G_gej);
+    if (secp256k1_gej_is_infinity(&output_gej)) {
         return 0;
     }
+    secp256k1_ge_set_gej(&output_ge, &output_gej);
     secp256k1_fe_normalize_var(&output_ge.y);
     secp256k1_extrakeys_ge_even_y(&output_ge);
     secp256k1_xonly_pubkey_save(output_xonly, &output_ge);
-
-    /* Leaking this value would break indistinguishability of the transaction, so clear it. */
-    secp256k1_scalar_clear(&t_k_scalar);
     return 1;
 }
 
