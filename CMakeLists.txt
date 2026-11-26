@@ -58,7 +58,7 @@ option(SECP256K1_ENABLE_MODULE_MUSIG "Enable musig module." ON)
 option(SECP256K1_ENABLE_MODULE_ELLSWIFT "Enable ElligatorSwift module." ON)
 option(SECP256K1_ENABLE_MODULE_SILENTPAYMENTS "Enable Silent Payments module." ON)
 
-option(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS "Enable external default callback functions." OFF)
+option(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS "Enable external default callback functions (deprecated)." OFF)
 if(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS)
   target_compile_definitions(secp256k1_common INTERFACE
     USE_EXTERNAL_DEFAULT_CALLBACKS=1

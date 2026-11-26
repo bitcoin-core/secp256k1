@@ -198,7 +198,7 @@ AC_ARG_ENABLE(module_silentpayments,
     [SECP_SET_DEFAULT([enable_module_silentpayments], [yes], [yes])])
 
 AC_ARG_ENABLE(external_default_callbacks,
-    AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]), [],
+    AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions (deprecated) [default=no]]), [],
     [SECP_SET_DEFAULT([enable_external_default_callbacks], [no], [no])])
 
 # Test-only override of the (autodetected by the C code) "widemul" setting.
