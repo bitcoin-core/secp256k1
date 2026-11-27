@@ -41,10 +41,7 @@ static void test_ecdsa_recovery_api_internal(void) {
     int recid = 0;
     unsigned char sig[74];
     unsigned char zero_privkey[32] = { 0 };
-    unsigned char over_privkey[32] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                                       0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                                       0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                                       0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    const unsigned char *over_privkey = secp256k1_group_order_bytes;
 
     /* Construct and verify corresponding public key. */
     CHECK(secp256k1_ec_seckey_verify(CTX, privkey) == 1);
