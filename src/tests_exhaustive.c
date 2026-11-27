@@ -127,6 +127,42 @@ static void test_exhaustive_addition(const secp256k1_ge *group, const secp256k1_
         CHECK(secp256k1_gej_eq_ge_var(&tmp, &group[(2 * i) % EXHAUSTIVE_TEST_ORDER]));
     }
 
+    /* Check addition to a point that carries the z of its curve, infinity included */
+    for (i = 0; i < EXHAUSTIVE_TEST_ORDER; i++) {
+        secp256k1_ge_z a;
+        secp256k1_gej tmp;
+        secp256k1_fe z;
+        if (skip_section(&iter)) continue;
+        testutil_random_fe_non_zero(&z);
+        if (i == 0) {
+            secp256k1_ge_z_set_infinity(&a, &z);
+        } else {
+            secp256k1_gej_set_ge(&tmp, &group[i]);
+            secp256k1_gej_rescale(&tmp, &z);
+            secp256k1_ge_set_xy(&a.p, &tmp.x, &tmp.y);
+            a.z = tmp.z;
+        }
+        for (j = 0; j < EXHAUSTIVE_TEST_ORDER; j++) {
+            secp256k1_ge_z r;
+            secp256k1_ge t;
+            secp256k1_fe rzr;
+            secp256k1_ge_z_add_ge_var(&r, &a, &group[j], &rzr);
+            CHECK(r.p.infinity == ((i + j) % EXHAUSTIVE_TEST_ORDER == 0));
+            if (!r.p.infinity) {
+                /* Compare both affine coordinates: secp256k1_gej_eq_ge_var would let a wrong y by. */
+                tmp.x = r.p.x;
+                tmp.y = r.p.y;
+                tmp.z = r.z;
+                tmp.infinity = 0;
+                secp256k1_ge_set_gej(&t, &tmp);
+                CHECK(secp256k1_ge_eq_var(&t, &group[(i + j) % EXHAUSTIVE_TEST_ORDER]));
+            }
+            /* The ratio it reports is the one between the two curves, across infinities too. */
+            secp256k1_fe_mul(&z, &a.z, &rzr);
+            CHECK(secp256k1_fe_equal(&z, &r.z));
+        }
+    }
+
     /* Check negation */
     for (i = 1; i < EXHAUSTIVE_TEST_ORDER; i++) {
         secp256k1_ge tmp;
@@ -225,6 +261,57 @@ static void test_exhaustive_ecmult_multi(const secp256k1_context *ctx, const sec
                     }
                 }
             }
+        }
+    }
+    secp256k1_scratch_destroy(&ctx->error_callback, scratch);
+}
+
+#define BUNDLE_TEST_MAX_POINTS (2 * ECMULT_BUNDLE_SIZE + 1)
+
+typedef struct {
+    secp256k1_scalar sc[BUNDLE_TEST_MAX_POINTS];
+    secp256k1_ge pt[BUNDLE_TEST_MAX_POINTS];
+} ecmult_bundle_data;
+
+static int ecmult_bundle_callback(secp256k1_scalar *sc, secp256k1_ge *pt, size_t idx, void *cbdata) {
+    ecmult_bundle_data *data = (ecmult_bundle_data*) cbdata;
+    *sc = data->sc[idx];
+    *pt = data->pt[idx];
+    return 1;
+}
+
+/* The bundled algorithm over a small group, where a subset sum of a bundle's points vanishes one time
+ * in EXHAUSTIVE_TEST_ORDER and so the tables hold infinities. Every count from one bundle to two
+ * bundles and a point left over is run, with and without a multiple of G. */
+static void test_exhaustive_ecmult_bundle(const secp256k1_context *ctx, const secp256k1_ge *group) {
+    secp256k1_scratch *scratch = secp256k1_scratch_create(&ctx->error_callback, 65536);
+    ecmult_bundle_data data;
+    size_t num, i;
+    int trial;
+
+    for (num = ECMULT_BUNDLE_SIZE; num <= BUNDLE_TEST_MAX_POINTS; ++num) {
+        for (trial = 0; trial < 32; ++trial) {
+            secp256k1_gej tmp;
+            secp256k1_scalar g_sc;
+            int k = testrand_int(EXHAUSTIVE_TEST_ORDER);
+            int expect = 0;
+
+            secp256k1_scalar_set_int(&g_sc, k);
+            for (i = 0; i < num; ++i) {
+                int x = testrand_int(EXHAUSTIVE_TEST_ORDER);
+                int s = testrand_int(EXHAUSTIVE_TEST_ORDER);
+
+                secp256k1_scalar_set_int(&data.sc[i], s);
+                data.pt[i] = group[x];
+                expect = (expect + x * s) % EXHAUSTIVE_TEST_ORDER;
+            }
+
+            CHECK(secp256k1_ecmult_bundle_batch_single(&ctx->error_callback, scratch, &tmp, trial & 1 ? &g_sc : NULL, ecmult_bundle_callback, &data, num) == 1);
+            CHECK(secp256k1_gej_eq_ge_var(&tmp, &group[trial & 1 ? (expect + k) % EXHAUSTIVE_TEST_ORDER : expect]));
+            /* The same through secp256k1_ecmult_multi_var, the scratch space being large enough for
+             * one batch to hold all of the points. */
+            CHECK(secp256k1_ecmult_multi_var(&ctx->error_callback, scratch, &tmp, &g_sc, ecmult_bundle_callback, &data, num) == 1);
+            CHECK(secp256k1_gej_eq_ge_var(&tmp, &group[(expect + k) % EXHAUSTIVE_TEST_ORDER]));
         }
     }
     secp256k1_scratch_destroy(&ctx->error_callback, scratch);
@@ -441,6 +528,7 @@ int main(int argc, char** argv) {
         test_exhaustive_addition(group, groupj);
         test_exhaustive_ecmult(group, groupj);
         test_exhaustive_ecmult_multi(ctx, group);
+        test_exhaustive_ecmult_bundle(ctx, group);
         test_exhaustive_sign(ctx, group);
         test_exhaustive_verify(ctx, group);
 

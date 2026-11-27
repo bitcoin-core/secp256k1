@@ -30,10 +30,11 @@ static void help(const char *executable_path, int default_iters) {
     printf("function name. The letter 'g' indicates that one of the points is the generator.\n");
     printf("The benchmarks are divided by the number of points.\n");
     printf("\n");
-    printf("default (ecmult_multi): picks pippenger_wnaf or strauss_wnaf depending on the\n");
+    printf("default (ecmult_multi): picks pippenger_wnaf or bundle depending on the\n");
     printf("                        batch size\n");
     printf("pippenger_wnaf:         for all batch sizes\n");
     printf("strauss_wnaf:           for all batch sizes\n");
+    printf("bundle:                 for all batch sizes (strauss_wnaf below one bundle)\n");
     printf("simple:                 multiply and sum each point individually\n");
 }
 
@@ -332,6 +333,9 @@ int main(int argc, char **argv) {
         } else if(have_flag(argc, argv, "strauss_wnaf")) {
             printf("Using strauss_wnaf:\n");
             data.ecmult_multi = secp256k1_ecmult_strauss_batch_single;
+        } else if(have_flag(argc, argv, "bundle")) {
+            printf("Using bundle:\n");
+            data.ecmult_multi = secp256k1_ecmult_bundle_batch_single;
         } else if(have_flag(argc, argv, "simple")) {
             printf("Using simple algorithm:\n");
         } else {
