@@ -177,6 +177,8 @@ static int secp256k1_schnorrsig_sign_internal(const secp256k1_context* ctx, unsi
     secp256k1_scalar_get_b32(&sig64[32], &e);
 
     secp256k1_memczero(sig64, 64, !ret);
+    /* The signature scalar is secret if signing failed. */
+    secp256k1_scalar_clear(&e);
     secp256k1_scalar_clear(&k);
     secp256k1_scalar_clear(&sk);
     secp256k1_memclear_explicit(seckey, sizeof(seckey));
