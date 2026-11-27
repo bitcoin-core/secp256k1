@@ -143,6 +143,13 @@ ctime_tests_LDADD = libsecp256k1.la
 ctime_tests_CPPFLAGS = $(SECP_CONFIG_DEFINES)
 endif
 
+if RUN_CTIME_TESTS
+TESTS += ctime_tests.sh
+endif
+# The script selects Valgrind or MSan independently of LOG_COMPILER.
+TEST_EXTENSIONS = .sh
+SH_LOG_COMPILER = $(SHELL)
+
 if USE_EXHAUSTIVE_TESTS
 noinst_PROGRAMS += exhaustive_tests
 exhaustive_tests_SOURCES = src/tests_exhaustive.c
