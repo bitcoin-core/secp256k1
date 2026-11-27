@@ -156,6 +156,13 @@ exhaustive_tests_LDFLAGS = -static
 TESTS += exhaustive_tests
 endif
 
+if USE_FUZZ
+noinst_PROGRAMS += fuzz
+fuzz_SOURCES = src/fuzz.c
+fuzz_CPPFLAGS = $(SECP_CONFIG_DEFINES) -DVERIFY
+fuzz_LDADD = $(COMMON_LIB) $(PRECOMPUTED_LIB) $(FUZZ_LIBS)
+endif
+
 if USE_EXAMPLES
 noinst_PROGRAMS += ecdsa_example
 ecdsa_example_SOURCES = examples/ecdsa.c
