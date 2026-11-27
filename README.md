@@ -56,7 +56,7 @@ Implementation details
   * Use secp256k1's efficiently-computable endomorphism to split the P multiplicand into 2 half-sized ones.
 * Point multiplication for signing
   * Use a precomputed table of multiples of powers of 16 multiplied with the generator, so general multiplication becomes a series of additions.
-  * Intended to be completely free of timing sidechannels for secret-key operations (on reasonable hardware/toolchains)
+  * Intended to be completely free of timing sidechannels for secret-key operations (on [reasonable hardware/toolchains](SECURITY.md#threat-model))
     * Access the table with branch-free conditional moves so memory access is uniform.
     * No data-dependent branches
   * Optional runtime blinding which attempts to frustrate differential power analysis.
@@ -171,7 +171,7 @@ To create a CSV file for the benchmark result :
 Reporting a vulnerability
 ------------
 
-See [SECURITY.md](SECURITY.md)
+See [SECURITY.md](SECURITY.md) for how to report a vulnerability, including guidelines on which issues we prefer to be reported privately.
 
 Contributing to libsecp256k1
 ------------
