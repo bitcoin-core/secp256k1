@@ -101,7 +101,8 @@ typedef struct secp256k1_musig_partial_sig {
  *
  *  Returns: 1 when the nonce could be parsed, 0 otherwise.
  *  Args:    ctx: pointer to a context object
- *  Out:   nonce: pointer to a nonce object
+ *  Out:   nonce: pointer to a nonce object. If 1 is returned, it is set to a
+ *                parsed version of in66. If not, it's set to an invalid value.
  *  In:     in66: pointer to the 66-byte nonce to be parsed
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_pubnonce_parse(
@@ -127,7 +128,8 @@ SECP256K1_API int secp256k1_musig_pubnonce_serialize(
  *
  *  Returns: 1 when the nonce could be parsed, 0 otherwise.
  *  Args:    ctx: pointer to a context object
- *  Out:   nonce: pointer to a nonce object
+ *  Out:   nonce: pointer to a nonce object. If 1 is returned, it is set to a
+ *                parsed version of in66. If not, it's set to an invalid value.
  *  In:     in66: pointer to the 66-byte nonce to be parsed
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_aggnonce_parse(
@@ -153,7 +155,8 @@ SECP256K1_API int secp256k1_musig_aggnonce_serialize(
  *
  *  Returns: 1 when the signature could be parsed, 0 otherwise.
  *  Args:    ctx: pointer to a context object
- *  Out:     sig: pointer to a signature object
+ *  Out:     sig: pointer to a signature object. If 1 is returned, it is set to
+ *                a parsed version of in32. If not, it's set to an invalid value.
  *  In:     in32: pointer to the 32-byte signature to be parsed
  */
 SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_musig_partial_sig_parse(
