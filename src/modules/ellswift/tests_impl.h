@@ -512,6 +512,7 @@ void ellswift_xdh_bad_scalar_tests(void) {
     testutil_random_scalar_order(&rand_scalar);
     secp256k1_scalar_get_b32(s_good, &rand_scalar);
 
+    CHECK(secp256k1_ellswift_create(CTX, ell_a64, s_zero, NULL) == 0);
     CHECK(secp256k1_ellswift_create(CTX, ell_a64, s_good, NULL) == 1);
 
     testrand256_test(ell_b64);
