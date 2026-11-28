@@ -214,6 +214,31 @@ static void bench_field_normalize_weak(void* arg, int iters) {
     }
 }
 
+static void bench_field_normalizes_to_zero(void* arg, int iters) {
+    int i, j = 0;
+    bench_inv *data = (bench_inv*)arg;
+
+    /* The input is selected by the previous result (always 0 for non-zero inputs) to prevent
+       the compiler from hoisting the loop-invariant call out of the loop. */
+    for (i = 0; i < iters; i++) {
+        j += secp256k1_fe_normalizes_to_zero(&data->fe[j & 1]);
+    }
+    CHECK(j == 0);
+}
+
+static void bench_field_normalizes_to_zero_var(void* arg, int iters) {
+    int i, j = 0;
+    bench_inv *data = (bench_inv*)arg;
+
+    /* The input is selected by the previous result (always 0 for non-zero inputs) to prevent
+       the compiler from hoisting the loop-invariant call out of the loop. Note that this
+       benchmark measures the optimistic (early exit) path for a random non-zero input. */
+    for (i = 0; i < iters; i++) {
+        j += secp256k1_fe_normalizes_to_zero_var(&data->fe[j & 1]);
+    }
+    CHECK(j == 0);
+}
+
 static void bench_field_mul(void* arg, int iters) {
     int i;
     bench_inv *data = (bench_inv*)arg;
@@ -434,6 +459,8 @@ int main(int argc, char **argv) {
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "normalize")) run_benchmark("field_normalize", bench_field_normalize, bench_setup, NULL, &data, 10, iters*100);
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "normalize")) run_benchmark("field_normalize_var", bench_field_normalize_var, bench_setup, NULL, &data, 10, iters*100);
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "normalize")) run_benchmark("field_normalize_weak", bench_field_normalize_weak, bench_setup, NULL, &data, 10, iters*100);
+    if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "normalize")) run_benchmark("field_normalizes_to_zero", bench_field_normalizes_to_zero, bench_setup, NULL, &data, 10, iters*100);
+    if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "normalize")) run_benchmark("field_normalizes_to_zero_var", bench_field_normalizes_to_zero_var, bench_setup, NULL, &data, 10, iters*100);
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "sqr")) run_benchmark("field_sqr", bench_field_sqr, bench_setup, NULL, &data, 10, iters*10);
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "mul")) run_benchmark("field_mul", bench_field_mul, bench_setup, NULL, &data, 10, iters*10);
     if (d || have_flag(argc, argv, "field") || have_flag(argc, argv, "inverse")) run_benchmark("field_inverse", bench_field_inverse, bench_setup, NULL, &data, 10, iters);
