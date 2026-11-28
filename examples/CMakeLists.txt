@@ -36,3 +36,7 @@ endif()
 if(SECP256K1_ENABLE_MODULE_SILENTPAYMENTS)
   add_example(silentpayments)
 endif()
+
+if(SECP256K1_ENABLE_MODULE_SCHNORRSIG_HALFAGG)
+  add_example(halfagg)
+endif()
